@@ -1,0 +1,54 @@
+[tool.poetry]
+name = "deep-footsteps"
+version = "0.1.0"
+description = "Data processing pipeline for Globe of Humans visualization"
+authors = ["Deep Footsteps Team"]
+readme = "README.md"
+packages = [
+    { include = "data" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+geopandas = "^1.1.0"
+xarray = "^2025.7.0"
+requests = "^2.32.0"
+numpy = "^2.3.0"
+pandas = "^2.3.0"
+shapely = "^2.1.0"
+netcdf4 = "^1.7.0"  # Required for xarray netCDF support
+h5netcdf = "^1.3.0"  # Alternative netCDF backend
+matplotlib = "^3.9.0"  # For visualization during development
+jupyter = "^1.1.0"  # Optional: for data exploration notebooks
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0.0"
+isort = "^5.13.0"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+pytest = "^8.0.0"
+
+[tool.poetry.scripts]
+fetch-data = "data.scripts.fetch_data:main"
+download-hyde = "data.scripts.download_hyde_bulk:main"
+process-hyde = "data.scripts.process_hyde:main"
+process-cities = "data.scripts.process_cities:main"
+make-tiles = "data.scripts.make_tiles:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

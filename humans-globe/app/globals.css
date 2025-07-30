@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+html,
+body,
+#__next,
+main {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* RC Slider custom styles for dark theme */
+.rc-slider {
+  background: #333;
+}
+
+.rc-slider-track {
+  background: #0ea5e9;
+}
+
+.rc-slider-handle {
+  border: 2px solid #0ea5e9;
+  background: #1e293b;
+}
+
+.rc-slider-handle:hover {
+  border-color: #38bdf8;
+}
+
+.rc-slider-mark-text {
+  color: #cbd5e1;
+  font-size: 12px;
+}

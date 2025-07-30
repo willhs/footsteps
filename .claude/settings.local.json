@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(pnpm:*)",
+      "Bash(gdal_translate:*)",
+      "Bash(docker:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "mcp__playwright-local__browser_screenshot",
+      "mcp__playwright-local__browser_evaluate",
+      "Bash(unzip:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,42 @@
+# Footsteps of Time - Claude Context
+
+## Project Overview
+A living atlas that lets anyone scrub through 100,000 BCE → today and watch humanity spread, cluster, and explode into cities on a single, elegant globe.
+
+## Vision
+Make the vast sweep of human presence instantly graspable by turning dry demographic tables into a visceral, time-lapse journey.
+
+## Core Experience
+1. Land on a dark globe showing faint clusters at -100k
+2. Drag the slider → density blooms; cities spark on
+3. Hover any dot to see name, year, population & confidence flag
+4. Toggle "Show uncertainty" to reveal/hide synthetic low-confidence data
+
+## MVP Tech Stack (v0.1)
+- **Frontend**: Next.js + Deck.gl heat shader, RC-Slider control, basic tooltip
+- **Backend**: Static file hosting; mbtiles served locally during dev
+- **Data**: HYDE grids (every 1k yr to 1 CE, 100 yr 1-1800, 10 yr 1800-2020) + Reba cities
+- **Hosting**: Vercel (static) + Cloudflare R2 for mbtiles
+
+## Key Features
+- Interactive globe + non-linear time slider (100k BCE → 2025 CE)
+- Population heat-map and city dots
+- Fog-of-history layer to visualize confidence vs. conjecture
+- Milestone call-outs for pivotal jumps (Neolithic farming, Industrial Revolution)
+
+## Target Audience
+- High-school & university educators
+- History & data-viz enthusiasts
+- Newsrooms needing quick historical context graphics
+
+## Differentiators
+- Full 100k year span (vs mostly last 12k years)
+- Fog-of-history layer showing data gaps
+- Non-linear slider scaling
+- Globe + heat-map combination
+
+## Commands
+- Build: `npm run build` (if available)
+- Dev: `npm run dev` (if available)
+- Test: `npm test` (if available)
+- Lint: `npm run lint` (if available)

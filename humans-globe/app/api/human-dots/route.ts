@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { createReadStream } from 'fs';
 import readline from 'readline';
+import { gzipSync } from 'zlib';
 
 export async function GET(request: Request) {
   try {
@@ -30,6 +31,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Year not available' }, { status: 404 });
     }
 
+    // ---- Caching ----
+    const stat = fs.statSync(ndPath);
+    const etag = `W/\"${yr}-${stat.mtimeMs}\"`;
+    if (request.headers.get('if-none-match') === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          ETag: etag,
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+    }
+
     // Stream first <limit> lines
     const features: any[] = [];
     const rl = readline.createInterface({
@@ -48,14 +62,23 @@ export async function GET(request: Request) {
     }
 
     // Build GeoJSON response
-    const response = {
+    const geojson = {
       type: 'FeatureCollection',
       features
     };
 
     console.log(`Loaded ${features.length} features for year ${yr}`);
 
-    return NextResponse.json(response);
+    const jsonStr = JSON.stringify(geojson);
+    const gzBody = gzipSync(Buffer.from(jsonStr));
+    return new NextResponse(gzBody, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Encoding': 'gzip',
+        'Cache-Control': 'public, max-age=86400',
+        ETag: etag
+      }
+    });
     
   } catch (error) {
     console.error('Error loading human dots data:', error);

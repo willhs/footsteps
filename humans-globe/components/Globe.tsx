@@ -42,6 +42,16 @@ function Globe({ year }: GlobeProps) {
   const [humanDotsData, setHumanDotsData] = useState<HumanDot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const DOT_LIMIT = 100000;
+
+  // Derived statistics
+  const totalPopulation = useMemo(() => {
+    return humanDotsData.reduce((sum, dot) => {
+      return sum + (dot?.properties?.population ?? 0);
+    }, 0);
+  }, [humanDotsData]);
+
+
 
   // Load HYDE human dots data for current year only
   useEffect(() => {
@@ -51,7 +61,7 @@ function Globe({ year }: GlobeProps) {
         
         // Load data for specific year with reasonable limit
         console.log(`Loading human dots data for year ${year}...`);
-        const response = await fetch(`/api/human-dots?year=${year}&limit=5000`);
+        const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}`);
         if (!response.ok) {
           throw new Error('Failed to load human dots data');
         }
@@ -114,6 +124,10 @@ function Globe({ year }: GlobeProps) {
       return [];
     }
   }, [humanDotsData]);
+
+  const samplingRate = useMemo(() => {
+    return (currentHumanDots.length / DOT_LIMIT) * 100;
+  }, [currentHumanDots]);
   
   // For now, disable population density layer and focus on human dots
   const populationLayer = new GeoJsonLayer({
@@ -346,16 +360,11 @@ function Globe({ year }: GlobeProps) {
           <div className="text-xs text-gray-500 mt-1 font-normal">
             Each dot ≈ 100 people
           </div>
-        </div>
-      )}
-      
-      {/* Loading/Error states */}
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center z-50">
-          <div className="bg-black/90 backdrop-blur-sm rounded-lg p-8 text-white text-center">
-            <div className="text-4xl mb-4">🌍</div>
-            <div className="text-xl font-bold mb-2">Loading Historical Data...</div>
-            <div className="text-gray-400">Please wait while we load human population data</div>
+          <div className="text-xs text-gray-500 mt-1 font-normal">
+            Total population ≈ {totalPopulation.toLocaleString()}
+          </div>
+          <div className="text-xs text-gray-500 mt-1 font-normal">
+            Sampling rate: {samplingRate.toFixed(1)}%
           </div>
         </div>
       )}

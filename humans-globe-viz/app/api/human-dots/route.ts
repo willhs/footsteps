@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
-    const limit = parseInt(searchParams.get('limit') || '10000');
+    const limit = parseInt(searchParams.get('limit') || '5000000');  // Removed cap - load all available data
     
     if (!year) {
       return NextResponse.json({ error: 'year query param required' }, { status: 400 });

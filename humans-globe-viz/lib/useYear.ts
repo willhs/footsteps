@@ -2,34 +2,37 @@
 
 import { useState, useCallback } from 'react';
 
-// Available target years from HYDE 3.3 data (matches process_hyde.py TARGET_YEARS)
+// Available target years from HYDE 3.5 data (matches process_hyde.py TARGET_YEARS)
+// Complete deep history dataset - 26 time periods from Ice Age to Renaissance
 const TARGET_YEARS = [
-  // BCE years
-  -10000, -1000,
-  // CE years  
-  0, 100, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700,
-  // 10-year intervals from 1710-1940
-  1710, 1720, 1730, 1740, 1750, 1760, 1770, 1780, 1790, 
-  1800, 1810, 1820, 1830, 1840, 1850, 1860, 1870, 1880, 1890,
-  1900, 1910, 1920, 1930, 1940
+  // Deep Prehistory - Every millennium
+  -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
+  
+  // Classical Period - Complete coverage every century
+  0, 100, 200, 300, 400, 500, 600, 700, 800, 900,
+  
+  // Medieval Period  
+  1000, 1100, 1200, 1300, 1400, 1500
 ];
 
 // Data range constants (based on our available HYDE 3.3 data)
 const MIN_YEAR = TARGET_YEARS[0]; // -10000 BCE
-const MAX_YEAR = TARGET_YEARS[TARGET_YEARS.length - 1]; // 1940 CE
+const MAX_YEAR = TARGET_YEARS[TARGET_YEARS.length - 1]; // 1500 CE
 
 // Time scale compression factor - ADJUST THIS VALUE TO CHANGE TIME SCALING
 // Lower values (10-100) = more expansion of recent years
 // Higher values (500-2000) = less expansion of recent years
-// Current: 200 gives ~60% of slider to last 70 years (1870-1940)
-const COMPRESSION_FACTOR = 1;
+// Current: 200 gives balanced scaling for deep history (10k BCE to 1500 CE)
+// Compression factor controls how much recent years are compressed.
+// Increase this value to make 1400-1500 take less space; decrease to expand them.
+const COMPRESSION_FACTOR = 800;
 
 // Natural logarithmic scale based on years ago (recent dates naturally expanded)
 function getScaledPosition(year: number): number {
   const minYear = MIN_YEAR; // -10000
   const maxYear = MAX_YEAR; // 1940
   
-  // Calculate "years ago" from the most recent year (1940)
+  // Calculate "years ago" from the most recent year (1500)
   // More recent years have smaller "years ago" values
   const yearsAgo = maxYear - year;
   const maxYearsAgo = maxYear - minYear;
@@ -45,44 +48,52 @@ function getScaledPosition(year: number): number {
   return position * 100;
 }
 
-// Convert year to slider position (0-100)
+
+
+// Convert year to slider position (0-100) using normalised logarithmic scale
+// Raw maximum position computed for MAX_YEAR (most recent)
+const RAW_MAX_POSITION = getScaledPosition(MAX_YEAR);
+
+// Convert year to slider position (0-100) normalised over raw max
 export function yearToSlider(year: number): number {
-  if (year <= MIN_YEAR) return 0;
-  if (year >= MAX_YEAR) return 100;
-  
-  return getScaledPosition(year);
+  const raw = getScaledPosition(Math.min(Math.max(year, MIN_YEAR), MAX_YEAR));
+  return (raw / RAW_MAX_POSITION) * 100;
 }
 
 // Reverse the natural logarithmic scaling to get year from slider position
 function getYearFromScaledPosition(position: number): number {
-  const minYear = MIN_YEAR; // -10000
-  const maxYear = MAX_YEAR; // 1940
+  const minYear = MIN_YEAR;
+  const maxYear = MAX_YEAR;
   const maxYearsAgo = maxYear - minYear;
+
+    const compressionFactor = COMPRESSION_FACTOR;
   
-  const compressionFactor = COMPRESSION_FACTOR;
-  
-  // Reverse the natural log scaling
-  const positionRatio = position / 100;
+  // position is 0-100 normalised; map back to raw 0-RAW_MAX_POSITION
+  const positionRatio = (position / 100);
+  const rawPos = positionRatio * RAW_MAX_POSITION;
+  // Convert rawPos to same ratio for log calculation
+  const logPositionRatio = rawPos / RAW_MAX_POSITION;
+
   const logMaxYearsAgo = Math.log(maxYearsAgo + compressionFactor);
-  const logYearsAgo = (1 - positionRatio) * logMaxYearsAgo;
-  const yearsAgo = Math.exp(logYearsAgo) - compressionFactor;
+  const logYearsAgo = (1 - logPositionRatio) * logMaxYearsAgo;
+    let yearsAgo = Math.exp(logYearsAgo) - compressionFactor;
+  if (yearsAgo < 0) yearsAgo = 0; // prevent overshoot beyond most recent year
   const year = maxYear - yearsAgo;
-  
+
   return Math.round(year);
 }
 
 // Convert slider position (0-100) to year (snaps to available target years)
 export function sliderToYear(position: number): number {
-  if (position <= 0) return TARGET_YEARS[0];
-  if (position >= 100) return TARGET_YEARS[TARGET_YEARS.length - 1];
-  
-  // Get the theoretical year from scaled position
-  const theoreticalYear = getYearFromScaledPosition(position);
-  
-  // Find the closest available target year
+  const clamped = Math.min(Math.max(position, 0), 100);
+  // Map slider 0-100 back to raw position
+  const rawPos = (clamped / 100) * RAW_MAX_POSITION;
+  const theoreticalYear = getYearFromScaledPosition(rawPos);
+
+  // Snap to nearest target year
   let closestYear = TARGET_YEARS[0];
   let minDistance = Math.abs(theoreticalYear - closestYear);
-  
+
   for (const targetYear of TARGET_YEARS) {
     const distance = Math.abs(theoreticalYear - targetYear);
     if (distance < minDistance) {
@@ -90,18 +101,14 @@ export function sliderToYear(position: number): number {
       closestYear = targetYear;
     }
   }
-  
-  return closestYear;
+    return closestYear;
 }
 
 // Format year for display
 export function formatYear(year: number): string {
   if (year < 0) {
     const absYear = Math.abs(year);
-    if (absYear >= 1000) {
-      return `${Math.round(absYear / 1000)}k BCE`;
-    }
-    return `${absYear} BCE`;
+    return `${absYear} BC`;
   } else if (year === 0) {
     return '1 CE';
   } else {

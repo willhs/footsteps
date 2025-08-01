@@ -10,28 +10,58 @@ interface TimeSliderProps {
 }
 
 // Available target years (must match lib/useYear.ts)
+// Complete deep history dataset - 26 time periods 
 const TARGET_YEARS = [
-  -10000, -1000, 0, 100, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700,
-  1710, 1720, 1730, 1740, 1750, 1760, 1770, 1780, 1790, 
-  1800, 1810, 1820, 1830, 1840, 1850, 1860, 1870, 1880, 1890,
-  1900, 1910, 1920, 1930, 1940
+  // Deep Prehistory - Every millennium
+  -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
+  // Classical Period - Complete coverage every century
+  0, 100, 200, 300, 400, 500, 600, 700, 800, 900,
+  // Medieval Period
+  1000, 1100, 1200, 1300, 1400, 1500
 ];
 
-// Generate slider marks using logarithmic scaling (recent years get more space)
+// Generate responsive slider marks with compact year labels
 const SLIDER_MARKS = (() => {
   const marks: Record<number, string> = {};
-  const keyYears = [-10000, -1000, 0, 1000, 1400, 1700, 1870, 1940]; // Key years to show
+  
+  // Responsive mark selection based on available space - show more marks when there's room
+  const getKeyYears = () => {
+    // Include ALL BCE (negative) years
+    const bcYears = TARGET_YEARS.filter(y => y < 0);
+
+    // Positive (CE) selections – keep a concise yet useful subset
+    const ceYears = [0, 500, 800, 1000, 1200, 1300, 1400, 1500];
+
+    return [...bcYears, ...ceYears].sort((a, b) => a - b);
+  };
+  
+  const keyYears = getKeyYears();
   
   keyYears.forEach(year => {
     if (TARGET_YEARS.includes(year)) {
-      // Use the same yearToSlider function to ensure consistency
       const position = yearToSlider(year);
       
-      if (year === -10000) marks[position] = '10k BCE';
-      else if (year === -1000) marks[position] = '1k BCE';
-      else if (year === 0) marks[position] = '0 CE';
-      else if (year === 1000) marks[position] = '1k CE';
-      else marks[position] = year.toString();
+      // Compact year labels - use -10k, -5k, -2k, -1k, 0, 500, 1k, 1.5k format
+      // BCE years: display full absolute value with " BC" suffix (e.g., -5000 → 5000 BC)
+      if (year < 0) {
+        marks[position] = `${Math.abs(year)} BC`;
+      }
+      // Year 0 stays as "0"
+      else if (year === 0) {
+        marks[position] = '0';
+      }
+      // CE thousands (e.g., 1000 → 1k, 2000 → 2k)
+      else if (year >= 1000) {
+        if (year % 1000 === 0 && year !== 1000) {
+          marks[position] = `${year/1000}k`;
+        } else {
+          marks[position] = year.toString();
+        }
+      }
+      // All other years render as full number
+      else {
+        marks[position] = year.toString();
+      }
     }
   });
   

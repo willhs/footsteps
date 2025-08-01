@@ -42,7 +42,19 @@ function Globe({ year }: GlobeProps) {
   const [humanDotsData, setHumanDotsData] = useState<HumanDot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const DOT_LIMIT = 100000;
+  const DOT_LIMIT = 5000000; // Load all available dots for accurate population representation
+  
+  // Frontend data cache to prevent duplicate API requests
+  const [dataCache, setDataCache] = useState<Map<number, HumanDot[]>>(new Map());
+  const [activeRequests, setActiveRequests] = useState<Set<number>>(new Set());
+  
+  // Performance analysis state
+  const [renderMetrics, setRenderMetrics] = useState({
+    loadTime: 0,
+    processTime: 0,
+    renderTime: 0,
+    lastUpdate: 0
+  });
 
   // Derived statistics
   const totalPopulation = useMemo(() => {
@@ -53,41 +65,80 @@ function Globe({ year }: GlobeProps) {
 
 
 
-  // Load HYDE human dots data for current year only
+  // Load HYDE human dots data with frontend caching to prevent duplicate requests
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        // Check if data is already cached
+        if (dataCache.has(year)) {
+          console.log(`Using cached data for year ${year}`);
+          const cachedData = dataCache.get(year)!;
+          setHumanDotsData(cachedData);
+          setLoading(false);
+          setError(null);
+          return;
+        }
         
-        // Load data for specific year with reasonable limit
+        // Check if request is already in progress
+        if (activeRequests.has(year)) {
+          console.log(`Request already in progress for year ${year}, skipping...`);
+          return;
+        }
+        
+        // Mark request as active
+        setActiveRequests(prev => new Set(prev).add(year));
+        setLoading(true);
+        const startTime = performance.now();
+        
         console.log(`Loading human dots data for year ${year}...`);
         const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}`);
         if (!response.ok) {
           throw new Error('Failed to load human dots data');
         }
         
+        const loadEndTime = performance.now();
+        
         console.log('Parsing data...');
         const data = await response.json();
         const features = data.features || [];
         
+        const processEndTime = performance.now();
+        
         console.log(`Loaded ${features.length.toLocaleString()} human dots for year ${year}`);
         
+        // Cache the data
+        setDataCache(prev => new Map(prev).set(year, features));
         setHumanDotsData(features);
         setError(null);
         setLoading(false);
+        
+        // Update performance metrics
+        setRenderMetrics({
+          loadTime: loadEndTime - startTime,
+          processTime: processEndTime - loadEndTime,
+          renderTime: 0, // Will be updated by render callback
+          lastUpdate: Date.now()
+        });
         
       } catch (err) {
         console.error('Error loading data:', err);
         setError('No processed data found. Run the data processing pipeline first.');
         setHumanDotsData([]);
         setLoading(false);
+      } finally {
+        // Remove from active requests
+        setActiveRequests(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(year);
+          return newSet;
+        });
       }
     };
 
     loadData();
   }, [year]); // Reload when year changes
 
-  // Use loaded data directly since it's already filtered by year
+  // Use loaded data with zoom-based adaptive density
   const currentHumanDots = useMemo(() => {
     try {
       if (!Array.isArray(humanDotsData) || humanDotsData.length === 0) {
@@ -125,9 +176,12 @@ function Globe({ year }: GlobeProps) {
     }
   }, [humanDotsData]);
 
+  // Percentage of dots actually rendered vs total dots loaded for the year
   const samplingRate = useMemo(() => {
-    return (currentHumanDots.length / DOT_LIMIT) * 100;
-  }, [currentHumanDots]);
+    const totalLoaded = humanDotsData.length;
+    if (totalLoaded === 0) return 0;
+    return (currentHumanDots.length / totalLoaded) * 100;
+  }, [currentHumanDots, humanDotsData]);
   
   // For now, disable population density layer and focus on human dots
   const populationLayer = new GeoJsonLayer({
@@ -152,18 +206,55 @@ function Globe({ year }: GlobeProps) {
         return [0, 0];
       }
     },
-    getRadius: 2000, // Slightly larger for better visibility against basemap
-    getFillColor: [255, 180, 0, 220], // Brighter orange with more opacity
-    radiusMinPixels: 1.5,
-    radiusMaxPixels: 10, // Slightly larger max size
+    // Zoom-adaptive dot sizing
+    getRadius: (d: any) => {
+      const zoom = viewState.zoom;
+      const baseRadius = 2000;
+      const population = d?.properties?.population || 100;
+      
+      // Scale radius based on population and zoom level
+      const populationScale = Math.sqrt(population / 100); // Square root scaling
+      const zoomScale = Math.max(0.5, Math.min(2.0, zoom / 3)); // Zoom factor
+      
+      return baseRadius * populationScale * zoomScale;
+    },
+    getFillColor: (d: any) => {
+      const population = d?.properties?.population || 100;
+      
+      // Color intensity based on population
+      if (population > 1000) {
+        return [255, 100, 0, 240]; // Large settlements: bright red-orange
+      } else if (population > 500) {
+        return [255, 150, 50, 220]; // Medium settlements: orange
+      } else {
+        return [255, 200, 100, 200]; // Small settlements: pale yellow
+      }
+    },
+    radiusMinPixels: 1,
+    radiusMaxPixels: 15,
     pickable: false, // Disable picking for better performance
     updateTriggers: {
       getPosition: currentHumanDots,
-      getFillColor: currentHumanDots
+      getFillColor: currentHumanDots,
+      getRadius: [currentHumanDots, viewState.zoom]
     },
     // Performance optimizations
     billboard: false,
     antialiasing: false,
+    // Performance tracking (throttled to avoid render loops)
+    onAfterRender: useMemo(() => {
+      let lastRenderTime = 0;
+      return () => {
+        const now = performance.now();
+        if (now - lastRenderTime > 100) { // Throttle to 10fps
+          setRenderMetrics(prev => ({
+            ...prev,
+            renderTime: now - lastRenderTime
+          }));
+          lastRenderTime = now;
+        }
+      };
+    }, []),
     // Additional error handling
     onError: (error: any) => {
       console.warn('ScatterplotLayer error:', error);
@@ -273,9 +364,13 @@ function Globe({ year }: GlobeProps) {
     setTimeout(() => {
       // Try multiple GeoJSON sources in order of preference
       const sources = [
+        // Natural Earth landmass (no internal country boundaries)
+        'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/50m/physical/ne_50m_land.json',
+        // Low-resolution fallback
+        'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/110m/physical/ne_110m_land.json',
+        // Additional fallbacks (may include country polygons)
         'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
-        'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson',
-        'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/50m/cultural/ne_50m_admin_0_countries.geojson'
+        'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
       ];
       
       const tryLoadSource = (sourceIndex = 0) => {
@@ -308,11 +403,9 @@ function Globe({ year }: GlobeProps) {
     id: 'land-layer',
     data: basemapData || { type: 'FeatureCollection', features: [] },
     filled: true,
-    stroked: true,
-    getFillColor: basemapError ? [60, 80, 100, 120] : [40, 60, 80, 180], // Lighter if using fallback
-    getLineColor: [80, 100, 120, 255], // More visible coastlines
-    getLineWidth: basemapError ? 2 : 1, // Thicker lines for fallback
-    lineWidthMinPixels: 1,
+    // Disable stroke so internal country borders are not drawn
+    stroked: false,
+    getFillColor: basemapError ? [60, 80, 100, 120] : [40, 60, 80, 180],
     pickable: false,
     opacity: 1.0,
     updateTriggers: {
@@ -327,8 +420,17 @@ function Globe({ year }: GlobeProps) {
     <div className="relative w-full h-full">
       <DeckGL
         viewState={viewState}
-        onViewStateChange={({ viewState }) => setViewState(viewState as any)}
-        controller={true}
+        onViewStateChange={({ viewState: newViewState }) => {
+          setViewState(newViewState as any);
+        }}
+        controller={{
+          dragPan: true,
+          dragRotate: true,
+          scrollZoom: true,
+          touchZoom: true,
+          touchRotate: true,
+          keyboard: false
+        }}
         layers={layers}
         getCursor={() => 'crosshair'}
         style={{ background: '#000810' }}
@@ -353,37 +455,34 @@ function Globe({ year }: GlobeProps) {
           className="absolute bg-black/90 rounded-lg p-4 text-white font-sans"
           style={{ top: '2rem', left: '2rem', zIndex: 30 }}
         >
-          <div className="text-sm text-gray-400 font-normal">Human Settlements</div>
+          <div className="text-sm text-blue-300 font-normal">Deep History of Human Settlement</div>
           <div className="text-lg font-bold text-orange-400 font-mono">
             {currentHumanDots.length.toLocaleString()} dots
           </div>
           <div className="text-xs text-gray-500 mt-1 font-normal">
-            Each dot ≈ 100 people
+            Dots: 100-1000 people (density-scaled)
           </div>
           <div className="text-xs text-gray-500 mt-1 font-normal">
             Total population ≈ {totalPopulation.toLocaleString()}
           </div>
           <div className="text-xs text-gray-500 mt-1 font-normal">
+            Zoom level: {viewState.zoom.toFixed(1)}x
+          </div>
+          <div className="text-xs text-gray-500 mt-1 font-normal">
             Sampling rate: {samplingRate.toFixed(1)}%
+          </div>
+          
+          {/* Performance metrics */}
+          <div className="text-xs text-gray-600 mt-2 border-t border-gray-700 pt-2">
+            <div>Load: {renderMetrics.loadTime.toFixed(0)}ms</div>
+            <div>Process: {renderMetrics.processTime.toFixed(0)}ms</div>
+            <div>Render: {renderMetrics.renderTime.toFixed(0)}ms</div>
+            <div>Cache: {dataCache.size} years cached</div>
           </div>
         </div>
       )}
       
-      {!loading && error && (
-        <div className="absolute inset-0 flex items-center justify-center z-50">
-          <div className="bg-black/90 backdrop-blur-sm rounded-lg p-8 text-white text-center max-w-md">
-            <div className="text-4xl mb-4">❌</div>
-            <div className="text-xl font-bold mb-2">Data Loading Failed</div>
-            <div className="text-gray-400 mb-4">{error}</div>
-            <div className="text-sm text-left bg-gray-800 rounded p-3 font-mono">
-              <div className="text-blue-400 mb-1"># Process HYDE data</div>
-              <div>poetry run process-hyde</div>
-              <div className="text-blue-400 mt-2 mb-1"># Start API server</div>
-              <div>Create API endpoint for data</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Error overlay removed – details are logged in the browser console */}
       
       
       {/* Legend */}
@@ -391,7 +490,8 @@ function Globe({ year }: GlobeProps) {
         className="absolute bg-black/80 backdrop-blur-sm rounded-lg p-4 text-white"
         style={{ top: '2rem', right: '2rem', zIndex: 30 }}
       >
-        <div className="text-sm font-semibold mb-2">Legend</div>
+        <div className="text-sm font-semibold mb-2 text-blue-300">Deep History</div>
+        <div className="text-xs text-gray-400 mb-3">12,000 Years of Settlement</div>
         <div className="space-y-2 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-orange-400"></div>

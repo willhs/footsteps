@@ -9,7 +9,14 @@
       "Bash(npm run dev:*)",
       "mcp__playwright-local__browser_screenshot",
       "mcp__playwright-local__browser_evaluate",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "mcp__playwright-local__browser_navigate",
+      "mcp__playwright-local__browser_click",
+      "mcp__playwright-local__browser_click_text"
     ],
     "deny": []
   }

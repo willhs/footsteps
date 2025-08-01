@@ -8,7 +8,7 @@ import TimeSlider from '../components/TimeSlider';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export default function Home() {
-  const { year, sliderValue, updateSlider } = useYear(1870); // Start at 1870 CE (last year in dataset)
+  const { year, sliderValue, updateSlider } = useYear(0); // Start at 0 CE (we know this data exists)
   
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">

@@ -10,6 +10,7 @@ import LegendOverlay from './globe/LegendOverlay';
 import GlobeView3D from './GlobeView3D';
 import MapView2D from './MapView2D';
 import useHumanDotsData, { MAX_RENDER_DOTS } from './globe/useHumanDotsData';
+import useGlobeViewState from './globe/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -21,14 +22,17 @@ function Globe({ year }: GlobeProps) {
   // View mode toggle state with cookie persistence for SSR compatibility
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   
-  // View states for different modes
-  const [viewState2D, setViewState2D] = useState({
-    longitude: 0,
-    latitude: 20,
-    zoom: 1.5,
-    pitch: 0,
-    bearing: 0
-  });
+  // Use the viewState hook for gesture tracking and management
+  const { viewState: hookViewState, isZooming, isPanning, onViewStateChange } = useGlobeViewState();
+  
+  // View states for different modes - initialize from hook
+  const [viewState2D, setViewState2D] = useState(() => ({
+    longitude: hookViewState.longitude,
+    latitude: hookViewState.latitude,
+    zoom: hookViewState.zoom,
+    pitch: hookViewState.pitch,
+    bearing: hookViewState.bearing
+  }));
   
   const [viewState3D, setViewState3D] = useState({
     longitude: 0,
@@ -56,14 +60,6 @@ function Globe({ year }: GlobeProps) {
   //   []
   // );
   
-  
-  // Zoom gesture state tracking
-  const [isZooming, setIsZooming] = useState(false);
-  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Pan gesture state tracking
-  const [isPanning, setIsPanning] = useState(false);
-  const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   
   // Helper to get LOD level from zoom (still needed for other calculations)
@@ -243,17 +239,7 @@ function Globe({ year }: GlobeProps) {
     }, 1000);
   }, []);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (zoomTimeoutRef.current) {
-        clearTimeout(zoomTimeoutRef.current);
-      }
-      if (panTimeoutRef.current) {
-        clearTimeout(panTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Cleanup handled by the hooks
 
   // Memoized layers to prevent recreation on every render (critical for performance)
   
@@ -333,35 +319,13 @@ function Globe({ year }: GlobeProps) {
   // Memoized layers array to prevent array recreation
   // Shared view-state change handler reused by both 2-D and 3-D views
   const handleViewStateChange = ({ viewState: newViewState }: { viewState: any }) => {
-    const oldZoom = viewState.zoom;
-    const newZoom = (newViewState as any).zoom;
-    const oldLon = viewState.longitude;
-    const newLon = (newViewState as any).longitude;
-    const oldLat = viewState.latitude;
-    const newLat = (newViewState as any).latitude;
-
     // Update appropriate view state based on mode
     if (is3DMode) {
       setViewState3D(newViewState as any);
     } else {
       setViewState2D(newViewState as any);
-    }
-
-    // Zoom detection for debouncing data loads
-    if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
-      if (!isZooming) {
-        setIsZooming(true);
-      }
-      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current);
-      zoomTimeoutRef.current = setTimeout(() => setIsZooming(false), 150);
-    }
-
-    // Pan detection for viewport-based data loading
-    const panThreshold = 0.1; // degrees
-    if ((Math.abs(newLon - oldLon) > panThreshold || Math.abs(newLat - oldLat) > panThreshold) && !isZooming) {
-      if (!isPanning) setIsPanning(true);
-      if (panTimeoutRef.current) clearTimeout(panTimeoutRef.current);
-      panTimeoutRef.current = setTimeout(() => setIsPanning(false), 300);
+      // Also update the hook for gesture tracking (only for 2D mode)
+      onViewStateChange({ viewState: newViewState });
     }
   };
 

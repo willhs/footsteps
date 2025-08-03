@@ -2,29 +2,16 @@
 
 import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer } from './globe/layers';
 import { WebMercatorViewport } from '@deck.gl/core';
 import HumanDotsOverlay from './globe/HumanDotsOverlay';
 import LegendOverlay from './globe/LegendOverlay';
+import useHumanDotsData, { MAX_RENDER_DOTS } from './globe/useHumanDotsData';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
 interface GlobeProps {
   year: number;
-}
-
-interface HumanDot {
-  type: string;
-  geometry: {
-    type: string;
-    coordinates: [number, number];
-  };
-  properties: {
-    population: number;
-    year: number;
-    type: string;
-  };
 }
 
 function Globe({ year }: GlobeProps) {
@@ -43,19 +30,6 @@ function Globe({ year }: GlobeProps) {
   //   []
   // );
   
-  const [humanDotsData, setHumanDotsData] = useState<HumanDot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const DOT_LIMIT = 5000000; // Load all available dots for accurate population representation
-  const MAX_RENDER_DOTS = 35000; // MacBook M3 should handle this fine
-  
-  // Frontend data cache to prevent duplicate API requests  
-  // Cache key includes year, LOD level, and LOD enabled state
-  const [dataCache, setDataCache] = useState<Map<string, HumanDot[]>>(new Map());
-  const [activeRequests, setActiveRequests] = useState<Set<string>>(new Set());
-  
-  // Simplified: no LOD transitions to prevent visual artifacts
-  
   // Zoom gesture state tracking
   const [isZooming, setIsZooming] = useState(false);
   const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,65 +39,11 @@ function Globe({ year }: GlobeProps) {
   const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   
-  // Track previous LOD level for proper transition detection
-  const [previousLODLevel, setPreviousLODLevel] = useState<number | null>(null);
-  
   // Helper to get LOD level from zoom
   const getLODLevel = useCallback((zoom: number): number => {
     if (zoom < 4) return 1;      // Regional LOD (minimum)
     if (zoom < 6) return 2;      // Local LOD
     return 3;                    // Detailed LOD
-  }, []);
-  
-  // Generate stable cache key - round bounds to prevent cache invalidation on micro-movements
-  const getCacheKey = useCallback((year: number, zoom: number, bounds?: number[]): string => {
-    const lodLevel = getLODLevel(zoom);
-    // Round bounds to 0.5 degree precision to create stable cache regions
-    // This prevents cache invalidation on every tiny pan movement
-    const boundsKey = bounds ? `-${bounds.map(b => Math.round(b * 2) / 2).join(',')}` : '';
-    return `${year}-lod${lodLevel}${boundsKey}`;
-  }, [getLODLevel]);
-  
-  // LOD is now handled server-side based on zoom level
-  
-  // Performance analysis state
-  const [renderMetrics, setRenderMetrics] = useState({
-    loadTime: 0,
-    processTime: 0,
-    renderTime: 0,
-    lastUpdate: 0
-  });
-
-  // Derived statistics
-  const totalPopulation = useMemo(() => {
-    return humanDotsData.reduce((sum, dot) => {
-      return sum + (dot?.properties?.population ?? 0);
-    }, 0);
-  }, [humanDotsData]);
-
-  // Spatial grid sampling function to reduce dot overlap
-  const applySpatialGridSampling = useCallback((dots: HumanDot[], gridSize: number): HumanDot[] => {
-    if (dots.length === 0) return dots;
-    
-    // Create a grid to distribute dots evenly
-    const grid = new Map<string, HumanDot>();
-    
-    dots.forEach(dot => {
-      const [lon, lat] = dot.geometry.coordinates;
-      
-      // Calculate grid cell coordinates
-      const gridX = Math.floor((lon + 180) / gridSize);
-      const gridY = Math.floor((lat + 90) / gridSize);
-      const gridKey = `${gridX},${gridY}`;
-      
-      // Keep the dot with highest population in each grid cell
-      const existingDot = grid.get(gridKey);
-      if (!existingDot || (dot.properties?.population || 0) > (existingDot.properties?.population || 0)) {
-        grid.set(gridKey, dot);
-      }
-    });
-    
-    return Array.from(grid.values());
   }, []);
 
   // Throttled viewport bounds calculation - only update when movement is significant
@@ -145,160 +65,20 @@ function Globe({ year }: GlobeProps) {
     Math.round(viewState.zoom * 2) / 2
   ]);
 
-  // -----------------------------
-  // Debounced data loading  
-  // -----------------------------
-  // We debounce the loadData call so that rapid viewState.zoom changes (e.g. while the user
-  // is zoom-scrolling) do not flood the API with requests. Extended delay during zoom gestures.
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    humanDotsData,
+    loading,
+    dataCache,
+    visibleHumanDots,
+    samplingRate,
+    renderMetrics
+  } = useHumanDotsData(year, viewState.zoom, viewportBounds);
 
-  useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    // Use longer delays during interaction to prevent cache invalidation storms
-    const delay = (isZooming || isPanning) ? 500 : 150;
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      const loadData = async () => {
-        const cacheKey = getCacheKey(year, viewState.zoom, viewportBounds || undefined);
-        const currentLODLevel = getLODLevel(viewState.zoom);
-        
-        try {
-          // Check if data is already cached
-          if (dataCache.has(cacheKey)) {
-            const cachedData = dataCache.get(cacheKey)!;
-            
-            // Simplified: immediate data updates without transitions
-            setHumanDotsData(cachedData);
-            
-            setLoading(false);
-            setError(null);
-            
-            // Update previous LOD level for next transition detection
-            setPreviousLODLevel(currentLODLevel);
-            return;
-          }
-          
-          // Check if request is already in progress
-          if (activeRequests.has(cacheKey)) {
-            return;
-          }
-          
-          // Mark request as active
-          setActiveRequests(prev => new Set(prev).add(cacheKey));
-          setLoading(true);
-          const startTime = performance.now();
-          
-          // Calculate viewport bounds for server-side filtering
-          let boundsQuery = '';
-          if (viewportBounds) {
-            const [minLon, minLat, maxLon, maxLat] = viewportBounds;
-            boundsQuery = `&minLon=${minLon}&maxLon=${maxLon}&minLat=${minLat}&maxLat=${maxLat}`;
-          }
-          
-          const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${viewState.zoom}${boundsQuery}`);
-          if (!response.ok) {
-            throw new Error('Failed to load human dots data');
-          }
-          
-          const loadEndTime = performance.now();
-          const data = await response.json();
-          const features = data.features || [];
-          const processEndTime = performance.now();
-          
-          // Cache the data
-          setDataCache(prev => new Map(prev).set(cacheKey, features));
-          setHumanDotsData(features);
-          setError(null);
-          setLoading(false);
-          
-          // Update previous LOD level for next transition detection
-          setPreviousLODLevel(currentLODLevel);
-          
-          // Update performance metrics
-          setRenderMetrics({
-            loadTime: loadEndTime - startTime,
-            processTime: processEndTime - loadEndTime,
-            renderTime: 0, // Will be updated by render callback
-            lastUpdate: Date.now()
-          });
-          
-        } catch (err) {
-          setError('No processed data found. Run the data processing pipeline first.');
-          setHumanDotsData([]);
-          setLoading(false);
-        } finally {
-          // Remove from active requests
-          setActiveRequests(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(cacheKey);
-            return newSet;
-          });
-        }
-      };
-
-      loadData();
-    }, delay);
-  }, [year, getCacheKey, viewState.zoom, getLODLevel, isZooming, isPanning, viewportBounds]); // Added pan detection and viewport bounds
-
-  // Use loaded data (server-side LOD selection means no client-side filtering needed)
-  // Pre-process and sort data by population for efficient rendering
-  const currentHumanDots = useMemo(() => {
-    try {
-      if (!Array.isArray(humanDotsData) || humanDotsData.length === 0) {
-        return [];
-      }
-      
-      // Validate data structure and coordinates
-      const validDots = humanDotsData.filter(dot => {
-        if (!dot || !dot.properties || !dot.geometry || !dot.geometry.coordinates) {
-          return false;
-        }
-        
-        const coords = dot.geometry.coordinates;
-        if (!Array.isArray(coords) || coords.length !== 2) {
-          return false;
-        }
-        
-        const [lon, lat] = coords;
-        if (typeof lon !== 'number' || typeof lat !== 'number' || 
-            !isFinite(lon) || !isFinite(lat) ||
-            Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-          return false;
-        }
-        
-        return true;
-      });
-      
-      // Pre-sort by population (descending) so we can efficiently take top N during viewport culling
-      // This expensive operation only happens when data changes, not on every pan/zoom
-      return validDots.sort((a, b) => (b.properties?.population || 0) - (a.properties?.population || 0));
-      
-    } catch (error) {
-      console.error('Error processing human dots data:', error);
-      return [];
-    }
+  const totalPopulation = useMemo(() => {
+    return humanDotsData.reduce((sum, dot) => {
+      return sum + (dot?.properties?.population ?? 0);
+    }, 0);
   }, [humanDotsData]);
-
-  // Percentage of dots actually rendered vs total dots loaded for the year
-  const samplingRate = useMemo(() => {
-    if (humanDotsData.length === 0) return 100;
-    return (currentHumanDots.length / humanDotsData.length) * 100;
-  }, [humanDotsData, currentHumanDots]);
-
-  // Client-side viewport culling as secondary filter after server-side filtering
-  // PERFORMANCE FIX: Simple population-based limiting instead of expensive viewport culling
-  const visibleHumanDots = useMemo(() => {
-    if (currentHumanDots.length === 0) return [];
-    
-    // Skip expensive viewport culling entirely - let GPU handle what's visible
-    // Just take the top N most populated settlements (data is already sorted by population)
-    const result = currentHumanDots.slice(0, MAX_RENDER_DOTS);
-    
-    return result;
-  }, [currentHumanDots]);
 
   // Simple basemap layer using Natural Earth land boundaries with fallback
   const [basemapData, setBasemapData] = useState<any>(null);
@@ -425,7 +205,7 @@ function Globe({ year }: GlobeProps) {
             setBasemapError(false);
             setBasemapData(data);
           })
-          .catch(error => {
+          .catch(() => {
             tryLoadSource(sourceIndex + 1);
           });
       };
@@ -437,9 +217,6 @@ function Globe({ year }: GlobeProps) {
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
       if (zoomTimeoutRef.current) {
         clearTimeout(zoomTimeoutRef.current);
       }

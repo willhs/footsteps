@@ -480,7 +480,7 @@ def main():
             year = result.year
             for level, settlements in result.lod_data.items():
                 if settlements:
-                    print(f"    dots_{year}_lod_{level.value}.ndjson.gz ({len(settlements)} settlements)")
+                    print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
         if len(results) > 3:
             print(f"    ... and {len(results) - 3} more years")
         print("\nNext: Update API to serve appropriate LOD level based on zoom")

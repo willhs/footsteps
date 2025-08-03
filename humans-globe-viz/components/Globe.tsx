@@ -60,6 +60,10 @@ function Globe({ year }: GlobeProps) {
   const [isZooming, setIsZooming] = useState(false);
   const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Pan gesture state tracking
+  const [isPanning, setIsPanning] = useState(false);
+  const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   
   // Track previous LOD level for proper transition detection
   const [previousLODLevel, setPreviousLODLevel] = useState<number | null>(null);
@@ -122,23 +126,23 @@ function Globe({ year }: GlobeProps) {
     return Array.from(grid.values());
   }, []);
 
-  // Memoized viewport bounds calculation
+  // Throttled viewport bounds calculation - only update when movement is significant
   const viewportBounds = useMemo(() => {
     if (typeof window === 'undefined') return null;
     
     const viewport = new WebMercatorViewport({
-      longitude: viewState.longitude,
-      latitude: viewState.latitude,
-      zoom: viewState.zoom,
+      longitude: Math.round(viewState.longitude * 4) / 4, // 0.25 degree precision
+      latitude: Math.round(viewState.latitude * 4) / 4,   // 0.25 degree precision 
+      zoom: Math.round(viewState.zoom * 2) / 2,           // 0.5 zoom precision
       width: window.innerWidth || 1024,
       height: window.innerHeight || 768
     });
     return viewport.getBounds();
   }, [
-    viewState.longitude, 
-    viewState.latitude, 
-    // Only update zoom-dependent calculations when not actively zooming
-    isZooming ? Math.floor(viewState.zoom) : viewState.zoom
+    // Heavily throttled to prevent constant recalculation
+    Math.round(viewState.longitude * 4) / 4,
+    Math.round(viewState.latitude * 4) / 4,
+    Math.round(viewState.zoom * 2) / 2
   ]);
 
   // -----------------------------
@@ -153,8 +157,8 @@ function Globe({ year }: GlobeProps) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Use longer delays during zoom to prevent cache invalidation storms
-    const delay = isZooming ? 500 : 150;
+    // Use longer delays during interaction to prevent cache invalidation storms
+    const delay = (isZooming || isPanning) ? 500 : 150;
     
     debounceTimeoutRef.current = setTimeout(() => {
       const loadData = async () => {
@@ -237,7 +241,7 @@ function Globe({ year }: GlobeProps) {
 
       loadData();
     }, delay);
-  }, [year, getCacheKey, viewState.zoom, getLODLevel, isZooming, viewportBounds]); // Reload when any of these change
+  }, [year, getCacheKey, viewState.zoom, getLODLevel, isZooming, isPanning, viewportBounds]); // Added pan detection and viewport bounds
 
   // Use loaded data (server-side LOD selection means no client-side filtering needed)
   // Pre-process and sort data by population for efficient rendering
@@ -292,8 +296,6 @@ function Globe({ year }: GlobeProps) {
     // Skip expensive viewport culling entirely - let GPU handle what's visible
     // Just take the top N most populated settlements (data is already sorted by population)
     const result = currentHumanDots.slice(0, MAX_RENDER_DOTS);
-    
-    console.log(`📊 Simple limit: showing ${result.length}/${currentHumanDots.length} most populated settlements`);
     
     return result;
   }, [currentHumanDots]);
@@ -441,6 +443,9 @@ function Globe({ year }: GlobeProps) {
       if (zoomTimeoutRef.current) {
         clearTimeout(zoomTimeoutRef.current);
       }
+      if (panTimeoutRef.current) {
+        clearTimeout(panTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -481,45 +486,29 @@ function Globe({ year }: GlobeProps) {
   const lastRenderTime = useRef(performance.now());
   const renderCount = useRef(0);
   
-  // EMERGENCY FIX: Debounce layer creation to prevent constant recreation
-  const [debouncedViewState, setDebouncedViewState] = useState(viewState);
-  const debounceViewStateRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    if (debounceViewStateRef.current) {
-      clearTimeout(debounceViewStateRef.current);
-    }
-    
-    debounceViewStateRef.current = setTimeout(() => {
-      setDebouncedViewState(viewState);
-    }, 50); // 50ms debounce for layer updates
-    
-    return () => {
-      if (debounceViewStateRef.current) {
-        clearTimeout(debounceViewStateRef.current);
+  // Optimized layer creation - don't pass viewState since radius is pre-computed
+  const humanDotsLayer = useMemo(() => {
+    return createHumanDotsLayer(dotsToRender, null, year, stableLODLevel, (info: any) => {
+      if (info.object) {
+        console.log('Clicked dot:', info.object);
       }
-    };
-  }, [viewState]);
-
-  // Human dots layer - use debounced viewState to reduce recreation
-  const humanDotsLayer = createHumanDotsLayer(dotsToRender, debouncedViewState, year, stableLODLevel, (info: any) => {
-    if (info.object) {
-      console.log('Clicked dot:', info.object);
-    }
-  });
+    });
+  }, [dotsToRender, year, stableLODLevel]); // viewState not needed with pre-computed radius
   
-  // Track render performance
+  // Track render performance - measure actual render cycles not useEffect timing
   useEffect(() => {
-    const now = performance.now();
-    const timeSinceLastRender = now - lastRenderTime.current;
-    renderCount.current++;
+    const renderStart = performance.now();
     
-    // Log performance issues
-    if (timeSinceLastRender > 100) { // > 100ms = < 10fps
-      console.warn(`🐌 Slow render: ${timeSinceLastRender.toFixed(1)}ms with ${dotsToRender.length} dots at zoom ${viewState.zoom.toFixed(2)}`);
-    }
-    
-    lastRenderTime.current = now;
+    // Use requestAnimationFrame to measure post-render timing
+    requestAnimationFrame(() => {
+      const renderEnd = performance.now();
+      const renderTime = renderEnd - renderStart;
+      
+      // Only log significant render delays
+      if (renderTime > 16) { // > 16ms = < 60fps
+        console.log(`⚡ Render: ${renderTime.toFixed(1)}ms with ${dotsToRender.length} dots at zoom ${viewState.zoom.toFixed(2)}`);
+      }
+    });
   });
   
   // Memoized layers array to prevent array recreation
@@ -534,11 +523,15 @@ function Globe({ year }: GlobeProps) {
         onViewStateChange={({ viewState: newViewState }) => {
           const oldZoom = viewState.zoom;
           const newZoom = (newViewState as any).zoom;
+          const oldLon = viewState.longitude;
+          const newLon = (newViewState as any).longitude;
+          const oldLat = viewState.latitude;
+          const newLat = (newViewState as any).latitude;
           
           // Update view state immediately for smooth visual feedback
           setViewState(newViewState as any);
           
-          // Simplified zoom detection for debouncing data loads
+          // Zoom detection for debouncing data loads
           if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
             if (!isZooming) {
               setIsZooming(true);
@@ -553,6 +546,24 @@ function Globe({ year }: GlobeProps) {
             zoomTimeoutRef.current = setTimeout(() => {
               setIsZooming(false);
             }, 150); // 150ms after last zoom change
+          }
+          
+          // Pan detection for viewport-based data loading
+          const panThreshold = 0.1; // Degrees - adjust based on sensitivity needed
+          if ((Math.abs(newLon - oldLon) > panThreshold || Math.abs(newLat - oldLat) > panThreshold) && !isZooming) {
+            if (!isPanning) {
+              setIsPanning(true);
+            }
+            
+            // Clear existing pan timeout
+            if (panTimeoutRef.current) {
+              clearTimeout(panTimeoutRef.current);
+            }
+            
+            // Set timeout to detect end of pan gesture
+            panTimeoutRef.current = setTimeout(() => {
+              setIsPanning(false);
+            }, 300); // 300ms after last pan change (longer than zoom)
           }
         }}
         controller={{

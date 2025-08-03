@@ -1,2 +1,12 @@
 data/
 **/__pycache__/
+**/.claude/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+.DS_Store
+*.pyc
+node_modules/
+.next/
+.env.local
+.env
+*.log

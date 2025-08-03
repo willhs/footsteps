@@ -103,6 +103,17 @@ export async function GET(request: Request) {
     const bufferedMinLat = minLat - latBuffer;
     const bufferedMaxLat = maxLat + latBuffer;
     
+    // Helper function optimized for 10k BCE to 1500 CE period
+    const getPrecomputedRadius = (population: number): number => {
+      if (population > 100000) return 40000;    // Massive cities (rare): 40km radius
+      else if (population > 50000) return 25000; // Major cities: 25km radius
+      else if (population > 20000) return 15000; // Large settlements: 15km radius
+      else if (population > 5000) return 8000;   // Medium settlements: 8km radius  
+      else if (population > 1000) return 4000;   // Small settlements: 4km radius
+      else if (population > 100) return 2000;    // Villages: 2km radius
+      else return 1000;                          // Tiny settlements: 1km radius
+    };
+
     for await (const line of rl) {
       if (!line) continue;
       totalProcessed++;
@@ -114,6 +125,10 @@ export async function GET(request: Request) {
         // Server-side spatial filtering
         if (lon >= bufferedMinLon && lon <= bufferedMaxLon && 
             lat >= bufferedMinLat && lat <= bufferedMaxLat) {
+          // Pre-compute and cache radius value for GPU optimization
+          const population = feature.properties?.population || 0;
+          feature.properties.precomputedRadius = getPrecomputedRadius(population);
+          
           features.push(feature);
           
           // Stop when we have enough visible dots

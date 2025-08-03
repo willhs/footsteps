@@ -20,21 +20,20 @@ export function createBasemapLayer(data: any, basemapError: boolean) {
 }
 
 // Create human dots layer with stable ID for caching
-export function createHumanDotsLayer(data: any[], viewState: any, year: number, lodLevel: number | null, onClick?: (info: any) => void) {
+export function createHumanDotsLayer(data: any[], viewState: any | null, year: number, lodLevel: number | null, onClick?: (info: any) => void) {
   const layerId = `human-dots-${year}-lod${lodLevel || 'legacy'}`;
   
   return new ScatterplotLayer({
     id: layerId,
     data,
-    // Use updateTriggers to control when layer actually re-renders
-    // Throttle zoom updates aggressively to prevent 50k radius recalculations on every frame
+    // Simplified update triggers - only recreate when data actually changes
     updateTriggers: {
       getPosition: [data.length, year, lodLevel],
-      getRadius: [data.length, Math.floor(viewState.zoom * 2) / 2], // Throttle to 0.5 zoom precision
+      getRadius: [data.length, year, lodLevel], // Only update when data changes, not zoom
       getFillColor: [data.length]
     },
     pickable: true,
-    radiusUnits: 'pixels',
+    radiusUnits: 'meters', // Use meters for GPU-accelerated scaling
     getPosition: (d: any) => {
       try {
         const coords = d.geometry?.coordinates;
@@ -46,23 +45,10 @@ export function createHumanDotsLayer(data: any[], viewState: any, year: number, 
         return [0, 0] as [number, number];
       }
     },
-    // Population-responsive dot sizing - smaller dots for less crowding, larger for major settlements
+    // Use pre-computed radius values for maximum performance
     getRadius: (d: any) => {
-      const zoom = viewState.zoom;
-      const population = d?.properties?.population || 0;
-      
-      // Smaller default sizes to reduce crowding, but larger for major populations
-      let baseRadius;
-      if (population > 50000) baseRadius = 12;      // Major cities stay large
-      else if (population > 20000) baseRadius = 8;  // Large settlements 
-      else if (population > 5000) baseRadius = 4;   // Medium settlements
-      else if (population > 1000) baseRadius = 2;   // Small settlements
-      else baseRadius = 1;                          // Villages - much smaller
-      
-      // Gentle zoom scaling - less aggressive growth
-      const zoomScale = zoom > 3 ? 1 + (zoom - 3) * 0.2 : 0.8;
-      
-      return baseRadius * zoomScale;
+      // Use pre-computed radius if available, otherwise fall back to calculation
+      return d?.properties?.precomputedRadius || 2000; // Default to village size (2km)
     },
     getFillColor: (d: any) => {
       const population = d?.properties?.population || 100;
@@ -79,23 +65,27 @@ export function createHumanDotsLayer(data: any[], viewState: any, year: number, 
       }
     },
     onClick: onClick || (() => {}),
-    // Performance optimizations for large datasets
-    getPickingInfo: ({ info }) => info, // Simplified picking
-    autoHighlight: false, // Disable auto-highlighting for performance
-    highlightColor: [255, 255, 255, 100], // Subtle highlight when enabled
     
-    // Additional performance settings for 50k+ dots
+    // GPU performance optimizations for large datasets
     parameters: {
       depthTest: false, // Disable depth testing for better performance
-      depthMask: false  // Don't write to depth buffer
+      depthMask: false, // Don't write to depth buffer
+      blend: true,      // Enable blending for overlapping dots
+      blendFunc: [770, 771] // Standard alpha blending
     },
     
-    // Optimize GPU buffer usage
+    // Optimize GPU buffer usage and disable expensive features
     getTargetPosition: undefined, // Remove unnecessary position animations
     transitions: {
-      getRadius: 0, // Disable radius transitions for immediate updates
-      getFillColor: 0 // Disable color transitions
-    }
+      getRadius: 0,    // Disable radius transitions for immediate updates
+      getFillColor: 0, // Disable color transitions
+      getPosition: 0   // Disable position transitions
+    },
+    
+    // Performance optimizations for picking and highlighting
+    getPickingInfo: ({ info }) => info, // Simplified picking
+    autoHighlight: false, // Disable auto-highlighting for performance
+    highlightColor: [255, 255, 255, 100] // Subtle highlight when enabled
   });
 }
 

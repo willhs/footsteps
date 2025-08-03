@@ -26,7 +26,7 @@ export function createHumanDotsLayer({ data, viewState, onClick }: HumanDotsLaye
     id: 'human-dots',
     data,
     pickable: true,
-    radiusUnits: 'meters',
+    radiusUnits: 'meters', // Use meters for GPU-accelerated scaling
     getPosition: (d: any) => {
       try {
         const coords = d.geometry?.coordinates;
@@ -39,25 +39,9 @@ export function createHumanDotsLayer({ data, viewState, onClick }: HumanDotsLaye
         return [0, 0] as [number, number];
       }
     },
-    // Population-based dot sizing using square-root scaling
+    // Use pre-computed radius values for optimal performance
     getRadius: (d: any) => {
-      const zoom = viewState.zoom;
-      const population = d?.properties?.population || 0;
-      
-      // Use square-root scaling to map population to radius
-      // This makes the area proportional to population, which is more intuitive
-      const minRadius = 100;  // Minimum radius in meters
-      const maxRadius = 10000; // Maximum radius in meters
-      const scaleFactor = 50;   // Adjust this to control scaling sensitivity
-      
-      // Calculate radius using square-root scaling, with min/max bounds
-      let radius = minRadius + Math.sqrt(population / scaleFactor);
-      radius = Math.max(minRadius, Math.min(maxRadius, radius));
-      
-      // Apply zoom-based scaling
-      const zoomScale = Math.pow(2, zoom - 3); // Adjust exponent to control zoom sensitivity
-      
-      return radius * zoomScale;
+      return d?.properties?.precomputedRadius || 2000; // Default to village size (2km)
     },
     getFillColor: (d: any) => {
       const population = d?.properties?.population || 100;

@@ -4,18 +4,41 @@ Process city data into individual human dots for the globe visualization.
 Converts Reba urban gazetteer and estimated rural population into point features.
 """
 
-import os
 import pathlib
 import pandas as pd
-import geopandas as gpd
 import numpy as np
-from shapely.geometry import Point
-import json
-import random
 from typing import List, Dict, Any, Tuple
 
 # Population estimation parameters - consistent with HYDE processing
 PERSONS_PER_DOT = 100  # Always 100 people per dot for consistency
+
+# Fallback population estimates by year
+POP_ESTIMATES = {
+    -100000: 1000,
+    -10000: 5_000_000,
+    -5000: 50_000_000,
+    0: 300_000_000,
+    1000: 400_000_000,
+    1800: 1_000_000_000,
+    1950: 2_500_000_000,
+    2000: 6_000_000_000,
+    2020: 7_800_000_000,
+}
+
+# Inhabitable regions (lat_min, lat_max, lon_min, lon_max, weight)
+INHABITABLE_REGIONS = [
+    (10, 70, -10, 60, 3),      # Europe & Western Asia
+    (20, 50, 60, 140, 4),      # Asia
+    (-35, 35, -20, 50, 2),     # Africa
+    (15, 70, -170, -50, 3),    # North America
+    (-55, 15, -85, -35, 1),    # South America
+    (-45, -10, 110, 180, 1),   # Australia
+]
+
+# Precompute region probabilities for rural dot placement
+_REGION_WEIGHTS = [region[4] for region in INHABITABLE_REGIONS]
+_TOTAL_REGION_WEIGHT = sum(_REGION_WEIGHTS)
+REGION_PROBABILITIES = [w / _TOTAL_REGION_WEIGHT for w in _REGION_WEIGHTS]
 
 def get_persons_per_dot(year: int) -> int:
     """Get the number of people each dot represents for a given year."""
@@ -149,27 +172,13 @@ def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> L
         if urban_pop > 0:
             total_world_pop = int(urban_pop / urban_ratio)
         else:
-            # Fallback estimates
-            pop_estimates = {
-                -100000: 1000,
-                -10000: 5000000,
-                -5000: 50000000,
-                0: 300000000,
-                1000: 400000000,
-                1800: 1000000000,
-                1950: 2500000000,
-                2000: 6000000000,
-                2020: 7800000000
-            }
-            
-            # Find closest estimate
-            years = sorted(pop_estimates.keys())
-            for i, est_year in enumerate(years):
+            years = sorted(POP_ESTIMATES.keys())
+            for est_year in years:
                 if year <= est_year:
-                    total_world_pop = pop_estimates[est_year]
+                    total_world_pop = POP_ESTIMATES[est_year]
                     break
             else:
-                total_world_pop = pop_estimates[years[-1]]
+                total_world_pop = POP_ESTIMATES[years[-1]]
     
     rural_pop = total_world_pop - urban_pop
     
@@ -179,26 +188,10 @@ def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> L
     # Create rural dots (scattered globally)
     persons_per_dot = get_persons_per_dot(year)
     num_rural_dots = min(rural_pop // persons_per_dot, 5000)  # Limit for performance
-    
-    # Define inhabitable regions (rough continental boundaries)
-    inhabitable_regions = [
-        # (lat_min, lat_max, lon_min, lon_max, weight)
-        (10, 70, -10, 60, 3),      # Europe & Western Asia
-        (20, 50, 60, 140, 4),      # Asia
-        (-35, 35, -20, 50, 2),     # Africa
-        (15, 70, -170, -50, 3),    # North America
-        (-55, 15, -85, -35, 1),    # South America
-        (-45, -10, 110, 180, 1),   # Australia
-    ]
-    
-    for i in range(num_rural_dots):
-        # Choose a region based on weights
-        weights = [r[4] for r in inhabitable_regions]
-        total_weight = sum(weights)
-        probabilities = [w / total_weight for w in weights]
-        region = np.random.choice(len(inhabitable_regions), p=probabilities)
-        
-        lat_min, lat_max, lon_min, lon_max, _ = inhabitable_regions[region]
+
+    for _ in range(num_rural_dots):
+        region = np.random.choice(len(INHABITABLE_REGIONS), p=REGION_PROBABILITIES)
+        lat_min, lat_max, lon_min, lon_max, _ = INHABITABLE_REGIONS[region]
         
         # Random point in this region
         rural_lat = np.random.uniform(lat_min, lat_max)
@@ -222,6 +215,9 @@ def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
     Returns:
         Path to output GeoJSON file
     """
+    import geopandas as gpd
+    from shapely.geometry import Point
+
     print("🏙️ Processing cities to human dots...")
     
     # Load city data

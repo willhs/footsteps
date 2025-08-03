@@ -160,7 +160,7 @@ export async function GET(request: Request) {
 
     const jsonStr = JSON.stringify(geojson);
     const gzBody = gzipSync(Buffer.from(jsonStr));
-    return new NextResponse(gzBody, {
+    return new NextResponse(new Uint8Array(gzBody), {
       headers: {
         'Content-Type': 'application/json',
         'Content-Encoding': 'gzip',

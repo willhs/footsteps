@@ -46,7 +46,7 @@ poetry install --only main
 # Install frontend dependencies
 echo ""
 echo "⚛️ Installing frontend dependencies..."
-cd humans-globe-viz
+cd humans-globe
 pnpm install
 cd ..
 
@@ -62,7 +62,7 @@ echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "To start the application:"
-echo "  cd humans-globe-viz && pnpm dev"
+echo "  cd humans-globe && pnpm dev"
 echo ""
 echo "🚨 IMPORTANT: The app requires historical datasets to display data."
 echo ""

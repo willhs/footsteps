@@ -8,14 +8,24 @@ import os
 import pathlib
 import numpy as np
 import geopandas as gpd
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 import json
+import gzip
 import zipfile
 import tempfile
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+# Import our modular components
+from models import (
+    LODLevel, Coordinates, HumanSettlement, AggregatedSettlement,
+    LODConfiguration, ProcessingResult, HYDEDataFile, GridMetadata,
+    ProcessingStatistics
+)
+from lod_processor import LODProcessor
+
+# Models and processors are now imported from separate modules
 
 # HYDE 3.5 available years - Complete deep history dataset
-# All years with available population data in hyde-3.5/
 TARGET_YEARS = [
     # Deep Prehistory - Every millennium
     -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
@@ -27,85 +37,9 @@ TARGET_YEARS = [
     1000, 1100, 1200, 1300, 1400, 1500
 ]
 
-def create_density_aware_dots(cell_population: float, lat: float, lon: float, 
-                              cellsize: float, people_per_dot: int) -> List[tuple]:
-    """
-    Create dots for a cell using density-aware strategy to handle high-concentration areas.
-    
-    Args:
-        cell_population: Total population in the cell
-        lat, lon: Center coordinates of the cell
-        cellsize: Size of the cell in degrees
-        people_per_dot: Standard number of people per dot
-    
-    Returns:
-        List of (lat, lon, population) tuples for each dot to create
-    """
-    dots = []
-    
-    # Apply minimum population threshold - ignore very sparse areas
-    if cell_population < 50:  # Minimum 50 people per cell to create any dots
-        return dots
-    
-    # Density-aware strategy based on population concentration
-    if cell_population < 1000:
-        # Rural areas: Standard approach with random placement
-        num_dots = max(1, int(cell_population / people_per_dot))
-        population_per_dot = cell_population / num_dots  # Use actual population, not fixed amount
-        
-        for _ in range(num_dots):
-            dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
-            dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
-            dots.append((dot_lat, dot_lon, population_per_dot))
-            
-    elif cell_population < 10000:
-        # Towns: Systematic grid distribution to avoid overlap
-        effective_people_per_dot = people_per_dot * 2  # Target larger dots
-        num_dots = max(1, min(9, int(cell_population / effective_people_per_dot)))  # Max 9 dots (3x3 grid)
-        population_per_dot = cell_population / num_dots  # Use actual population
-        
-        grid_size = int(np.ceil(np.sqrt(num_dots)))
-        grid_step = cellsize / (grid_size + 1)  # Add padding
-        
-        dot_idx = 0
-        for i in range(grid_size):
-            for j in range(grid_size):
-                if dot_idx >= num_dots:
-                    break
-                    
-                # Grid position with slight randomization
-                offset_lat = (i - grid_size/2 + 0.5) * grid_step
-                offset_lon = (j - grid_size/2 + 0.5) * grid_step
-                
-                # Add small random offset to avoid perfect grid
-                offset_lat += np.random.uniform(-grid_step/4, grid_step/4)
-                offset_lon += np.random.uniform(-grid_step/4, grid_step/4)
-                
-                dot_lat = lat + offset_lat
-                dot_lon = lon + offset_lon
-                dots.append((dot_lat, dot_lon, population_per_dot))
-                dot_idx += 1
-                
-    else:
-        # Cities: Few large representative dots to avoid visual clutter
-        effective_people_per_dot = people_per_dot * 10  # Target much larger dots
-        num_dots = max(1, min(4, int(cell_population / effective_people_per_dot)))  # Max 4 dots
-        population_per_dot = cell_population / num_dots  # Use actual population
-        
-        # Use fixed positions within cell to ensure consistency
-        positions = [
-            (0, 0),  # Center
-            (-0.25, -0.25), (0.25, -0.25),  # Lower corners
-            (-0.25, 0.25), (0.25, 0.25)    # Upper corners
-        ]
-        
-        for i in range(num_dots):
-            offset_lat, offset_lon = positions[i]
-            dot_lat = lat + offset_lat * cellsize
-            dot_lon = lon + offset_lon * cellsize
-            dots.append((dot_lat, dot_lon, population_per_dot))
-    
-    return dots
+# Density-aware dot creation is now handled by LODProcessor
+
+# Hierarchical LOD creation is now handled by LODProcessor
 
 def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> gpd.GeoDataFrame:
     """
@@ -224,8 +158,11 @@ def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> g
             
             total_people += cell_population
             
+            # Create LOD processor instance for dot creation
+            lod_processor = LODProcessor()
+            
             # Density-aware dot creation to handle high-concentration areas
-            dots_created = create_density_aware_dots(
+            dots_created = lod_processor.create_density_aware_dots(
                 cell_population, lat, lon, cellsize, people_per_dot
             )
             
@@ -308,6 +245,117 @@ def find_hyde_files(raw_dir: str) -> Dict[int, str]:
     print(f"Found {len(hyde_files)} HYDE files total")
     return hyde_files
 
+def process_year_with_hierarchical_lods(asc_file: str, year: int, output_dir: str, people_per_dot: int = 100) -> ProcessingResult:
+    """
+    Process a single year of HYDE data with hierarchical LOD generation.
+    
+    Args:
+        asc_file: Path to HYDE ASC file
+        year: Year for this data
+        output_dir: Directory to save processed data
+        people_per_dot: Number of people each dot represents
+        
+    Returns:
+        ProcessingResult with LOD data and statistics
+    """
+    print(f"  Processing year {year} with hierarchical LODs...")
+    
+    # Create LOD processor with configuration
+    lod_config = LODConfiguration(
+        global_grid_size=2.0,
+        regional_grid_size=0.5,
+        local_grid_size=0.1,
+        min_population_threshold=50.0
+    )
+    lod_processor = LODProcessor(config=lod_config)
+    
+    # First convert ASC to settlements using existing logic
+    gdf = ascii_grid_to_dots(asc_file, year, people_per_dot)
+    
+    if gdf.empty:
+        print(f"    No data found for year {year}")
+        return ProcessingResult(
+            year=year,
+            lod_data={level: [] for level in LODLevel},
+            total_population=0.0,
+            processing_stats={'error': 'No data found'}
+        )
+    
+    # Convert GeoDataFrame to HumanSettlement objects
+    settlements = []
+    cellsize = 0.083333  # HYDE 3.5 approximate resolution
+    
+    for _, row in gdf.iterrows():
+        try:
+            geom = row.geometry
+            settlement = HumanSettlement(
+                coordinates=Coordinates(longitude=geom.x, latitude=geom.y),
+                population=float(row.population),
+                year=int(row.year),
+                settlement_type=row.type,
+                source_resolution=cellsize
+            )
+            settlements.append(settlement)
+        except Exception as e:
+            print(f"    Warning: Skipping invalid settlement: {e}")
+            continue
+    
+    print(f"    Converted {len(settlements)} dots to settlement objects")
+    
+    # Create hierarchical LOD data
+    lod_data = lod_processor.create_hierarchical_lods(settlements)
+    
+    # Calculate total population
+    total_population = sum(s.population for s in settlements)
+    
+    # Save LOD data as separate files for each level
+    output_path = pathlib.Path(output_dir)
+    for lod_level, lod_settlements in lod_data.items():
+        if not lod_settlements:
+            continue
+            
+        lod_filename = f"dots_{year}_lod_{lod_level.value}.ndjson.gz"
+        lod_path = output_path / lod_filename
+        
+        with gzip.open(lod_path, "wt", encoding="utf-8") as f_nd:
+            for settlement in lod_settlements:
+                # Convert to GeoJSON-like format for compatibility
+                feature = {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [settlement.coordinates.longitude, settlement.coordinates.latitude]
+                    },
+                    "properties": {
+                        "population": settlement.total_population,
+                        "year": settlement.year,
+                        "type": "settlement",
+                        "lod_level": settlement.lod_level.value,
+                        "grid_size": settlement.grid_size_degrees,
+                        "source_dots": settlement.source_dot_count,
+                        "density": settlement.average_density
+                    }
+                }
+                json.dump(feature, f_nd)
+                f_nd.write("\n")
+        
+        print(f"      → Saved {len(lod_settlements)} {lod_level.name} LOD dots to {lod_filename}")
+    
+    # Create processing result
+    processing_stats = {
+        'original_settlements': len(settlements),
+        'total_population': total_population,
+        'lod_counts': {level.name: len(lod_settlements) for level, lod_settlements in lod_data.items()},
+        'processing_time': 0.0  # Could add timing here
+    }
+    
+    return ProcessingResult(
+        year=year,
+        lod_data=lod_data,
+        total_population=total_population,
+        processing_stats=processing_stats
+    )
+
 def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     """
     Process all HYDE data and create a combined GeoJSON for vector tiles.
@@ -337,8 +385,8 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
                 all_polygons.append(gdf)
 
             # ---- New: write per-year NDJSON for fast API lookup ----
-            ndjson_path = pathlib.Path(output_dir) / f"dots_{year}.ndjson"
-            with ndjson_path.open("w", encoding="utf-8") as f_nd:
+            ndjson_path = pathlib.Path(output_dir) / f"dots_{year}.ndjson.gz"
+            with gzip.open(ndjson_path, "wt", encoding="utf-8") as f_nd:
                 # convert each feature to JSON and write per line
                 geojson_obj = json.loads(gdf.to_json())
                 for feat in geojson_obj["features"]:
@@ -366,8 +414,52 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
         )
 
 
+def process_all_hyde_data_with_lods(raw_dir: str, output_dir: str) -> List[ProcessingResult]:
+    """
+    Process all HYDE data with hierarchical LOD generation.
+    
+    Args:
+        raw_dir: Directory containing HYDE ASC files
+        output_dir: Directory to save processed data
+        
+    Returns:
+        List of ProcessingResult objects for each year
+    """
+    print("🌍 Processing HYDE data with hierarchical LODs...")
+    print("  (Creating multiple resolution levels for performance)")
+    
+    hyde_files = find_hyde_files(raw_dir)
+    print(f"Found {len(hyde_files)} HYDE files for target years")
+    
+    if not hyde_files:
+        raise FileNotFoundError(
+            "No HYDE dataset files found in data/raw/. "
+            "Please run 'poetry run fetch-data' first to download the datasets."
+        )
+    
+    results = []
+    
+    for year in sorted(hyde_files.keys()):
+        asc_file = hyde_files[year]
+        try:
+            result = process_year_with_hierarchical_lods(asc_file, year, output_dir)
+            results.append(result)
+            
+        except Exception as e:
+            print(f"  Error processing {asc_file}: {e}")
+            continue
+    
+    # Print summary statistics
+    print(f"\n✓ Processed {len(results)} years with hierarchical LODs")
+    total_population = sum(r.total_population for r in results)
+    print(f"  Total population across all years: {total_population:,.0f}")
+    
+    return results
+
 def main():
     """Main processing routine."""
+    import sys
+    
     # Resolve paths relative to this script so it works from any CWD
     script_dir = pathlib.Path(__file__).resolve().parent
     # Raw ASCII grids live in hyde-3.5 subdirectory: data/raw/hyde-3.5
@@ -376,12 +468,29 @@ def main():
 
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Process HYDE data
-    geojson_path = process_all_hyde_data(str(raw_dir), str(output_dir))
     
-    print(f"\n✓ Heat-map data ready: {geojson_path}")
-    print("\nNext: Run process_cities.py to create human dots data")
+    # Check for command line argument to use LOD processing
+    if len(sys.argv) > 1 and sys.argv[1] == "--with-lods":
+        print("Using hierarchical LOD processing...")
+        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
+        
+        print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
+        print("  Files generated:")
+        for result in results[:3]:  # Show first 3 as examples
+            year = result.year
+            for level, settlements in result.lod_data.items():
+                if settlements:
+                    print(f"    dots_{year}_lod_{level.value}.ndjson.gz ({len(settlements)} settlements)")
+        if len(results) > 3:
+            print(f"    ... and {len(results) - 3} more years")
+        print("\nNext: Update API to serve appropriate LOD level based on zoom")
+    else:
+        print("Using legacy processing (add --with-lods for hierarchical LOD processing)...")
+        # Process HYDE data using original method
+        geojson_path = process_all_hyde_data(str(raw_dir), str(output_dir))
+        
+        print(f"\n✅ Heat-map data ready: {geojson_path}")
+        print("\nNext: Run process_cities.py to create human dots data")
 
 if __name__ == "__main__":
     main()

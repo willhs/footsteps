@@ -17,7 +17,6 @@ Transform dry demographic data into an intuitive, time-scrubbing experience that
 - **👥 Human Dots** - Individual points representing settlements and populations
 - **🔥 Heat-Map** - Population density visualization showing regional concentrations
 - **📊 Real-time Filtering** - Dots appear/disappear based on historical timeline
-- **🌙 Dark Theme** - Optimized for the "dark globe" aesthetic
 - **⚡ Performance** - Efficient rendering of millions of data points
 
 ## 🚀 Quick Start
@@ -88,17 +87,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 1. **Navigate the Globe** - Click and drag to rotate, scroll to zoom
 2. **Time Travel** - Use the slider at the bottom to scrub through history
-3. **Watch Humanity Spread** - See orange dots appear as settlements are founded
-4. **Explore Regions** - Hover over dots for settlement information
-5. **Observe Patterns** - Notice how population clusters around rivers, coasts, and fertile regions
 
 ### Time Periods
 
-- **100k-10k BCE**: Sparse hunter-gatherer populations
+- **100k-10k BCE**: We don't have this yet, but want to
 - **10k-1k BCE**: Agricultural revolution, first cities emerge
 - **1k BCE-1k CE**: Classical civilizations, trade networks
-- **1k-1800 CE**: Medieval growth, exploration, colonization
-- **1800-2025 CE**: Industrial revolution, urban explosion
+- **1k-1500 CE**: Medieval growth, exploration
 
 ## 📊 Data Sources
 
@@ -184,12 +179,6 @@ poetry run process-hyde         # Creates population heat-map
 poetry run process-cities       # Creates human settlement dots
 ```
 
-### Step 3: Optional Vector Tiles
-
-```bash
-poetry run make-tiles          # For better performance with large datasets
-```
-
 ## 🎨 Customization
 
 ### Styling
@@ -223,37 +212,6 @@ For large datasets, deploy with a tile server:
 docker run -p 8080:80 -v $(pwd)/data/processed:/data maptiler/tileserver-gl
 ```
 
-## 🎯 Roadmap
-
-### v0.2 - Enhanced Interactivity
-- [ ] City hover tooltips with population details
-- [ ] Animated transitions between time periods
-- [ ] Fog-of-history layer showing data confidence
-- [ ] Historical milestone markers
-
-### v0.3 - Performance & Scale
-- [ ] Vector tile integration for massive datasets
-- [ ] WebGL shader optimization
-- [ ] Progressive data loading
-- [ ] Mobile responsiveness
-
-### v1.0 - Full Historical Experience
-- [ ] Complete HYDE + Reba dataset integration
-- [ ] Advanced filtering (by region, population size)
-- [ ] Export capabilities (screenshots, animations)
-- [ ] Educational content integration
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -261,11 +219,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Reba et al.** - Urban settlement historical records
 - **DeckGL Team** - Incredible WebGL visualization framework
 - **Next.js Team** - React framework powering the frontend
-
-## 📧 Contact
-
-For questions, suggestions, or collaboration opportunities, please open an issue or reach out to the maintainers.
-
----
-
-**Experience 100,000 years of human history in minutes. Watch our species spread across the globe, one dot at a time.** 🌍✨

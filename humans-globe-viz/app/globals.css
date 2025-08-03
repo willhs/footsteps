@@ -46,7 +46,20 @@ main {
   border-color: #38bdf8;
 }
 
+/* Improved contrast for slider year labels */
 .rc-slider-mark-text {
-  color: #cbd5e1;
+  color: #f1f5f9 !important; /* Lighter text for higher contrast */
   font-size: 12px;
+}
+
+/* Highlight labels that are to the left of the handle */
+.rc-slider-mark-text-active {
+  color: #f1f5f9 !important; /* Same as default, no emphasis */
+  font-weight: 400;
+}
+
+/* Emphasise ONLY the currently selected year (right-most active mark) */
+.rc-slider-mark-text-active:last-of-type {
+  color: #38bdf8 !important; /* Accent colour */
+  font-weight: 600;
 }

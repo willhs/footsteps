@@ -8,32 +8,75 @@ import fs from 'fs';
 import path from 'path';
 import { createReadStream } from 'fs';
 import readline from 'readline';
-import { gzipSync } from 'zlib';
+import { gzipSync, createGunzip } from 'zlib';
+
+// Helper function to determine LOD level based on zoom
+function getLODLevel(zoom: number): number {
+  if (zoom < 4) return 1;      // Regional LOD (minimum)
+  if (zoom < 6) return 2;      // Local LOD
+  return 3;                    // Detailed LOD
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
-    const limit = parseInt(searchParams.get('limit') || '5000000');  // Removed cap - load all available data
+    const limit = parseInt(searchParams.get('limit') || '5000000');
+    const zoom = parseFloat(searchParams.get('zoom') || '1.5'); // Default to global view
+    
+    // Parse viewport bounds for server-side spatial filtering
+    const minLon = parseFloat(searchParams.get('minLon') || '-180');
+    const maxLon = parseFloat(searchParams.get('maxLon') || '180');
+    const minLat = parseFloat(searchParams.get('minLat') || '-90');
+    const maxLat = parseFloat(searchParams.get('maxLat') || '90');
     
     if (!year) {
       return NextResponse.json({ error: 'year query param required' }, { status: 400 });
     }
     const yr = parseInt(year);
 
-    // Determine NDJSON file path
-    const candidates = [
-      path.join(process.cwd(), '..', 'data', 'processed', `dots_${yr}.ndjson`),
-      path.join(process.cwd(), 'data', 'processed', `dots_${yr}.ndjson`)
+    // Determine appropriate file path based on zoom level (automatic LOD selection)
+    let ndPath: string | undefined;
+    let lodLevel: number | null = null;
+    
+    // Try to use LOD files first based on zoom level
+    lodLevel = getLODLevel(zoom);
+    const lodCandidates = [
+      path.join(process.cwd(), '..', 'data', 'processed', `dots_${yr}_lod_${lodLevel}.ndjson.gz`),
+      path.join(process.cwd(), 'data', 'processed', `dots_${yr}_lod_${lodLevel}.ndjson.gz`)
     ];
-    const ndPath = candidates.find(p => fs.existsSync(p));
+    ndPath = lodCandidates.find(p => fs.existsSync(p));
+    
+    // Fallback to detailed LOD if specific level not found
+    if (!ndPath && lodLevel !== 3) {
+      console.log(`LOD level ${lodLevel} not found for year ${yr}, falling back to detailed (LOD 3)`);
+      lodLevel = 3;
+      const detailedCandidates = [
+        path.join(process.cwd(), '..', 'data', 'processed', `dots_${yr}_lod_3.ndjson.gz`),
+        path.join(process.cwd(), 'data', 'processed', `dots_${yr}_lod_3.ndjson.gz`)
+      ];
+      ndPath = detailedCandidates.find(p => fs.existsSync(p));
+    }
+    
+    // Fallback to legacy format if LOD files not available
+    if (!ndPath) {
+      console.log(`LOD files not found for year ${yr}, using legacy format`);
+      const legacyCandidates = [
+        path.join(process.cwd(), '..', 'data', 'processed', `dots_${yr}.ndjson.gz`),
+        path.join(process.cwd(), 'data', 'processed', `dots_${yr}.ndjson.gz`)
+      ];
+      ndPath = legacyCandidates.find(p => fs.existsSync(p));
+      lodLevel = null;
+    }
+    
     if (!ndPath) {
       return NextResponse.json({ error: 'Year not available' }, { status: 404 });
     }
 
     // ---- Caching ----
     const stat = fs.statSync(ndPath);
-    const etag = `W/\"${yr}-${stat.mtimeMs}\"`;
+    const lodSuffix = lodLevel !== null ? `-lod${lodLevel}` : '';
+    const etag = `W/\"${yr}${lodSuffix}-${stat.mtimeMs}\"`;
     if (request.headers.get('if-none-match') === etag) {
       return new NextResponse(null, {
         status: 304,
@@ -44,30 +87,61 @@ export async function GET(request: Request) {
       });
     }
 
-    // Stream first <limit> lines
+    // Stream and filter dots by viewport bounds
     const features: any[] = [];
+    let totalProcessed = 0;
     const rl = readline.createInterface({
-      input: fs.createReadStream(ndPath, { encoding: 'utf8' }),
+      input: fs.createReadStream(ndPath).pipe(createGunzip()),
       crlfDelay: Infinity
     });
+    
+    // Add buffer for smooth panning (10% of viewport size)
+    const lonBuffer = (maxLon - minLon) * 0.1;
+    const latBuffer = (maxLat - minLat) * 0.1;
+    const bufferedMinLon = minLon - lonBuffer;
+    const bufferedMaxLon = maxLon + lonBuffer;
+    const bufferedMinLat = minLat - latBuffer;
+    const bufferedMaxLat = maxLat + latBuffer;
+    
     for await (const line of rl) {
       if (!line) continue;
+      totalProcessed++;
+      
       try {
-        features.push(JSON.parse(line));
+        const feature = JSON.parse(line);
+        const [lon, lat] = feature.geometry?.coordinates || [0, 0];
+        
+        // Server-side spatial filtering
+        if (lon >= bufferedMinLon && lon <= bufferedMaxLon && 
+            lat >= bufferedMinLat && lat <= bufferedMaxLat) {
+          features.push(feature);
+          
+          // Stop when we have enough visible dots
+          if (features.length >= limit) {
+            rl.close();
+            break;
+          }
+        }
       } catch (_) {}
-      if (features.length >= limit) {
-        rl.close();
-        break;
-      }
     }
 
-    // Build GeoJSON response
+    // Build GeoJSON response with metadata
     const geojson = {
       type: 'FeatureCollection',
-      features
+      features,
+      metadata: {
+        year: yr,
+        lodLevel: lodLevel,
+        zoomRequested: zoom,
+        usedLOD: lodLevel !== null,
+        totalFeatures: features.length,
+        filename: path.basename(ndPath)
+      }
     };
 
-    console.log(`Loaded ${features.length} features for year ${yr}`);
+    const lodInfo = lodLevel !== null ? ` (LOD ${lodLevel} for zoom ${zoom})` : ' (legacy format)';
+    const boundsInfo = `bounds: [${minLon.toFixed(1)}, ${minLat.toFixed(1)}, ${maxLon.toFixed(1)}, ${maxLat.toFixed(1)}]`;
+    console.log(`Loaded ${features.length}/${totalProcessed} features for year ${yr}${lodInfo}, ${boundsInfo}`);
 
     const jsonStr = JSON.stringify(geojson);
     const gzBody = gzipSync(Buffer.from(jsonStr));
@@ -76,6 +150,9 @@ export async function GET(request: Request) {
         'Content-Type': 'application/json',
         'Content-Encoding': 'gzip',
         'Cache-Control': 'public, max-age=86400',
+        'X-LOD-Level': lodLevel?.toString() || 'legacy',
+        'X-Zoom-Level': zoom.toString(),
+        'X-Features-Count': features.length.toString(),
         ETag: etag
       }
     });

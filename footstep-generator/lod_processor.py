@@ -1,0 +1,303 @@
+#!/usr/bin/env python3
+"""
+Level-of-Detail (LOD) processing logic for HYDE human settlement data.
+Implements hierarchical spatial aggregation for performance optimization.
+"""
+
+import numpy as np
+from typing import List, Dict, Optional
+from models import (
+    LODLevel, Coordinates, HumanSettlement, AggregatedSettlement, 
+    LODConfiguration, ProcessingStatistics
+)
+
+
+class LODProcessor:
+    """Processes human settlement data into hierarchical Level-of-Detail datasets."""
+    
+    def __init__(self, config: Optional[LODConfiguration] = None):
+        """Initialize LOD processor with configuration."""
+        self.config = config or LODConfiguration()
+    
+    def create_hierarchical_lods(
+        self, 
+        settlements: List[HumanSettlement]
+    ) -> Dict[LODLevel, List[AggregatedSettlement]]:
+        """
+        Create hierarchical Level-of-Detail datasets using Pydantic models.
+        Aggregates population data into progressively larger grid cells.
+        
+        Args:
+            settlements: List of individual settlements from HYDE data
+            
+        Returns:
+            Dictionary mapping LOD levels to aggregated settlements
+        """
+        if not settlements:
+            return {level: [] for level in LODLevel}
+        
+        # Extract year from first settlement (all should be same year)
+        year = settlements[0].year
+        
+        lod_results = {}
+        
+        # LOD 3 (DETAILED): Use original settlements
+        lod_results[LODLevel.DETAILED] = [
+            AggregatedSettlement(
+                coordinates=settlement.coordinates,
+                total_population=settlement.population,
+                year=settlement.year,
+                lod_level=LODLevel.DETAILED,
+                grid_size_degrees=settlement.source_resolution,
+                source_dot_count=1,
+                average_density=settlement.population / ((settlement.source_resolution * 111.32) ** 2)  # Rough km² conversion
+            ) for settlement in settlements
+        ]
+        
+        # Define grid sizes for each LOD level
+        grid_configs = {
+            LODLevel.GLOBAL: self.config.global_grid_size,
+            LODLevel.REGIONAL: self.config.regional_grid_size,
+            LODLevel.LOCAL: self.config.local_grid_size
+        }
+        
+        for lod_level, grid_size in grid_configs.items():
+            print(f"    Creating {lod_level.name} LOD (grid: {grid_size}°)...")
+            
+            # Group settlements by grid cell
+            grid_cells = {}
+            
+            for settlement in settlements:
+                # Calculate grid cell coordinates (snap to grid)
+                grid_x = round(settlement.coordinates.longitude / grid_size) * grid_size
+                grid_y = round(settlement.coordinates.latitude / grid_size) * grid_size
+                grid_key = (grid_x, grid_y)
+                
+                if grid_key not in grid_cells:
+                    grid_cells[grid_key] = {
+                        'center_coords': Coordinates(longitude=grid_x, latitude=grid_y),
+                        'total_population': 0.0,
+                        'source_dots': 0,
+                        'settlements': []
+                    }
+                
+                grid_cells[grid_key]['total_population'] += settlement.population
+                grid_cells[grid_key]['source_dots'] += 1
+                grid_cells[grid_key]['settlements'].append(settlement)
+            
+            # Create aggregated settlements
+            aggregated_settlements = []
+            
+            for grid_key, cell_data in grid_cells.items():
+                # Skip cells below population threshold
+                if cell_data['total_population'] < self.config.min_population_threshold:
+                    continue
+                    
+                # Calculate average density
+                cell_area_km2 = (grid_size * 111.32) ** 2  # Rough conversion to km²
+                avg_density = cell_data['total_population'] / cell_area_km2
+                
+                # Create aggregated settlement with validation
+                try:
+                    aggregated = AggregatedSettlement(
+                        coordinates=cell_data['center_coords'],
+                        total_population=cell_data['total_population'],
+                        year=year,
+                        lod_level=lod_level,
+                        grid_size_degrees=grid_size,
+                        source_dot_count=cell_data['source_dots'],
+                        average_density=avg_density
+                    )
+                    aggregated_settlements.append(aggregated)
+                    
+                except Exception as e:
+                    print(f"      Warning: Skipping invalid aggregated settlement: {e}")
+                    continue
+            
+            lod_results[lod_level] = aggregated_settlements
+            print(f"      → {len(aggregated_settlements)} aggregated settlements (from {len(settlements)} original)")
+        
+        return lod_results
+    
+    def create_density_aware_dots(
+        self, 
+        cell_population: float, 
+        lat: float, 
+        lon: float, 
+        cellsize: float, 
+        people_per_dot: int
+    ) -> List[tuple]:
+        """
+        Create dots for a cell using density-aware strategy to handle high-concentration areas.
+        
+        Args:
+            cell_population: Total population in the cell
+            lat, lon: Center coordinates of the cell
+            cellsize: Size of the cell in degrees
+            people_per_dot: Standard number of people per dot
+        
+        Returns:
+            List of (lat, lon, population) tuples for each dot to create
+        """
+        dots = []
+        
+        # Apply minimum population threshold - ignore very sparse areas
+        if cell_population < 50:  # Minimum 50 people per cell to create any dots
+            return dots
+        
+        # Density-aware strategy based on population concentration
+        if cell_population < 1000:
+            # Rural areas: Standard approach with random placement
+            num_dots = max(1, int(cell_population / people_per_dot))
+            population_per_dot = cell_population / num_dots  # Use actual population, not fixed amount
+            
+            for _ in range(num_dots):
+                dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
+                dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
+                dots.append((dot_lat, dot_lon, population_per_dot))
+                
+        elif cell_population < 10000:
+            # Towns: Systematic grid distribution to avoid overlap
+            # Increase aggregation factor to create "super-dots" in towns
+            effective_people_per_dot = people_per_dot * 5  # 5× more people represented per dot
+            num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))  # Max 5 dots
+            population_per_dot = cell_population / num_dots  # Use actual population
+            
+            grid_size = int(np.ceil(np.sqrt(num_dots)))
+            grid_step = cellsize / (grid_size + 1)  # Add padding
+            
+            dot_idx = 0
+            for i in range(grid_size):
+                for j in range(grid_size):
+                    if dot_idx >= num_dots:
+                        break
+                        
+                    # Grid position with slight randomization
+                    offset_lat = (i - grid_size/2 + 0.5) * grid_step
+                    offset_lon = (j - grid_size/2 + 0.5) * grid_step
+                    
+                    # Add small random offset to avoid perfect grid
+                    offset_lat += np.random.uniform(-grid_step/4, grid_step/4)
+                    offset_lon += np.random.uniform(-grid_step/4, grid_step/4)
+                    
+                    dot_lat = lat + offset_lat
+                    dot_lon = lon + offset_lon
+                    dots.append((dot_lat, dot_lon, population_per_dot))
+                    dot_idx += 1
+                    
+        else:
+            # Cities: Few large representative dots to avoid visual clutter
+            # Cities: aggregate even more aggressively
+            effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
+            num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))  # Max 3 dots
+            population_per_dot = cell_population / num_dots  # Use actual population
+            
+            # Use fixed positions within cell to ensure consistency
+            positions = [
+                (0, 0),  # Center
+                (-0.25, -0.25), (0.25, -0.25),  # Lower corners
+                (-0.25, 0.25), (0.25, 0.25)    # Upper corners
+            ]
+            
+            for i in range(num_dots):
+                offset_lat, offset_lon = positions[i]
+                dot_lat = lat + offset_lat * cellsize
+                dot_lon = lon + offset_lon * cellsize
+                dots.append((dot_lat, dot_lon, population_per_dot))
+        
+        return dots
+    
+    def validate_settlement_data(
+        self, 
+        settlements: List[HumanSettlement]
+    ) -> ProcessingStatistics:
+        """
+        Validate settlement data and return processing statistics.
+        
+        Args:
+            settlements: List of settlements to validate
+            
+        Returns:
+            Processing statistics with validation results
+        """
+        stats = ProcessingStatistics()
+        stats.total_cells_processed = len(settlements)
+        
+        valid_settlements = []
+        coordinate_errors = 0
+        
+        for settlement in settlements:
+            try:
+                # Validate coordinates
+                coords = settlement.coordinates
+                if not (-180 <= coords.longitude <= 180 and -90 <= coords.latitude <= 90):
+                    coordinate_errors += 1
+                    continue
+                
+                # Validate population
+                if settlement.population <= 0:
+                    continue
+                
+                valid_settlements.append(settlement)
+                stats.total_population += settlement.population
+                
+            except Exception:
+                coordinate_errors += 1
+                continue
+        
+        stats.valid_cells_found = len(valid_settlements)
+        stats.coordinate_validation_errors = coordinate_errors
+        stats.dots_created = len(valid_settlements)
+        
+        return stats
+    
+    def get_lod_level_for_zoom(self, zoom_level: float) -> LODLevel:
+        """
+        Determine appropriate LOD level based on zoom level.
+        
+        Args:
+            zoom_level: Current map zoom level
+            
+        Returns:
+            Appropriate LOD level for the zoom
+        """
+        if zoom_level < 2:
+            return LODLevel.GLOBAL
+        elif zoom_level < 4:
+            return LODLevel.REGIONAL
+        elif zoom_level < 6:
+            return LODLevel.LOCAL
+        else:
+            return LODLevel.DETAILED
+    
+    def estimate_performance_impact(
+        self, 
+        settlements: List[HumanSettlement], 
+        target_lod: LODLevel
+    ) -> Dict[str, float]:
+        """
+        Estimate performance impact of using a specific LOD level.
+        
+        Args:
+            settlements: Original settlement data
+            target_lod: Target LOD level
+            
+        Returns:
+            Dictionary with performance estimates
+        """
+        original_count = len(settlements)
+        
+        # Create LOD data to get actual counts
+        lod_data = self.create_hierarchical_lods(settlements)
+        target_count = len(lod_data.get(target_lod, []))
+        
+        reduction_ratio = target_count / original_count if original_count > 0 else 0
+        estimated_render_speedup = 1.0 / reduction_ratio if reduction_ratio > 0 else 1.0
+        
+        return {
+            'original_dot_count': original_count,
+            'lod_dot_count': target_count,
+            'reduction_ratio': reduction_ratio,
+            'estimated_speedup': min(estimated_render_speedup, 10.0),  # Cap at 10x
+            'memory_reduction_mb': (original_count - target_count) * 0.1  # Rough estimate
+        }

@@ -16,7 +16,9 @@
       "Bash(find:*)",
       "mcp__playwright-local__browser_navigate",
       "mcp__playwright-local__browser_click",
-      "mcp__playwright-local__browser_click_text"
+      "mcp__playwright-local__browser_click_text",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

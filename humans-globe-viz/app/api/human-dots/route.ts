@@ -12,8 +12,8 @@ import { gzipSync, createGunzip } from 'zlib';
 
 // Helper function to determine LOD level based on zoom
 function getLODLevel(zoom: number): number {
-  if (zoom < 4) return 1;      // Regional LOD (minimum)
-  if (zoom < 6) return 2;      // Local LOD
+  if (zoom < 3) return 1;      // Regional LOD (minimum)
+  if (zoom < 5) return 2;      // Local LOD
   return 3;                    // Detailed LOD
 }
 
@@ -160,7 +160,7 @@ export async function GET(request: Request) {
 
     const jsonStr = JSON.stringify(geojson);
     const gzBody = gzipSync(Buffer.from(jsonStr));
-    return new NextResponse(gzBody, {
+    return new NextResponse(new Uint8Array(gzBody), {
       headers: {
         'Content-Type': 'application/json',
         'Content-Encoding': 'gzip',

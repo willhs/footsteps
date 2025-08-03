@@ -24,7 +24,7 @@ Transform dry demographic data into an intuitive, time-scrubbing experience that
 ### Prerequisites
 
 - Node.js ≥ 20
-- pnpm (recommended) or npm  
+ - pnpm
 - Python ≥ 3.11
 - Poetry (for Python dependency management)
 

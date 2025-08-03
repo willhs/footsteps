@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [0.0, 0.0]}, "properties": {"year": -10000}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [1.0, 1.0]}, "properties": {"year": -10000}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [10.0, 10.0]}, "properties": {"year": 0}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [20.0, 20.0]}, "properties": {"year": 1500}}
+  ]
+}

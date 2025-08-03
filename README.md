@@ -54,7 +54,7 @@ cd deep-footsteps
 ./setup.sh
 
 # Start the development server
-cd humans-globe && pnpm dev
+cd humans-globe-viz && pnpm dev
 ```
 
 #### Manual Setup
@@ -68,7 +68,7 @@ cd deep-footsteps
 poetry install --only main
 
 # Install frontend dependencies
-cd humans-globe
+cd humans-globe-viz
 pnpm install
 
 # Generate sample data using Poetry scripts
@@ -77,7 +77,7 @@ poetry run process-hyde         # Generate population density data
 poetry run process-cities       # Generate human dots data
 
 # Start the development server
-cd humans-globe
+cd humans-globe-viz
 pnpm dev
 ```
 
@@ -103,7 +103,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🏗️ Architecture
 
-### Frontend (`/humans-globe/`)
+### Frontend (`/humans-globe-viz/`)
 - **Next.js 15** - React framework with App Router
 - **DeckGL** - WebGL-powered data visualization
 - **TypeScript** - Type-safe development
@@ -125,7 +125,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```
 deep-footsteps/
-├── humans-globe/              # Next.js frontend application
+├── humans-globe-viz/              # Next.js frontend application
 │   ├── app/                   # App Router pages
 │   ├── components/            # React components
 │   ├── lib/                   # Utilities and hooks
@@ -199,7 +199,7 @@ poetry run process-cities       # Creates human settlement dots
 
 ### Static Hosting (Recommended)
 ```bash
-cd humans-globe
+cd humans-globe-viz
 pnpm build
 pnpm start
 ```

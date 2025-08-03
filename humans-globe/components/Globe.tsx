@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer } from './globe/layers';
 import { WebMercatorViewport } from '@deck.gl/core';
 import HumanDotsOverlay from './globe/HumanDotsOverlay';
 import LegendOverlay from './globe/LegendOverlay';
+import useGlobeViewState from './globe/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -28,13 +28,7 @@ interface HumanDot {
 }
 
 function Globe({ year }: GlobeProps) {
-  const [viewState, setViewState] = useState({
-    longitude: 0,
-    latitude: 20,
-    zoom: 1.5,
-    pitch: 0,
-    bearing: 0
-  });
+  const { viewState, isZooming, isPanning, onViewStateChange } = useGlobeViewState();
   
   // // Color scale for population density (disabled for now)
   // const densityColorScale = useMemo(() => 
@@ -55,15 +49,6 @@ function Globe({ year }: GlobeProps) {
   const [activeRequests, setActiveRequests] = useState<Set<string>>(new Set());
   
   // Simplified: no LOD transitions to prevent visual artifacts
-  
-  // Zoom gesture state tracking
-  const [isZooming, setIsZooming] = useState(false);
-  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Pan gesture state tracking
-  const [isPanning, setIsPanning] = useState(false);
-  const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
   
   // Track previous LOD level for proper transition detection
   const [previousLODLevel, setPreviousLODLevel] = useState<number | null>(null);
@@ -440,12 +425,6 @@ function Globe({ year }: GlobeProps) {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
-      if (zoomTimeoutRef.current) {
-        clearTimeout(zoomTimeoutRef.current);
-      }
-      if (panTimeoutRef.current) {
-        clearTimeout(panTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -520,52 +499,7 @@ function Globe({ year }: GlobeProps) {
     <div className="relative w-full h-full">
       <DeckGL
         viewState={viewState}
-        onViewStateChange={({ viewState: newViewState }) => {
-          const oldZoom = viewState.zoom;
-          const newZoom = (newViewState as any).zoom;
-          const oldLon = viewState.longitude;
-          const newLon = (newViewState as any).longitude;
-          const oldLat = viewState.latitude;
-          const newLat = (newViewState as any).latitude;
-          
-          // Update view state immediately for smooth visual feedback
-          setViewState(newViewState as any);
-          
-          // Zoom detection for debouncing data loads
-          if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
-            if (!isZooming) {
-              setIsZooming(true);
-            }
-            
-            // Clear existing timeout
-            if (zoomTimeoutRef.current) {
-              clearTimeout(zoomTimeoutRef.current);
-            }
-            
-            // Set timeout to detect end of zoom gesture
-            zoomTimeoutRef.current = setTimeout(() => {
-              setIsZooming(false);
-            }, 150); // 150ms after last zoom change
-          }
-          
-          // Pan detection for viewport-based data loading
-          const panThreshold = 0.1; // Degrees - adjust based on sensitivity needed
-          if ((Math.abs(newLon - oldLon) > panThreshold || Math.abs(newLat - oldLat) > panThreshold) && !isZooming) {
-            if (!isPanning) {
-              setIsPanning(true);
-            }
-            
-            // Clear existing pan timeout
-            if (panTimeoutRef.current) {
-              clearTimeout(panTimeoutRef.current);
-            }
-            
-            // Set timeout to detect end of pan gesture
-            panTimeoutRef.current = setTimeout(() => {
-              setIsPanning(false);
-            }, 300); // 300ms after last pan change (longer than zoom)
-          }
-        }}
+        onViewStateChange={onViewStateChange}
         controller={{
           dragPan: true,
           dragRotate: true,

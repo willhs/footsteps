@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
+import { getViewMode, setViewMode } from '../lib/viewModeStore';
 import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, createEarthSphereLayer, radiusStrategies } from './globe/layers';
 import { WebMercatorViewport } from '@deck.gl/core';
@@ -29,14 +30,8 @@ interface HumanDot {
 }
 
 function Globe({ year }: GlobeProps) {
-  // View mode toggle state with localStorage persistence
-  const [is3DMode, setIs3DMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('globe-view-mode');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+  // View mode toggle state with cookie persistence for SSR compatibility
+  const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   
   // View states for different modes
   const [viewState2D, setViewState2D] = useState({
@@ -61,11 +56,9 @@ function Globe({ year }: GlobeProps) {
   // Current view state based on mode
   const viewState = is3DMode ? viewState3D : viewState2D;
   
-  // Save view mode preference to localStorage
+  // Save view mode preference to cookie
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('globe-view-mode', JSON.stringify(is3DMode));
-    }
+    setViewMode(is3DMode);
   }, [is3DMode]);
   
   // // Color scale for population density (disabled for now)
@@ -161,7 +154,7 @@ function Globe({ year }: GlobeProps) {
   // Throttled viewport bounds calculation - only update when movement is significant
   // Skip bounds calculation for 3D mode since OrbitView handles visibility differently
   const viewportBounds = useMemo(() => {
-    if (typeof window === 'undefined' || is3DMode) return null;
+    if (is3DMode || typeof window === 'undefined') return null;
     
     const viewport = new WebMercatorViewport({
       longitude: Math.round(viewState.longitude * 4) / 4, // 0.25 degree precision

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   // Removed experimental.esmExternals as recommended by Next.js
   webpack: (config) => {
     // Handle deck.gl dependencies

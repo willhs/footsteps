@@ -1,5 +1,3 @@
-'use client';
-
 import { ScatterplotLayer } from '@deck.gl/layers';
 
 interface HumanDot {

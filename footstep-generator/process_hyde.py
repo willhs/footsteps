@@ -8,12 +8,10 @@ import os
 import pathlib
 import numpy as np
 import geopandas as gpd
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Point
 import json
 import gzip
-import zipfile
-import tempfile
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 
 # Import our modular components
 from models import (

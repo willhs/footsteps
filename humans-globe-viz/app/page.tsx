@@ -2,8 +2,6 @@
 
 import { useYear } from '../lib/useYear';
 import Globe from '../components/Globe';
-import SimpleGlobe from '../components/SimpleGlobe';
-import MinimalTest from '../components/MinimalTest';
 import TimeSlider from '../components/TimeSlider';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 

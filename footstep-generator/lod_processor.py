@@ -5,6 +5,7 @@ Implements hierarchical spatial aggregation for performance optimization.
 """
 
 import numpy as np
+from collections import defaultdict
 from typing import List, Dict, Optional
 from models import (
     LODLevel, Coordinates, HumanSettlement, AggregatedSettlement, 
@@ -63,27 +64,27 @@ class LODProcessor:
         
         for lod_level, grid_size in grid_configs.items():
             print(f"    Creating {lod_level.name} LOD (grid: {grid_size}°)...")
-            
+
             # Group settlements by grid cell
-            grid_cells = {}
-            
+            grid_cells = defaultdict(
+                lambda: {
+                    "center_coords": Coordinates(longitude=grid_x, latitude=grid_y),
+                    "total_population": 0.0,
+                    "source_dots": 0,
+                    "settlements": [],
+                }
+            )
+
             for settlement in settlements:
                 # Calculate grid cell coordinates (snap to grid)
                 grid_x = round(settlement.coordinates.longitude / grid_size) * grid_size
                 grid_y = round(settlement.coordinates.latitude / grid_size) * grid_size
                 grid_key = (grid_x, grid_y)
-                
-                if grid_key not in grid_cells:
-                    grid_cells[grid_key] = {
-                        'center_coords': Coordinates(longitude=grid_x, latitude=grid_y),
-                        'total_population': 0.0,
-                        'source_dots': 0,
-                        'settlements': []
-                    }
-                
-                grid_cells[grid_key]['total_population'] += settlement.population
-                grid_cells[grid_key]['source_dots'] += 1
-                grid_cells[grid_key]['settlements'].append(settlement)
+
+                cell = grid_cells[grid_key]
+                cell["total_population"] += settlement.population
+                cell["source_dots"] += 1
+                cell["settlements"].append(settlement)
             
             # Create aggregated settlements
             aggregated_settlements = []

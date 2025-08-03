@@ -2,7 +2,6 @@
 
 import Slider from 'rc-slider';
 import { useMemo, useState, useEffect } from 'react';
-import 'rc-slider/assets/index.css';
 import { formatYear, sliderToYear, yearToSlider } from '../lib/useYear';
 
 interface TimeSliderProps {

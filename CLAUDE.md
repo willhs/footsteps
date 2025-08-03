@@ -84,12 +84,12 @@ The application implements a sophisticated LOD system for performance at differe
 5. **Visualization**: Deck.gl renders dots as ScatterplotLayer with population-based sizing
 
 ## Commands
-- **Development**: `cd humans-globe-viz && npm run dev` → http://localhost:4444
+- **Development**: `cd humans-globe-viz && pnpm dev` → http://localhost:4444
 - **Data Processing**: `cd footstep-generator && python process_hyde.py`
 - **Data Processing (with LODs)**: `cd footstep-generator && python process_hyde.py --with-lods`
-- **Build**: `npm run build` 
-- **Test**: `npm test`
-- **Lint**: `npm run lint`
+- **Build**: `pnpm build`
+- **Test**: `pnpm test`
+- **Lint**: `pnpm lint`
 
 ## Testing
 ### Data Processing Pipeline Tests

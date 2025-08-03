@@ -17,7 +17,7 @@ This file provides **Codex** (and other AI agents) with the context it needs to 
 ```
 /                # root
 │
-├── humans-globe-viz/        # Next.js front-end (TypeScript)
+├── humans-globe/        # Next.js front-end (TypeScript)
 │   ├── app/                 # Next 14 app-router pages
 │   ├── components/          # React/TSX UI components
 │   └── public/              # Static assets (e.g. textures, icons)
@@ -79,11 +79,11 @@ AI Agents should:
 
 ## 6 • Folder-Specific Notes for AI
 
-- `humans-globe-viz/components/Globe.tsx`  
+- `humans-globe/components/Globe.tsx`  
   Contains `deck.gl` globe with heat shader overlay.  
   Performance >60 fps is critical; batch GPU buffers, avoid per-frame allocations.
 
-- `humans-globe-viz/components/TimeSlider.tsx`  
+- `humans-globe/components/TimeSlider.tsx`  
   Non-linear mapping 100 k yr → present.  
   If you edit, keep thumb drag responsive < 16 ms.
 

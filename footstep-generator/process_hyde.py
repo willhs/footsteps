@@ -121,7 +121,10 @@ def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> g
         dots = []
         dot_populations = []
         total_people = 0
-        
+
+        # Create LOD processor instance once for reuse across all cells
+        lod_processor = LODProcessor()
+
         for idx in range(len(valid_i)):
             i, j = valid_i[idx], valid_j[idx]
             density = data[i, j]  # people per km²
@@ -158,9 +161,6 @@ def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> g
             
             total_people += cell_population
             
-            # Create LOD processor instance for dot creation
-            lod_processor = LODProcessor()
-            
             # Density-aware dot creation to handle high-concentration areas
             dots_created = lod_processor.create_density_aware_dots(
                 cell_population, lat, lon, cellsize, people_per_dot
@@ -175,7 +175,6 @@ def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> g
                     continue
                 
                 # Create point geometry
-                from shapely.geometry import Point
                 point = Point(dot_lon, dot_lat)
                 
                 dots.append(point)

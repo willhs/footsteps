@@ -69,7 +69,9 @@ const getResponsiveYears = (width: number, currentYear: number): number[] => {
 // Generate dynamic marks emphasising the currently selected year
 // Determine viewport width once per resize – used to decide when to switch to compact labels
 const useWindowWidth = () => {
-  const [width, setWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  // Start with a neutral default that is the same for both server and client.
+  // The actual `window.innerWidth` will be populated after the first mount.
+  const [width, setWidth] = useState<number>(1024);
   useEffect(() => {
     const handleResize = () => setWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);

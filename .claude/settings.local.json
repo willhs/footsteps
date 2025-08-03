@@ -18,7 +18,8 @@
       "mcp__playwright-local__browser_click",
       "mcp__playwright-local__browser_click_text",
       "Bash(npm run lint)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

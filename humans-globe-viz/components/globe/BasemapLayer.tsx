@@ -1,5 +1,3 @@
-'use client';
-
 import { GeoJsonLayer } from '@deck.gl/layers';
 
 interface BasemapLayerProps {

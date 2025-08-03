@@ -162,7 +162,7 @@ function Globe({ year }: GlobeProps) {
     
     debounceTimeoutRef.current = setTimeout(() => {
       const loadData = async () => {
-        const cacheKey = getCacheKey(year, viewState.zoom, viewportBounds ?? undefined);
+        const cacheKey = getCacheKey(year, viewState.zoom, viewportBounds || undefined);
         const currentLODLevel = getLODLevel(viewState.zoom);
         
         try {

@@ -2,24 +2,13 @@
 
 import Slider from 'rc-slider';
 import { useMemo, useState, useEffect } from 'react';
-import 'rc-slider/assets/index.css';
 import { formatYear, sliderToYear, yearToSlider } from '../lib/useYear';
+import { TARGET_YEARS } from '../lib/constants';
 
 interface TimeSliderProps {
   value: number;
   onChange: (value: number) => void;
 }
-
-// Available target years (must match lib/useYear.ts)
-// Complete deep history dataset - 26 time periods 
-const TARGET_YEARS = [
-  // Deep Prehistory - Every millennium
-  -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
-  // Classical Period - Complete coverage every century
-  0, 100, 200, 300, 400, 500, 600, 700, 800, 900,
-  // Medieval Period
-  1000, 1100, 1200, 1300, 1400, 1500
-];
 
 // Helper to format individual year label
 // If `compact` is true, use a shortened representation to save space on narrow screens

@@ -100,7 +100,7 @@ export function createStaticTerrainLayer() {
     renderSubLayers: props => {
       const {boundingBox} = props.tile;
       return new BitmapLayer(props, {
-        data: undefined as any,
+        data: undefined,
         image: props.data,
         bounds: [
           boundingBox[0][0],

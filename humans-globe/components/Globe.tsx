@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
-import DeckGL from '@deck.gl/react';
 import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
-import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer } from './globe/layers';
+import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, createEarthSphereLayer, radiusStrategies } from './globe/layers';
 import { WebMercatorViewport } from '@deck.gl/core';
 import HumanDotsOverlay from './globe/HumanDotsOverlay';
 import LegendOverlay from './globe/LegendOverlay';
+import GlobeView3D from './GlobeView3D';
+import MapView2D from './MapView2D';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -28,13 +29,44 @@ interface HumanDot {
 }
 
 function Globe({ year }: GlobeProps) {
-  const [viewState, setViewState] = useState({
+  // View mode toggle state with localStorage persistence
+  const [is3DMode, setIs3DMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('globe-view-mode');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+  
+  // View states for different modes
+  const [viewState2D, setViewState2D] = useState({
     longitude: 0,
     latitude: 20,
     zoom: 1.5,
     pitch: 0,
     bearing: 0
   });
+  
+  const [viewState3D, setViewState3D] = useState({
+    longitude: 0,
+    latitude: 0,
+    zoom: 2.5,
+    minZoom: -3,
+    maxZoom: 10,
+    target: [0, 0, 0], // Center of the Earth
+    rotationX: 0,
+    rotationOrbit: 0
+  });
+  
+  // Current view state based on mode
+  const viewState = is3DMode ? viewState3D : viewState2D;
+  
+  // Save view mode preference to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('globe-view-mode', JSON.stringify(is3DMode));
+    }
+  }, [is3DMode]);
   
   // // Color scale for population density (disabled for now)
   // const densityColorScale = useMemo(() => 
@@ -47,7 +79,7 @@ function Globe({ year }: GlobeProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const DOT_LIMIT = 5000000; // Load all available dots for accurate population representation
-  const MAX_RENDER_DOTS = 35000; // MacBook M3 should handle this fine
+  const MAX_RENDER_DOTS = 50000; // MacBook M3 should handle this fine
   
   // Frontend data cache to prevent duplicate API requests  
   // Cache key includes year, LOD level, and LOD enabled state
@@ -127,8 +159,9 @@ function Globe({ year }: GlobeProps) {
   }, []);
 
   // Throttled viewport bounds calculation - only update when movement is significant
+  // Skip bounds calculation for 3D mode since OrbitView handles visibility differently
   const viewportBounds = useMemo(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || is3DMode) return null;
     
     const viewport = new WebMercatorViewport({
       longitude: Math.round(viewState.longitude * 4) / 4, // 0.25 degree precision
@@ -142,7 +175,8 @@ function Globe({ year }: GlobeProps) {
     // Heavily throttled to prevent constant recalculation
     Math.round(viewState.longitude * 4) / 4,
     Math.round(viewState.latitude * 4) / 4,
-    Math.round(viewState.zoom * 2) / 2
+    Math.round(viewState.zoom * 2) / 2,
+    is3DMode
   ]);
 
   // -----------------------------
@@ -194,11 +228,14 @@ function Globe({ year }: GlobeProps) {
           // Calculate viewport bounds for server-side filtering
           let boundsQuery = '';
           if (viewportBounds) {
-            const [minLon, minLat, maxLon, maxLat] = viewportBounds;
+            // Round bounds to 0.5 degree precision for better cache hit rate
+            const [minLon, minLat, maxLon, maxLat] = viewportBounds.map(b => Math.round(b * 2) / 2);
             boundsQuery = `&minLon=${minLon}&maxLon=${maxLon}&minLat=${minLat}&maxLat=${maxLat}`;
           }
           
-          const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${viewState.zoom}${boundsQuery}`);
+          // Round zoom to 0.25 precision for better cache hit rate
+          const roundedZoom = Math.round(viewState.zoom * 4) / 4;
+          const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${roundedZoom}${boundsQuery}`);
           if (!response.ok) {
             throw new Error('Failed to load human dots data');
           }
@@ -451,10 +488,14 @@ function Globe({ year }: GlobeProps) {
 
   // Memoized layers to prevent recreation on every render (critical for performance)
   
-  // Static terrain layer - never changes
-  const terrainLayer = useMemo(() => createStaticTerrainLayer(), []);
+  // Static terrain layer - enabled for both modes (GlobeView can handle it)
+  const terrainLayer = useMemo(() => {
+    return createStaticTerrainLayer();
+  }, []);
   
-  // Basemap layer - only changes when data or error state changes
+  // Remove earth sphere layer to prevent geometric artifacts
+  
+  // Basemap layer - use regular basemap for both modes (GlobeView handles sphere projection)
   const basemapLayer = useMemo(() => {
     return createBasemapLayer(basemapData, basemapError);
   }, [basemapData, basemapError]);
@@ -480,20 +521,29 @@ function Globe({ year }: GlobeProps) {
   const layerViewState = useMemo(() => ({
     ...viewState,
     zoom: throttledZoom  // Use throttled zoom to reduce layer recreation
-  }), [viewState.longitude, viewState.latitude, viewState.pitch, viewState.bearing, throttledZoom]);
+  }), [viewState.longitude, viewState.latitude, viewState.zoom, throttledZoom]);
   
   // Performance monitoring for zoom issues
   const lastRenderTime = useRef(performance.now());
   const renderCount = useRef(0);
   
-  // Optimized layer creation - don't pass viewState since radius is pre-computed
+  // Optimized layer creation - use different radius strategies for 2D vs 3D
   const humanDotsLayer = useMemo(() => {
-    return createHumanDotsLayer(dotsToRender, null, year, stableLODLevel, (info: any) => {
-      if (info.object) {
-        console.log('Clicked dot:', info.object);
+    const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
+    
+    return createHumanDotsLayer(
+      dotsToRender, 
+      layerViewState, 
+      year, 
+      stableLODLevel, 
+      radiusStrategy,
+      (info: any) => {
+        if (info.object) {
+          console.log('Clicked dot:', info.object);
+        }
       }
-    });
-  }, [dotsToRender, year, stableLODLevel]); // viewState not needed with pre-computed radius
+    );
+  }, [dotsToRender, layerViewState, year, stableLODLevel, is3DMode]);
   
   // Track render performance - measure actual render cycles not useEffect timing
   useEffect(() => {
@@ -512,81 +562,61 @@ function Globe({ year }: GlobeProps) {
   });
   
   // Memoized layers array to prevent array recreation
+  // Shared view-state change handler reused by both 2-D and 3-D views
+  const handleViewStateChange = ({ viewState: newViewState }: { viewState: any }) => {
+    const oldZoom = viewState.zoom;
+    const newZoom = (newViewState as any).zoom;
+    const oldLon = viewState.longitude;
+    const newLon = (newViewState as any).longitude;
+    const oldLat = viewState.latitude;
+    const newLat = (newViewState as any).latitude;
+
+    // Update appropriate view state based on mode
+    if (is3DMode) {
+      setViewState3D(newViewState as any);
+    } else {
+      setViewState2D(newViewState as any);
+    }
+
+    // Zoom detection for debouncing data loads
+    if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
+      if (!isZooming) {
+        setIsZooming(true);
+      }
+      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current);
+      zoomTimeoutRef.current = setTimeout(() => setIsZooming(false), 150);
+    }
+
+    // Pan detection for viewport-based data loading
+    const panThreshold = 0.1; // degrees
+    if ((Math.abs(newLon - oldLon) > panThreshold || Math.abs(newLat - oldLat) > panThreshold) && !isZooming) {
+      if (!isPanning) setIsPanning(true);
+      if (panTimeoutRef.current) clearTimeout(panTimeoutRef.current);
+      panTimeoutRef.current = setTimeout(() => setIsPanning(false), 300);
+    }
+  };
+
   const layers = useMemo(() => {
-    return [terrainLayer, basemapLayer, humanDotsLayer];
+    // Layer ordering: terrain -> basemap -> human dots (front)
+    return [terrainLayer, basemapLayer, humanDotsLayer].filter(Boolean);
   }, [terrainLayer, basemapLayer, humanDotsLayer]);
   
   return (
     <div className="relative w-full h-full">
-      <DeckGL
-        viewState={viewState}
-        onViewStateChange={({ viewState: newViewState }) => {
-          const oldZoom = viewState.zoom;
-          const newZoom = (newViewState as any).zoom;
-          const oldLon = viewState.longitude;
-          const newLon = (newViewState as any).longitude;
-          const oldLat = viewState.latitude;
-          const newLat = (newViewState as any).latitude;
-          
-          // Update view state immediately for smooth visual feedback
-          setViewState(newViewState as any);
-          
-          // Zoom detection for debouncing data loads
-          if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
-            if (!isZooming) {
-              setIsZooming(true);
-            }
-            
-            // Clear existing timeout
-            if (zoomTimeoutRef.current) {
-              clearTimeout(zoomTimeoutRef.current);
-            }
-            
-            // Set timeout to detect end of zoom gesture
-            zoomTimeoutRef.current = setTimeout(() => {
-              setIsZooming(false);
-            }, 150); // 150ms after last zoom change
-          }
-          
-          // Pan detection for viewport-based data loading
-          const panThreshold = 0.1; // Degrees - adjust based on sensitivity needed
-          if ((Math.abs(newLon - oldLon) > panThreshold || Math.abs(newLat - oldLat) > panThreshold) && !isZooming) {
-            if (!isPanning) {
-              setIsPanning(true);
-            }
-            
-            // Clear existing pan timeout
-            if (panTimeoutRef.current) {
-              clearTimeout(panTimeoutRef.current);
-            }
-            
-            // Set timeout to detect end of pan gesture
-            panTimeoutRef.current = setTimeout(() => {
-              setIsPanning(false);
-            }, 300); // 300ms after last pan change (longer than zoom)
-          }
-        }}
-        controller={{
-          dragPan: true,
-          dragRotate: true,
-          scrollZoom: true,
-          touchZoom: true,
-          touchRotate: true,
-          keyboard: false
-        }}
-        layers={layers}
-        getCursor={() => 'crosshair'}
-        style={{ background: '#000810' }}
-      >
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle at center, #001122 0%, #000000 100%)',
-          zIndex: -1
-        }} />
-      </DeckGL>
-
+      {is3DMode ? (
+        <GlobeView3D
+          viewState={viewState}
+          onViewStateChange={handleViewStateChange}
+          layers={layers}
+        />
+      ) : (
+        <MapView2D
+          viewState={viewState}
+          onViewStateChange={handleViewStateChange}
+          layers={layers}
+        />
+      )}
+      
       {/* Data info overlay */}
       {!loading && (
         <HumanDotsOverlay
@@ -606,6 +636,41 @@ function Globe({ year }: GlobeProps) {
         />
       )}
       
+      {/* View Mode Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <div className="bg-gray-900/90 backdrop-blur-sm rounded-lg border border-gray-600/50 p-1 flex items-center gap-1 shadow-lg">
+          <button
+            onClick={() => setIs3DMode(false)}
+            className={`px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
+              !is3DMode 
+                ? 'bg-blue-400 text-white shadow-lg shadow-blue-400/40 ring-2 ring-blue-300 ring-offset-2 ring-offset-gray-900' 
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/60'
+            }`}
+            title="2D Map View"
+          >
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+            </svg>
+            Map
+          </button>
+          
+          <button
+            onClick={() => setIs3DMode(true)}
+            className={`px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
+              is3DMode 
+                ? 'bg-blue-400 text-white shadow-lg shadow-blue-400/40 ring-2 ring-blue-300 ring-offset-2 ring-offset-gray-900' 
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/60'
+            }`}
+            title="3D Globe View"
+          >
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM2.04 4.326c.325 1.329 2.532 2.54 3.717 3.19.48.263.793.434.743.484-.08.08-.162.158-.242.234-.416.396-.787.749-.758 1.266.035.634.618.824 1.214 1.017.577.188 1.168.38 1.286.983.082.417-.075.988-.22 1.52-.215.782-.406 1.48.22 1.653.5.138.5-.619.5-.619.5-.619 1.5-.619 1.5-.619.5 0 .5.619.5.619s0 .757.5.619c.626-.173.435-.871.22-1.653-.145-.532-.302-1.103-.22-1.52.118-.603.709-.795 1.286-.983.596-.193 1.179-.383 1.214-1.017.029-.517-.342-.87-.758-1.266-.08-.076-.162-.154-.242-.234-.05-.05.263-.221.743-.484 1.185-.65 3.392-1.861 3.717-3.19.119-.486.16-1.13-.234-1.326-.39-.192-1.33-.162-2.162-.162-.68 0-1.311.03-1.98.03-.68 0-1.311-.03-1.98-.03-.832 0-1.772-.03-2.162.162-.394.196-.353.84-.234 1.326z"/>
+            </svg>
+            Globe
+          </button>
+        </div>
+      </div>
+
       {/* Legend */}
       <LegendOverlay />
     </div>

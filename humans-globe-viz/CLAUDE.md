@@ -100,10 +100,10 @@ This frontend consumes data from a separate Python-based processing pipeline loc
 - **API Integration**: Next.js API routes serve the processed data with zoom-aware selection
 
 ## Commands
-- **Development**: `npm run dev` → http://localhost:4444
-- **Build**: `npm run build` 
-- **Lint**: `npm run lint`
-- **Type Check**: `npm run build` (includes type checking)
+- **Development**: `pnpm dev` → http://localhost:4444
+- **Build**: `pnpm build`
+- **Lint**: `pnpm lint`
+- **Type Check**: `pnpm build` (includes type checking)
 
 ## Development Guidelines
 
@@ -126,7 +126,7 @@ This frontend consumes data from a separate Python-based processing pipeline loc
 - Implement zoom gesture detection to optimize cache behavior
 
 ### Testing
-- Use `npm test` for basic functionality tests
+- Use `pnpm test` for basic functionality tests
 - Test performance with large datasets (35k+ dots)
 - Verify LOD transitions work smoothly across zoom levels
 - Test caching behavior during rapid user interactions

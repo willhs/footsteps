@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer } from './globe/layers';
 import { WebMercatorViewport } from '@deck.gl/core';
 import HumanDotsOverlay from './globe/HumanDotsOverlay';
 import LegendOverlay from './globe/LegendOverlay';
+import useBasemapData from './globe/useBasemapData';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -300,139 +300,8 @@ function Globe({ year }: GlobeProps) {
     return result;
   }, [currentHumanDots]);
 
-  // Simple basemap layer using Natural Earth land boundaries with fallback
-  const [basemapData, setBasemapData] = useState<any>(null);
-  const [basemapError, setBasemapError] = useState<boolean>(false);
-  
-  // Load basemap data on mount
-  useEffect(() => {
-    // Start with proper continent shapes for better fallback
-    setBasemapError(true);
-    setBasemapData({
-      type: 'FeatureCollection',
-      features: [
-        // North America (simplified but accurate outline)
-        { 
-          type: 'Feature', 
-          properties: { name: 'North America' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [-168, 65], [-160, 70], [-140, 70], [-130, 69], [-110, 71], [-95, 69], [-85, 68], 
-              [-75, 62], [-68, 57], [-60, 60], [-55, 70], [-75, 74], [-100, 75], [-130, 75], 
-              [-150, 73], [-168, 65]
-            ]]
-          }
-        },
-        // USA (contiguous)
-        {
-          type: 'Feature',
-          properties: { name: 'United States' },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [-125, 49], [-117, 32], [-109, 31], [-104, 29], [-94, 29], [-84, 30], [-80, 25], 
-              [-75, 35], [-70, 42], [-67, 45], [-74, 45], [-83, 46], [-95, 49], [-111, 49], [-125, 49]
-            ]]
-          }
-        },
-        // South America
-        { 
-          type: 'Feature', 
-          properties: { name: 'South America' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [-82, 12], [-70, 12], [-60, 5], [-50, -5], [-45, -15], [-40, -25], [-45, -35], 
-              [-50, -45], [-65, -55], [-70, -50], [-75, -40], [-80, -20], [-85, 0], [-82, 12]
-            ]]
-          }
-        },
-        // Europe
-        { 
-          type: 'Feature', 
-          properties: { name: 'Europe' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [-10, 71], [30, 71], [40, 60], [35, 45], [25, 35], [10, 35], [0, 45], [-5, 55], [-10, 71]
-            ]]
-          }
-        },
-        // Africa
-        { 
-          type: 'Feature', 
-          properties: { name: 'Africa' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [-20, 37], [10, 37], [35, 30], [50, 15], [45, 0], [40, -15], [35, -25], 
-              [20, -35], [15, -30], [10, -22], [0, -15], [-10, -5], [-18, 15], [-20, 37]
-            ]]
-          }
-        },
-        // Asia
-        { 
-          type: 'Feature', 
-          properties: { name: 'Asia' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [25, 71], [180, 71], [180, 40], [140, 20], [120, 15], [100, 25], [80, 35], 
-              [60, 45], [40, 55], [30, 65], [25, 71]
-            ]]
-          }
-        },
-        // Australia
-        { 
-          type: 'Feature', 
-          properties: { name: 'Australia' }, 
-          geometry: { 
-            type: 'Polygon', 
-            coordinates: [[
-              [113, -10], [115, -20], [125, -25], [140, -20], [150, -15], [153, -25], 
-              [145, -40], [135, -35], [125, -30], [115, -25], [113, -10]
-            ]]
-          }
-        }
-      ]
-    });
-    
-    // Try to load better basemap in background
-    setTimeout(() => {
-      // Try multiple GeoJSON sources in order of preference
-      const sources = [
-        // Natural Earth landmass (no internal country boundaries)
-        'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/50m/physical/ne_50m_land.json',
-        // Low-resolution fallback
-        'https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/110m/physical/ne_110m_land.json',
-        // Additional fallbacks (may include country polygons)
-        'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
-        'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson'
-      ];
-      
-      const tryLoadSource = (sourceIndex = 0) => {
-        if (sourceIndex >= sources.length) {
-          return;
-        }
-        
-        fetch(sources[sourceIndex])
-          .then(response => {
-            if (!response.ok) throw new Error(`Failed to load from source ${sourceIndex + 1}`);
-            return response.json();
-          })
-          .then(data => {
-            setBasemapError(false);
-            setBasemapData(data);
-          })
-          .catch(error => {
-            tryLoadSource(sourceIndex + 1);
-          });
-      };
-      
-      tryLoadSource();
-    }, 1000);
-  }, []);
+  // Basemap data
+  const { basemapData, basemapError } = useBasemapData();
 
   // Cleanup timeouts on unmount
   useEffect(() => {

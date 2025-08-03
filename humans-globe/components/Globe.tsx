@@ -11,6 +11,7 @@ import GlobeView3D from './GlobeView3D';
 import MapView2D from './MapView2D';
 import useHumanDotsData, { MAX_RENDER_DOTS } from './globe/useHumanDotsData';
 import useGlobeViewState from './globe/useGlobeViewState';
+import useRenderMetrics from './globe/useRenderMetrics';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -96,8 +97,11 @@ function Globe({ year }: GlobeProps) {
     dataCache,
     visibleHumanDots,
     samplingRate,
-    renderMetrics
+    renderMetrics: dataMetrics
   } = useHumanDotsData(year, viewState.zoom, viewportBounds);
+
+  // Use render metrics hook for performance tracking
+  const { renderMetrics, updateMetrics } = useRenderMetrics(visibleHumanDots.length, viewState.zoom);
 
   const totalPopulation = useMemo(() => {
     return humanDotsData.reduce((sum, dot) => {
@@ -300,21 +304,7 @@ function Globe({ year }: GlobeProps) {
     );
   }, [dotsToRender, layerViewState, year, stableLODLevel, is3DMode]);
   
-  // Track render performance - measure actual render cycles not useEffect timing
-  useEffect(() => {
-    const renderStart = performance.now();
-    
-    // Use requestAnimationFrame to measure post-render timing
-    requestAnimationFrame(() => {
-      const renderEnd = performance.now();
-      const renderTime = renderEnd - renderStart;
-      
-      // Only log significant render delays
-      if (renderTime > 16) { // > 16ms = < 60fps
-        console.log(`⚡ Render: ${renderTime.toFixed(1)}ms with ${dotsToRender.length} dots at zoom ${viewState.zoom.toFixed(2)}`);
-      }
-    });
-  });
+  // Render performance tracking is now handled by useRenderMetrics hook
   
   // Memoized layers array to prevent array recreation
   // Shared view-state change handler reused by both 2-D and 3-D views

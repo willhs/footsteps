@@ -83,7 +83,7 @@ export function createHumanDotsLayer(data: any[], viewState: any | null, year: n
     },
     
     // Performance optimizations for picking and highlighting
-    getPickingInfo: ({ info }) => info, // Simplified picking
+    getPickingInfo: ({ info }: { info: any }) => info, // Simplified picking
     autoHighlight: false, // Disable auto-highlighting for performance
     highlightColor: [255, 255, 255, 100] // Subtle highlight when enabled
   });
@@ -100,10 +100,10 @@ export function createStaticTerrainLayer() {
     renderSubLayers: props => {
       const {boundingBox} = props.tile;
       return new BitmapLayer(props, {
-        data: null,
+        data: undefined as any,
         image: props.data,
         bounds: [
-          boundingBox[0][0], 
+          boundingBox[0][0],
           boundingBox[0][1], 
           boundingBox[1][0], 
           boundingBox[1][1]

@@ -211,7 +211,7 @@ export function createStaticTerrainLayer() {
     // WebGL. This manifests as large dark artefacts on first load
     // when the page is opened directly in 3-D mode.
     renderSubLayers: (props) => {
-      // Skip if tile image hasn’t loaded yet
+      // Skip if tile image hasn't loaded yet
       if (!props.data) {
         return null;
       }

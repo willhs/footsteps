@@ -6,6 +6,7 @@ import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, rad
 import { WebMercatorViewport, _GlobeViewport as GlobeViewport } from '@deck.gl/core';
 import HumanDotsOverlay from './globe/HumanDotsOverlay';
 import LegendOverlay from './globe/LegendOverlay';
+import PopulationTooltip from './PopulationTooltip';
 import GlobeView3D from './GlobeView3D';
 import MapView2D from './MapView2D';
 import useHumanDotsData, { MAX_RENDER_DOTS } from './globe/useHumanDotsData';
@@ -46,6 +47,15 @@ function Globe({ year }: GlobeProps) {
   
   // Current view state based on mode
   const viewState = is3DMode ? viewState3D : viewState2D;
+  
+  // Population tooltip state
+  const [tooltipData, setTooltipData] = useState<{
+    population: number;
+    coordinates: [number, number];
+    year: number;
+    settlementType?: string;
+    clickPosition: { x: number; y: number };
+  } | null>(null);
   
   // Save view mode preference to cookie
   useEffect(() => {
@@ -472,7 +482,23 @@ function Globe({ year }: GlobeProps) {
       radiusStrategy,
       (info: any) => {
         if (info.object) {
-          console.log('Clicked dot:', info.object);
+          const dot = info.object;
+          const population = dot.properties?.population || 0;
+          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
+          
+          // Get click position in screen coordinates
+          const clickPosition = {
+            x: info.x || 0,
+            y: info.y || 0
+          };
+          
+          // Set tooltip data
+          setTooltipData({
+            population,
+            coordinates,
+            year,
+            clickPosition
+          });
         }
       }
     );
@@ -567,6 +593,12 @@ function Globe({ year }: GlobeProps) {
 
       {/* Legend */}
       <LegendOverlay />
+      
+      {/* Population Tooltip */}
+      <PopulationTooltip 
+        data={tooltipData}
+        onClose={() => setTooltipData(null)}
+      />
     </div>
   );
 }

@@ -14,11 +14,11 @@ import useGlobeViewState from './globe/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
-interface GlobeProps {
+interface FootstepsVizProps {
   year: number;
 }
 
-function Globe({ year }: GlobeProps) {
+function FootstepsViz({ year }: FootstepsVizProps) {
   // View mode toggle state with cookie persistence for SSR compatibility
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   
@@ -540,8 +540,8 @@ function Globe({ year }: GlobeProps) {
       )}
       
       {/* Data info overlay */}
-      {!loading && (
-        <HumanDotsOverlay
+      <HumanDotsOverlay
+        loading={loading}
           dotCount={dotsToRender.length}
           totalPopulation={totalPopulation}
           viewState={viewState}
@@ -557,8 +557,7 @@ function Globe({ year }: GlobeProps) {
           }
           viewportBounds={viewportBounds}
           is3DMode={is3DMode}
-        />
-      )}
+      />
       
       {/* View Mode Toggle */}
       <div className="absolute top-4 right-4 z-10">
@@ -603,4 +602,4 @@ function Globe({ year }: GlobeProps) {
   );
 }
 
-export default memo(Globe);
+export default memo(FootstepsViz);

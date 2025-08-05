@@ -10,6 +10,7 @@ interface RenderMetrics {
 }
 
 interface Props {
+  loading?: boolean;
   dotCount: number;
   totalPopulation: number;
   viewState: { zoom: number };
@@ -28,6 +29,7 @@ interface Props {
  * that file lean. Pure presentational; all heavy logic stays in the parent.
  */
 export default function HumanDotsOverlay({
+  loading = false,
   dotCount,
   totalPopulation,
   viewState,
@@ -40,6 +42,16 @@ export default function HumanDotsOverlay({
   viewportBounds,
   is3DMode
 }: Props) {
+  if (loading) {
+    return (
+      <div
+        className="absolute bg-black/90 rounded-lg p-4 text-white font-sans flex items-center justify-center"
+        style={{ top: '2rem', left: '2rem', zIndex: 30, minWidth: '200px', minHeight: '120px' }}
+      >
+        <span className="animate-pulse text-sm text-gray-300">Loading data…</span>
+      </div>
+    );
+  }
   // Show viewport debugging in development mode
   const isDevelopment = process.env.NODE_ENV === 'development';
   return (

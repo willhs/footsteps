@@ -17,7 +17,7 @@ from typing import List, Dict, Optional
 from models import (
     LODLevel, Coordinates, HumanSettlement, AggregatedSettlement,
     LODConfiguration, ProcessingResult, HYDEDataFile, GridMetadata,
-    ProcessingStatistics
+    ProcessingStatistics, SettlementContinuityConfig
 )
 from lod_processor import LODProcessor
 
@@ -121,7 +121,9 @@ def ascii_grid_to_dots(asc_file: str, year: int, people_per_dot: int = 100) -> g
         total_people = 0
 
         # Create LOD processor instance once for reuse across all cells
-        lod_processor = LODProcessor()
+        # Enable settlement continuity by default for better visual continuity
+        continuity_config = SettlementContinuityConfig(enable_continuity=True)
+        lod_processor = LODProcessor(continuity_config=continuity_config)
 
         for idx in range(len(valid_i)):
             i, j = valid_i[idx], valid_j[idx]
@@ -264,7 +266,9 @@ def process_year_with_hierarchical_lods(asc_file: str, year: int, output_dir: st
         local_grid_size=0.1,
         min_population_threshold=50.0
     )
-    lod_processor = LODProcessor(config=lod_config)
+    # Enable settlement continuity for hierarchical LOD processing
+    continuity_config = SettlementContinuityConfig(enable_continuity=True)
+    lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
     
     # First convert ASC to settlements using existing logic
     gdf = ascii_grid_to_dots(asc_file, year, people_per_dot)

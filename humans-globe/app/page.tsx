@@ -1,7 +1,7 @@
 'use client';
 
 import { useYear } from '../lib/useYear';
-import Globe from '../components/Globe';
+import FootstepsViz from '../components/FootstepsViz';
 import TimeSlider from '../components/TimeSlider';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
@@ -12,7 +12,7 @@ export default function Home() {
     <main className="relative w-full h-screen overflow-hidden bg-black">
       <ErrorBoundary>
         {/* Globe visualization - now with React 18 compatibility */}
-        <Globe year={year} />
+        <FootstepsViz year={year} />
       </ErrorBoundary>
       
       {/* Time control slider */}

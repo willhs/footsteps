@@ -205,17 +205,44 @@ export function createStaticTerrainLayer() {
     data: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     maxZoom: 8,
     minZoom: 0,
-    renderSubLayers: props => {
-      const {boundingBox} = props.tile;
+    // Only render the sub-layer once the tile image has loaded.
+    // Otherwise DeckGL will attempt to create a BitmapLayer with
+    // an undefined image which triggers an `assert` failure under
+    // WebGL. This manifests as large dark artefacts on first load
+    // when the page is opened directly in 3-D mode.
+    renderSubLayers: (props) => {
+      // Skip if tile image hasn’t loaded yet
+      if (!props.data) {
+        return null;
+      }
+
+      // Defensive: ensure bounding box exists & values are finite
+      const { boundingBox } = props.tile ?? {};
+      if (!boundingBox ||
+          !Number.isFinite(boundingBox[0]?.[0]) ||
+          !Number.isFinite(boundingBox[0]?.[1]) ||
+          !Number.isFinite(boundingBox[1]?.[0]) ||
+          !Number.isFinite(boundingBox[1]?.[1])) {
+        /* eslint-disable no-console */
+        console.warn('[terrain-layer] invalid boundingBox, skipping sub-layer', boundingBox);
+        /* eslint-enable no-console */
+        return null;
+      }
+
       return new BitmapLayer(props, {
+        id: `${props.id}-bitmap`,
         data: undefined,
         image: props.data,
         bounds: [
           boundingBox[0][0],
-          boundingBox[0][1], 
-          boundingBox[1][0], 
+          boundingBox[0][1],
+          boundingBox[1][0],
           boundingBox[1][1]
-        ]
+        ],
+        // Small optimisation: disable updates once image is set
+        updateTriggers: {
+          image: props.data
+        }
       });
     },
     pickable: false,

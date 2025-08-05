@@ -4,7 +4,7 @@ Pydantic models for HYDE data processing and Level-of-Detail (LOD) system.
 Provides data validation, type safety, and structure for human settlement data.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
 
@@ -132,3 +132,68 @@ class ProcessingStatistics(BaseModel):
         if self.dots_created == 0:
             return 0.0
         return self.total_population / self.dots_created
+
+
+class SettlementContinuityType(Enum):
+    """Types of settlement continuity tracking."""
+    RURAL = "rural"
+    TOWN = "town" 
+    CITY = "city"
+
+
+class PersistentSettlement(BaseModel):
+    """Settlement with continuity tracking across years."""
+    settlement_id: str = Field(..., description="Unique identifier for settlement continuity")
+    coordinates: Coordinates
+    population: float = Field(..., gt=0, description="Current population")
+    year: int = Field(..., description="Historical year")
+    continuity_type: SettlementContinuityType = Field(..., description="Settlement continuity classification")
+    source_cell_id: str = Field(..., description="Geographic cell identifier for position consistency")
+    position_index: int = Field(..., ge=0, description="Position index within the geographic cell")
+    population_history: List[float] = Field(default_factory=list, description="Population over time")
+    
+    @field_validator('year')
+    @classmethod
+    def validate_year(cls, v):
+        if not (-15000 <= v <= 2100):
+            raise ValueError('Year must be between -15000 and 2100')
+        return v
+    
+    @field_validator('settlement_id')
+    @classmethod
+    def validate_settlement_id(cls, v):
+        if not v or len(v) < 3:
+            raise ValueError('Settlement ID must be at least 3 characters')
+        return v
+
+
+class SettlementContinuityConfig(BaseModel):
+    """Configuration for settlement continuity tracking."""
+    enable_continuity: bool = Field(default=True, description="Enable settlement continuity tracking")
+    max_population_change_ratio: float = Field(default=5.0, description="Maximum population change ratio between years")
+    settlement_merge_threshold: float = Field(default=0.1, description="Distance threshold for merging settlements (degrees)")
+    rural_to_town_threshold: int = Field(default=1000, description="Population threshold for rural to town transition")
+    town_to_city_threshold: int = Field(default=10000, description="Population threshold for town to city transition")
+    position_consistency_seed_length: int = Field(default=12, description="Length of geographic hash for position consistency")
+    
+    @field_validator('max_population_change_ratio', 'settlement_merge_threshold')
+    @classmethod
+    def positive_thresholds(cls, v):
+        if v <= 0:
+            raise ValueError('Thresholds must be positive')
+        return v
+
+
+class ContinuityValidationResult(BaseModel):
+    """Result of settlement continuity validation."""
+    is_valid: bool = Field(..., description="Whether continuity validation passed")
+    consistent_positions: int = Field(..., ge=0, description="Number of settlements with consistent positions")
+    total_settlements: int = Field(..., ge=0, description="Total number of settlements tested")
+    position_consistency_ratio: float = Field(..., ge=0, le=1, description="Ratio of consistent positions")
+    validation_errors: List[str] = Field(default_factory=list, description="List of validation errors")
+    performance_metrics: Dict[str, float] = Field(default_factory=dict, description="Performance metrics")
+    
+    @property
+    def is_acceptable(self) -> bool:
+        """Whether the continuity validation results are acceptable (>95% consistency)."""
+        return self.position_consistency_ratio >= 0.95

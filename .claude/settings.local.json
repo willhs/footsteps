@@ -19,7 +19,13 @@
       "mcp__playwright-local__browser_click_text",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(gunzip:*)",
+      "WebFetch(domain:deck.gl)",
+      "Bash(pkill:*)",
+      "Bash(open:*)",
+      "Bash(pytest:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

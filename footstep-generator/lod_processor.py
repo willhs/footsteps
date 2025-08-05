@@ -9,16 +9,19 @@ from collections import defaultdict
 from typing import List, Dict, Optional
 from models import (
     LODLevel, Coordinates, HumanSettlement, AggregatedSettlement, 
-    LODConfiguration, ProcessingStatistics
+    LODConfiguration, ProcessingStatistics, SettlementContinuityConfig
 )
+from settlement_registry import SettlementRegistry
 
 
 class LODProcessor:
     """Processes human settlement data into hierarchical Level-of-Detail datasets."""
     
-    def __init__(self, config: Optional[LODConfiguration] = None):
+    def __init__(self, config: Optional[LODConfiguration] = None, continuity_config: Optional[SettlementContinuityConfig] = None):
         """Initialize LOD processor with configuration."""
         self.config = config or LODConfiguration()
+        self.continuity_config = continuity_config or SettlementContinuityConfig()
+        self.settlement_registry = SettlementRegistry() if self.continuity_config.enable_continuity else None
     
     def create_hierarchical_lods(
         self, 
@@ -129,7 +132,7 @@ class LODProcessor:
         people_per_dot: int
     ) -> List[tuple]:
         """
-        Create dots for a cell using density-aware strategy to handle high-concentration areas.
+        Create dots for a cell using density-aware strategy with deterministic positioning.
         
         Args:
             cell_population: Total population in the cell
@@ -146,8 +149,77 @@ class LODProcessor:
         if cell_population < 50:  # Minimum 50 people per cell to create any dots
             return dots
         
+        # Determine settlement type based on population
+        if cell_population < self.continuity_config.rural_to_town_threshold:
+            settlement_type = "rural"
+        elif cell_population < self.continuity_config.town_to_city_threshold:
+            settlement_type = "town"
+        else:
+            settlement_type = "city"
+        
+        # Use deterministic positioning if continuity is enabled
+        if self.settlement_registry is not None:
+            return self._create_deterministic_dots(
+                cell_population, lat, lon, cellsize, people_per_dot, settlement_type
+            )
+        else:
+            # Fallback to original random positioning for backward compatibility
+            return self._create_random_dots(
+                cell_population, lat, lon, cellsize, people_per_dot, settlement_type
+            )
+    
+    def _create_deterministic_dots(
+        self,
+        cell_population: float,
+        lat: float,
+        lon: float,
+        cellsize: float,
+        people_per_dot: int,
+        settlement_type: str
+    ) -> List[tuple]:
+        """Create dots using deterministic positioning for settlement continuity."""
+        # Calculate number of dots needed
+        if settlement_type == "rural":
+            num_dots = max(1, int(cell_population / people_per_dot))
+        elif settlement_type == "town":
+            effective_people_per_dot = people_per_dot * 5  # 5× more people per dot
+            num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))
+        else:  # city
+            effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
+            num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
+        
+        population_per_dot = cell_population / num_dots
+        
+        # Get deterministic positions from registry
+        positions = self.settlement_registry.get_deterministic_positions(
+            lat, lon, cellsize, num_dots, settlement_type
+        )
+        
+        # Convert positions to dots
+        dots = []
+        for position in positions:
+            dots.append((
+                position.coordinates.latitude,
+                position.coordinates.longitude,
+                population_per_dot
+            ))
+        
+        return dots
+    
+    def _create_random_dots(
+        self,
+        cell_population: float,
+        lat: float,
+        lon: float,
+        cellsize: float,
+        people_per_dot: int,
+        settlement_type: str
+    ) -> List[tuple]:
+        """Create dots using original random positioning (fallback)."""
+        dots = []
+        
         # Density-aware strategy based on population concentration
-        if cell_population < 1000:
+        if settlement_type == "rural":
             # Rural areas: Standard approach with random placement
             num_dots = max(1, int(cell_population / people_per_dot))
             population_per_dot = cell_population / num_dots  # Use actual population, not fixed amount
@@ -157,7 +229,7 @@ class LODProcessor:
                 dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
                 dots.append((dot_lat, dot_lon, population_per_dot))
                 
-        elif cell_population < 10000:
+        elif settlement_type == "town":
             # Towns: Systematic grid distribution to avoid overlap
             # Increase aggregation factor to create "super-dots" in towns
             effective_people_per_dot = people_per_dot * 5  # 5× more people represented per dot
@@ -186,7 +258,7 @@ class LODProcessor:
                     dots.append((dot_lat, dot_lon, population_per_dot))
                     dot_idx += 1
                     
-        else:
+        else:  # city
             # Cities: Few large representative dots to avoid visual clutter
             # Cities: aggregate even more aggressively
             effective_people_per_dot = people_per_dot * 20  # 20× more people per dot

@@ -19,6 +19,8 @@ interface Props {
   renderMetrics: RenderMetrics;
   cacheSize: number;
   progressiveRenderStatus?: { rendered: number; total: number };
+  viewportBounds?: number[] | null; // For debugging viewport optimization
+  is3DMode?: boolean; // For debugging which mode is active
 }
 
 /**
@@ -34,8 +36,12 @@ export default function HumanDotsOverlay({
   toggleLOD,
   renderMetrics,
   cacheSize,
-  progressiveRenderStatus
+  progressiveRenderStatus,
+  viewportBounds,
+  is3DMode
 }: Props) {
+  // Show viewport debugging in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
   return (
     <div
       className="absolute bg-black/90 rounded-lg p-4 text-white font-sans"
@@ -83,6 +89,22 @@ export default function HumanDotsOverlay({
         <div>Render: {renderMetrics.renderTime.toFixed(0)}ms</div>
         <div>Cache: {cacheSize} years cached</div>
       </div>
+
+      {/* Viewport debugging (development mode only) */}
+      {isDevelopment && (
+        <div className="text-xs text-cyan-400 mt-2 border-t border-gray-700 pt-2">
+          <div className="font-semibold mb-1">Viewport Debug ({is3DMode ? '3D' : '2D'})</div>
+          {viewportBounds ? (
+            <div className="space-y-0.5">
+              <div>Bounds: [{viewportBounds.map(b => b.toFixed(1)).join(', ')}]</div>
+              <div>Area: {((viewportBounds[2] - viewportBounds[0]) * (viewportBounds[3] - viewportBounds[1])).toFixed(0)} deg²</div>
+              <div className="text-green-400">✓ Viewport filtering active</div>
+            </div>
+          ) : (
+            <div className="text-yellow-400">⚪ Global data (no filtering)</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

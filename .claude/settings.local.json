@@ -25,7 +25,9 @@
       "Bash(pkill:*)",
       "Bash(open:*)",
       "Bash(pytest:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

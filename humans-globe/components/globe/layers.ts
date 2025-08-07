@@ -41,15 +41,17 @@ class ZoomAdaptiveRadiusStrategy implements RadiusStrategy {
 class Globe3DRadiusStrategy implements RadiusStrategy {
   calculateRadius(baseRadius: number, zoom: number): number {
     // Smaller scaling for 3D globe view - more realistic sizes
-    const scaledRadius = Math.max(baseRadius * 0.5, 5000); // Minimum 5km (reduced from 10km)
+    const scaledRadius = Math.max(baseRadius * 0.5, 5000); // Minimum 5km
     
-    // Inverse zoom scaling for 3D globe - closer zoom = smaller dots for better detail
-    if (zoom < -2) return scaledRadius * 3;    // Very far out: largest dots for visibility
-    if (zoom < 0) return scaledRadius * 2;     // Far out: medium-large dots
-    if (zoom < 2) return scaledRadius * 1.5;   // Medium distance: moderate dots
-    if (zoom < 5) return scaledRadius * 1;     // Getting closer: normal size
-    if (zoom < 8) return scaledRadius * 0.7;   // Close: smaller dots
-    return scaledRadius * 0.5;                 // Very close: smallest dots for detail
+    // Balanced zoom scaling: prevent dots from being too big OR too small
+    // Range: zoom -3 to 10 (13 levels total)
+    if (zoom < -2) return scaledRadius * 2.5;  // Very far out: large for visibility
+    if (zoom < 0) return scaledRadius * 2;     // Far out: large-medium
+    if (zoom < 2) return scaledRadius * 1.5;   // Medium distance: moderate
+    if (zoom < 4) return scaledRadius * 1.2;   // Getting closer: slightly larger than base
+    if (zoom < 6) return scaledRadius * 1;     // Close: normal size (base)
+    if (zoom < 8) return scaledRadius * 0.9;   // Very close: slightly smaller
+    return scaledRadius * 0.8;                 // Maximum zoom: smaller but still visible
   }
   
   getName(): string {

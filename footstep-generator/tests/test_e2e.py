@@ -105,10 +105,10 @@ class TestDataProcessingPipeline:
         """Test LOD configuration validation."""
         # Test default configuration
         config = LODConfiguration()
-        assert config.global_grid_size == 1.0
-        assert config.regional_grid_size == 0.25
-        assert config.local_grid_size == 0.05
-        assert config.min_population_threshold == 0.0
+        assert config.global_grid_size == 2.0
+        assert config.regional_grid_size == 0.5
+        assert config.local_grid_size == 0.1
+        assert config.min_population_threshold == 50.0
 
         # Test custom configuration
         custom_config = LODConfiguration(
@@ -127,7 +127,7 @@ class TestDataProcessingPipeline:
         """Test LOD processor initialization and configuration."""
         # Test default initialization
         processor = LODProcessor()
-        assert processor.config.global_grid_size == 1.0
+        assert processor.config.global_grid_size == 2.0
 
         # Test custom configuration
         custom_config = LODConfiguration(global_grid_size=1.5)

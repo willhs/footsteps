@@ -86,7 +86,12 @@ export default function useHumanDotsData(
           }
 
           const response = await fetch(
-            `/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${zoom}${boundsQuery}`
+            `/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${zoom}${boundsQuery}`,
+            {
+              headers: {
+                'Accept-Encoding': 'br, gzip'
+              }
+            }
           );
           if (!response.ok) {
             throw new Error('Failed to load human dots data');

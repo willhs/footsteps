@@ -370,7 +370,7 @@ def process_year_with_hierarchical_lods(
     settlements = []
     cellsize = 0.083333  # HYDE 3.5 approximate resolution
 
-    for _, row in gdf.iterrows():
+    for row in gdf.itertuples(index=False):
         try:
             geom = row.geometry
             settlement = HumanSettlement(

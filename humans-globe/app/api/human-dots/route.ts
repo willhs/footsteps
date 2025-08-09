@@ -8,7 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { createReadStream } from 'fs';
 import readline from 'readline';
-import { gzipSync, createGunzip } from 'zlib';
+import { gzipSync, createGunzip, brotliCompressSync } from 'zlib';
 
 // Helper: map population to a display radius in meters
 function getPrecomputedRadius(population: number): number {
@@ -236,11 +236,20 @@ export async function GET(request: Request) {
     console.log(`Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo}`);
 
     const jsonStr = JSON.stringify(geojson);
-    const gzBody = gzipSync(Buffer.from(jsonStr));
-    return new NextResponse(new Uint8Array(gzBody), {
+    const acceptEncoding = request.headers.get('accept-encoding') || '';
+    let body: Uint8Array;
+    let encoding: string;
+    if (acceptEncoding.includes('br')) {
+      body = new Uint8Array(brotliCompressSync(Buffer.from(jsonStr)));
+      encoding = 'br';
+    } else {
+      body = new Uint8Array(gzipSync(Buffer.from(jsonStr)));
+      encoding = 'gzip';
+    }
+    return new NextResponse(body, {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Encoding': 'gzip',
+        'Content-Encoding': encoding,
         'Cache-Control': 'public, max-age=86400',
         'X-LOD-Level': lodLevel?.toString() || 'legacy',
         'X-Zoom-Level': zoom.toString(),

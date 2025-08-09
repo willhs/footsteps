@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useMemo, useEffect, memo, useCallback } from 'react';
-import { getViewMode, setViewMode } from '../lib/viewModeStore';
-import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, radiusStrategies } from './globe/layers';
+import { getViewMode, setViewMode } from '@/lib/viewModeStore';
+import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, radiusStrategies } from '@/components/footsteps/layers/layers';
 import { WebMercatorViewport, _GlobeViewport as GlobeViewport } from '@deck.gl/core';
-import HumanDotsOverlay from './globe/HumanDotsOverlay';
-import LegendOverlay from './globe/LegendOverlay';
-import PopulationTooltip from './PopulationTooltip';
-import GlobeView3D from './GlobeView3D';
-import MapView2D from './MapView2D';
-import useHumanDotsData, { MAX_RENDER_DOTS } from './globe/useHumanDotsData';
-import useGlobeViewState from './globe/useGlobeViewState';
+import HumanDotsOverlay from '@/components/footsteps/overlays/HumanDotsOverlay';
+import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
+import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
+import GlobeView3D from '@/components/footsteps/views/GlobeView3D';
+import MapView2D from '@/components/footsteps/views/MapView2D';
+import useHumanDotsData, { MAX_RENDER_DOTS } from '@/components/footsteps/hooks/useHumanDotsData';
+import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
@@ -73,9 +73,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   
   // Helper to get LOD level from zoom (still needed for other calculations)
   const getLODLevel = useCallback((zoom: number): number => {
-    if (zoom < 4) return 1;      // Regional LOD (minimum)
-    if (zoom < 6) return 2;      // Local LOD
-    return 3;                    // Detailed LOD
+    // 4 tiers: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
+    if (zoom < 4) return 0;
+    if (zoom < 5) return 1;
+    if (zoom < 6) return 2;
+    return 3;
   }, []);
 
   /**

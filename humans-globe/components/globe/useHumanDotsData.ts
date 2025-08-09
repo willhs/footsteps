@@ -16,6 +16,51 @@ export interface HumanDot {
 export const DOT_LIMIT = 5000000;
 export const MAX_RENDER_DOTS = 50000;
 
+function quickselect<T>(
+  arr: T[],
+  k: number,
+  compare: (a: T, b: T) => number
+): void {
+  let left = 0;
+  let right = arr.length - 1;
+
+  const swap = (i: number, j: number) => {
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  };
+
+  const partition = (l: number, r: number, pivotIndex: number) => {
+    const pivotValue = arr[pivotIndex];
+    swap(pivotIndex, r);
+    let storeIndex = l;
+    for (let i = l; i < r; i++) {
+      if (compare(arr[i], pivotValue) < 0) {
+        swap(storeIndex, i);
+        storeIndex++;
+      }
+    }
+    swap(storeIndex, r);
+    return storeIndex;
+  };
+
+  while (left <= right) {
+    const pivotIndex = partition(
+      left,
+      right,
+      Math.floor((left + right) / 2)
+    );
+    if (k === pivotIndex) {
+      return;
+    }
+    if (k < pivotIndex) {
+      right = pivotIndex - 1;
+    } else {
+      left = pivotIndex + 1;
+    }
+  }
+}
+
 export default function useHumanDotsData(
   year: number,
   zoom: number,
@@ -121,10 +166,10 @@ export default function useHumanDotsData(
   }, 150);
   }, [year, zoom, viewportBounds, getCacheKey]);
 
-  const currentHumanDots = useMemo(() => {
+  const { currentHumanDots, validCount } = useMemo(() => {
     try {
       if (!Array.isArray(humanDotsData) || humanDotsData.length === 0) {
-        return [] as HumanDot[];
+        return { currentHumanDots: [] as HumanDot[], validCount: 0 };
       }
 
       const validDots = humanDotsData.filter(dot => {
@@ -149,24 +194,44 @@ export default function useHumanDotsData(
         return true;
       });
 
-      return validDots.sort(
-        (a, b) => (b.properties?.population || 0) - (a.properties?.population || 0)
+      const validCount = validDots.length;
+      if (validCount <= MAX_RENDER_DOTS) {
+        return {
+          currentHumanDots: validDots.sort(
+            (a, b) =>
+              (b.properties?.population || 0) - (a.properties?.population || 0)
+          ),
+          validCount
+        };
+      }
+
+      const k = MAX_RENDER_DOTS;
+      const kSmallest = validCount - k;
+      quickselect(
+        validDots,
+        kSmallest,
+        (a, b) =>
+          (a.properties?.population || 0) - (b.properties?.population || 0)
       );
+      const topDots = validDots
+        .slice(validCount - k)
+        .sort(
+          (a, b) =>
+            (b.properties?.population || 0) - (a.properties?.population || 0)
+        );
+      return { currentHumanDots: topDots, validCount };
     } catch (err) {
       console.error('Error processing human dots data:', err);
-      return [] as HumanDot[];
+      return { currentHumanDots: [] as HumanDot[], validCount: 0 };
     }
   }, [humanDotsData]);
 
   const samplingRate = useMemo(() => {
     if (humanDotsData.length === 0) return 100;
-    return (currentHumanDots.length / humanDotsData.length) * 100;
-  }, [humanDotsData, currentHumanDots]);
+    return (validCount / humanDotsData.length) * 100;
+  }, [humanDotsData, validCount]);
 
-  const visibleHumanDots = useMemo(() => {
-    if (currentHumanDots.length === 0) return [] as HumanDot[];
-    return currentHumanDots.slice(0, MAX_RENDER_DOTS);
-  }, [currentHumanDots]);
+  const visibleHumanDots = currentHumanDots;
 
   return {
     humanDotsData,

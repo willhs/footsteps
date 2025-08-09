@@ -50,7 +50,7 @@ Follow principles of the The Visual Display of Quantitative Information by Edwar
 - **Tailwind CSS** for styling with efficient utility classes
 
 ### Key Components Architecture
-- **Globe.tsx**: Main visualization component managing 3D globe, data loading, and user interactions
+- **FootstepsViz.tsx**: Main visualization component managing 3D globe, data loading, and user interactions
 - **components/globe/**: Modular globe system with separate concerns:
   - `layers.ts`: Layer creation utilities for basemap and human dots
   - `HumanDotsLayer.tsx`: Population dot rendering with LOD support
@@ -108,3 +108,7 @@ All tests are located in `footstep-generator/tests/` directory:
 - **Hierarchical LOD system**: Population conservation, spatial aggregation, zoom-level mapping
 - **Data processing pipeline**: ASC file parsing, dot creation, file I/O, error handling
 - **Performance optimizations**: Density-aware dot creation, memory usage estimation
+
+### Manual testing on the front-end
+Use your playwright tool. The app should be running at e.g. port 4444. Ask the user for help if needed
+

@@ -127,7 +127,8 @@ export function createHumanDotsLayer(
   year: number, 
   lodLevel: number | null, 
   radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
-  onClick?: (info: any) => void
+  onClick?: (info: any) => void,
+  onHover?: (info: any) => void
 ) {
   const layerId = `human-dots-${year}-lod${lodLevel || 'legacy'}-${radiusStrategy.getName()}`;
   
@@ -177,6 +178,7 @@ export function createHumanDotsLayer(
       }
     },
     onClick: onClick || (() => {}),
+    onHover: onHover || (() => {}),
     
     // GPU performance optimizations for large datasets with proper 3D rendering
     parameters: {

@@ -228,7 +228,7 @@ function Globe({ year }: GlobeProps) {
           
           // Round zoom to 0.25 precision for better cache hit rate
           const roundedZoom = Math.round(viewState.zoom * 4) / 4;
-          const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}&zoom=${roundedZoom}${boundsQuery}`);
+          const response = await fetch(`/api/human-dots?year=${year}&limit=${DOT_LIMIT}&maxDots=${MAX_RENDER_DOTS}&zoom=${roundedZoom}${boundsQuery}`);
           if (!response.ok) {
             throw new Error('Failed to load human dots data');
           }

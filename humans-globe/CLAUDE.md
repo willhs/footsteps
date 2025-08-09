@@ -25,7 +25,7 @@ Make the vast sweep of human presence instantly graspable by turning dry demogra
 
 ### Key Components
 
-#### Globe.tsx (Main Visualization Component)
+#### FootstepsViz.tsx (Main Visualization Component)
 The core component managing the 3D globe visualization, data loading, and user interactions:
 - **ViewState Management**: Controls globe position, zoom, and orientation
 - **Data Loading & Caching**: Implements smart caching with Map-based storage to prevent duplicate API requests
@@ -108,7 +108,7 @@ This frontend consumes data from a separate Python-based processing pipeline loc
 ## Development Guidelines
 
 ### Component Architecture
-- Keep globe visualization logic in `Globe.tsx`
+- Keep globe visualization logic in `FootstepsViz.tsx`
 - Use `components/globe/` for modular, reusable globe features
 - Prefer composition over inheritance for layer management
 - Memoize expensive calculations and layer creations
@@ -132,7 +132,7 @@ This frontend consumes data from a separate Python-based processing pipeline loc
 - Test caching behavior during rapid user interactions
 
 ## Key Files
-- **Main Component**: `components/Globe.tsx` (585 lines)
+- **Main Component**: `components/FootstepsViz.tsx` (585 lines)
 - **API Endpoint**: `app/api/human-dots/route.ts` (180 lines)
 - **Layer Logic**: `components/globe/layers.ts` (117 lines)
 - **Time Controls**: `components/TimeSlider.tsx`

@@ -165,7 +165,7 @@ if __name__ == "__main__":
         print("📝 Next steps:")
         print("   - Install pytest to run full test suite: pip install pytest")
         print("   - Run full tests: pytest test_e2e.py -v")
-        print("   - Use new LOD processing: python process_hyde.py --with-lods")
+        print("   - Process HYDE data: python process_hyde.py")
         
     except Exception as e:
         print(f"❌ Test failed: {e}")

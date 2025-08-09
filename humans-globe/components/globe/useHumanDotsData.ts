@@ -14,7 +14,7 @@ export interface HumanDot {
 }
 
 export const DOT_LIMIT = 5000000;
-export const MAX_RENDER_DOTS = 35000;
+export const MAX_RENDER_DOTS = 50000;
 
 export default function useHumanDotsData(
   year: number,

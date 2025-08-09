@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * Floating overlay shown in top-left of the globe – extracted from Globe.tsx to keep
+ * Floating overlay shown in top-left of the globe – extracted from FootstepsViz.tsx to keep
  * that file lean. Pure presentational; all heavy logic stays in the parent.
  */
 export default function HumanDotsOverlay({

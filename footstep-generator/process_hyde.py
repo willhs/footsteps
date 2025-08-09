@@ -259,19 +259,22 @@ def process_year_with_hierarchical_lods(asc_file: str, year: int, output_dir: st
     """
     print(f"  Processing year {year} with hierarchical LODs...")
     
-    # Create LOD processor with configuration
+    # Choose dot size for sparse eras (keep smaller dots for ancient periods)
+    people_per_dot_effective = 10 if (year <= 0 and people_per_dot == 100) else people_per_dot
+
+    # Create LOD processor with population-preserving configuration
     lod_config = LODConfiguration(
-        global_grid_size=2.0,
-        regional_grid_size=0.5,
-        local_grid_size=0.1,
-        min_population_threshold=50.0
+        global_grid_size=1.0,        # Finer global grid for better rural representation
+        regional_grid_size=0.25,     # Improved regional detail  
+        local_grid_size=0.05,        # High local detail for rural populations
+        min_population_threshold=0.0 # DISABLED - preserve all population
     )
     # Enable settlement continuity for hierarchical LOD processing
     continuity_config = SettlementContinuityConfig(enable_continuity=True)
     lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
     
     # First convert ASC to settlements using existing logic
-    gdf = ascii_grid_to_dots(asc_file, year, people_per_dot)
+    gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
     
     if gdf.empty:
         print(f"    No data found for year {year}")
@@ -381,7 +384,9 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     for year in sorted(hyde_files.keys()):
         asc_file = hyde_files[year]
         try:
-            gdf = ascii_grid_to_dots(asc_file, year)
+            # Use smaller dots for BCE years to retain sparse populations
+            people_per_dot_effective = 10 if year <= 0 else 100
+            gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
             if not gdf.empty:
                 all_polygons.append(gdf)
 
@@ -470,28 +475,20 @@ def main():
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Check for command line argument to use LOD processing
-    if len(sys.argv) > 1 and sys.argv[1] == "--with-lods":
-        print("Using hierarchical LOD processing...")
-        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
-        
-        print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
-        print("  Files generated:")
-        for result in results[:3]:  # Show first 3 as examples
-            year = result.year
-            for level, settlements in result.lod_data.items():
-                if settlements:
-                    print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
-        if len(results) > 3:
-            print(f"    ... and {len(results) - 3} more years")
-        print("\nNext: Update API to serve appropriate LOD level based on zoom")
-    else:
-        print("Using legacy processing (add --with-lods for hierarchical LOD processing)...")
-        # Process HYDE data using original method
-        geojson_path = process_all_hyde_data(str(raw_dir), str(output_dir))
-        
-        print(f"\n✅ Heat-map data ready: {geojson_path}")
-        print("\nNext: Run process_cities.py to create human dots data")
+    # Use hierarchical LOD processing as default (population-preserving)
+    print("Using hierarchical LOD processing...")
+    results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
+    
+    print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
+    print("  Files generated:")
+    for result in results[:3]:  # Show first 3 as examples
+        year = result.year
+        for level, settlements in result.lod_data.items():
+            if settlements:
+                print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
+    if len(results) > 3:
+        print(f"    ... and {len(results) - 3} more years")
+    print("\nNext: Update API to serve appropriate LOD level based on zoom")
 
 if __name__ == "__main__":
     main()

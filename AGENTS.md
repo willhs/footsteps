@@ -1,100 +1,39 @@
-# AGENTS.md – Guide for OpenAI Codex & other AI Agents
+# Repository Guidelines
 
-Welcome 👋  
-This file provides **Codex** (and other AI agents) with the context it needs to navigate, understand, and contribute to the **Footsteps of Time** code-base.
+Concise rules for contributing to Footsteps of Time. Keep diffs minimal, performance high, and tests green.
 
-## 1 • Project Snapshot
+## Project Structure & Module Organization
+- `humans-globe/`: Next.js + TypeScript front-end.
+  - `app/`: routes, `globals.css` and layout.
+  - `components/`: React components (e.g., `FootstepsViz.tsx`, `TimeSlider.tsx`).
+  - `public/`: static assets.
+- `footstep-generator/`: Python data pipeline scripts and tests.
+  - `tests/`: pytest suites (`test_*.py`).
+- `data/`: generated artifacts (large, usually git-ignored).
+- `docs/`, `screenshots/`: supplementary docs and UI references.
 
-| Key             | Value |
-|-----------------|-------|
-| **Name**        | Footsteps of Time |
-| **Mission**     | Show humanity’s spread from ‑100 000 BCE → today on an interactive globe |
-| **Tech Stack**  | • Next.js 14 + TypeScript + deck.gl (3-D globe) ↔<br>• Python 3.11 (Poetry) for data generation |
-| **Data**        | HYDE population grids + Reba city database |
+## Build, Test, and Development Commands
+- Frontend dev: `cd humans-globe && pnpm i && pnpm dev` (starts Next on port 4444).
+- Frontend build: `pnpm build && pnpm start` (production build/serve).
+- Frontend lint/format: `pnpm lint` • `pnpm format`.
+- Frontend tests: `pnpm test` (Jest + Testing Library).
+- Python setup: from repo root, `poetry install`.
+- Python tests: `poetry run pytest footstep-generator`.
 
-## 2 • Repository Topology (high-level)
+## Coding Style & Naming Conventions
+- TypeScript: strict mode, functional components, React hooks; imports via `@/` alias; Tailwind in `globals.css` where appropriate.
+- Python: PEP 8/257, type hints, pure functions; formatting via Black/Isort; mypy for typing.
+- Names: descriptive, no abbreviations; files `PascalCase.tsx` for React components, `snake_case.py` for Python modules.
 
-```
-/                # root
-│
-├── humans-globe/        # Next.js front-end (TypeScript)
-│   ├── app/                 # Next 14 app-router pages
-│   ├── components/          # React/TSX UI components
-│   └── public/              # Static assets (e.g. textures, icons)
-│
-├── footstep-generator/      # Python package that builds mbtiles & CSV from HYDE grids
-│   ├── footstep_generator/  # Source code (PEP 517)
-│   └── scripts/             # One-off data utilities
-│
-├── data/                    # Generated artefacts (large; git-ignored when possible)
-│
-├── docs/                    # Additional technical docs
-│
-└── AGENTS.md                # You are here
-```
+## Testing Guidelines
+- Frontend: co-locate `*.test.tsx` near components; test interactions and rendering; avoid snapshot churn.
+- Python: place `test_*.py` in `footstep-generator/tests`; test pure functions and data transforms.
+- Add tests for all non-trivial logic; prefer fast, deterministic tests.
 
-> **AI Agents:** When you need to add or modify code, locate the correct sub-project first (TS/React vs Python) and keep cross-language boundaries clean.
+## Commit & Pull Request Guidelines
+- Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `chore:`). Small, focused changes.
+- PRs: clear description, motivation, and scope; link issues; attach screenshots/GIFs for UI; ensure `pnpm lint && pnpm test` and `poetry run pytest` pass.
 
-## 3 • Coding Conventions & Style
-
-### TypeScript / React (Next.js)
-1. Prefer **functional components** & React hooks.
-2. Use **descriptive names**; avoid abbreviations (see user rule #3).
-3. Keep UI stateless when possible; lift state up deliberately.
-4. CSS lives in `app/globals.css` or component-scoped CSS Modules.
-5. Alias imports with `@/` as configured in `tsconfig.json`.
-6. Run `npm run lint` before committing.
-
-### Python (footstep-generator)
-1. Follow **PEP 8** & **PEP 257** docstrings.
-2. Use **type hints** (`from __future__ import annotations`).
-3. Keep functions pure; side-effects belong in CLI wrappers.
-4. Manage deps with **Poetry**; add any new libs via `poetry add <pkg>`.
-
-### General Rules
-- “**Less code is good code**” → remove dead paths, avoid over-engineering.
-- **Do not change lines you don’t have to.** Keep diffs minimal.
-- Commit messages: `feat:`, `fix:`, `chore:`, `docs:`, `style:`, `refactor:`, `test:`, `perf:`, `ci:`, `build:`, `release:`, `nitpick:` conventional commits.
-
-## 4 • Testing & Validation
-
-| Layer  | Command | Notes |
-|--------|---------|-------|
-| **Frontend** | `npm run lint` | ESLint + Prettier
-| | `npm run dev` | Manual QA in browser; ensure globe loads & slider works
-| **Backend / Python** | `poetry run pytest` | Unit tests (add tests alongside modules)
-
-AI Agents should:
-1. Create/extend tests when adding non-trivial logic.
-2. Pass **all** linters & tests before suggesting merge.
-
-## 5 • Pull-Request Checklist
-
-1. Title & description clearly explain the change.
-2. All new code is **documented** & **typed**.
-3. No lint or test failures (`npm run lint && poetry run pytest`).
-4. Diffs keep unrelated changes out.
-5. Screenshots / GIFs attached for UI tweaks.
-6. PR reviewers: `@will` (owner) as default.
-
-## 6 • Folder-Specific Notes for AI
-
-- `humans-globe/components/Globe.tsx`  
-  Contains `deck.gl` globe with heat shader overlay.  
-  Performance >60 fps is critical; batch GPU buffers, avoid per-frame allocations.
-
-- `humans-globe/components/TimeSlider.tsx`  
-  Non-linear mapping 100 k yr → present.  
-  If you edit, keep thumb drag responsive < 16 ms.
-
-- `footstep-generator/footstep_generator/tiles.py`  
-  Handles mbtile creation. Expensive; cache where possible.
-
-## 7 • Interaction Hints for Codex
-
-- **Read before writing**: request outline (`view_file_outline`) of a file to understand context.
-- Prefer **atomic commits**: one feature/bug-fix at a time.
-- If scope is unclear, **ask for clarification** (user rule #4).
-
----
-Made with ❤️ 2025-08-03
+## Notes for Performance-Critical Code
+- `humans-globe/components/FootstepsViz.tsx`: keep >60 fps; batch GPU buffers, avoid per-frame allocations.
+- `humans-globe/components/TimeSlider.tsx`: maintain <16 ms drag latency; no heavy work in render/handlers.

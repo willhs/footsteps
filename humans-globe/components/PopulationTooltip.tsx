@@ -59,8 +59,8 @@ export default function PopulationTooltip({ data, onClose }: PopulationTooltipPr
 
   // Calculate tooltip position with boundary detection
   const getTooltipPosition = () => {
-    const tooltipWidth = 280;
-    const tooltipHeight = 120;
+    const tooltipWidth = 260;
+    const tooltipHeight = 100;
     const padding = 16;
     
     let left = data.clickPosition.x + 16; // Offset from cursor
@@ -92,18 +92,7 @@ export default function PopulationTooltip({ data, onClose }: PopulationTooltipPr
     return { left, top };
   };
 
-  // Get historical era context
-  const getHistoricalEra = (year: number): { era: string; context: string; color: string } => {
-    if (year < -10000) return { era: 'Paleolithic', context: 'Hunter-Gatherers', color: 'text-amber-300' };
-    if (year < -3000) return { era: 'Neolithic', context: 'Early Agriculture', color: 'text-green-300' };
-    if (year < 0) return { era: 'Ancient', context: 'Early Civilizations', color: 'text-blue-300' };
-    if (year < 500) return { era: 'Classical', context: 'Empire Era', color: 'text-purple-300' };
-    if (year < 1500) return { era: 'Medieval', context: 'Middle Ages', color: 'text-orange-300' };
-    if (year < 1800) return { era: 'Early Modern', context: 'Age of Exploration', color: 'text-cyan-300' };
-    if (year < 1900) return { era: 'Industrial', context: 'Industrial Revolution', color: 'text-yellow-300' };
-    if (year < 2000) return { era: 'Modern', context: '20th Century', color: 'text-pink-300' };
-    return { era: 'Contemporary', context: '21st Century', color: 'text-indigo-300' };
-  };
+  
 
   // Get population scale with more nuanced categories
   const getPopulationScale = (population: number): { scale: string; icon: string; significance: string } => {
@@ -126,93 +115,58 @@ export default function PopulationTooltip({ data, onClose }: PopulationTooltipPr
   };
 
   const position = getTooltipPosition();
-  const historicalEra = getHistoricalEra(data.year);
   const populationScale = getPopulationScale(data.population);
+  const roundedPopulation = Math.round(data.population);
+  const populationLabel = roundedPopulation === 1 ? 'person' : 'people';
 
   return (
     <>
-      {/* Invisible backdrop for click-outside detection */}
-      <div 
-        className="fixed inset-0 z-40"
-        onClick={handleClose}
-        style={{ background: 'transparent' }}
-      />
-      
-      {/* Tooltip */}
+      {/* Tooltip (hover-friendly: container doesn't capture pointer events) */}
       <div
-        className={`fixed bg-slate-900/95 backdrop-blur-sm rounded-lg p-4 text-white shadow-2xl border border-slate-600/40 transition-all duration-200 ease-out z-50 ${
+        className={`fixed pointer-events-none transition-all duration-200 ease-out z-50 ${
           isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
         style={{
           left: `${position.left}px`,
           top: `${position.top}px`,
-          minWidth: '300px',
-          maxWidth: '340px'
+          minWidth: '220px',
+          maxWidth: '260px'
         }}
-        onClick={(e) => e.stopPropagation()} // Prevent backdrop click
       >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all duration-200 text-lg leading-none w-7 h-7 flex items-center justify-center rounded-full"
-          title="Close (ESC)"
-        >
-          ×
-        </button>
-
-        {/* Header: Era & Context */}
-        <div className="mb-5">
-          <div className={`text-sm font-semibold ${historicalEra.color} mb-1.5`}>
-            {historicalEra.era} Era
-          </div>
-          <div className="text-xs text-slate-400 leading-relaxed">
-            {historicalEra.context}
+        <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-sm rounded-md p-3 pr-4 text-white shadow-xl border border-slate-700/40">
+        {/* Population (primary) */}
+        <div className="mb-2">
+          <div className="text-3xl font-semibold text-orange-300 leading-none tracking-tight">
+            <span className="font-mono">{roundedPopulation.toLocaleString()}</span>{' '}
+            <span className="text-base font-normal text-slate-300">{populationLabel}</span>
           </div>
         </div>
 
-        {/* Settlement Type & Icon */}
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-700/30">
-          <div className="text-2xl flex-shrink-0" role="img" aria-label="Settlement type">
-            {populationScale.icon}
+        {/* Subheader: Year + Scale badge + Close */}
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="text-xs text-slate-400 truncate">
+            {data.year < 0 ? `${Math.abs(data.year)} BC` : `${data.year} CE`}
           </div>
-          <div className="min-w-0">
-            <div className="text-lg font-bold text-amber-400 leading-tight">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="text-[10px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300">
               {populationScale.scale}
             </div>
-            <div className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-              {populationScale.significance}
-            </div>
-          </div>
-        </div>
-        
-        {/* Population - Hero Number */}
-        <div className="text-center mb-5 py-2">
-          <div className="text-3xl font-bold text-orange-400 font-mono leading-none">
-            {data.population.toLocaleString()}
-          </div>
-          <div className="text-sm text-slate-300 font-sans mt-1">
-            people
+            <button
+              onClick={handleClose}
+              className="text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all duration-200 text-base leading-none w-6 h-6 flex items-center justify-center rounded"
+              title="Close (ESC)"
+              aria-label="Close tooltip"
+            >
+              ×
+            </button>
           </div>
         </div>
 
-        {/* Location & Time Details */}
-        <div className="space-y-3 text-sm pt-3 border-t border-slate-700/30">
-          <div className="grid grid-cols-3 gap-2 items-center">
-            <span className="text-slate-400 text-xs">Location:</span>
-            <span className="text-slate-200 font-mono text-xs col-span-2 text-right">
-              {formatCoordinates(data.coordinates)}
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 items-center">
-            <span className="text-slate-400 text-xs">Year:</span>
-            <span className="text-slate-200 font-mono text-sm col-span-2 text-right font-semibold">
-              {data.year < 0 ? `${Math.abs(data.year)} BC` : `${data.year} CE`}
-            </span>
-          </div>
+        {/* Coordinates */}
+        <div className="text-[11px] text-slate-400">
+          {formatCoordinates(data.coordinates)}
         </div>
-
-        {/* Simple bottom indicator */}
-        <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-orange-400/50" />
+        </div>
       </div>
     </>
   );

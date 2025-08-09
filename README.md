@@ -115,7 +115,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Vector Tiles** - Efficient data delivery (future enhancement)
 
 ### Key Components
-- `Globe.tsx` - Main 3D visualization with DeckGL layers
+- `FootstepsViz.tsx` - Main 3D visualization with DeckGL layers
 - `TimeSlider.tsx` - Non-linear time control interface
 - `useYear.ts` - State management for temporal navigation
 
@@ -183,7 +183,7 @@ poetry run process-cities       # Creates human settlement dots
 
 ### Styling
 - Modify `globals.css` for theme changes
-- Update color scales in `Globe.tsx` for different heat-map colors
+- Update color scales in `FootstepsViz.tsx` for different heat-map colors
 - Adjust slider styling in `TimeSlider.tsx`
 
 ### Data Visualization

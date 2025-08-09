@@ -500,6 +500,18 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             clickPosition
           });
         }
+      },
+      (info: any) => {
+        if (info && info.object) {
+          const dot = info.object;
+          const population = dot.properties?.population || 0;
+          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
+          const clickPosition = { x: info.x || 0, y: info.y || 0 };
+          setTooltipData({ population, coordinates, year, clickPosition });
+        } else {
+          // Clear tooltip when not hovering a dot
+          setTooltipData(null);
+        }
       }
     );
   }, [dotsToRender, layerViewState, year, stableLODLevel, is3DMode]);

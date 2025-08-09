@@ -34,15 +34,11 @@ The pipeline implements a sophisticated LOD system for performance at different 
 
 ## Commands
 
-### Basic Data Processing
+### Data Processing
 ```bash
 python process_hyde.py
 ```
-
-### Data Processing with LODs
-```bash
-python process_hyde.py --with-lods
-```
+*Processes HYDE data with hierarchical LOD system by default for population preservation*
 
 ### Download HYDE Data
 ```bash

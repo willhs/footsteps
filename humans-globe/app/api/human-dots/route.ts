@@ -10,6 +10,84 @@ import { createReadStream } from 'fs';
 import readline from 'readline';
 import { gzipSync, createGunzip } from 'zlib';
 
+// Helper: map population to a display radius in meters
+function getPrecomputedRadius(population: number): number {
+  if (population > 1_000_000) return 60000;   // Super cities: 60km
+  if (population > 100_000) return 40000;     // Massive cities: 40km
+  if (population > 50_000) return 25000;      // Major cities: 25km
+  if (population > 20_000) return 15000;      // Large settlements: 15km
+  if (population > 5_000) return 8000;        // Medium settlements: 8km
+  if (population > 1_000) return 4000;        // Small settlements: 4km
+  if (population > 100) return 2000;          // Villages: 2km
+  return 1000;                                // Tiny settlements: 1km
+}
+
+// Simple population-preserving grid aggregator to cap dot count
+function aggregateToGrid(features: any[], maxDots: number, bounds: {minLon: number; maxLon: number; minLat: number; maxLat: number}) {
+  if (features.length <= maxDots) {
+    return features;
+  }
+
+  const areaDeg2 = Math.max(0.0001, (bounds.maxLon - bounds.minLon) * (bounds.maxLat - bounds.minLat));
+  // Initial grid size so area / s^2 ~= maxDots
+  let gridSize = Math.sqrt(areaDeg2 / Math.max(1, maxDots));
+  // Clamp grid size to reasonable bounds (in degrees)
+  gridSize = Math.min(Math.max(gridSize, 0.05), 10);
+
+  // Iteratively increase grid size if still too many buckets
+  for (let iter = 0; iter < 4; iter++) {
+    const buckets = new Map<string, { sumPop: number; wx: number; wy: number }>();
+
+    for (const f of features) {
+      const coords = f?.geometry?.coordinates;
+      const pop = Number(f?.properties?.population || 0);
+      if (!coords || !Array.isArray(coords) || coords.length !== 2 || !isFinite(pop) || pop <= 0) continue;
+      const [lon, lat] = coords as [number, number];
+
+      const gx = Math.floor(lon / gridSize);
+      const gy = Math.floor(lat / gridSize);
+      const key = `${gx}:${gy}`;
+      const bucket = buckets.get(key) || { sumPop: 0, wx: 0, wy: 0 };
+      bucket.sumPop += pop;
+      bucket.wx += lon * pop;
+      bucket.wy += lat * pop;
+      buckets.set(key, bucket);
+    }
+
+    if (buckets.size <= maxDots || iter === 3) {
+      // Build aggregated features
+      const aggregated: any[] = [];
+      for (const [key, b] of buckets.entries()) {
+        if (b.sumPop <= 0) continue;
+        const lon = b.wx / b.sumPop;
+        const lat = b.wy / b.sumPop;
+        aggregated.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lon, lat] },
+          properties: {
+            population: b.sumPop,
+            precomputedRadius: getPrecomputedRadius(b.sumPop),
+            aggregated: true,
+            gridSize,
+          }
+        });
+      }
+      // If still above max, take the top by population (last resort)
+      if (aggregated.length > maxDots) {
+        aggregated.sort((a, b) => (b.properties.population || 0) - (a.properties.population || 0));
+        return aggregated.slice(0, maxDots);
+      }
+      return aggregated;
+    }
+
+    // Increase grid to reduce buckets proportionally
+    const factor = Math.sqrt(buckets.size / maxDots);
+    gridSize = Math.min(10, gridSize * Math.max(1.1, factor));
+  }
+
+  return features;
+}
+
 // Helper function to determine LOD level based on zoom
 function getLODLevel(zoom: number): number {
   if (zoom < 3) return 1;      // Regional LOD (minimum)
@@ -22,6 +100,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
     const limit = parseInt(searchParams.get('limit') || '5000000');
+    const maxDots = parseInt(searchParams.get('maxDots') || '50000');
     const zoom = parseFloat(searchParams.get('zoom') || '1.5'); // Default to global view
     
     // Parse viewport bounds for server-side spatial filtering
@@ -103,16 +182,7 @@ export async function GET(request: Request) {
     const bufferedMinLat = minLat - latBuffer;
     const bufferedMaxLat = maxLat + latBuffer;
     
-    // Helper function optimized for 10k BCE to 1500 CE period
-    const getPrecomputedRadius = (population: number): number => {
-      if (population > 100000) return 40000;    // Massive cities (rare): 40km radius
-      else if (population > 50000) return 25000; // Major cities: 25km radius
-      else if (population > 20000) return 15000; // Large settlements: 15km radius
-      else if (population > 5000) return 8000;   // Medium settlements: 8km radius  
-      else if (population > 1000) return 4000;   // Small settlements: 4km radius
-      else if (population > 100) return 2000;    // Villages: 2km radius
-      else return 1000;                          // Tiny settlements: 1km radius
-    };
+    // getPrecomputedRadius is defined at module scope
 
     for await (const line of rl) {
       if (!line) continue;
@@ -131,32 +201,39 @@ export async function GET(request: Request) {
           
           features.push(feature);
           
-          // Stop when we have enough visible dots
+          // Stop when we have enough visible dots loaded (pre-aggregation)
           if (features.length >= limit) {
             rl.close();
             break;
           }
-        }
-      } catch (_) {}
+      }
+    } catch (_) {}
     }
+
+    // Aggregate within viewport to cap dot count while preserving total population
+    const aggregated = aggregateToGrid(features, Math.max(1, maxDots), {
+      minLon, maxLon, minLat, maxLat
+    });
 
     // Build GeoJSON response with metadata
     const geojson = {
       type: 'FeatureCollection',
-      features,
+      features: aggregated,
       metadata: {
         year: yr,
         lodLevel: lodLevel,
         zoomRequested: zoom,
         usedLOD: lodLevel !== null,
-        totalFeatures: features.length,
-        filename: path.basename(ndPath)
+        totalFeatures: aggregated.length,
+        filename: path.basename(ndPath),
+        aggregated: features.length !== aggregated.length,
+        requestedMaxDots: maxDots
       }
     };
 
     const lodInfo = lodLevel !== null ? ` (LOD ${lodLevel} for zoom ${zoom})` : ' (legacy format)';
     const boundsInfo = `bounds: [${minLon.toFixed(1)}, ${minLat.toFixed(1)}, ${maxLon.toFixed(1)}, ${maxLat.toFixed(1)}]`;
-    console.log(`Loaded ${features.length}/${totalProcessed} features for year ${yr}${lodInfo}, ${boundsInfo}`);
+    console.log(`Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo}`);
 
     const jsonStr = JSON.stringify(geojson);
     const gzBody = gzipSync(Buffer.from(jsonStr));

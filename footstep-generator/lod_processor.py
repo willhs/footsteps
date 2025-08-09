@@ -93,10 +93,9 @@ class LODProcessor:
             aggregated_settlements = []
             
             for grid_key, cell_data in grid_cells.items():
-                # Skip cells below population threshold
-                if cell_data['total_population'] < self.config.min_population_threshold:
-                    continue
-                    
+                # PRESERVE ALL POPULATION - No thresholding! 
+                # The API will handle viewport-based aggregation if needed
+                
                 # Calculate average density
                 cell_area_km2 = (grid_size * 111.32) ** 2  # Rough conversion to km²
                 avg_density = cell_data['total_population'] / cell_area_km2
@@ -120,6 +119,9 @@ class LODProcessor:
             
             lod_results[lod_level] = aggregated_settlements
             print(f"      → {len(aggregated_settlements)} aggregated settlements (from {len(settlements)} original)")
+        
+        # Validate population conservation
+        self._validate_population_conservation(settlements, lod_results)
         
         return lod_results
     
@@ -145,8 +147,10 @@ class LODProcessor:
         """
         dots = []
         
-        # Apply minimum population threshold - ignore very sparse areas
-        if cell_population < 50:  # Minimum 50 people per cell to create any dots
+        # Apply minimum population threshold - scale with dot size for sparse eras
+        # Use half the dot size as cutoff, but never below 5 people
+        min_pop_cutoff = max(people_per_dot / 2, 5)
+        if cell_population < min_pop_cutoff:
             return dots
         
         # Determine settlement type based on population
@@ -342,6 +346,39 @@ class LODProcessor:
             return LODLevel.LOCAL
         else:
             return LODLevel.DETAILED
+    
+    def _validate_population_conservation(
+        self, 
+        original_settlements: List[HumanSettlement],
+        lod_results: Dict[LODLevel, List[AggregatedSettlement]]
+    ):
+        """
+        Validate that LOD aggregation preserves total population.
+        Raises ValueError if significant population loss is detected.
+        """
+        if not original_settlements:
+            return
+            
+        original_total = sum(s.population for s in original_settlements)
+        
+        print(f"    Population Conservation Validation:")
+        print(f"      Original total: {original_total:.0f} people")
+        
+        for lod_level, aggregated in lod_results.items():
+            lod_total = sum(s.total_population for s in aggregated)
+            conservation_ratio = lod_total / original_total if original_total > 0 else 1.0
+            
+            print(f"      {lod_level.name}: {lod_total:.0f} people "
+                  f"({conservation_ratio:.1%} conserved, {len(aggregated)} dots)")
+            
+            # Require 99%+ population conservation (allow for tiny floating point errors)
+            if conservation_ratio < 0.99:
+                raise ValueError(
+                    f"LOD {lod_level.name} lost {(1-conservation_ratio):.1%} of population! "
+                    f"({lod_total:.0f} vs {original_total:.0f})"
+                )
+        
+        print(f"      ✅ Population conservation validated")
     
     def estimate_performance_impact(
         self, 

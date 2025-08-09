@@ -142,19 +142,15 @@ def test_command_line_interface():
     import sys
     from unittest.mock import patch
     
-    # Test --with-lods flag recognition
-    test_args = ['process_hyde.py', '--with-lods']
+    # Test basic script execution (no args needed, LOD is default)
+    test_args = ['process_hyde.py']
     
     with patch.object(sys, 'argv', test_args):
-        # This tests the argv checking logic in main()
+        # This tests the basic script execution
         import process_hyde
         
-        # Check if argv parsing would work
-        if len(sys.argv) > 1 and sys.argv[1] == "--with-lods":
-            print("  ✓ --with-lods flag detection works")
-        else:
-            print("  ❌ --with-lods flag detection failed")
-            return False
+        # Since LOD processing is now default, no args needed
+        print("  ✓ LOD processing is now default (no flags required)")
     
     print("✅ CLI interface test passed!")
     return True
@@ -174,7 +170,7 @@ if __name__ == "__main__":
         
         print("🎉 All integration tests passed!")
         print("📝 The complete pipeline is ready for production use.")
-        print("📝 Run with real data: python process_hyde.py --with-lods")
+        print("📝 Run with real data: python process_hyde.py")
         
     except Exception as e:
         print(f"❌ Integration test failed: {e}")

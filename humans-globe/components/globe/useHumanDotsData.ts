@@ -15,6 +15,7 @@ export interface HumanDot {
 
 export const DOT_LIMIT = 5000000;
 export const MAX_RENDER_DOTS = 50000;
+const STREAM_BATCH_SIZE = 1000;
 
 export default function useHumanDotsData(
   year: number,
@@ -93,12 +94,49 @@ export default function useHumanDotsData(
           }
 
           const loadEndTime = performance.now();
-          const data = await response.json();
-          const features = data.features || [];
+
+          if (!response.body) {
+            throw new Error('Failed to read response body');
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          const features: HumanDot[] = [];
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const feature = JSON.parse(line) as HumanDot;
+                features.push(feature);
+                if (features.length % STREAM_BATCH_SIZE === 0) {
+                  setHumanDotsData([...features]);
+                }
+              } catch (err) {
+                console.error('Error parsing NDJSON line:', err);
+              }
+            }
+          }
+
+          if (buffer.trim()) {
+            try {
+              const feature = JSON.parse(buffer) as HumanDot;
+              features.push(feature);
+            } catch (err) {
+              console.error('Error parsing final NDJSON line:', err);
+            }
+          }
+
           const processEndTime = performance.now();
 
           dataCache.current.set(cacheKey, features);
-          setHumanDotsData(features);
+          setHumanDotsData([...features]);
           setError(null);
           setLoading(false);
 

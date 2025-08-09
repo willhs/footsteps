@@ -4,30 +4,31 @@ Process HYDE 3.3 population density data into heat-map polygons for vector tiles
 Converts ASCII grid files (.asc) to GeoJSON polygons with population density values.
 """
 
+import gzip
+import json
 import os
 import pathlib
-import numpy as np
+from typing import Dict, List, Optional
+
 import geopandas as gpd
-from shapely.geometry import Point
-import json
-import gzip
-from typing import List, Dict, Optional
-from pyproj import Geod
+import numpy as np
+from lod_processor import LODProcessor
 
 # Import our modular components
 from models import (
-    LODLevel,
-    Coordinates,
-    HumanSettlement,
     AggregatedSettlement,
-    LODConfiguration,
-    ProcessingResult,
-    HYDEDataFile,
+    Coordinates,
     GridMetadata,
+    HumanSettlement,
+    HYDEDataFile,
+    LODConfiguration,
+    LODLevel,
+    ProcessingResult,
     ProcessingStatistics,
     SettlementContinuityConfig,
 )
-from lod_processor import LODProcessor
+from pyproj import Geod
+from shapely.geometry import Point
 
 # Models and processors are now imported from separate modules
 
@@ -92,36 +93,29 @@ def ascii_grid_to_dots(
         # Read ASC file directly for consistent processing
         print(f"    Reading ASCII grid {os.path.basename(asc_file)}")
         with open(asc_file, "r", encoding="utf-8") as f_asc:
-            content = f_asc.read()
-        # Split into lines for header + data parsing
-        lines = content.strip().split("\n")
+            # ----- Parse header (first 6 lines) -----
+            header = {}
+            for _ in range(6):  # Standard ASCII grid header lines
+                line = f_asc.readline().strip()
+                key, value = line.split()
+                header[key.lower()] = float(value) if "." in value else int(value)
 
-        # ----- Parse header (first 6 lines) -----
-        header = {}
-        for i in range(6):  # Standard ASCII grid header lines
-            line = lines[i].strip()
-            key, value = line.split()
-            header[key.lower()] = float(value) if "." in value else int(value)
+            # Extract grid parameters
+            ncols = int(header["ncols"])
+            nrows = int(header["nrows"])
+            xllcorner = header["xllcorner"]
+            yllcorner = header["yllcorner"]
+            cellsize = header["cellsize"]
+            nodata_value = header.get("nodata_value", -9999)
 
-        # Extract grid parameters
-        ncols = int(header["ncols"])
-        nrows = int(header["nrows"])
-        xllcorner = header["xllcorner"]
-        yllcorner = header["yllcorner"]
-        cellsize = header["cellsize"]
-        nodata_value = header.get("nodata_value", -9999)
+            print(f"    Grid: {ncols}x{nrows}, cellsize: {cellsize}°")
 
-        print(f"    Grid: {ncols}x{nrows}, cellsize: {cellsize}°")
-
-        # Parse data efficiently using NumPy
-        import io
-
-        data_str = "\n".join(lines[6:])
-        data = np.loadtxt(io.StringIO(data_str), dtype=float)
-        if data.shape != (nrows, ncols):
-            print(
-                f"    WARNING: Parsed grid shape {data.shape} != expected ({nrows}, {ncols})"
-            )
+            # Parse data efficiently by streaming directly from the file
+            data = np.loadtxt(f_asc, dtype=float)
+            if data.shape != (nrows, ncols):
+                print(
+                    f"    WARNING: Parsed grid shape {data.shape} != expected ({nrows}, {ncols})"
+                )
 
         # Replace nodata with NaN
         data[data == nodata_value] = np.nan
@@ -340,16 +334,18 @@ def process_year_with_hierarchical_lods(
         ProcessingResult with LOD data and statistics
     """
     print(f"  Processing year {year} with hierarchical LODs...")
-    
+
     # Choose dot size for sparse eras (keep smaller dots for ancient periods)
-    people_per_dot_effective = 10 if (year <= 0 and people_per_dot == 100) else people_per_dot
+    people_per_dot_effective = (
+        10 if (year <= 0 and people_per_dot == 100) else people_per_dot
+    )
 
     # Create LOD processor with population-preserving configuration
     lod_config = LODConfiguration(
-        global_grid_size=1.0,        # Finer global grid for better rural representation
-        regional_grid_size=0.25,     # Improved regional detail  
-        local_grid_size=0.05,        # High local detail for rural populations
-        min_population_threshold=0.0 # DISABLED - preserve all population
+        global_grid_size=1.0,  # Finer global grid for better rural representation
+        regional_grid_size=0.25,  # Improved regional detail
+        local_grid_size=0.05,  # High local detail for rural populations
+        min_population_threshold=0.0,  # DISABLED - preserve all population
     )
     # Enable settlement continuity for hierarchical LOD processing
     continuity_config = SettlementContinuityConfig(enable_continuity=True)
@@ -592,14 +588,16 @@ def main():
     else:
         print("Using hierarchical LOD processing as default (population-preserving)...")
         results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
-        
+
         print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
         print("  Files generated:")
         for result in results[:3]:  # Show first 3 as examples
             year = result.year
             for level, settlements in result.lod_data.items():
                 if settlements:
-                    print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
+                    print(
+                        f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)"
+                    )
         if len(results) > 3:
             print(f"    ... and {len(results) - 3} more years")
         print("\nNext: Update API to serve appropriate LOD level based on zoom")

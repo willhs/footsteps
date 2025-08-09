@@ -9,6 +9,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from models import Coordinates
+from landmask import is_land
 
 
 @dataclass
@@ -120,12 +121,17 @@ class SettlementRegistry:
                 # Use different seed for each position to avoid clustering
                 position_seed = (seed + i * 1007) % (2**31)  # 1007 is prime
                 pos_rng = np.random.RandomState(position_seed)
-                
-                offset_lat = pos_rng.uniform(-cellsize/2, cellsize/2)
-                offset_lon = pos_rng.uniform(-cellsize/2, cellsize/2)
-                
-                settlement_lat = lat + offset_lat
-                settlement_lon = lon + offset_lon
+
+                attempts = 0
+                while True:
+                    offset_lat = pos_rng.uniform(-cellsize/2, cellsize/2)
+                    offset_lon = pos_rng.uniform(-cellsize/2, cellsize/2)
+                    settlement_lat = lat + offset_lat
+                    settlement_lon = lon + offset_lon
+                    if is_land(settlement_lat, settlement_lon) or attempts >= 10:
+                        break
+                    attempts += 1
+                    pos_rng = np.random.RandomState((position_seed + attempts) % (2**31))
                 
                 # Ensure coordinates are valid
                 settlement_lat = max(-90, min(90, settlement_lat))
@@ -156,12 +162,17 @@ class SettlementRegistry:
                     # Add deterministic but random-looking offset
                     offset_seed = (seed + position_idx * 2017) % (2**31)  # 2017 is prime
                     offset_rng = np.random.RandomState(offset_seed)
-                    
-                    offset_lat += offset_rng.uniform(-grid_step/4, grid_step/4)
-                    offset_lon += offset_rng.uniform(-grid_step/4, grid_step/4)
-                    
-                    settlement_lat = lat + offset_lat
-                    settlement_lon = lon + offset_lon
+
+                    attempts = 0
+                    while True:
+                        pert_lat = offset_rng.uniform(-grid_step/4, grid_step/4)
+                        pert_lon = offset_rng.uniform(-grid_step/4, grid_step/4)
+                        settlement_lat = lat + offset_lat + pert_lat
+                        settlement_lon = lon + offset_lon + pert_lon
+                        if is_land(settlement_lat, settlement_lon) or attempts >= 10:
+                            break
+                        attempts += 1
+                        offset_rng = np.random.RandomState((offset_seed + attempts) % (2**31))
                     
                     # Ensure coordinates are valid
                     settlement_lat = max(-90, min(90, settlement_lat))
@@ -189,11 +200,21 @@ class SettlementRegistry:
                 offset_lat, offset_lon = fixed_positions[i]
                 settlement_lat = lat + offset_lat * cellsize
                 settlement_lon = lon + offset_lon * cellsize
-                
+                if not is_land(settlement_lat, settlement_lon):
+                    attempts = 0
+                    while True:
+                        rng_lat = rng.uniform(-cellsize/2, cellsize/2)
+                        rng_lon = rng.uniform(-cellsize/2, cellsize/2)
+                        settlement_lat = lat + rng_lat
+                        settlement_lon = lon + rng_lon
+                        if is_land(settlement_lat, settlement_lon) or attempts >= 10:
+                            break
+                        attempts += 1
+
                 # Ensure coordinates are valid
                 settlement_lat = max(-90, min(90, settlement_lat))
                 settlement_lon = max(-180, min(180, settlement_lon))
-                
+
                 position = SettlementPosition(
                     coordinates=Coordinates(longitude=settlement_lon, latitude=settlement_lat),
                     cell_id=cell_id,

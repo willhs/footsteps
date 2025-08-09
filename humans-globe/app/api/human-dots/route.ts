@@ -215,27 +215,19 @@ export async function GET(request: Request) {
       minLon, maxLon, minLat, maxLat
     });
 
-    // Build GeoJSON response with metadata
-    const geojson = {
-      type: 'FeatureCollection',
-      features: aggregated,
-      metadata: {
-        year: yr,
-        lodLevel: lodLevel,
-        zoomRequested: zoom,
-        usedLOD: lodLevel !== null,
-        totalFeatures: aggregated.length,
-        filename: path.basename(ndPath),
-        aggregated: features.length !== aggregated.length,
-        requestedMaxDots: maxDots
-      }
-    };
+    // Strip extraneous fields and return lean array of dots
+    const dots = aggregated.map((f: any) => {
+      const coords = f?.geometry?.coordinates || [0, 0];
+      const population = f?.properties?.population || 0;
+      const radius = f?.properties?.precomputedRadius || getPrecomputedRadius(population);
+      return { coords, population, radius };
+    });
 
     const lodInfo = lodLevel !== null ? ` (LOD ${lodLevel} for zoom ${zoom})` : ' (legacy format)';
     const boundsInfo = `bounds: [${minLon.toFixed(1)}, ${minLat.toFixed(1)}, ${maxLon.toFixed(1)}, ${maxLat.toFixed(1)}]`;
-    console.log(`Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo}`);
+    console.log(`Loaded ${features.length}/${totalProcessed} features, returned ${dots.length} for year ${yr}${lodInfo}, ${boundsInfo}`);
 
-    const jsonStr = JSON.stringify(geojson);
+    const jsonStr = JSON.stringify({ features: dots });
     const gzBody = gzipSync(Buffer.from(jsonStr));
     return new NextResponse(new Uint8Array(gzBody), {
       headers: {

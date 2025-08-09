@@ -1,16 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 
 export interface HumanDot {
-  type: string;
-  geometry: {
-    type: string;
-    coordinates: [number, number];
-  };
-  properties: {
-    population: number;
-    year: number;
-    type: string;
-  };
+  coords: [number, number];
+  population: number;
+  radius: number;
 }
 
 export const DOT_LIMIT = 5000000;
@@ -94,7 +87,7 @@ export default function useHumanDotsData(
 
           const loadEndTime = performance.now();
           const data = await response.json();
-          const features = data.features || [];
+          const features = (data.features || []) as HumanDot[];
           const processEndTime = performance.now();
 
           dataCache.current.set(cacheKey, features);
@@ -128,10 +121,10 @@ export default function useHumanDotsData(
       }
 
       const validDots = humanDotsData.filter(dot => {
-        if (!dot || !dot.properties || !dot.geometry || !dot.geometry.coordinates) {
+        if (!dot || !dot.coords) {
           return false;
         }
-        const coords = dot.geometry.coordinates;
+        const coords = dot.coords;
         if (!Array.isArray(coords) || coords.length !== 2) {
           return false;
         }
@@ -149,9 +142,7 @@ export default function useHumanDotsData(
         return true;
       });
 
-      return validDots.sort(
-        (a, b) => (b.properties?.population || 0) - (a.properties?.population || 0)
-      );
+      return validDots.sort((a, b) => (b.population || 0) - (a.population || 0));
     } catch (err) {
       console.error('Error processing human dots data:', err);
       return [] as HumanDot[];

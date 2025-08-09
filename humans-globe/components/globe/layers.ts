@@ -133,7 +133,7 @@ export function createHumanDotsLayer(
   const layerId = `human-dots-${year}-lod${lodLevel || 'legacy'}-${radiusStrategy.getName()}`;
   
   const currentZoom = viewState?.zoom || 1;
-  
+
   return new ScatterplotLayer({
     id: layerId,
     data,
@@ -148,9 +148,9 @@ export function createHumanDotsLayer(
     radiusScale: 1, // Ensure dots are properly scaled
     getPosition: (d: any) => {
       try {
-        const coords = d.geometry?.coordinates;
+        const coords = d?.coords;
         if (!coords || !Array.isArray(coords) || coords.length !== 2) {
-          return [0, 0]; // Fallback to origin if invalid
+          return [0, 0];
         }
         // Let GlobeView handle the sphere projection
         return coords as [number, number];
@@ -160,11 +160,11 @@ export function createHumanDotsLayer(
     },
     // Use radius strategy for flexible calculation approach
     getRadius: (d: any) => {
-      const baseRadius = d?.properties?.precomputedRadius || 2000; // Default to village size (2km)
+      const baseRadius = d?.radius || 2000; // Default to village size (2km)
       return radiusStrategy.calculateRadius(baseRadius, currentZoom);
     },
     getFillColor: (d: any) => {
-      const population = d?.properties?.population || 100;
+      const population = d?.population || 100;
       
       // Color intensity based on population
       if (population > 20000) {

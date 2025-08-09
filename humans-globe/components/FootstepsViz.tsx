@@ -292,7 +292,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   const totalPopulation = useMemo(() => {
     return humanDotsData.reduce((sum, dot) => {
-      return sum + (dot?.properties?.population ?? 0);
+      return sum + (dot?.population ?? 0);
     }, 0);
   }, [humanDotsData]);
 
@@ -475,23 +475,23 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
     
     return createHumanDotsLayer(
-      dotsToRender, 
-      layerViewState, 
-      year, 
-      stableLODLevel, 
+      dotsToRender,
+      layerViewState,
+      year,
+      stableLODLevel,
       radiusStrategy,
       (info: any) => {
         if (info.object) {
           const dot = info.object;
-          const population = dot.properties?.population || 0;
-          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
-          
+          const population = dot.population || 0;
+          const coordinates = (dot.coords as [number, number]) || [0, 0];
+
           // Get click position in screen coordinates
           const clickPosition = {
             x: info.x || 0,
             y: info.y || 0
           };
-          
+
           // Set tooltip data
           setTooltipData({
             population,
@@ -504,8 +504,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       (info: any) => {
         if (info && info.object) {
           const dot = info.object;
-          const population = dot.properties?.population || 0;
-          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
+          const population = dot.population || 0;
+          const coordinates = (dot.coords as [number, number]) || [0, 0];
           const clickPosition = { x: info.x || 0, y: info.y || 0 };
           setTooltipData({ population, coordinates, year, clickPosition });
         } else {

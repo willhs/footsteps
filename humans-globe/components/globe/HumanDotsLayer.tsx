@@ -1,16 +1,9 @@
 import { ScatterplotLayer } from '@deck.gl/layers';
 
 interface HumanDot {
-  type: string;
-  geometry: {
-    type: string;
-    coordinates: [number, number];
-  };
-  properties: {
-    population: number;
-    year: number;
-    type: string;
-  };
+  coords: [number, number];
+  population: number;
+  radius: number;
 }
 
 interface HumanDotsLayerProps {
@@ -25,11 +18,11 @@ export function createHumanDotsLayer({ data, viewState, onClick }: HumanDotsLaye
     data,
     pickable: true,
     radiusUnits: 'meters', // Use meters for GPU-accelerated scaling
-    getPosition: (d: any) => {
+    getPosition: (d: HumanDot) => {
       try {
-        const coords = d.geometry?.coordinates;
+        const coords = d.coords;
         if (!coords || !Array.isArray(coords) || coords.length !== 2) {
-          return [0, 0] as [number, number]; // Fallback to origin if invalid
+          return [0, 0] as [number, number];
         }
         return coords as [number, number];
       } catch (error) {
@@ -38,11 +31,11 @@ export function createHumanDotsLayer({ data, viewState, onClick }: HumanDotsLaye
       }
     },
     // Use pre-computed radius values for optimal performance
-    getRadius: (d: any) => {
-      return d?.properties?.precomputedRadius || 2000; // Default to village size (2km)
+    getRadius: (d: HumanDot) => {
+      return d?.radius || 2000; // Default to village size (2km)
     },
-    getFillColor: (d: any) => {
-      const population = d?.properties?.population || 100;
+    getFillColor: (d: HumanDot) => {
+      const population = d?.population || 100;
       
       // Color intensity based on population
       if (population > 20000) {

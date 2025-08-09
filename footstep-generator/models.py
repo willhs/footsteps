@@ -58,6 +58,11 @@ class LODConfiguration(BaseModel):
     regional_grid_size: float = Field(default=0.5, description="Grid size for regional LOD")
     local_grid_size: float = Field(default=0.1, description="Grid size for local LOD")
     min_population_threshold: float = Field(default=50.0, description="Minimum population per cell")
+    min_dot_spacing_degrees: float = Field(
+        default=0.01,
+        gt=0,
+        description="Minimum spacing between generated dots in degrees"
+    )
     
     @field_validator('global_grid_size', 'regional_grid_size', 'local_grid_size')
     @classmethod

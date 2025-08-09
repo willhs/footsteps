@@ -7,6 +7,7 @@ Implements hierarchical spatial aggregation for performance optimization.
 import numpy as np
 from collections import defaultdict
 from typing import List, Dict, Optional
+from numpy.random import Generator
 from models import (
     LODLevel, Coordinates, HumanSettlement, AggregatedSettlement, 
     LODConfiguration, ProcessingStatistics, SettlementContinuityConfig
@@ -167,6 +168,45 @@ class LODProcessor:
             return self._create_random_dots(
                 cell_population, lat, lon, cellsize, people_per_dot, settlement_type
             )
+
+    def _poisson_disc_sample(
+        self,
+        lat: float,
+        lon: float,
+        cellsize: float,
+        num_points: int,
+        min_distance: float,
+        rng: Generator
+    ) -> List[tuple]:
+        """Generate points within a cell using simple Poisson-disc sampling."""
+        points: List[tuple] = []
+        attempts = 0
+        max_attempts = num_points * 30
+        half = cellsize / 2
+
+        while len(points) < num_points and attempts < max_attempts:
+            offset_lat = rng.uniform(-half, half)
+            offset_lon = rng.uniform(-half, half)
+            cand_lat = lat + offset_lat
+            cand_lon = lon + offset_lon
+
+            if all((cand_lat - p[0]) ** 2 + (cand_lon - p[1]) ** 2 >= min_distance ** 2 for p in points):
+                # Ensure coordinates remain in valid bounds
+                cand_lat = max(-90, min(90, cand_lat))
+                cand_lon = max(-180, min(180, cand_lon))
+                points.append((cand_lat, cand_lon))
+
+            attempts += 1
+
+        # If we couldn't place all points with spacing, fill remaining randomly
+        while len(points) < num_points:
+            offset_lat = rng.uniform(-half, half)
+            offset_lon = rng.uniform(-half, half)
+            cand_lat = max(-90, min(90, lat + offset_lat))
+            cand_lon = max(-180, min(180, lon + offset_lon))
+            points.append((cand_lat, cand_lon))
+
+        return points
     
     def _create_deterministic_dots(
         self,
@@ -187,23 +227,28 @@ class LODProcessor:
         else:  # city
             effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
             num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
-        
-        population_per_dot = cell_population / num_dots
-        
-        # Get deterministic positions from registry
-        positions = self.settlement_registry.get_deterministic_positions(
+
+        # Use registry to maintain cache/ID for deterministic seeding
+        cell_id = self.settlement_registry.get_geographic_cell_id(
+            lat, lon, cellsize, settlement_type
+        )
+        self.settlement_registry.get_deterministic_positions(
             lat, lon, cellsize, num_dots, settlement_type
         )
-        
-        # Convert positions to dots
-        dots = []
-        for position in positions:
-            dots.append((
-                position.coordinates.latitude,
-                position.coordinates.longitude,
-                population_per_dot
-            ))
-        
+
+        seed = int(cell_id[:8], 16)
+        rng = np.random.default_rng(seed)
+        positions = self._poisson_disc_sample(
+            lat,
+            lon,
+            cellsize,
+            num_dots,
+            self.config.min_dot_spacing_degrees,
+            rng,
+        )
+
+        population_per_dot = cell_population / len(positions)
+        dots = [(p[0], p[1], population_per_dot) for p in positions]
         return dots
     
     def _create_random_dots(
@@ -215,70 +260,28 @@ class LODProcessor:
         people_per_dot: int,
         settlement_type: str
     ) -> List[tuple]:
-        """Create dots using original random positioning (fallback)."""
-        dots = []
-        
-        # Density-aware strategy based on population concentration
+        """Create dots using Poisson-disc sampling with random seeding."""
         if settlement_type == "rural":
-            # Rural areas: Standard approach with random placement
             num_dots = max(1, int(cell_population / people_per_dot))
-            population_per_dot = cell_population / num_dots  # Use actual population, not fixed amount
-            
-            for _ in range(num_dots):
-                dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
-                dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
-                dots.append((dot_lat, dot_lon, population_per_dot))
-                
         elif settlement_type == "town":
-            # Towns: Systematic grid distribution to avoid overlap
-            # Increase aggregation factor to create "super-dots" in towns
-            effective_people_per_dot = people_per_dot * 5  # 5× more people represented per dot
-            num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))  # Max 5 dots
-            population_per_dot = cell_population / num_dots  # Use actual population
-            
-            grid_size = int(np.ceil(np.sqrt(num_dots)))
-            grid_step = cellsize / (grid_size + 1)  # Add padding
-            
-            dot_idx = 0
-            for i in range(grid_size):
-                for j in range(grid_size):
-                    if dot_idx >= num_dots:
-                        break
-                        
-                    # Grid position with slight randomization
-                    offset_lat = (i - grid_size/2 + 0.5) * grid_step
-                    offset_lon = (j - grid_size/2 + 0.5) * grid_step
-                    
-                    # Add small random offset to avoid perfect grid
-                    offset_lat += np.random.uniform(-grid_step/4, grid_step/4)
-                    offset_lon += np.random.uniform(-grid_step/4, grid_step/4)
-                    
-                    dot_lat = lat + offset_lat
-                    dot_lon = lon + offset_lon
-                    dots.append((dot_lat, dot_lon, population_per_dot))
-                    dot_idx += 1
-                    
-        else:  # city
-            # Cities: Few large representative dots to avoid visual clutter
-            # Cities: aggregate even more aggressively
-            effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
-            num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))  # Max 3 dots
-            population_per_dot = cell_population / num_dots  # Use actual population
-            
-            # Use fixed positions within cell to ensure consistency
-            positions = [
-                (0, 0),  # Center
-                (-0.25, -0.25), (0.25, -0.25),  # Lower corners
-                (-0.25, 0.25), (0.25, 0.25)    # Upper corners
-            ]
-            
-            for i in range(num_dots):
-                offset_lat, offset_lon = positions[i]
-                dot_lat = lat + offset_lat * cellsize
-                dot_lon = lon + offset_lon * cellsize
-                dots.append((dot_lat, dot_lon, population_per_dot))
-        
-        return dots
+            effective_people_per_dot = people_per_dot * 5
+            num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))
+        else:
+            effective_people_per_dot = people_per_dot * 20
+            num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
+
+        rng = np.random.default_rng()
+        positions = self._poisson_disc_sample(
+            lat,
+            lon,
+            cellsize,
+            num_dots,
+            self.config.min_dot_spacing_degrees,
+            rng,
+        )
+
+        population_per_dot = cell_population / len(positions)
+        return [(p[0], p[1], population_per_dot) for p in positions]
     
     def validate_settlement_data(
         self, 

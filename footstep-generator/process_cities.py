@@ -8,6 +8,7 @@ import pathlib
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any, Tuple
+from landmask import is_land
 
 # Population estimation parameters - consistent with HYDE processing
 PERSONS_PER_DOT = 100  # Always 100 people per dot for consistency
@@ -189,14 +190,17 @@ def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> L
     persons_per_dot = get_persons_per_dot(year)
     num_rural_dots = min(rural_pop // persons_per_dot, 5000)  # Limit for performance
 
-    for _ in range(num_rural_dots):
+    accepted = 0
+    while accepted < num_rural_dots:
         region = np.random.choice(len(INHABITABLE_REGIONS), p=REGION_PROBABILITIES)
         lat_min, lat_max, lon_min, lon_max, _ = INHABITABLE_REGIONS[region]
-        
-        # Random point in this region
+
         rural_lat = np.random.uniform(lat_min, lat_max)
         rural_lon = np.random.uniform(lon_min, lon_max)
-        
+
+        if not is_land(rural_lat, rural_lon):
+            continue
+
         dots.append({
             'lat': rural_lat,
             'lon': rural_lon,
@@ -205,6 +209,7 @@ def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> L
             'city': 'rural',
             'type': 'rural'
         })
+        accepted += 1
     
     return dots
 

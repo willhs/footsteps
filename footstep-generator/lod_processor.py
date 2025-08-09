@@ -7,6 +7,7 @@ Implements hierarchical spatial aggregation for performance optimization.
 import numpy as np
 from collections import defaultdict
 from typing import List, Dict, Optional
+from landmask import is_land
 from models import (
     LODLevel, Coordinates, HumanSettlement, AggregatedSettlement, 
     LODConfiguration, ProcessingStatistics, SettlementContinuityConfig
@@ -229,8 +230,13 @@ class LODProcessor:
             population_per_dot = cell_population / num_dots  # Use actual population, not fixed amount
             
             for _ in range(num_dots):
-                dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
-                dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
+                attempts = 0
+                while True:
+                    dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
+                    dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
+                    if is_land(dot_lat, dot_lon) or attempts >= 10:
+                        break
+                    attempts += 1
                 dots.append((dot_lat, dot_lon, population_per_dot))
                 
         elif settlement_type == "town":
@@ -254,11 +260,15 @@ class LODProcessor:
                     offset_lon = (j - grid_size/2 + 0.5) * grid_step
                     
                     # Add small random offset to avoid perfect grid
-                    offset_lat += np.random.uniform(-grid_step/4, grid_step/4)
-                    offset_lon += np.random.uniform(-grid_step/4, grid_step/4)
-                    
-                    dot_lat = lat + offset_lat
-                    dot_lon = lon + offset_lon
+                    attempts = 0
+                    while True:
+                        pert_lat = np.random.uniform(-grid_step/4, grid_step/4)
+                        pert_lon = np.random.uniform(-grid_step/4, grid_step/4)
+                        dot_lat = lat + offset_lat + pert_lat
+                        dot_lon = lon + offset_lon + pert_lon
+                        if is_land(dot_lat, dot_lon) or attempts >= 10:
+                            break
+                        attempts += 1
                     dots.append((dot_lat, dot_lon, population_per_dot))
                     dot_idx += 1
                     
@@ -280,6 +290,14 @@ class LODProcessor:
                 offset_lat, offset_lon = positions[i]
                 dot_lat = lat + offset_lat * cellsize
                 dot_lon = lon + offset_lon * cellsize
+                if not is_land(dot_lat, dot_lon):
+                    attempts = 0
+                    while True:
+                        dot_lat = lat + np.random.uniform(-cellsize/2, cellsize/2)
+                        dot_lon = lon + np.random.uniform(-cellsize/2, cellsize/2)
+                        if is_land(dot_lat, dot_lon) or attempts >= 10:
+                            break
+                        attempts += 1
                 dots.append((dot_lat, dot_lon, population_per_dot))
         
         return dots

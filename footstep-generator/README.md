@@ -10,6 +10,7 @@ This Python-based pipeline processes historical population density data from the
 
 - **Pydantic V2 models** for robust data validation and type safety
 - **Hierarchical LOD system** for performance optimization at different zoom levels
+- **Geodesic cell area calculations** using `pyproj.Geod` (WGS84) for accurate population totals
 - **Multi-format output** with NDJSON.gz files optimized for streaming and caching
 - **Comprehensive test suite** ensuring data integrity and performance
 

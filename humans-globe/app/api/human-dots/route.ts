@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
-import { gzipSync, createGunzip } from 'zlib';
+import { gzipSync, createGunzip, brotliCompressSync } from 'zlib';
 
 // Minimal feature type used in this route
 interface MinimalFeatureProperties {
@@ -261,11 +261,20 @@ export async function GET(request: Request) {
     console.log(`✅ Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo} in ${perfInfo}`);
 
     const jsonStr = JSON.stringify(geojson);
-    const gzBody = gzipSync(Buffer.from(jsonStr));
-    return new NextResponse(new Uint8Array(gzBody), {
+    const acceptEncoding = request.headers.get('accept-encoding') || '';
+    let body: Uint8Array;
+    let encoding: string;
+    if (acceptEncoding.includes('br')) {
+      body = new Uint8Array(brotliCompressSync(Buffer.from(jsonStr)));
+      encoding = 'br';
+    } else {
+      body = new Uint8Array(gzipSync(Buffer.from(jsonStr)));
+      encoding = 'gzip';
+    }
+    return new NextResponse(body, {
       headers: {
         'Content-Type': 'application/json',
-        'Content-Encoding': 'gzip',
+        'Content-Encoding': encoding,
         'Cache-Control': 'public, max-age=86400',
         'X-LOD-Level': lodLevel?.toString() || 'legacy',
         'X-Zoom-Level': zoom.toString(),

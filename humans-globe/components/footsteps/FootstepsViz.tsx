@@ -462,13 +462,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     return createBasemapLayer(basemapData, basemapError);
   }, [basemapData, basemapError]);
   
-  // Prepare dots for rendering with hard performance limit
-  const dotsToRender = useMemo(() => {
-    return visibleHumanDots.length > MAX_RENDER_DOTS 
-      ? visibleHumanDots.slice(0, MAX_RENDER_DOTS)
-      : visibleHumanDots;
-  }, [visibleHumanDots]);
-  
   // Stable LOD level for memoization - only changes at discrete boundaries
   const roundedZoom = Math.floor(viewState.zoom);
   const stableLODLevel = useMemo(() => {
@@ -492,10 +485,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
     
     return createHumanDotsLayer(
-      dotsToRender, 
-      layerViewState, 
-      year, 
-      stableLODLevel, 
+      visibleHumanDots,
+      layerViewState,
+      year,
+      stableLODLevel,
       radiusStrategy,
       (raw: unknown) => {
         if (raw && typeof raw === 'object' && 'object' in (raw as Record<string, unknown>)) {
@@ -525,7 +518,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         setTooltipData(null);
       }
     );
-  }, [dotsToRender, layerViewState, year, stableLODLevel, is3DMode]);
+  }, [visibleHumanDots, layerViewState, year, stableLODLevel, is3DMode]);
   
   
   // Memoized layers array to prevent array recreation
@@ -590,21 +583,21 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       {/* Data info overlay */}
       <HumanDotsOverlay
         loading={loading}
-          dotCount={dotsToRender.length}
-          totalPopulation={totalPopulation}
-          viewState={viewState}
-          samplingRate={samplingRate}
-          lodEnabled={true} // Always enabled with server-side LOD
-          toggleLOD={() => {}} // No-op since LOD is server-controlled
-          renderMetrics={renderMetrics}
-          cacheSize={dataCache.size}
-          progressiveRenderStatus={
-            dotsToRender.length < visibleHumanDots.length 
-              ? { rendered: dotsToRender.length, total: visibleHumanDots.length }
-              : undefined
-          }
-          viewportBounds={viewportBounds}
-          is3DMode={is3DMode}
+        dotCount={visibleHumanDots.length}
+        totalPopulation={totalPopulation}
+        viewState={viewState}
+        samplingRate={samplingRate}
+        lodEnabled={true} // Always enabled with server-side LOD
+        toggleLOD={() => {}} // No-op since LOD is server-controlled
+        renderMetrics={renderMetrics}
+        cacheSize={dataCache.size}
+        progressiveRenderStatus={
+          visibleHumanDots.length < humanDotsData.length
+            ? { rendered: visibleHumanDots.length, total: humanDotsData.length }
+            : undefined
+        }
+        viewportBounds={viewportBounds}
+        is3DMode={is3DMode}
       />
       
       {/* View Mode Toggle */}

@@ -9,7 +9,9 @@ interface RadiusStrategy {
 
 // Linear strategy: uses pre-computed radius as-is for geographic accuracy
 class LinearRadiusStrategy implements RadiusStrategy {
-  calculateRadius(baseRadius: number, zoom: number): number {
+  calculateRadius(baseRadius: number, _zoom: number): number {
+    // reference to satisfy no-unused-vars when argsIgnorePattern isn't set
+    void _zoom;
     return baseRadius;
   }
   
@@ -67,10 +69,11 @@ export const radiusStrategies = {
 };
 
 // Create basemap layer
-export function createBasemapLayer(data: any, basemapError: boolean) {
+export function createBasemapLayer(data: unknown, basemapError: boolean) {
   return new GeoJsonLayer({
     id: 'land-layer',
-    data: data || { type: 'FeatureCollection', features: [] },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: (data as any) || ({ type: 'FeatureCollection', features: [] } as any),
     filled: true,
     // Disable stroke so internal country borders are not drawn
     stroked: false,
@@ -122,17 +125,21 @@ export function createEarthSphereLayer() {
 
 // Create human dots layer with stable ID for caching
 export function createHumanDotsLayer(
-  data: any[], 
-  viewState: any | null, 
+  data: unknown[], 
+  viewState: { zoom?: number } | null, 
   year: number, 
   lodLevel: number | null, 
   radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
-  onClick?: (info: any) => void,
-  onHover?: (info: any) => void
+  onClick?: (info: unknown) => void,
+  onHover?: (info: unknown) => void
 ) {
   const layerId = `human-dots-${year}-lod${lodLevel || 'legacy'}-${radiusStrategy.getName()}`;
   
   const currentZoom = viewState?.zoom || 1;
+  type MinimalDot = {
+    geometry?: { coordinates?: [number, number] };
+    properties?: { precomputedRadius?: number; population?: number };
+  };
   
   return new ScatterplotLayer({
     id: layerId,
@@ -146,25 +153,25 @@ export function createHumanDotsLayer(
     pickable: true,
     radiusUnits: 'meters', // Use meters for GPU-accelerated scaling
     radiusScale: 1, // Ensure dots are properly scaled
-    getPosition: (d: any) => {
+    getPosition: (d: unknown) => {
       try {
-        const coords = d.geometry?.coordinates;
+        const coords = (d as MinimalDot)?.geometry?.coordinates;
         if (!coords || !Array.isArray(coords) || coords.length !== 2) {
           return [0, 0]; // Fallback to origin if invalid
         }
         // Let GlobeView handle the sphere projection
         return coords as [number, number];
-      } catch (error) {
+      } catch {
         return [0, 0];
       }
     },
     // Use radius strategy for flexible calculation approach
-    getRadius: (d: any) => {
-      const baseRadius = d?.properties?.precomputedRadius || 2000; // Default to village size (2km)
+    getRadius: (d: unknown) => {
+      const baseRadius = (d as MinimalDot)?.properties?.precomputedRadius || 2000; // Default to village size (2km)
       return radiusStrategy.calculateRadius(baseRadius, currentZoom);
     },
-    getFillColor: (d: any) => {
-      const population = d?.properties?.population || 100;
+    getFillColor: (d: unknown) => {
+      const population = (d as MinimalDot)?.properties?.population || 100;
       
       // Color intensity based on population
       if (population > 20000) {
@@ -197,7 +204,7 @@ export function createHumanDotsLayer(
     },
     
     // Performance optimizations for picking and highlighting
-    getPickingInfo: ({ info }: { info: any }) => info, // Simplified picking
+    getPickingInfo: ({ info }: { info: unknown }) => info, // Simplified picking
     autoHighlight: false, // Disable auto-highlighting for performance
     highlightColor: [255, 255, 255, 100] // Subtle highlight when enabled
   });

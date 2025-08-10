@@ -2,8 +2,8 @@
 
 import Slider from 'rc-slider';
 import { useMemo, useState, useEffect } from 'react';
-import { formatYear, sliderToYear, yearToSlider } from '../lib/useYear';
-import { TARGET_YEARS } from '../lib/constants';
+import { formatYear, sliderToYear, yearToSlider } from '@/lib/useYear';
+import { TARGET_YEARS } from '@/lib/constants';
 
 interface TimeSliderProps {
   value: number;
@@ -92,7 +92,7 @@ const useSliderMarks = (currentSliderValue: number) => {
       };
     });
     return marks;
-  }, [currentSliderValue, compact]);
+  }, [currentSliderValue, compact, width]);
 };
 
 export default function TimeSlider({ value, onChange }: TimeSliderProps) {

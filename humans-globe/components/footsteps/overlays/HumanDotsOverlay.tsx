@@ -34,8 +34,7 @@ export default function HumanDotsOverlay({
   totalPopulation,
   viewState,
   samplingRate,
-  lodEnabled,
-  toggleLOD,
+  // lodEnabled and toggleLOD intentionally not destructured to avoid unused vars
   renderMetrics,
   cacheSize,
   progressiveRenderStatus,

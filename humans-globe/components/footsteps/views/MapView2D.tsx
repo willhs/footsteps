@@ -1,12 +1,21 @@
 "use client";
 
-import DeckGL from "@deck.gl/react";
+import DeckGL, { type DeckGLProps } from "@deck.gl/react";
+import type { LayersList } from "@deck.gl/core";
 import { ReactNode } from "react";
 
+type BasicViewState = {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch?: number;
+  bearing?: number;
+};
+
 interface MapView2DProps {
-  viewState: any;
-  onViewStateChange: (params: { viewState: any }) => void;
-  layers: any[];
+  viewState: BasicViewState;
+  onViewStateChange: DeckGLProps["onViewStateChange"];
+  layers: LayersList;
   children?: ReactNode;
 }
 

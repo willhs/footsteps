@@ -14,6 +14,20 @@ import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
 
+type ViewStateLike = {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch?: number;
+  bearing?: number;
+};
+
+type PickingInfo = {
+  object?: { properties?: { population?: number }; geometry?: { coordinates?: [number, number] } };
+  x?: number;
+  y?: number;
+};
+
 interface FootstepsVizProps {
   year: number;
 }
@@ -23,7 +37,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   
   // Use the viewState hook for gesture tracking and management
-  const { viewState: hookViewState, isZooming, isPanning, onViewStateChange } = useGlobeViewState();
+  const { viewState: hookViewState, onViewStateChange } = useGlobeViewState();
   
   // View states for different modes - initialize from hook
   const [viewState2D, setViewState2D] = useState(() => ({
@@ -106,7 +120,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
    * @param screenHeight - Screen height in pixels
    * @returns [minLon, minLat, maxLon, maxLat] bounds or null for global data
    */
-  const calculateGlobeViewportBounds = useCallback((viewState3D: any, screenWidth: number, screenHeight: number) => {
+  const calculateGlobeViewportBounds = useCallback((viewState3D: Pick<ViewStateLike, 'longitude' | 'latitude' | 'zoom'>, screenWidth: number, screenHeight: number) => {
     try {
       // Try to create a GlobeViewport instance to get accurate bounds
       const globeViewport = new GlobeViewport({
@@ -135,7 +149,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         .map(([x, y]) => {
           try {
             return globeViewport.unproject([x, y]);
-          } catch (e) {
+          } catch {
             return null;
           }
         })
@@ -175,7 +189,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       
       return [minLon, bufferedMinLat, maxLon, bufferedMaxLat];
       
-    } catch (error) {
+    } catch {
       return null;
     }
   }, []);
@@ -194,7 +208,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
    * @param viewState3D - The current 3D view state
    * @returns [minLon, minLat, maxLon, maxLat] bounds or null for global data
    */
-  const calculateFallbackHemisphereBounds = useCallback((viewState3D: any) => {
+  const calculateFallbackHemisphereBounds = useCallback((viewState3D: Pick<ViewStateLike, 'longitude' | 'latitude' | 'zoom'>) => {
     const centerLon = (viewState3D.longitude || 0) % 360;
     const centerLat = Math.max(-80, Math.min(80, (viewState3D.latitude || 0)));
     
@@ -240,7 +254,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     
     if (is3DMode) {
       // 3D Mode - use accurate GlobeViewport bounds with fallback
-      const viewState3DTyped = viewState as any;
+      const viewState3DTyped = viewState as Pick<ViewStateLike, 'longitude' | 'latitude' | 'zoom'>;
       
       // Try accurate GlobeViewport calculation first
       const accurateBounds = calculateGlobeViewportBounds(
@@ -299,7 +313,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   }, [humanDotsData]);
 
   // Simple basemap layer using Natural Earth land boundaries with fallback
-  const [basemapData, setBasemapData] = useState<any>(null);
+  const [basemapData, setBasemapData] = useState<unknown>(null);
   const [basemapError, setBasemapError] = useState<boolean>(false);
   
   // Load basemap data on mount
@@ -423,7 +437,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             setBasemapError(false);
             setBasemapData(data);
           })
-          .catch(error => {
+          .catch(() => {
             tryLoadSource(sourceIndex + 1);
           });
       };
@@ -456,9 +470,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   }, [visibleHumanDots]);
   
   // Stable LOD level for memoization - only changes at discrete boundaries
+  const roundedZoom = Math.floor(viewState.zoom);
   const stableLODLevel = useMemo(() => {
-    return getLODLevel(viewState.zoom);
-  }, [getLODLevel, Math.floor(viewState.zoom)]); // Only change on integer zoom levels
+    return getLODLevel(roundedZoom);
+  }, [getLODLevel, roundedZoom]);
   
   // Throttled zoom for layer dependencies - reduces recreation frequency
   const throttledZoom = useMemo(() => {
@@ -469,7 +484,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const layerViewState = useMemo(() => ({
     ...viewState,
     zoom: throttledZoom  // Use throttled zoom to reduce layer recreation
-  }), [viewState.longitude, viewState.latitude, viewState.zoom, throttledZoom]);
+  }), [viewState, throttledZoom]);
   
   
   // Optimized layer creation - use different radius strategies for 2D vs 3D
@@ -482,38 +497,32 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       year, 
       stableLODLevel, 
       radiusStrategy,
-      (info: any) => {
-        if (info.object) {
-          const dot = info.object;
-          const population = dot.properties?.population || 0;
-          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
-          
-          // Get click position in screen coordinates
-          const clickPosition = {
-            x: info.x || 0,
-            y: info.y || 0
-          };
-          
-          // Set tooltip data
-          setTooltipData({
-            population,
-            coordinates,
-            year,
-            clickPosition
-          });
+      (raw: unknown) => {
+        if (raw && typeof raw === 'object' && 'object' in (raw as Record<string, unknown>)) {
+          const info = raw as PickingInfo;
+          if (info.object) {
+            const dot = info.object;
+            const population = dot.properties?.population || 0;
+            const coordinates = (dot.geometry?.coordinates as [number, number]) || [0, 0];
+            const clickPosition = { x: info.x || 0, y: info.y || 0 };
+            setTooltipData({ population, coordinates, year, clickPosition });
+          }
         }
       },
-      (info: any) => {
-        if (info && info.object) {
-          const dot = info.object;
-          const population = dot.properties?.population || 0;
-          const coordinates = dot.geometry?.coordinates as [number, number] || [0, 0];
-          const clickPosition = { x: info.x || 0, y: info.y || 0 };
-          setTooltipData({ population, coordinates, year, clickPosition });
-        } else {
-          // Clear tooltip when not hovering a dot
-          setTooltipData(null);
+      (raw: unknown) => {
+        if (raw && typeof raw === 'object' && 'object' in (raw as Record<string, unknown>)) {
+          const info = raw as PickingInfo;
+          if (info.object) {
+            const dot = info.object;
+            const population = dot.properties?.population || 0;
+            const coordinates = (dot.geometry?.coordinates as [number, number]) || [0, 0];
+            const clickPosition = { x: info.x || 0, y: info.y || 0 };
+            setTooltipData({ population, coordinates, year, clickPosition });
+            return;
+          }
         }
+        // Clear tooltip when not hovering a dot
+        setTooltipData(null);
       }
     );
   }, [dotsToRender, layerViewState, year, stableLODLevel, is3DMode]);
@@ -521,14 +530,39 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   
   // Memoized layers array to prevent array recreation
   // Shared view-state change handler reused by both 2-D and 3-D views
-  const handleViewStateChange = ({ viewState: newViewState }: { viewState: any }) => {
+  const handleViewStateChange = ({ viewState: newViewState }: { viewState: unknown }) => {
     // Update appropriate view state based on mode
+    if (typeof newViewState !== 'object' || newViewState === null) return;
+    const nv = newViewState as Partial<ViewStateLike>;
     if (is3DMode) {
-      setViewState3D(newViewState as any);
+      setViewState3D((prev) => ({
+        ...prev,
+        longitude: typeof nv.longitude === 'number' ? nv.longitude : prev.longitude,
+        latitude: typeof nv.latitude === 'number' ? nv.latitude : prev.latitude,
+        zoom: typeof nv.zoom === 'number' ? nv.zoom : prev.zoom,
+        // pitch/bearing are not used in 3D prev shape; keep prev fields intact
+      }));
     } else {
-      setViewState2D(newViewState as any);
+      setViewState2D((prev) => ({
+        ...prev,
+        longitude: typeof nv.longitude === 'number' ? nv.longitude : prev.longitude,
+        latitude: typeof nv.latitude === 'number' ? nv.latitude : prev.latitude,
+        zoom: typeof nv.zoom === 'number' ? nv.zoom : prev.zoom,
+        pitch: typeof nv.pitch === 'number' ? nv.pitch : prev.pitch,
+        bearing: typeof nv.bearing === 'number' ? nv.bearing : prev.bearing,
+      }));
       // Also update the hook for gesture tracking (only for 2D mode)
-      onViewStateChange({ viewState: newViewState });
+      type HookViewState = {
+        longitude: number; latitude: number; zoom: number; pitch: number; bearing: number;
+      };
+      const next2D: HookViewState = {
+        longitude: typeof nv.longitude === 'number' ? nv.longitude : viewState2D.longitude,
+        latitude: typeof nv.latitude === 'number' ? nv.latitude : viewState2D.latitude,
+        zoom: typeof nv.zoom === 'number' ? nv.zoom : viewState2D.zoom,
+        pitch: typeof nv.pitch === 'number' ? nv.pitch : (viewState2D.pitch as number),
+        bearing: typeof nv.bearing === 'number' ? nv.bearing : (viewState2D.bearing as number),
+      };
+      onViewStateChange({ viewState: next2D });
     }
   };
 

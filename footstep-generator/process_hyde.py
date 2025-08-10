@@ -559,7 +559,7 @@ def process_all_hyde_data_with_lods(
 
 def main():
     """Main processing routine."""
-    import sys
+    # LOD processing is default; no CLI flags
 
     # Resolve paths relative to this script so it works from any CWD
     script_dir = pathlib.Path(__file__).resolve().parent
@@ -572,37 +572,19 @@ def main():
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Check for command line argument to use LOD processing
-    if len(sys.argv) > 1 and sys.argv[1] == "--with-lods":
-        print("Using hierarchical LOD processing...")
-        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
+    print("Using hierarchical LOD processing as default (population-preserving)...")
+    results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
 
-        print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
-        print("  Files generated:")
-        for result in results[:3]:  # Show first 3 as examples
-            year = result.year
-            for level, settlements in result.lod_data.items():
-                if settlements:
-                    print(
-                        f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)"
-                    )
-        if len(results) > 3:
-            print(f"    ... and {len(results) - 3} more years")
-        print("\nNext: Update API to serve appropriate LOD level based on zoom")
-    else:
-        print("Using hierarchical LOD processing as default (population-preserving)...")
-        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
-        
-        print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
-        print("  Files generated:")
-        for result in results[:3]:  # Show first 3 as examples
-            year = result.year
-            for level, settlements in result.lod_data.items():
-                if settlements:
-                    print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
-        if len(results) > 3:
-            print(f"    ... and {len(results) - 3} more years")
-        print("\nNext: Update API to serve appropriate LOD level based on zoom")
+    print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
+    print("  Files generated:")
+    for result in results[:3]:  # Show first 3 as examples
+        year = result.year
+        for level, settlements in result.lod_data.items():
+            if settlements:
+                print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
+    if len(results) > 3:
+        print(f"    ... and {len(results) - 3} more years")
+    print("\nNext: Update API to serve appropriate LOD level based on zoom")
 
 
 if __name__ == "__main__":

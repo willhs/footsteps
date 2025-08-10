@@ -66,11 +66,11 @@ Follow principles of the The Visual Display of Quantitative Information by Edwar
 - **Multi-format output**: NDJSON.gz files optimized for streaming and caching
 
 ### LOD (Level of Detail) System
-The application implements a sophisticated LOD system for performance at different zoom levels:
-- **LOD 0** (Global, zoom < 2): Highly aggregated dots for world overview
-- **LOD 1** (Regional, zoom < 4): Regional clustering 
-- **LOD 2** (Local, zoom < 6): Local detail
-- **LOD 3** (Detailed, zoom ≥ 6): Full resolution data
+The application implements a four‑tier LOD system for performance at different zoom levels:
+- **LOD 0 – Regional** (zoom < 4): Coarse clusters for fast world/regional overview
+- **LOD 1 – Subregional** (4 ≤ zoom < 5): Mid‑detail clusters for country/province scale
+- **LOD 2 – Local** (5 ≤ zoom < 6): High detail for sub‑province/county scale
+- **LOD 3 – Detailed** (zoom ≥ 6): Full resolution data
 
 ### API Design
 - **Automatic LOD Selection**: Server automatically serves appropriate LOD level based on zoom parameter
@@ -87,8 +87,7 @@ The application implements a sophisticated LOD system for performance at differe
 
 ## Commands
 - **Development**: `cd humans-globe && pnpm dev` → http://localhost:4444
-- **Data Processing**: `cd footstep-generator && python process_hyde.py`
-- **Data Processing (with LODs)**: `cd footstep-generator && python process_hyde.py --with-lods`
+- **Data Processing (hierarchical LODs by default)**: `cd footstep-generator && python process_hyde.py`
 - **Build**: `pnpm build`
 - **Test**: `pnpm test`
 - **Lint**: `pnpm lint`
@@ -111,4 +110,3 @@ All tests are located in `footstep-generator/tests/` directory:
 
 ### Manual testing on the front-end
 Use your playwright tool. The app should be running at e.g. port 4444. Ask the user for help if needed
-

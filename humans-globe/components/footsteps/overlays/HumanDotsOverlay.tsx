@@ -34,8 +34,7 @@ export default function HumanDotsOverlay({
   totalPopulation,
   viewState,
   samplingRate,
-  lodEnabled,
-  toggleLOD,
+  // lodEnabled and toggleLOD intentionally not destructured to avoid unused vars
   renderMetrics,
   cacheSize,
   progressiveRenderStatus,
@@ -79,7 +78,15 @@ export default function HumanDotsOverlay({
       {/* Server-side LOD info */}
       <div className="text-xs mt-1 font-normal">
         <div className="text-purple-400">
-          LOD: {viewState.zoom < 4 ? 'Regional' : viewState.zoom < 6 ? 'Local' : 'Detailed'} (z{viewState.zoom.toFixed(1)})
+          LOD: {
+            viewState.zoom < 4
+              ? 'Regional'
+              : viewState.zoom < 5
+                ? 'Subregional'
+                : viewState.zoom < 6
+                  ? 'Local'
+                  : 'Detailed'
+          } (z{viewState.zoom.toFixed(1)})
         </div>
         <div className="text-gray-500 text-xs">
           Server-controlled based on zoom level

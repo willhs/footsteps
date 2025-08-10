@@ -14,7 +14,7 @@ export interface HumanDot {
 }
 
 export const DOT_LIMIT = 5000000;
-export const MAX_RENDER_DOTS = 50000;
+export const MAX_RENDER_DOTS = 100000;
 
 export default function useHumanDotsData(
   year: number,
@@ -36,7 +36,9 @@ export default function useHumanDotsData(
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const getLODLevel = (zoomValue: number): number => {
-    if (zoomValue < 4) return 1;
+    // 4 tiers: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
+    if (zoomValue < 4) return 0;
+    if (zoomValue < 5) return 1;
     if (zoomValue < 6) return 2;
     return 3;
   };

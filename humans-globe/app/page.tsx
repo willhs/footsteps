@@ -1,9 +1,9 @@
 'use client';
 
 import { useYear } from '../lib/useYear';
-import FootstepsViz from '../components/FootstepsViz';
-import TimeSlider from '../components/TimeSlider';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import FootstepsViz from '@/components/footsteps/FootstepsViz';
+import TimeSlider from '@/components/ui/TimeSlider';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export default function Home() {
   const { year, sliderValue, updateSlider } = useYear(0); // Start at 0 CE (we know this data exists)

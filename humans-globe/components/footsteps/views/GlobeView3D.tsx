@@ -1,13 +1,21 @@
 "use client";
 
 import DeckGL from "@deck.gl/react";
-import { _GlobeView as GlobeView } from "@deck.gl/core";
+import { _GlobeView as GlobeView, type LayersList } from "@deck.gl/core";
 import { ReactNode } from "react";
 
+type BasicViewState = {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch?: number;
+  bearing?: number;
+};
+
 interface GlobeView3DProps {
-  viewState: any;
-  onViewStateChange: (params: { viewState: any }) => void;
-  layers: any[];
+  viewState: BasicViewState;
+  onViewStateChange: (params: { viewState: BasicViewState }) => void;
+  layers: LayersList;
   children?: ReactNode; // overlays rendered on top of DeckGL
 }
 

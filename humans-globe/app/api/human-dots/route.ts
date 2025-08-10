@@ -6,9 +6,22 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 import fs from 'fs';
 import path from 'path';
-import { createReadStream } from 'fs';
 import readline from 'readline';
 import { gzipSync, createGunzip } from 'zlib';
+
+// Minimal feature type used in this route
+interface MinimalFeatureProperties {
+  population?: number;
+  precomputedRadius?: number;
+  aggregated?: boolean;
+  gridSize?: number;
+}
+
+interface MinimalFeature {
+  type?: string;
+  geometry?: { type?: string; coordinates?: [number, number] };
+  properties?: MinimalFeatureProperties;
+}
 
 // Helper: map population to a display radius in meters
 function getPrecomputedRadius(population: number): number {
@@ -23,7 +36,11 @@ function getPrecomputedRadius(population: number): number {
 }
 
 // Simple population-preserving grid aggregator to cap dot count
-function aggregateToGrid(features: any[], maxDots: number, bounds: {minLon: number; maxLon: number; minLat: number; maxLat: number}) {
+function aggregateToGrid(
+  features: MinimalFeature[],
+  maxDots: number,
+  bounds: { minLon: number; maxLon: number; minLat: number; maxLat: number }
+) {
   if (features.length <= maxDots) {
     return features;
   }
@@ -56,8 +73,8 @@ function aggregateToGrid(features: any[], maxDots: number, bounds: {minLon: numb
 
     if (buckets.size <= maxDots || iter === 3) {
       // Build aggregated features
-      const aggregated: any[] = [];
-      for (const [key, b] of buckets.entries()) {
+      const aggregated: MinimalFeature[] = [];
+      for (const [, b] of buckets.entries()) {
         if (b.sumPop <= 0) continue;
         const lon = b.wx / b.sumPop;
         const lat = b.wy / b.sumPop;
@@ -74,7 +91,9 @@ function aggregateToGrid(features: any[], maxDots: number, bounds: {minLon: numb
       }
       // If still above max, take the top by population (last resort)
       if (aggregated.length > maxDots) {
-        aggregated.sort((a, b) => (b.properties.population || 0) - (a.properties.population || 0));
+        aggregated.sort(
+          (a, b) => ((b.properties?.population ?? 0) - (a.properties?.population ?? 0))
+        );
         return aggregated.slice(0, maxDots);
       }
       return aggregated;
@@ -96,11 +115,12 @@ function getLODLevel(zoom: number): number {
 }
 
 export async function GET(request: Request) {
+  const startTime = performance.now();
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
-    const limit = parseInt(searchParams.get('limit') || '5000000');
-    const maxDots = parseInt(searchParams.get('maxDots') || '50000');
+    const limit = parseInt(searchParams.get('limit') || '250000');
+    const maxDots = parseInt(searchParams.get('maxDots') || '100000');
     const zoom = parseFloat(searchParams.get('zoom') || '1.5'); // Default to global view
     
     // Parse viewport bounds for server-side spatial filtering
@@ -167,7 +187,7 @@ export async function GET(request: Request) {
     }
 
     // Stream and filter dots by viewport bounds
-    const features: any[] = [];
+    const features: MinimalFeature[] = [];
     let totalProcessed = 0;
     const rl = readline.createInterface({
       input: fs.createReadStream(ndPath).pipe(createGunzip()),
@@ -207,7 +227,7 @@ export async function GET(request: Request) {
             break;
           }
       }
-    } catch (_) {}
+    } catch {}
     }
 
     // Aggregate within viewport to cap dot count while preserving total population
@@ -231,9 +251,14 @@ export async function GET(request: Request) {
       }
     };
 
+    const processingEndTime = performance.now();
+    const totalProcessingTime = processingEndTime - startTime;
+    
     const lodInfo = lodLevel !== null ? ` (LOD ${lodLevel} for zoom ${zoom})` : ' (legacy format)';
     const boundsInfo = `bounds: [${minLon.toFixed(1)}, ${minLat.toFixed(1)}, ${maxLon.toFixed(1)}, ${maxLat.toFixed(1)}]`;
-    console.log(`Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo}`);
+    const perfInfo = `${totalProcessingTime.toFixed(1)}ms`;
+    
+    console.log(`✅ Loaded ${features.length}/${totalProcessed} features, returned ${aggregated.length} for year ${yr}${lodInfo}, ${boundsInfo} in ${perfInfo}`);
 
     const jsonStr = JSON.stringify(geojson);
     const gzBody = gzipSync(Buffer.from(jsonStr));
@@ -245,6 +270,8 @@ export async function GET(request: Request) {
         'X-LOD-Level': lodLevel?.toString() || 'legacy',
         'X-Zoom-Level': zoom.toString(),
         'X-Features-Count': features.length.toString(),
+        'X-Processing-Time': totalProcessingTime.toFixed(1),
+        'X-File-Size-MB': (Buffer.byteLength(jsonStr) / 1024 / 1024).toFixed(2),
         ETag: etag
       }
     });

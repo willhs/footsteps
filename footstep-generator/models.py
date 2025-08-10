@@ -10,11 +10,15 @@ from enum import Enum
 
 
 class LODLevel(Enum):
-    """Level-of-Detail enumeration for different zoom ranges."""
-    GLOBAL = 0      # ~200km cells, zoom 0-2
-    REGIONAL = 1    # ~50km cells, zoom 2-4  
-    LOCAL = 2       # ~10km cells, zoom 4-6
-    DETAILED = 3    # ~5km cells (original), zoom 6+
+    """Level-of-Detail enumeration for different zoom ranges.
+
+    Adds a SUBREGIONAL level between Regional and Local. Indices are compact
+    and ordered from coarse (0) to fine (3).
+    """
+    REGIONAL = 0       # ~50km cells, coarse overview
+    SUBREGIONAL = 1    # ~10–15km cells, mid detail
+    LOCAL = 2          # ~5–10km cells, high detail
+    DETAILED = 3       # ~5km cells (original), maximum detail
 
 
 class Coordinates(BaseModel):
@@ -56,10 +60,11 @@ class LODConfiguration(BaseModel):
     """Configuration for Level-of-Detail processing."""
     global_grid_size: float = Field(default=1.0, description="Grid size for global LOD (degrees)")
     regional_grid_size: float = Field(default=0.25, description="Grid size for regional LOD") 
+    subregional_grid_size: float = Field(default=0.1, description="Grid size for subregional LOD")
     local_grid_size: float = Field(default=0.05, description="Grid size for local LOD")
     min_population_threshold: float = Field(default=0.0, description="Minimum population per cell - DISABLED for population preservation")
     
-    @field_validator('global_grid_size', 'regional_grid_size', 'local_grid_size')
+    @field_validator('global_grid_size', 'regional_grid_size', 'subregional_grid_size', 'local_grid_size')
     @classmethod
     def grid_sizes_positive(cls, v):
         if v <= 0:

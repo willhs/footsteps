@@ -27,10 +27,10 @@ The footstep-generator is a Python-based data processing pipeline that converts 
 4. **Output**: NDJSON.gz files optimized for web serving
 
 ### LOD System
-- **LOD 0**: Global view (zoom < 2) - highly aggregated
-- **LOD 1**: Regional view (zoom < 4) - regional clustering  
-- **LOD 2**: Local view (zoom < 6) - local detail
-- **LOD 3**: Full detail (zoom ≥ 6) - maximum resolution
+- **LOD 0 – Regional** (zoom < 4): Coarse clusters for world/regional overview
+- **LOD 1 – Subregional** (4 ≤ zoom < 5): Mid‑detail clusters for country/province scale  
+- **LOD 2 – Local** (5 ≤ zoom < 6): High detail for sub‑province/county scale
+- **LOD 3 – Detailed** (zoom ≥ 6): Full resolution data
 
 ### Data Models
 All data structures use Pydantic V2 for validation:

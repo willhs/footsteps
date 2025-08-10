@@ -142,31 +142,31 @@ class TestDataProcessingPipeline:
         # Process settlements into LOD hierarchy
         lod_data = processor.create_hierarchical_lods(settlements)
 
-        # Verify all LOD levels are present
-        assert LODLevel.GLOBAL in lod_data
+        # Verify aggregated LOD levels are present
         assert LODLevel.REGIONAL in lod_data
+        assert LODLevel.SUBREGIONAL in lod_data
         assert LODLevel.LOCAL in lod_data
         assert LODLevel.DETAILED in lod_data
 
-        # Verify hierarchical reduction (global < regional < local < detailed)
-        global_count = len(lod_data[LODLevel.GLOBAL])
+        # Verify hierarchical reduction (regional < subregional < local < detailed)
         regional_count = len(lod_data[LODLevel.REGIONAL])
+        subregional_count = len(lod_data[LODLevel.SUBREGIONAL])
         local_count = len(lod_data[LODLevel.LOCAL])
         detailed_count = len(lod_data[LODLevel.DETAILED])
 
-        assert global_count <= regional_count
-        assert regional_count <= local_count
+        assert regional_count <= subregional_count
+        assert subregional_count <= local_count
         assert local_count <= detailed_count
         assert detailed_count == len(settlements)  # Detailed should match original
 
-        # Verify aggregated settlement structure
-        if global_count > 0:
-            global_settlement = lod_data[LODLevel.GLOBAL][0]
-            assert isinstance(global_settlement, AggregatedSettlement)
-            assert global_settlement.lod_level == LODLevel.GLOBAL
-            assert global_settlement.total_population > 0
-            assert global_settlement.source_dot_count > 0
-            assert global_settlement.year == 1000
+        # Verify aggregated settlement structure (check subregional)
+        if subregional_count > 0:
+            subregional_settlement = lod_data[LODLevel.SUBREGIONAL][0]
+            assert isinstance(subregional_settlement, AggregatedSettlement)
+            assert subregional_settlement.lod_level == LODLevel.SUBREGIONAL
+            assert subregional_settlement.total_population > 0
+            assert subregional_settlement.source_dot_count > 0
+            assert subregional_settlement.year == 1000
 
     def test_population_conservation(self):
         """Test that total population is conserved across LOD levels."""
@@ -259,12 +259,10 @@ class TestDataProcessingPipeline:
         """Test mapping zoom levels to appropriate LOD levels."""
         processor = LODProcessor()
 
-        # Test zoom level mappings
-        assert processor.get_lod_level_for_zoom(0.5) == LODLevel.GLOBAL
-        assert processor.get_lod_level_for_zoom(1.5) == LODLevel.GLOBAL
-        assert processor.get_lod_level_for_zoom(2.5) == LODLevel.REGIONAL
+        # Test zoom level mappings (4 tiers: REGIONAL/SUBREGIONAL/LOCAL/DETAILED)
+        assert processor.get_lod_level_for_zoom(0.5) == LODLevel.REGIONAL
         assert processor.get_lod_level_for_zoom(3.5) == LODLevel.REGIONAL
-        assert processor.get_lod_level_for_zoom(4.5) == LODLevel.LOCAL
+        assert processor.get_lod_level_for_zoom(4.5) == LODLevel.SUBREGIONAL
         assert processor.get_lod_level_for_zoom(5.5) == LODLevel.LOCAL
         assert processor.get_lod_level_for_zoom(6.5) == LODLevel.DETAILED
         assert processor.get_lod_level_for_zoom(10.0) == LODLevel.DETAILED

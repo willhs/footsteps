@@ -46,7 +46,7 @@ class LODProcessor:
         
         lod_results = {}
         
-        # LOD 3 (DETAILED): Use original settlements
+        # Highest detail (DETAILED): Use original settlements
         lod_results[LODLevel.DETAILED] = [
             AggregatedSettlement(
                 coordinates=settlement.coordinates,
@@ -59,10 +59,10 @@ class LODProcessor:
             ) for settlement in settlements
         ]
         
-        # Define grid sizes for each LOD level
+        # Define grid sizes for aggregated LOD levels
         grid_configs = {
-            LODLevel.GLOBAL: self.config.global_grid_size,
             LODLevel.REGIONAL: self.config.regional_grid_size,
+            LODLevel.SUBREGIONAL: self.config.subregional_grid_size,
             LODLevel.LOCAL: self.config.local_grid_size
         }
         
@@ -356,10 +356,11 @@ class LODProcessor:
         Returns:
             Appropriate LOD level for the zoom
         """
-        if zoom_level < 2:
-            return LODLevel.GLOBAL
-        elif zoom_level < 4:
+        # 4-level mapping: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
+        if zoom_level < 4:
             return LODLevel.REGIONAL
+        elif zoom_level < 5:
+            return LODLevel.SUBREGIONAL
         elif zoom_level < 6:
             return LODLevel.LOCAL
         else:

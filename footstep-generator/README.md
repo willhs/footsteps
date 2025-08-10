@@ -26,12 +26,12 @@ This Python-based pipeline processes historical population density data from the
 
 ### LOD (Level of Detail) System
 
-The pipeline implements a sophisticated LOD system for performance at different zoom levels:
+The pipeline implements a four‑tier LOD system for performance at different zoom levels:
 
-- **LOD 0** (Global, zoom < 2): Highly aggregated dots for world overview
-- **LOD 1** (Regional, zoom < 4): Regional clustering 
-- **LOD 2** (Local, zoom < 6): Local detail
-- **LOD 3** (Detailed, zoom ≥ 6): Full resolution data
+- **LOD 0 – Regional** (zoom < 4): Coarse clusters for world/regional overview
+- **LOD 1 – Subregional** (4 ≤ zoom < 5): Mid‑detail clusters for country/province scale
+- **LOD 2 – Local** (5 ≤ zoom < 6): High detail for sub‑province/county scale
+- **LOD 3 – Detailed** (zoom ≥ 6): Full resolution data
 
 ## Commands
 

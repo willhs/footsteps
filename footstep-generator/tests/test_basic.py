@@ -73,14 +73,16 @@ def test_basic_functionality():
     
     # Test 5: Validate hierarchical reduction
     print("  ✓ Testing hierarchical reduction...")
-    global_count = len(lod_data[LODLevel.GLOBAL])
     regional_count = len(lod_data[LODLevel.REGIONAL])
+    subregional_count = len(lod_data[LODLevel.SUBREGIONAL])
     local_count = len(lod_data[LODLevel.LOCAL])
     detailed_count = len(lod_data[LODLevel.DETAILED])
     
     assert detailed_count == len(settlements), f"Detailed count {detailed_count} != original {len(settlements)}"
-    assert global_count <= regional_count, f"Global {global_count} > Regional {regional_count}"
-    print(f"    Hierarchy: Global({global_count}) ≤ Regional({regional_count}) ≤ Local({local_count}) ≤ Detailed({detailed_count})")
+    assert regional_count <= subregional_count <= local_count, (
+        f"Hierarchy broken: Regional({regional_count}) ≤ Subregional({subregional_count}) ≤ Local({local_count})"
+    )
+    print(f"    Hierarchy: Regional({regional_count}) ≤ Subregional({subregional_count}) ≤ Local({local_count}) ≤ Detailed({detailed_count})")
     
     # Test 6: Density-aware dot creation
     print("  ✓ Testing density-aware dot creation...")
@@ -98,9 +100,10 @@ def test_basic_functionality():
     # Test 7: Zoom level mapping
     print("  ✓ Testing zoom level mapping...")
     zoom_tests = [
-        (0.5, LODLevel.GLOBAL),
-        (2.5, LODLevel.REGIONAL),
-        (4.5, LODLevel.LOCAL),
+        (0.5, LODLevel.REGIONAL),
+        (3.5, LODLevel.REGIONAL),
+        (4.5, LODLevel.SUBREGIONAL),
+        (5.5, LODLevel.LOCAL),
         (6.5, LODLevel.DETAILED)
     ]
     

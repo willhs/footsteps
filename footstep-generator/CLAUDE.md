@@ -3,17 +3,19 @@
 This file provides guidance to Claude Code when working with the data processing pipeline in the footstep-generator directory.
 
 ## Overview
-The footstep-generator is a Python-based data processing pipeline that converts HYDE 3.5 demographic grid data into visualization-ready formats for the Footsteps of Time project.
+The footstep-generator is a Python-based, tiles-only pipeline that converts HYDE 3.5 demographic grid data into vector tiles (MBTiles with MVT) for the Footsteps of Time project. Processing is performed in-memory; no NDJSON intermediates are written.
 
 ## Key Components
 - **models.py**: Pydantic V2 models for data validation and type safety
-- **process_hyde.py**: Main processing script that converts ASC grid files to GeoJSON points
-- **lod_processor.py**: Level-of-Detail system for hierarchical data aggregation
+- **process_hyde.py**: Reads HYDE ASC grids → produces in-memory settlement points and hierarchical LOD data
+- **lod_processor.py**: Level-of-Detail system for hierarchical aggregation and validation
+- **make_tiles.py**: Builds per‑LOD MBTiles via tippecanoe and combines into yearly MBTiles
 - **tests/**: Comprehensive test suite for validation
 
 ## Commands
-- **Data processing (incremental)**: `python process_hyde.py` (skips existing files by default)
-- **Data processing (force)**: `python process_hyde.py --force` (reprocesses all files, overwriting existing)
+- **Compute LOD data (incremental)**: `python process_hyde.py`
+- **Compute LOD data (force)**: `python process_hyde.py --force`
+- **Generate tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --years 1000 1500 1600`
 - **Run basic tests**: `python tests/test_basic.py`
 - **Run full test suite**: `pytest tests/ -v`
 - **Run integration tests**: `python tests/test_integration.py`
@@ -23,9 +25,10 @@ The footstep-generator is a Python-based data processing pipeline that converts 
 
 ### Data Flow
 1. **Input**: HYDE 3.5 ASC grid files with population density data
-2. **Processing**: Convert grids to GeoJSON points with population attributes
-3. **LOD Generation**: Create hierarchical aggregation for multiple zoom levels
-4. **Output**: NDJSON.gz files optimized for web serving
+2. **Processing**: Convert grids to in-memory settlement points with population attributes
+3. **LOD Generation**: Create hierarchical aggregation for multiple zoom levels (population-preserving)
+4. **Tile Building**: Write temporary GeoJSONL per LOD and run tippecanoe to build per‑LOD MBTiles
+5. **Output**: Combined yearly MBTiles (and per‑LOD MBTiles if desired)
 
 ### LOD System
 - **LOD 0 – Regional** (zoom < 4): Coarse clusters for world/regional overview
@@ -35,9 +38,10 @@ The footstep-generator is a Python-based data processing pipeline that converts 
 
 ### Data Models
 All data structures use Pydantic V2 for validation:
-- **HumanDot**: Individual population point with coordinates and population
-- **ProcessedYear**: Container for all dots in a given year
-- **LODLevel**: Metadata for each level of detail
+- **HumanSettlement**: Individual settlement point with coordinates and population
+- **AggregatedSettlement**: Population aggregated into LOD grid cells with metadata
+- **ProcessingResult**: Per‑year result containing LOD data and statistics
+- **LODLevel**: Enum for each level of detail
 
 ## Testing Strategy
 - **Unit tests**: Individual component validation
@@ -48,18 +52,16 @@ All data structures use Pydantic V2 for validation:
 ## File Structure
 ```
 data/
-├── input/           # Raw HYDE ASC files
-├── output/          # Processed NDJSON.gz files
-└── lod/            # Level-of-detail aggregated files
+├── raw/hyde-3.5/            # Raw HYDE ASC files
+└── tiles/humans/            # Generated MBTiles (per‑LOD and combined per‑year)
 ```
 
 ## Performance Considerations
-- Use density-aware dot creation to manage output size
-- Implement hierarchical aggregation for zoom-level performance
-- Compress output files with gzip
-- Memory-efficient processing for large datasets
-- **Incremental processing**: By default, skips already processed files to save time
-- Use `--force` flag only when you need to reprocess existing data
+- Use density-aware placement for sparse eras; preserve totals via hierarchical aggregation
+- Tippecanoe flags: no feature/tile-size limits; per‑LOD layer naming; combine per‑LOD into yearly MBTiles
+- Memory-efficient processing for large datasets; temporary GeoJSONL only
+- **Incremental processing**: `process_hyde.py` computes LODs; `make_tiles.py` skips existing yearly MBTiles unless `--force`
+- Use `--force` flag only when you need to rebuild existing tiles
 
 ## Dependencies
 - **pydantic**: Data validation and modeling

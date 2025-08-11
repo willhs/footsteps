@@ -42,12 +42,9 @@ def run_command(cmd: List[str], description: str) -> bool:
         print("  Make sure tippecanoe is installed: brew install tippecanoe")
         return False
 
-# ---------------------------
-# Legacy combined tiles config
-# ---------------------------
-def create_tileset_config() -> Dict[str, Any]:
-    """Create configuration for the tileset."""
-    return {
+def create_metadata_json(output_dir: str) -> None:
+    """Create metadata JSON for the tileset."""
+    config = {
         "tilejson": "2.2.0",
         "name": "Globe of Humans",
         "description": "Human population visualization from 100,000 BCE to 2025 CE",
@@ -67,133 +64,10 @@ def create_tileset_config() -> Dict[str, Any]:
                     "density": "Number",
                     "year": "Number"
                 }
-            },
-            {
-                "id": "human_dots",
-                "description": "Individual human dots",
-                "minzoom": 2,
-                "maxzoom": 10,
-                "fields": {
-                    "year": "Number",
-                    "population": "Number",
-                    "city": "String",
-                    "type": "String"
-                }
             }
         ]
     }
 
-def generate_population_tiles(input_file: str, output_file: str) -> bool:
-    """Generate vector tiles for population density data."""
-    print("🔥 Generating population density tiles...")
-    
-    if not pathlib.Path(input_file).exists():
-        print(f"  ✗ Input file not found: {input_file}")
-        return False
-    
-    # Tippecanoe command for population density
-    cmd = [
-        "tippecanoe",
-        "-o", output_file,
-        "-z", "8",           # Max zoom level
-        "-Z", "0",           # Min zoom level  
-        "-r", "1",           # Drop rate for dense areas
-        "-B", "0",           # Buffer around tiles
-        "--drop-densest-as-needed",
-        "--extend-zooms-if-still-dropping",
-        "--force",           # Overwrite existing file
-        "-l", "population_density",  # Layer name
-        input_file
-    ]
-    
-    return run_command(cmd, "Population density tiles")
-
-def generate_human_dots_tiles(input_file: str, output_file: str) -> bool:
-    """Generate vector tiles for human dots data."""
-    print("👥 Generating human dots tiles...")
-    
-    if not pathlib.Path(input_file).exists():
-        print(f"  ✗ Input file not found: {input_file}")
-        return False
-    
-    # Tippecanoe command for human dots
-    cmd = [
-        "tippecanoe",
-        "-o", output_file,
-        "-z", "10",          # Max zoom level (higher for points)
-        "-Z", "2",           # Min zoom level (start showing at zoom 2)
-        "-r", "2",           # Drop rate
-        "-B", "64",          # Buffer for points
-        "--drop-densest-as-needed",
-        "--extend-zooms-if-still-dropping", 
-        "--force",           # Overwrite existing file
-        "-l", "human_dots",  # Layer name
-        "--maximum-zoom=g",  # Guess appropriate max zoom
-        input_file
-    ]
-    
-    return run_command(cmd, "Human dots tiles")
-
-def combine_tilesets(density_tiles: str, dots_tiles: str, output_file: str) -> bool:
-    """Combine population density and human dots into a single tileset."""
-    print("🌍 Combining tilesets...")
-    
-    # Use tile-join to combine multiple mbtiles
-    cmd = [
-        "tile-join",
-        "-o", output_file,
-        "--force",           # Overwrite existing file
-        density_tiles,
-        dots_tiles
-    ]
-    
-    return run_command(cmd, "Combining tilesets")
-
-def create_simple_combined_tiles(processed_dir: str, output_file: str) -> bool:
-    """Create tiles directly from both GeoJSON files if tile-join unavailable."""
-    print("🌍 Creating combined tiles...")
-    
-    density_file = os.path.join(processed_dir, "population_density.geojson")
-    dots_file = os.path.join(processed_dir, "human_dots.geojson")
-    
-    # Check if files exist
-    input_files = []
-    if pathlib.Path(density_file).exists():
-        input_files.append(density_file)
-    if pathlib.Path(dots_file).exists():
-        input_files.append(dots_file)
-    
-    if not input_files:
-        print("  ✗ No input files found")
-        return False
-    
-    # Create combined tileset with tippecanoe
-    cmd = [
-        "tippecanoe",
-        "-o", output_file,
-        "-z", "10",          # Max zoom
-        "-Z", "0",           # Min zoom
-        "-r", "1",           # Drop rate
-        "-B", "64",          # Buffer
-        "--drop-densest-as-needed",
-        "--extend-zooms-if-still-dropping",
-        "--force",           # Overwrite existing
-        "--maximum-zoom=g",  # Guess max zoom
-    ]
-    
-    # Add layer specifications for each file
-    if pathlib.Path(density_file).exists():
-        cmd.extend(["-L", f"population_density:{density_file}"])
-    
-    if pathlib.Path(dots_file).exists():
-        cmd.extend(["-L", f"human_dots:{dots_file}"])
-    
-    return run_command(cmd, "Combined tiles generation")
-
-def create_metadata_json(output_dir: str) -> None:
-    """Create metadata JSON for the tileset."""
-    config = create_tileset_config()
-    
     metadata_file = os.path.join(output_dir, "tileset_metadata.json")
     with open(metadata_file, 'w') as f:
         json.dump(config, f, indent=2)

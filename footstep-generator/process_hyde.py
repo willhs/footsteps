@@ -52,7 +52,7 @@ def ascii_grid_to_dots(
     asc_file: str, year: int, people_per_dot: int = 100
 ) -> gpd.GeoDataFrame:
     """
-    Convert a HYDE ASC file to human dots for consistent processing.
+    Convert a HYDE ASC file to settlement points for consistent processing.
 
     Args:
         asc_file: Path to HYDE ASC file (e.g., popd_1850AD.asc)
@@ -60,7 +60,7 @@ def ascii_grid_to_dots(
         people_per_dot: Number of people each dot represents
 
     Returns:
-        GeoDataFrame with point features (human dots)
+        GeoDataFrame with point features (settlement points)
     """
     print(f"  Processing year {year}...")
 
@@ -250,7 +250,7 @@ def ascii_grid_to_dots(
                 )
 
             print(
-                f"    Created {len(gdf)} dots for year {year} ({total_people:,.0f} people)"
+                f"    Created {len(gdf)} settlement points for year {year} ({total_people:,.0f} people)"
             )
             return gdf
         else:
@@ -342,7 +342,7 @@ def process_year_with_hierarchical_lods(
     # Process this year with hierarchical LODs (tiles-only pipeline; no NDJSON outputs)
     print(f"  Processing year {year} with hierarchical LODs...")
 
-    # Choose dot size for sparse eras (keep smaller dots for ancient periods)
+    # Choose representative unit size for sparse eras (fewer people per point for ancient periods)
     people_per_dot_effective = (
         10 if (year <= 0 and people_per_dot == 100) else people_per_dot
     )
@@ -388,7 +388,7 @@ def process_year_with_hierarchical_lods(
             print(f"    Warning: Skipping invalid settlement: {e}")
             continue
 
-    print(f"    Converted {len(settlements)} dots to settlement objects")
+    print(f"    Converted {len(settlements)} point features to settlement objects")
 
     # Create hierarchical LOD data
     lod_data = lod_processor.create_hierarchical_lods(settlements)
@@ -424,8 +424,8 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     Returns:
         Path to output GeoJSON file
     """
-    print("🌍 Processing HYDE data into human dots...")
-    print("  (Each dot represents ~100 people)")
+    print("🌍 Processing HYDE data into settlement points...")
+    print("  (Each point represents ~100 people)")
 
     hyde_files = find_hyde_files(raw_dir)
     print(f"Found {len(hyde_files)} HYDE files to process")
@@ -441,7 +441,7 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     for year in sorted(hyde_files.keys()):
         asc_file = hyde_files[year]
         try:
-            # Use smaller dots for BCE years to retain sparse populations
+            # Use a smaller representative unit for BCE years to retain sparse populations
             people_per_dot_effective = 10 if year <= 0 else 100
             gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
             if not gdf.empty:
@@ -454,11 +454,11 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
         # Combine all years
         combined_gdf = gpd.pd.concat(all_polygons, ignore_index=True)
 
-        # Save as GeoJSON
-        output_path = pathlib.Path(output_dir) / "hyde_human_dots.geojson"
+        # Save as GeoJSON (legacy helper output)
+        output_path = pathlib.Path(output_dir) / "hyde_settlements.geojson"
         combined_gdf.to_file(output_path, driver="GeoJSON")
 
-        print(f"✓ Saved {len(combined_gdf)} human dots to {output_path}")
+        print(f"✓ Saved {len(combined_gdf)} settlement points to {output_path}")
         return str(output_path)
     else:
         raise ValueError(

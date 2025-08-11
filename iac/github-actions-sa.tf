@@ -94,3 +94,10 @@ resource "google_service_account_iam_member" "github_actions_act_as_app_sa" {
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.github_actions.email}"
 }
+
+# Ensure Cloud Build can push to Container Registry/Artifact Registry
+resource "google_project_iam_member" "cloudbuild_storage_admin" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+}

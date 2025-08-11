@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Process HYDE 3.3 population density data into heat-map polygons for vector tiles.
-Converts ASCII grid files (.asc) to GeoJSON polygons with population density values.
+Process HYDE 3.5 population density data into settlement points and hierarchical LODs.
+Parses ASCII grid files (.asc) to population-preserving settlement points and aggregates
+them into multiple levels of detail in-memory (tiles-only pipeline; no NDJSON writes).
+Use make_tiles.py to build MBTiles (MVT) from the returned LOD data.
 """
 
 import argparse

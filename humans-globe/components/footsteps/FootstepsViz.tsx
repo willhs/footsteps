@@ -291,6 +291,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const loadedTileIdsRef = useRef<Set<string>>(new Set());
   const featuresLoadedRef = useRef<number>(0);
   const populationLoadedRef = useRef<number>(0);
+  // Fallback guard: mark when at least one tile has loaded for current params
+  const firstTileLoadedRef = useRef<boolean>(false);
   const loadStartRef = useRef<number | null>(null);
   const [renderMetrics, setRenderMetrics] = useState({
     loadTime: 0,
@@ -522,6 +524,18 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       setPreviousLayer({ lod: prevLOD });
       setIsTransitioning(true);
       // Do not start the fade yet; wait for new layer's onViewportLoad to fire
+
+      // Reset loading/counters for the new layer as well so the UI reflects state
+      setTileLoading(true);
+      setFeatureCount(0);
+      setTotalPopulation(0);
+      tilesRequestedRef.current = 0;
+      loadedTileIdsRef.current = new Set();
+      featuresLoadedRef.current = 0;
+      populationLoadedRef.current = 0;
+      setProgressiveStatus(undefined);
+      firstTileLoadedRef.current = false;
+      loadStartRef.current = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     } else if (!lodChanged) {
       // Regular parameter change (year, view mode) - reset normally
       setTileLoading(true);
@@ -532,6 +546,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       featuresLoadedRef.current = 0;
       populationLoadedRef.current = 0;
       setProgressiveStatus(undefined);
+      firstTileLoadedRef.current = false;
       loadStartRef.current = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     }
 
@@ -592,6 +607,13 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             populationLoadedRef.current += popSum;
             tilesRequestedRef.current += 1;
             setProgressiveStatus({ rendered: featuresLoadedRef.current, total: Math.max(featuresLoadedRef.current, featureCountRef.current) });
+
+            // Fallback: if Deck.gl never fires onViewportLoad (e.g. tiles unchanged),
+            // clear the loading state once we know at least one tile loaded.
+            if (!firstTileLoadedRef.current) {
+              firstTileLoadedRef.current = true;
+              setTileLoading(false);
+            }
           } catch {
             // ignore
           }

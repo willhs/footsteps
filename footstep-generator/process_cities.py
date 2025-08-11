@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Process city data into individual human dots for the globe visualization.
+Process city data into settlement points for the globe visualization.
 Converts Reba urban gazetteer and estimated rural population into point features.
 """
 
@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Tuple
 from landmask import is_land
 
 # Population estimation parameters - consistent with HYDE processing
-PERSONS_PER_DOT = 100  # Always 100 people per dot for consistency
+PERSONS_PER_DOT = 100  # Always 100 people per settlement point for consistency
 
 # Fallback population estimates by year
 POP_ESTIMATES = {
@@ -42,7 +42,7 @@ _TOTAL_REGION_WEIGHT = sum(_REGION_WEIGHTS)
 REGION_PROBABILITIES = [w / _TOTAL_REGION_WEIGHT for w in _REGION_WEIGHTS]
 
 def get_persons_per_dot(year: int) -> int:
-    """Get the number of people each dot represents for a given year."""
+    """Get the number of people each point represents for a given year."""
     return PERSONS_PER_DOT  # Always 100 people per dot
 
 def load_reba_cities(raw_dir: str) -> pd.DataFrame:
@@ -101,7 +101,7 @@ def load_reba_cities(raw_dir: str) -> pd.DataFrame:
 def population_to_dots(population: int, year: int, lat: float, lon: float, 
                       city_name: str, spread_radius: float = 0.1) -> List[Dict]:
     """
-    Convert a city population to individual human dots.
+    Convert a city population to individual settlement points.
     
     Args:
         population: Total population
@@ -111,7 +111,7 @@ def population_to_dots(population: int, year: int, lat: float, lon: float,
         spread_radius: How spread out the dots should be (degrees)
     
     Returns:
-        List of dot features
+        List of settlement point feature dicts
     """
     persons_per_dot = get_persons_per_dot(year)
     num_dots = max(1, population // persons_per_dot)
@@ -149,7 +149,7 @@ def population_to_dots(population: int, year: int, lat: float, lon: float,
 
 def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> List[Dict]:
     """
-    Add estimated rural population dots based on world population estimates.
+    Add estimated rural settlement points based on world population estimates.
     """
     print(f"  Adding rural population for year {year}...")
     
@@ -215,7 +215,7 @@ def add_rural_population(dots: List[Dict], year: int, total_world_pop: int) -> L
 
 def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
     """
-    Process city data and create human dots GeoJSON.
+    Process city data and create settlement points GeoJSON.
     
     Returns:
         Path to output GeoJSON file
@@ -223,7 +223,7 @@ def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
     import geopandas as gpd
     from shapely.geometry import Point
 
-    print("🏙️ Processing cities to human dots...")
+    print("🏙️ Processing cities to settlement points...")
     
     # Load city data
     cities_df = load_reba_cities(raw_dir)
@@ -260,7 +260,7 @@ def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
         year_dots = add_rural_population(year_dots, year, 0)
         
         all_dots.extend(year_dots)
-        print(f"  Created {len(year_dots)} dots for year {year}")
+        print(f"  Created {len(year_dots)} points for year {year}")
     
     # Convert to GeoDataFrame
     if all_dots:
@@ -278,13 +278,13 @@ def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
         gdf = gpd.GeoDataFrame(properties, geometry=geometries, crs='EPSG:4326')
         
         # Save as GeoJSON
-        output_path = pathlib.Path(output_dir) / "human_dots.geojson"
+        output_path = pathlib.Path(output_dir) / "city_settlements.geojson"
         gdf.to_file(output_path, driver='GeoJSON')
         
-        print(f"✓ Saved {len(gdf)} human dots to {output_path}")
+        print(f"✓ Saved {len(gdf)} settlement points to {output_path}")
         return str(output_path)
     else:
-        raise ValueError("No human dots could be created from the available data.")
+        raise ValueError("No settlement points could be created from the available data.")
 
 def main():
     """Main processing routine."""

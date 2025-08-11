@@ -74,3 +74,21 @@ resource "google_service_account_iam_member" "github_actions_workload_identity" 
     google_iam_workload_identity_pool_provider.github_actions_provider
   ]
 }
+
+# Allow GitHub Actions SA to act as Cloud Build service account
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
+resource "google_service_account_iam_member" "github_actions_act_as_cloudbuild" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Allow GitHub Actions SA to act as the app runtime service account used by Cloud Run
+resource "google_service_account_iam_member" "github_actions_act_as_app_sa" {
+  service_account_id = google_service_account.app_service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.github_actions.email}"
+}

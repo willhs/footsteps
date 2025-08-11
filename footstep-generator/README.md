@@ -11,7 +11,7 @@ This Python-based pipeline processes historical population density data from the
 - **Pydantic V2 models** for robust data validation and type safety
 - **Hierarchical LOD system** for performance optimization at different zoom levels
 - **Geodesic cell area calculations** using `pyproj.Geod` (WGS84) for accurate population totals
-- **Multi-format output** with NDJSON.gz files optimized for streaming and caching
+- **Tiles-only output**: MBTiles (MVT) generated with tippecanoe from in‑memory LOD data (temporary GeoJSONL only during build)
 - **Comprehensive test suite** ensuring data integrity and performance
 
 ## Architecture
@@ -78,7 +78,7 @@ pytest tests/ -v
 
 - **Pydantic V2 models**: Data validation, type safety, coordinate bounds checking
 - **Hierarchical LOD system**: Population conservation, spatial aggregation, zoom-level mapping
-- **Data processing pipeline**: ASC file parsing, dot creation, file I/O, error handling
+- **Data processing pipeline**: ASC file parsing, settlement point creation, file I/O, error handling
 - **Performance optimizations**: Density-aware dot creation, memory usage estimation
 
 ## Data Flow
@@ -86,7 +86,7 @@ pytest tests/ -v
 1. **Raw Data**: HYDE 3.5 ASC grid files with population density
 2. **Processing**: Python pipeline converts grids to GeoJSON points with population attributes
 3. **LOD Generation**: Hierarchical aggregation creates multiple detail levels
-4. **Output**: NDJSON.gz files optimized for API serving and caching
+4. **Tiles**: MBTiles (per‑LOD and combined yearly) for vector tile serving (MVT)
 
 ## Target Years
 
@@ -98,7 +98,7 @@ The pipeline processes data for strategic historical periods:
 
 ## Output Format
 
-Generated files are structured as:
-- `human_dots_YEAR_lodLEVEL.ndjson.gz` - Population data with LOD optimization
-- Automatic ETag generation for HTTP caching
-- Gzip compression for efficient transfer
+Generated artifacts:
+- `humans_{year}_lod_{lod}.mbtiles` — Per‑LOD tiles
+- `humans_{year}.mbtiles` — Combined yearly tiles
+- Tippecanoe builds tiles from temporary GeoJSONL; no intermediate artifacts are persisted

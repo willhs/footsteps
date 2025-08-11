@@ -50,20 +50,18 @@ Follow principles of the The Visual Display of Quantitative Information by Edwar
 - **Tailwind CSS** for styling with efficient utility classes
 
 ### Key Components Architecture
-- **FootstepsViz.tsx**: Main visualization component managing 3D globe, data loading, and user interactions
-- **components/globe/**: Modular globe system with separate concerns:
-  - `layers.ts`: Layer creation utilities for basemap and human dots
-  - `HumanDotsLayer.tsx`: Population dot rendering with LOD support
-  - `BasemapLayer.tsx`: World geography rendering
-  - `Overlays.tsx`: UI overlays for data info and controls
-- **TimeSlider.tsx**: Time navigation component for scrubbing through history
-- **app/api/human-dots/route.ts**: API endpoint serving processed population data with smart LOD selection
+- **components/footsteps/FootstepsViz.tsx**: Main visualization component managing 3D globe, data loading, and user interactions
+- **components/footsteps/layers/layers.ts**: Layer creation utilities
+  - `createBasemapLayer()` (GeoJSON)
+  - `createHumanTilesLayer()` (deck.gl `MVTLayer` for vector tiles)
+  - (removed) Legacy scatterplot layer `createHumanDotsLayer()` was deleted; project is tiles-only
+- **components/ui/TimeSlider.tsx**: Time navigation component
+- **app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts**: Tile API serving MVT from MBTiles; legacy `/api/human-dots` endpoint removed
 
 ### Data Pipeline (footstep-generator/)
-- **Python-based processing pipeline** converting HYDE 3.5 demographic data to visualization-ready formats
-- **Pydantic V2 models** (`models.py`) for robust data validation and type safety
-- **LOD Processor** (`lod_processor.py`) implementing hierarchical Level-of-Detail system for performance
-- **Multi-format output**: NDJSON.gz files optimized for streaming and caching
+- **Python-based processing pipeline** converting HYDE 3.5 demographic data to tiles
+- **LOD Processor** implements hierarchical Level-of-Detail system for performance
+- **Output**: Per-LOD and combined yearly MBTiles with MVT points (`data/tiles/humans/`)
 
 ### LOD (Level of Detail) System
 The application implements a four‑tier LOD system for performance at different zoom levels:

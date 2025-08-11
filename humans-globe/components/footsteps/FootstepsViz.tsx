@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useMemo, useEffect, memo, useCallback } from 'react';
+import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
-import { createBasemapLayer, createHumanDotsLayer, createStaticTerrainLayer, radiusStrategies } from '@/components/footsteps/layers/layers';
+import { getLODLevel } from '@/lib/lod';
+import { createBasemapLayer, createHumanTilesLayer, createStaticTerrainLayer, radiusStrategies } from '@/components/footsteps/layers/layers';
 import { WebMercatorViewport, _GlobeViewport as GlobeViewport } from '@deck.gl/core';
 import HumanDotsOverlay from '@/components/footsteps/overlays/HumanDotsOverlay';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import GlobeView3D from '@/components/footsteps/views/GlobeView3D';
 import MapView2D from '@/components/footsteps/views/MapView2D';
-import useHumanDotsData, { MAX_RENDER_DOTS } from '@/components/footsteps/hooks/useHumanDotsData';
+// Legacy GeoJSON hook removed in favor of MVT tiles layer
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 // import { scaleSequential } from 'd3-scale';
 // import * as d3 from 'd3-scale';
@@ -83,16 +84,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   //   []
   // );
   
-  
-  
-  // Helper to get LOD level from zoom (still needed for other calculations)
-  const getLODLevel = useCallback((zoom: number): number => {
-    // 4 tiers: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
-    if (zoom < 4) return 0;
-    if (zoom < 5) return 1;
-    if (zoom < 6) return 2;
-    return 3;
-  }, []);
 
   /**
    * VIEWPORT OPTIMIZATION SYSTEM
@@ -289,28 +280,60 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   ]);
 
   /**
-   * DATA LOADING WITH VIEWPORT OPTIMIZATION
-   * 
-   * The useHumanDotsData hook integrates with the viewport bounds system:
-   * - Automatically includes bounds in API requests for server-side filtering  
-   * - Generates stable cache keys that include rounded bounds
-   * - Reduces data transfer by 60-90% compared to loading global data
-   * - Enables smooth panning through intelligent buffering
+   * TILE LOADING STATE (MVT)
+   *
+   * Track loading/metrics and feature counts using MVTLayer callbacks.
    */
-  const {
-    humanDotsData,
-    loading,
-    dataCache,
-    visibleHumanDots,
-    samplingRate,
-    renderMetrics
-  } = useHumanDotsData(year, viewState.zoom, viewportBounds);
+  const [tileLoading, setTileLoading] = useState<boolean>(true);
+  const [featureCount, setFeatureCount] = useState<number>(0);
+  const [totalPopulation, setTotalPopulation] = useState<number>(0);
+  const tilesRequestedRef = useRef<number>(0);
+  const loadedTileIdsRef = useRef<Set<string>>(new Set());
+  const featuresLoadedRef = useRef<number>(0);
+  const populationLoadedRef = useRef<number>(0);
+  const loadStartRef = useRef<number | null>(null);
+  const [renderMetrics, setRenderMetrics] = useState({
+    loadTime: 0,
+    processTime: 0,
+    renderTime: 0,
+    lastUpdate: 0
+  });
+  const [progressiveStatus, setProgressiveStatus] = useState<{ rendered: number; total: number } | undefined>(undefined);
 
-  const totalPopulation = useMemo(() => {
-    return humanDotsData.reduce((sum, dot) => {
-      return sum + (dot?.properties?.population ?? 0);
-    }, 0);
-  }, [humanDotsData]);
+  // Keep a ref for featureCount to avoid re-creating layers on every change
+  const featureCountRef = useRef<number>(0);
+  useEffect(() => {
+    featureCountRef.current = featureCount;
+  }, [featureCount]);
+
+  // Dual-layer transition state for smooth LOD changes
+  const [previousLayer, setPreviousLayer] = useState<unknown>(null);
+  const [previousLayerOpacity, setPreviousLayerOpacity] = useState<number>(1.0);
+  const [currentLayerOpacity, setCurrentLayerOpacity] = useState<number>(1.0);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousLODRef = useRef<number>(0);
+
+  // Cross-fade transition controller
+  const startCrossFadeTransition = useCallback((durationMs: number = 350) => {
+    // Ensure any prior transition timer is cleared
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+
+    // Fade new layer in and previous layer out; deck.gl animates `opacity`
+    setCurrentLayerOpacity(1.0);
+    setPreviousLayerOpacity(0.0);
+
+    // End transition after fade completes and clean up previous layer
+    transitionTimeoutRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+      setPreviousLayer(null);
+      setPreviousLayerOpacity(1.0);
+      transitionTimeoutRef.current = null;
+    }, durationMs + 50); // small buffer beyond deck.gl transition
+  }, []);
 
   // Simple basemap layer using Natural Earth land boundaries with fallback
   const [basemapData, setBasemapData] = useState<unknown>(null);
@@ -466,7 +489,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const roundedZoom = Math.floor(viewState.zoom);
   const stableLODLevel = useMemo(() => {
     return getLODLevel(roundedZoom);
-  }, [getLODLevel, roundedZoom]);
+  }, [roundedZoom]);
   
   // Throttled zoom for layer dependencies - reduces recreation frequency
   const throttledZoom = useMemo(() => {
@@ -479,49 +502,171 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     zoom: throttledZoom  // Use throttled zoom to reduce layer recreation
   }), [viewState, throttledZoom]);
   
+  // Initialize previousLODRef once stableLODLevel is available
+  useEffect(() => {
+    if (previousLODRef.current === 0) {
+      previousLODRef.current = stableLODLevel;
+    }
+  }, [stableLODLevel]);
   
-  // Optimized layer creation - use different radius strategies for 2D vs 3D
-  const humanDotsLayer = useMemo(() => {
+  // Reset tile loading/metrics whenever core parameters change
+  useEffect(() => {
+    const lodChanged = previousLODRef.current !== stableLODLevel;
+
+    if (lodChanged && !isTransitioning) {
+      // LOD change detected - capture previous layer and prepare cross-fade
+      const prevLOD = previousLODRef.current || stableLODLevel;
+      setPreviousLayerOpacity(1.0);
+      setCurrentLayerOpacity(0.0); // New layer starts invisible
+      // Build a stable previous layer instance using the old LOD (no callbacks)
+      setPreviousLayer({ lod: prevLOD });
+      setIsTransitioning(true);
+      // Do not start the fade yet; wait for new layer's onViewportLoad to fire
+    } else if (!lodChanged) {
+      // Regular parameter change (year, view mode) - reset normally
+      setTileLoading(true);
+      setFeatureCount(0);
+      setTotalPopulation(0);
+      tilesRequestedRef.current = 0;
+      loadedTileIdsRef.current = new Set();
+      featuresLoadedRef.current = 0;
+      populationLoadedRef.current = 0;
+      setProgressiveStatus(undefined);
+      loadStartRef.current = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    }
+
+    previousLODRef.current = stableLODLevel;
+  }, [year, stableLODLevel, throttledZoom, is3DMode, isTransitioning, layerViewState]);
+  
+  
+  // Enhanced layer creation with opacity support for smooth transitions
+  const createLayerWithOpacity = useCallback((opacity: number, lodLevel: number, isCurrentLayer: boolean = true) => {
     const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
     
-    return createHumanDotsLayer(
-      visibleHumanDots,
-      layerViewState,
+    return createHumanTilesLayer(
       year,
-      stableLODLevel,
+      lodLevel,
+      layerViewState,
       radiusStrategy,
+      // onClick
       (raw: unknown) => {
         if (raw && typeof raw === 'object' && 'object' in (raw as Record<string, unknown>)) {
           const info = raw as PickingInfo;
           if (info.object) {
-            const dot = info.object;
-            const population = dot.properties?.population || 0;
-            const coordinates = (dot.geometry?.coordinates as [number, number]) || [0, 0];
+            const f = info.object;
+            const population = f.properties?.population || 0;
+            const coordinates = (f.geometry?.coordinates as [number, number]) || [0, 0];
             const clickPosition = { x: info.x || 0, y: info.y || 0 };
             setTooltipData({ population, coordinates, year, clickPosition });
           }
         }
       },
+      // onHover
       (raw: unknown) => {
         if (raw && typeof raw === 'object' && 'object' in (raw as Record<string, unknown>)) {
           const info = raw as PickingInfo;
           if (info.object) {
-            const dot = info.object;
-            const population = dot.properties?.population || 0;
-            const coordinates = (dot.geometry?.coordinates as [number, number]) || [0, 0];
+            const f = info.object;
+            const population = f.properties?.population || 0;
+            const coordinates = (f.geometry?.coordinates as [number, number]) || [0, 0];
             const clickPosition = { x: info.x || 0, y: info.y || 0 };
             setTooltipData({ population, coordinates, year, clickPosition });
             return;
           }
         }
-        // Clear tooltip when not hovering a dot
         setTooltipData(null);
-      }
+      },
+      // extra callbacks - only active for current layer to avoid double-counting
+      isCurrentLayer ? {
+        onTileLoad: (rawTile: unknown) => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tile = rawTile as any;
+            const id: string | undefined = tile?.id;
+            if (!id || loadedTileIdsRef.current.has(id)) return;
+            loadedTileIdsRef.current.add(id);
+            const feats = Array.isArray(tile?.content) ? (tile.content as Array<{ properties?: { population?: number } }>) : [];
+            const featCount = feats.length;
+            const popSum = feats.reduce((acc, g) => acc + (Number(g?.properties?.population) || 0), 0);
+            featuresLoadedRef.current += featCount;
+            populationLoadedRef.current += popSum;
+            tilesRequestedRef.current += 1;
+            setProgressiveStatus({ rendered: featuresLoadedRef.current, total: Math.max(featuresLoadedRef.current, featureCountRef.current) });
+          } catch {
+            // ignore
+          }
+        },
+        onViewportLoad: (rawTiles: unknown[]) => {
+          try {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const tiles = rawTiles as Array<unknown>;
+            let count = 0;
+            let pop = 0;
+            for (const t of tiles) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const tile = t as any;
+              const feats = Array.isArray(tile?.content) ? (tile.content as Array<{ properties?: { population?: number } }>) : [];
+              count += feats.length;
+              for (const g of feats) pop += Number(g?.properties?.population) || 0;
+            }
+            setFeatureCount(count);
+            setTotalPopulation(pop);
+            setProgressiveStatus({ rendered: count, total: count });
+            setTileLoading(false);
+            
+            // Start transition when new layer is ready
+            if (isTransitioning) {
+              // Use setTimeout to avoid circular dependency issues
+              setTimeout(() => {
+                startCrossFadeTransition();
+              }, 0);
+            }
+            
+            const start = loadStartRef.current ?? now;
+            setRenderMetrics({
+              loadTime: Math.max(0, now - start),
+              processTime: 0,
+              renderTime: 0,
+              lastUpdate: now
+            });
+          } catch {
+            setTileLoading(false);
+          }
+        }
+      } : {},
+      opacity
     );
-  }, [visibleHumanDots, layerViewState, year, stableLODLevel, is3DMode]);
+  }, [layerViewState, year, is3DMode, isTransitioning]);
+  
+  // Current layer with dynamic opacity
+  const humanTilesLayer = useMemo(() => {
+    return createLayerWithOpacity(currentLayerOpacity, stableLODLevel, true);
+  }, [createLayerWithOpacity, currentLayerOpacity, stableLODLevel]);
+  
+  // Previous layer (maintained during transitions)
+  const previousHumanTilesLayer = useMemo(() => {
+    if (previousLayer && isTransitioning) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prevLOD = (previousLayer as any).props?.lodLevel || previousLODRef.current;
+      return createLayerWithOpacity(previousLayerOpacity, prevLOD, false);
+    }
+    return null;
+  }, [createLayerWithOpacity, previousLayer, previousLayerOpacity, isTransitioning]);
   
   
-  // Memoized layers array to prevent array recreation
+  
+  // Previous-layer capture handled in LOD-change effect above
+  
+  // Cleanup transition timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Memoized layers array with transition support
   // Shared view-state change handler reused by both 2-D and 3-D views
   const handleViewStateChange = ({ viewState: newViewState }: { viewState: unknown }) => {
     // Update appropriate view state based on mode
@@ -560,9 +705,22 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   };
 
   const layers = useMemo(() => {
-    // Layer ordering: terrain -> basemap -> human dots (front)
-    return [terrainLayer, basemapLayer, humanDotsLayer].filter(Boolean);
-  }, [terrainLayer, basemapLayer, humanDotsLayer]);
+    // Layer ordering: terrain -> basemap -> [previous human dots] -> current human dots (front)
+    const baseLayers = [terrainLayer, basemapLayer].filter(Boolean);
+    const humanLayers = [];
+    
+    // Add previous layer first (will be behind current layer)
+    if (previousHumanTilesLayer && isTransitioning) {
+      humanLayers.push(previousHumanTilesLayer);
+    }
+    
+    // Add current layer on top
+    if (humanTilesLayer) {
+      humanLayers.push(humanTilesLayer);
+    }
+    
+    return [...baseLayers, ...humanLayers];
+  }, [terrainLayer, basemapLayer, humanTilesLayer, previousHumanTilesLayer, isTransitioning]);
   
   return (
     <div className="relative w-full h-full">
@@ -582,20 +740,16 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       
       {/* Data info overlay */}
       <HumanDotsOverlay
-        loading={loading}
-        dotCount={visibleHumanDots.length}
+        loading={tileLoading}
+        dotCount={featureCount}
         totalPopulation={totalPopulation}
         viewState={viewState}
-        samplingRate={samplingRate}
-        lodEnabled={true} // Always enabled with server-side LOD
-        toggleLOD={() => {}} // No-op since LOD is server-controlled
+        samplingRate={100}
+        lodEnabled={true}
+        toggleLOD={() => {}}
         renderMetrics={renderMetrics}
-        cacheSize={dataCache.size}
-        progressiveRenderStatus={
-          visibleHumanDots.length < humanDotsData.length
-            ? { rendered: visibleHumanDots.length, total: humanDotsData.length }
-            : undefined
-        }
+        cacheSize={1}
+        progressiveRenderStatus={progressiveStatus}
         viewportBounds={viewportBounds}
         is3DMode={is3DMode}
       />

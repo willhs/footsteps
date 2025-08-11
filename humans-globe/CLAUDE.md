@@ -32,24 +32,22 @@ The core component managing the 3D globe visualization, data loading, and user i
 - **LOD Integration**: Automatically requests appropriate Level-of-Detail based on zoom level
 - **Performance Optimization**: Memoized layers, throttled zoom updates, progressive rendering limits
 
-#### components/globe/ (Modular Globe System)
-- **layers.ts**: Layer creation utilities for basemap and human dots
-  - `createBasemapLayer()`: World geography rendering with fallback continent shapes
-  - `createHumanDotsLayer()`: Population dot rendering with LOD support and performance optimizations
-  - `createStaticTerrainLayer()`: Satellite imagery base layer
-- **HumanDotsLayer.tsx**: Specialized component for population dot rendering
-- **Overlays.tsx**: UI overlays for data info and controls
+#### components/footsteps/ (Feature Modules)
+- **layers/layers.ts**: Layer creation utilities
+  - `createBasemapLayer()`: World geography rendering
+  - `createHumanTilesLayer()`: Population dots via deck.gl `MVTLayer` (vector tiles)
+- **views/**, **overlays/**, **hooks/**: Feature-scoped UI and logic (see `FootstepsViz.tsx` as root)
 
 #### TimeSlider.tsx
 Time navigation component for scrubbing through history with non-linear scaling optimized for the historical span.
 
-#### app/api/human-dots/route.ts (API Endpoint)
-Server-side API that serves processed population data:
-- **Automatic LOD Selection**: Serves appropriate detail level based on zoom parameter
-- **Server-side Spatial Filtering**: Filters data by viewport bounds to reduce transfer
-- **Aggressive Caching**: ETag-based HTTP caching with 24-hour cache headers
-- **Gzip Compression**: All responses compressed for faster loading
-- **Pre-computed Radius Values**: Server calculates optimal dot sizes for GPU rendering
+#### app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts (Tile API)
+Serves Mapbox Vector Tiles (MVT) points from MBTiles:
+- **Per-LOD + Year**: Prefers `humans_{year}_lod_{lod}.mbtiles`, falls back to `humans_{year}.mbtiles`
+- **MBTiles Access**: Uses `@mapbox/mbtiles` if available; falls back to `sqlite3` CLI
+- **Configurable Path**: `HUMANS_TILES_DIR` env var (default `../data/tiles/humans`)
+- **Caching**: Strong ETag + long-lived immutable cache headers
+- Legacy `/api/human-dots` endpoint removed
 
 ### Performance Architecture
 
@@ -85,19 +83,18 @@ const delay = isZooming ? 500 : 150; // Longer delays during zoom
 
 ### Data Flow
 1. **User Interaction**: User changes time slider or zooms/pans globe
-2. **Cache Check**: Frontend checks Map-based cache for existing data
-3. **API Request**: If not cached, requests data from `/api/human-dots` with zoom and viewport bounds
-4. **Server LOD Selection**: API automatically serves appropriate LOD level based on zoom
-5. **Data Processing**: Frontend validates and sorts data by population for efficient rendering
-6. **GPU Rendering**: Deck.gl renders dots as ScatterplotLayer with pre-computed radius values
-7. **Caching**: Response stored in frontend cache with stable cache key
+2. **LOD Selection (frontend)**: `lib/lod.ts` maps zoom → LOD; `FootstepsViz.tsx` passes `lod` to the layer
+3. **Tile Requests**: deck.gl `MVTLayer` fetches `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
+4. **Decoding + Styling**: `MVTLayer` decodes MVT and sublayers style by population and radius strategy
+5. **GPU Rendering**: Deck.gl renders dots on the globe
+6. **Caching**: HTTP caching handled per tile; deck.gl manages tile cache
 
 ### Relationship to Data Processing Pipeline
-This frontend consumes data from a separate Python-based processing pipeline located in `../footstep-generator/`:
-- **Input Data**: HYDE 3.5 ASC grid files with historical population density
-- **Processing**: Python pipeline converts grids to GeoJSON points with hierarchical LOD aggregation
-- **Output Format**: NDJSON.gz files optimized for streaming (`dots_{year}_lod_{level}.ndjson.gz`)
-- **API Integration**: Next.js API routes serve the processed data with zoom-aware selection
+This frontend consumes tiles produced by the Python pipeline in `../footstep-generator/`:
+- **Input Data**: HYDE 3.5 grids, etc.
+- **Tiling**: `make_tiles.py` generates per-year, per-LOD MBTiles with MVT points and combined yearly MBTiles
+- **Output**: `data/tiles/humans/humans_{year}_lod_{lod}.mbtiles` and `humans_{year}.mbtiles`
+- **Serving**: Next.js Tile API serves MVT from MBTiles; `HUMANS_TILES_DIR` can override tiles directory
 
 ## Commands
 - **Development**: `pnpm dev` → http://localhost:4444
@@ -132,17 +129,17 @@ This frontend consumes data from a separate Python-based processing pipeline loc
 - Test caching behavior during rapid user interactions
 
 ## Key Files
-- **Main Component**: `components/FootstepsViz.tsx` (585 lines)
-- **API Endpoint**: `app/api/human-dots/route.ts` (180 lines)
-- **Layer Logic**: `components/globe/layers.ts` (117 lines)
-- **Time Controls**: `components/TimeSlider.tsx`
-- **Type Definitions**: `lib/useYear.ts`
+- **Main Component**: `components/footsteps/FootstepsViz.tsx`
+- **Tile API**: `app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts`
+- **Layer Logic**: `components/footsteps/layers/layers.ts`
+- **Time Controls**: `components/ui/TimeSlider.tsx`
+- **LOD Utils**: `lib/lod.ts`
 
 ## Data Processing Context
 The frontend serves as the visualization layer for a larger historical demographics project. Raw HYDE 3.5 data is processed by a Python pipeline that:
-- Converts ASCII grid files to human settlement dots
+- Converts ASCII grid files to MVT point features
 - Implements hierarchical Level-of-Detail aggregation
 - Validates data using Pydantic V2 models
-- Outputs optimized NDJSON.gz files for web consumption
+- Outputs MBTiles files containing Mapbox Vector Tiles (MVT) for web consumption
 
 For data processing tasks, see the `../footstep-generator/` directory and its own documentation.

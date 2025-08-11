@@ -4,11 +4,12 @@ Process HYDE 3.3 population density data into heat-map polygons for vector tiles
 Converts ASCII grid files (.asc) to GeoJSON polygons with population density values.
 """
 
+import argparse
 import gzip
 import json
 import os
 import pathlib
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import geopandas as gpd
 import numpy as np
@@ -35,38 +36,14 @@ from shapely.geometry import Point
 # Geodetic calculator for accurate area calculations
 geod = Geod(ellps="WGS84")
 
-# HYDE 3.5 available years - Complete deep history dataset
-TARGET_YEARS = [
-    # Deep Prehistory - Every millennium
-    -10000,
-    -9000,
-    -8000,
-    -7000,
-    -6000,
-    -5000,
-    -4000,
-    -3000,
-    -2000,
-    -1000,
-    # Classical Period - Complete coverage every century
-    0,
-    100,
-    200,
-    300,
-    400,
-    500,
-    600,
-    700,
-    800,
-    900,
-    # Medieval Period
-    1000,
-    1100,
-    1200,
-    1300,
-    1400,
-    1500,
-]
+"""
+Note: We no longer rely on a hardcoded TARGET_YEARS list for discovery.
+Instead, we scan the raw HYDE directory for any files matching
+  popd_<YEAR>(BC|AD).asc
+and infer the available years dynamically. The previous TARGET_YEARS list is
+kept here as a historical reference only and is not used by the pipeline.
+"""
+TARGET_YEARS: List[int] = []
 
 # Density-aware dot creation is now handled by LODProcessor
 
@@ -287,39 +264,92 @@ def ascii_grid_to_dots(
         return gpd.GeoDataFrame()
 
 
+def _parse_year_from_filename(name: str) -> Optional[int]:
+    """Parse a HYDE year from a filename like 'popd_1000AD.asc' or 'popd_3700BC.asc'."""
+    lower = name.lower()
+    if not lower.startswith("popd_") or not lower.endswith(".asc"):
+        return None
+    # Strip prefix/suffix
+    core = lower[len("popd_") : -len(".asc")]
+    if core.endswith("ad"):
+        num_part = core[:-2]
+        if not num_part.isdigit():
+            return None
+        return int(num_part)
+    if core.endswith("bc"):
+        num_part = core[:-2]
+        if not num_part.isdigit():
+            return None
+        val = int(num_part)
+        # By convention, 0AD == year 0; there is no year 0 BC.
+        # Use negative for BC.
+        return -val
+    return None
+
+
 def find_hyde_files(raw_dir: str) -> Dict[int, str]:
-    """Find HYDE ASC files for target years - consistent data source."""
-    hyde_files = {}
+    """Discover all HYDE population-density ASC files and return a mapping year->path.
+
+    Scans the provided directory (recursively) for files matching
+    'popd_<YEAR>(BC|AD).asc' and parses the year accordingly. If multiple files
+    for the same year are present (e.g., different scenarios), the first one
+    encountered is used.
+    """
+    hyde_files: Dict[int, str] = {}
     hyde_dir = pathlib.Path(raw_dir)
 
     if not hyde_dir.exists():
         print(f"Raw data directory not found: {hyde_dir}")
         return hyde_files
 
-    # Process each target year - only look for ASC files for consistency
-    for year in TARGET_YEARS:
-        # Determine the ASC filename pattern based on year
-        if year < 0:
-            asc_name = f"popd_{abs(year)}BC.asc"
-        elif year == 0:
-            asc_name = "popd_0AD.asc"
-        else:
-            asc_name = f"popd_{year}AD.asc"
+    # Recursively search for any matching ASC files
+    candidates: List[Tuple[int, pathlib.Path]] = []
+    for p in hyde_dir.rglob("*.asc"):
+        year = _parse_year_from_filename(p.name)
+        if year is not None:
+            candidates.append((year, p))
 
-        asc_path = hyde_dir / asc_name
+    # Deduplicate by year, keep first encountered
+    for year, path in sorted(candidates, key=lambda t: (t[0], str(t[1]))):
+        if year not in hyde_files:
+            hyde_files[year] = str(path)
 
-        if asc_path.exists():
-            print(f"  Using ASC file: {asc_name} for year {year}")
-            hyde_files[year] = str(asc_path)
-        else:
-            print(f"  Missing HYDE data for year {year} (expected {asc_name})")
+    if hyde_files:
+        min_y, max_y = min(hyde_files.keys()), max(hyde_files.keys())
+        print(
+            f"Found {len(hyde_files)} HYDE files spanning years [{min_y}, {max_y}]"
+        )
+    else:
+        print("Found 0 HYDE files (no popd_*.asc files detected)")
 
-    print(f"Found {len(hyde_files)} HYDE files total")
     return hyde_files
 
 
+def check_year_already_processed(year: int, output_dir: str) -> bool:
+    """
+    Check if all LOD files for a given year already exist.
+    
+    Args:
+        year: Year to check
+        output_dir: Output directory to check for files
+        
+    Returns:
+        True if all LOD files exist, False otherwise
+    """
+    output_path = pathlib.Path(output_dir)
+    
+    # Check for all 4 LOD levels (0, 1, 2, 3)
+    for lod_level in range(4):
+        lod_filename = f"dots_{year}_lod_{lod_level}.ndjson.gz"
+        lod_path = output_path / lod_filename
+        if not lod_path.exists():
+            return False
+    
+    return True
+
+
 def process_year_with_hierarchical_lods(
-    asc_file: str, year: int, output_dir: str, people_per_dot: int = 100
+    asc_file: str, year: int, output_dir: str, people_per_dot: int = 100, force: bool = False
 ) -> ProcessingResult:
     """
     Process a single year of HYDE data with hierarchical LOD generation.
@@ -329,11 +359,23 @@ def process_year_with_hierarchical_lods(
         year: Year for this data
         output_dir: Directory to save processed data
         people_per_dot: Number of people each dot represents
+        force: If True, overwrite existing files; if False, skip if files exist
 
     Returns:
         ProcessingResult with LOD data and statistics
     """
-    print(f"  Processing year {year} with hierarchical LODs...")
+    # Check if year is already processed and skip if not forcing
+    if not force and check_year_already_processed(year, output_dir):
+        print(f"  Skipping year {year} - already processed (use --force to overwrite)")
+        return ProcessingResult(
+            year=year,
+            lod_data={level: [] for level in LODLevel},
+            total_population=0.0,
+            processing_stats={"skipped": True},
+        )
+    
+    action = "Reprocessing" if force and check_year_already_processed(year, output_dir) else "Processing"
+    print(f"  {action} year {year} with hierarchical LODs...")
 
     # Choose dot size for sparse eras (keep smaller dots for ancient periods)
     people_per_dot_effective = (
@@ -457,7 +499,7 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     print("  (Each dot represents ~100 people)")
 
     hyde_files = find_hyde_files(raw_dir)
-    print(f"Found {len(hyde_files)} HYDE files for target years")
+    print(f"Found {len(hyde_files)} HYDE files to process")
 
     if not hyde_files:
         raise FileNotFoundError(
@@ -509,7 +551,7 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
 
 
 def process_all_hyde_data_with_lods(
-    raw_dir: str, output_dir: str
+    raw_dir: str, output_dir: str, force: bool = False
 ) -> List[ProcessingResult]:
     """
     Process all HYDE data with hierarchical LOD generation.
@@ -517,11 +559,13 @@ def process_all_hyde_data_with_lods(
     Args:
         raw_dir: Directory containing HYDE ASC files
         output_dir: Directory to save processed data
+        force: If True, overwrite existing files; if False, skip existing files
 
     Returns:
         List of ProcessingResult objects for each year
     """
-    print("🌍 Processing HYDE data with hierarchical LODs...")
+    mode = "Reprocessing all" if force else "Processing new"
+    print(f"🌍 {mode} HYDE data with hierarchical LODs...")
     print("  (Creating multiple resolution levels for performance)")
 
     hyde_files = find_hyde_files(raw_dir)
@@ -538,7 +582,7 @@ def process_all_hyde_data_with_lods(
     for year in sorted(hyde_files.keys()):
         asc_file = hyde_files[year]
         try:
-            result = process_year_with_hierarchical_lods(asc_file, year, output_dir)
+            result = process_year_with_hierarchical_lods(asc_file, year, output_dir, force=force)
             results.append(result)
 
         except Exception as e:
@@ -555,7 +599,15 @@ def process_all_hyde_data_with_lods(
 
 def main():
     """Main processing routine."""
-    # LOD processing is default; no CLI flags
+    parser = argparse.ArgumentParser(
+        description="Process HYDE 3.5 population data with hierarchical LOD generation"
+    )
+    parser.add_argument(
+        "--force", 
+        action="store_true", 
+        help="Force reprocessing of existing files (default: skip existing files)"
+    )
+    args = parser.parse_args()
 
     # Resolve paths relative to this script so it works from any CWD
     script_dir = pathlib.Path(__file__).resolve().parent
@@ -568,18 +620,28 @@ def main():
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Using hierarchical LOD processing as default (population-preserving)...")
-    results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir))
+    processing_mode = "force mode" if args.force else "incremental mode (skipping existing)"
+    print(f"Using hierarchical LOD processing as default (population-preserving) in {processing_mode}...")
+    results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir), force=args.force)
 
+    # Count processed vs skipped results
+    processed_results = [r for r in results if not r.processing_stats.get('skipped', False)]
+    skipped_results = [r for r in results if r.processing_stats.get('skipped', False)]
+    
     print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
-    print("  Files generated:")
-    for result in results[:3]:  # Show first 3 as examples
-        year = result.year
-        for level, settlements in result.lod_data.items():
-            if settlements:
-                print(f"    dots_{year}_lod_{level}.ndjson.gz ({len(settlements)} settlements)")
-    if len(results) > 3:
-        print(f"    ... and {len(results) - 3} more years")
+    print(f"  Processed: {len(processed_results)} years")
+    if skipped_results:
+        print(f"  Skipped: {len(skipped_results)} years (already processed)")
+    
+    if processed_results:
+        print("  Files generated:")
+        for result in processed_results[:3]:  # Show first 3 as examples
+            year = result.year
+            for level, settlements in result.lod_data.items():
+                if settlements:
+                    print(f"    dots_{year}_lod_{level.value}.ndjson.gz ({len(settlements)} settlements)")
+        if len(processed_results) > 3:
+            print(f"    ... and {len(processed_results) - 3} more years")
     print("\nNext: Update API to serve appropriate LOD level based on zoom")
 
 

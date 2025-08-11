@@ -1,5 +1,5 @@
-import { GeoJsonLayer, ScatterplotLayer, BitmapLayer } from '@deck.gl/layers';
-import { TileLayer } from '@deck.gl/geo-layers';
+import { GeoJsonLayer, BitmapLayer } from '@deck.gl/layers';
+import { TileLayer, MVTLayer } from '@deck.gl/geo-layers';
 
 // Strategy pattern for radius calculation
 interface RadiusStrategy {
@@ -68,6 +68,18 @@ export const radiusStrategies = {
   globe3D: new Globe3DRadiusStrategy()
 };
 
+// Helper: map population to a base display radius in meters
+function getBaseRadiusFromPopulation(population: number): number {
+  if (population > 1_000_000) return 60000;   // Super cities: 60km
+  if (population > 100_000) return 40000;     // Massive cities: 40km
+  if (population > 50_000) return 25000;      // Major cities: 25km
+  if (population > 20_000) return 15000;      // Large settlements: 15km
+  if (population > 5_000) return 8000;        // Medium settlements: 8km
+  if (population > 1_000) return 4000;        // Small settlements: 4km
+  if (population > 100) return 2000;          // Villages: 2km
+  return 1000;                                // Tiny settlements: 1km
+}
+
 // Create basemap layer
 export function createBasemapLayer(data: unknown, basemapError: boolean) {
   return new GeoJsonLayer({
@@ -88,6 +100,96 @@ export function createBasemapLayer(data: unknown, basemapError: boolean) {
     updateTriggers: {
       data: data,
       getFillColor: basemapError
+    }
+  });
+}
+
+// Create MVT-based human tiles layer
+export function createHumanTilesLayer(
+  year: number,
+  lodLevel: number,
+  viewState: { zoom?: number } | null,
+  radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
+  onClick?: (info: unknown) => void,
+  onHover?: (info: unknown) => void,
+  extra?: { onTileLoad?: (tile: unknown) => void; onViewportLoad?: (tiles: unknown[]) => void },
+  opacity: number = 1.0
+) {
+  const currentZoom = viewState?.zoom || 1;
+  const layerId = `human-tiles-${year}-lod${lodLevel}-${radiusStrategy.getName()}`;
+  
+  // Clamp tile zooms to the ranges actually present in each LOD's MBTiles.
+  // This prevents deck.gl from requesting higher z tiles than exist when the
+  // viewport zoom is between integer levels (e.g. z=4.8 with LOD 1 → still use z=4 tiles).
+  const lodZoomRanges: Record<number, { min: number; max: number }> = {
+    0: { min: 0, max: 3 },
+    1: { min: 4, max: 4 },
+    2: { min: 5, max: 5 },
+    3: { min: 6, max: 12 },
+  };
+  const zoomRange = lodZoomRanges[lodLevel] || { min: 0, max: 12 };
+
+  return new MVTLayer({
+    id: layerId,
+    data: `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
+    minZoom: zoomRange.min,
+    maxZoom: zoomRange.max,
+    // Use GeoJSON objects for simpler accessor logic
+    binary: false,
+    // Align with loaders.gl v4 API to avoid deprecated `options.gis` warnings
+    // and ensure coordinates are returned in WGS84.
+    loadOptions: {
+      mvt: {
+        coordinates: 'wgs84',
+        shape: 'geojson'
+      }
+    },
+    pickable: true,
+    // Forward events
+    onClick: onClick || (() => {}),
+    onHover: onHover || (() => {}),
+    onTileLoad: extra?.onTileLoad,
+    onViewportLoad: extra?.onViewportLoad,
+    // Styling forwarded to GeoJsonLayer sublayers
+    pointRadiusUnits: 'meters',
+    getPointRadius: (f: unknown) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pop = Number((f as any)?.properties?.population || 0);
+        const base = getBaseRadiusFromPopulation(pop);
+        return radiusStrategy.calculateRadius(base, currentZoom);
+      } catch {
+        return 2000;
+      }
+    },
+    getFillColor: (f: unknown) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const population = Number((f as any)?.properties?.population || 0);
+        if (population > 20000) return [255, 100, 0, 240];
+        if (population > 5000) return [255, 140, 0, 220];
+        if (population > 1000) return [255, 180, 0, 200];
+        return [255, 200, 100, 180];
+      } catch {
+        return [255, 200, 100, 180];
+      }
+    },
+    updateTriggers: {
+      getPointRadius: [year, lodLevel, Math.floor((currentZoom || 0) * 4) / 4, radiusStrategy.getName()],
+      getFillColor: [year, lodLevel]
+    },
+    opacity: opacity,
+    parameters: {
+      depthTest: true,
+      depthMask: false,
+      blend: true,
+      blendFunc: [770, 771]
+    },
+    transitions: {
+      opacity: {
+        duration: 300,
+        easing: (t: number) => t * t * (3.0 - 2.0 * t) // smoothstep
+      }
     }
   });
 }
@@ -120,93 +222,6 @@ export function createEarthSphereLayer() {
       depthMask: true,   // Write to depth buffer
       blend: false       // No blending needed for solid base layer
     }
-  });
-}
-
-// Create human dots layer with stable ID for caching
-export function createHumanDotsLayer(
-  data: unknown[], 
-  viewState: { zoom?: number } | null, 
-  year: number, 
-  lodLevel: number | null, 
-  radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
-  onClick?: (info: unknown) => void,
-  onHover?: (info: unknown) => void
-) {
-  const layerId = `human-dots-${year}-lod${lodLevel || 'legacy'}-${radiusStrategy.getName()}`;
-  
-  const currentZoom = viewState?.zoom || 1;
-  type MinimalDot = {
-    geometry?: { coordinates?: [number, number] };
-    properties?: { precomputedRadius?: number; population?: number };
-  };
-  
-  return new ScatterplotLayer({
-    id: layerId,
-    data,
-    // Update triggers include zoom for radius strategies that depend on it
-    updateTriggers: {
-      getPosition: [data.length, year, lodLevel],
-      getRadius: [data.length, year, lodLevel, Math.floor(currentZoom * 4) / 4, radiusStrategy.getName()], // Include strategy in triggers
-      getFillColor: [data.length]
-    },
-    pickable: true,
-    radiusUnits: 'meters', // Use meters for GPU-accelerated scaling
-    radiusScale: 1, // Ensure dots are properly scaled
-    getPosition: (d: unknown) => {
-      try {
-        const coords = (d as MinimalDot)?.geometry?.coordinates;
-        if (!coords || !Array.isArray(coords) || coords.length !== 2) {
-          return [0, 0]; // Fallback to origin if invalid
-        }
-        // Let GlobeView handle the sphere projection
-        return coords as [number, number];
-      } catch {
-        return [0, 0];
-      }
-    },
-    // Use radius strategy for flexible calculation approach
-    getRadius: (d: unknown) => {
-      const baseRadius = (d as MinimalDot)?.properties?.precomputedRadius || 2000; // Default to village size (2km)
-      return radiusStrategy.calculateRadius(baseRadius, currentZoom);
-    },
-    getFillColor: (d: unknown) => {
-      const population = (d as MinimalDot)?.properties?.population || 100;
-      
-      // Color intensity based on population
-      if (population > 20000) {
-        return [255, 100, 0, 240]; // Large settlements: bright red-orange
-      } else if (population > 5000) {
-        return [255, 140, 0, 220]; // Medium settlements: orange
-      } else if (population > 1000) {
-        return [255, 180, 0, 200]; // Small settlements: light orange
-      } else {
-        return [255, 200, 100, 180]; // Very small settlements: pale orange
-      }
-    },
-    onClick: onClick || (() => {}),
-    onHover: onHover || (() => {}),
-    
-    // GPU performance optimizations for large datasets with proper 3D rendering
-    parameters: {
-      depthTest: true,  // Enable depth testing for proper 3D rendering
-      depthMask: false, // Don't write to depth buffer for dots (for transparency)
-      blend: true,      // Enable blending for overlapping dots
-      blendFunc: [770, 771] // Standard alpha blending
-    },
-    
-    // Optimize GPU buffer usage and disable expensive features
-    getTargetPosition: undefined, // Remove unnecessary position animations
-    transitions: {
-      getRadius: 0,    // Disable radius transitions for immediate updates
-      getFillColor: 0, // Disable color transitions
-      getPosition: 0   // Disable position transitions
-    },
-    
-    // Performance optimizations for picking and highlighting
-    getPickingInfo: ({ info }: { info: unknown }) => info, // Simplified picking
-    autoHighlight: false, // Disable auto-highlighting for performance
-    highlightColor: [255, 255, 255, 100] // Subtle highlight when enabled
   });
 }
 

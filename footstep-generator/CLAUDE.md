@@ -12,7 +12,8 @@ The footstep-generator is a Python-based data processing pipeline that converts 
 - **tests/**: Comprehensive test suite for validation
 
 ## Commands
-- **Data processing**: `python process_hyde.py` (uses hierarchical LOD processing by default)
+- **Data processing (incremental)**: `python process_hyde.py` (skips existing files by default)
+- **Data processing (force)**: `python process_hyde.py --force` (reprocesses all files, overwriting existing)
 - **Run basic tests**: `python tests/test_basic.py`
 - **Run full test suite**: `pytest tests/ -v`
 - **Run integration tests**: `python tests/test_integration.py`
@@ -57,6 +58,8 @@ data/
 - Implement hierarchical aggregation for zoom-level performance
 - Compress output files with gzip
 - Memory-efficient processing for large datasets
+- **Incremental processing**: By default, skips already processed files to save time
+- Use `--force` flag only when you need to reprocess existing data
 
 ## Dependencies
 - **pydantic**: Data validation and modeling

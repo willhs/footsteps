@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Resolve pnpm store path
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Cache pnpm store
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('humans-globe/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ./humans-globe
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ./humans-globe
+        run: pnpm lint
+
+      - name: Type check
+        working-directory: ./humans-globe
+        run: npx tsc --noEmit
+
+      - name: Test
+        working-directory: ./humans-globe
+        env:
+          CI: true
+        run: pnpm test -- --ci --passWithNoTests
+
+  python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Cache Poetry virtualenv
+        id: cache-poetry
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache-poetry.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Run tests
+        run: poetry run pytest footstep-generator -q
+
+  terraform:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform fmt (check)
+        working-directory: ./iac
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        working-directory: ./iac
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: ./iac
+        run: terraform validate

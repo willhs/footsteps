@@ -25,8 +25,9 @@ interface Props {
 }
 
 /**
- * Floating overlay shown in top-left of the globe – extracted from FootstepsViz.tsx to keep
- * that file lean. Pure presentational; all heavy logic stays in the parent.
+ * Human presence info overlay - follows Tufte's "data ink" principle by focusing on 
+ * historical narrative over technical details. Each pixel serves to tell the story
+ * of human settlement patterns across deep time.
  */
 export default function HumanDotsOverlay({
   loading = false,
@@ -44,85 +45,74 @@ export default function HumanDotsOverlay({
   if (loading) {
     return (
       <div
-        className="absolute bg-black/90 rounded-lg p-4 text-white font-sans flex items-center justify-center"
+        className="absolute backdrop-blur-md bg-black/50 rounded-lg p-4 text-white font-sans flex items-center justify-center"
         style={{ top: '2rem', left: '2rem', zIndex: 30, minWidth: '200px', minHeight: '120px' }}
       >
-        <span className="animate-pulse text-sm text-gray-300">Loading data…</span>
+        <span className="animate-pulse text-sm text-gray-300">Loading human presence data…</span>
       </div>
     );
   }
-  // Show viewport debugging in development mode
+
+  // Show development debugging only when needed
   const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Format population with appropriate scale indicators
+  const formatPopulation = (pop: number): string => {
+    if (pop >= 1_000_000_000) return `${(pop / 1_000_000_000).toFixed(1)}B people`;
+    if (pop >= 1_000_000) return `${(pop / 1_000_000).toFixed(1)}M people`;
+    if (pop >= 1_000) return `${(pop / 1_000).toFixed(0)}K people`;
+    return `${pop.toLocaleString()} people`;
+  };
+
+  // Contextual detail level description
+  const getDetailContext = (zoom: number): string => {
+    if (zoom < 4) return 'Regional clusters • Showing major population centers';
+    if (zoom < 5) return 'Subregional detail • Country & province scale';
+    if (zoom < 6) return 'Local communities • County & district scale';
+    return 'Detailed settlements • Full resolution data';
+  };
+
   return (
     <div
-      className="absolute bg-black/90 rounded-lg p-4 text-white font-sans"
+      className="absolute backdrop-blur-md bg-black/50 rounded-lg p-4 text-white font-sans"
       style={{ top: '2rem', left: '2rem', zIndex: 30 }}
     >
-      <div className="text-sm text-blue-300 font-normal">Deep History of Human Settlement</div>
-      <div className="text-lg font-bold text-orange-400 font-mono">
-        {dotCount.toLocaleString()} dots
+      {/* Hero content: what users are seeing */}
+      <div className="text-sm text-sky-300 font-normal mb-1">Human Presence</div>
+      <div className="text-xl font-bold text-orange-400 mb-2">
+        {formatPopulation(totalPopulation)}
       </div>
-      <div className="text-xs text-gray-500 mt-1 font-normal">
-        Dot size represents population (sqrt scaling)
-      </div>
-      <div className="text-xs text-gray-500 mt-1 font-normal">
-        Total population ≈ {totalPopulation.toLocaleString()}
-      </div>
-      <div className="text-xs text-gray-500 mt-1 font-normal">
-        Zoom level: {viewState.zoom.toFixed(1)}x
-      </div>
-      <div className="text-xs text-gray-500 mt-1 font-normal">
-        Sampling rate: {samplingRate.toFixed(1)}%
+      
+      {/* Context about what each dot represents */}
+      <div className="text-xs text-gray-300 mb-3 leading-relaxed">
+        {dotCount.toLocaleString()} settlements • Each dot represents people living their lives
       </div>
 
-      {/* Server-side LOD info */}
-      <div className="text-xs mt-1 font-normal">
-        <div className="text-purple-400">
-          LOD: {
-            viewState.zoom < 4
-              ? 'Regional'
-              : viewState.zoom < 5
-                ? 'Subregional'
-                : viewState.zoom < 6
-                  ? 'Local'
-                  : 'Detailed'
-          } (z{viewState.zoom.toFixed(1)})
-        </div>
-        <div className="text-gray-500 text-xs">
-          Server-controlled based on zoom level
-        </div>
+      {/* Current view context */}
+      <div className="text-xs text-gray-400 mb-1">
+        {getDetailContext(viewState.zoom)}
       </div>
 
-      {/* Progressive rendering status */}
-      {progressiveRenderStatus && (
-        <div className="text-xs text-yellow-400 mt-1">
-          Rendering: {progressiveRenderStatus.rendered.toLocaleString()}/{progressiveRenderStatus.total.toLocaleString()} dots
-          ({((progressiveRenderStatus.rendered / progressiveRenderStatus.total) * 100).toFixed(0)}%)
+      {/* Progressive loading feedback (user-relevant) */}
+      {progressiveRenderStatus && progressiveRenderStatus.rendered < progressiveRenderStatus.total && (
+        <div className="text-xs text-amber-400 mt-2">
+          Loading settlements: {((progressiveRenderStatus.rendered / progressiveRenderStatus.total) * 100).toFixed(0)}%
         </div>
       )}
 
-      {/* Performance metrics */}
-      <div className="text-xs text-gray-600 mt-2 border-t border-gray-700 pt-2">
-        <div>Load: {renderMetrics.loadTime.toFixed(0)}ms</div>
-        <div>Process: {renderMetrics.processTime.toFixed(0)}ms</div>
-        <div>Render: {renderMetrics.renderTime.toFixed(0)}ms</div>
-        <div>Cache: {cacheSize} years cached</div>
-      </div>
-
-      {/* Viewport debugging (development mode only) */}
+      {/* Development debugging - collapsed by default */}
       {isDevelopment && (
-        <div className="text-xs text-cyan-400 mt-2 border-t border-gray-700 pt-2">
-          <div className="font-semibold mb-1">Viewport Debug ({is3DMode ? '3D' : '2D'})</div>
-          {viewportBounds ? (
-            <div className="space-y-0.5">
-              <div>Bounds: [{viewportBounds.map(b => b.toFixed(1)).join(', ')}]</div>
-              <div>Area: {((viewportBounds[2] - viewportBounds[0]) * (viewportBounds[3] - viewportBounds[1])).toFixed(0)} deg²</div>
-              <div className="text-green-400">✓ Viewport filtering active</div>
+        <details className="mt-3 text-xs text-gray-600">
+          <summary className="cursor-pointer text-gray-500 hover:text-gray-400">Debug Info</summary>
+          <div className="mt-2 pt-2 border-t border-gray-700 space-y-1">
+            <div>Zoom: {viewState.zoom.toFixed(1)}x • Sampling: {samplingRate.toFixed(1)}%</div>
+            <div>Load: {renderMetrics.loadTime.toFixed(0)}ms • Cache: {cacheSize}</div>
+            <div className="text-cyan-400">
+              {is3DMode ? '3D Globe' : '2D Map'} • 
+              {viewportBounds ? ` Filtered viewport` : ` Global data`}
             </div>
-          ) : (
-            <div className="text-yellow-400">⚪ Global data (no filtering)</div>
-          )}
-        </div>
+          </div>
+        </details>
       )}
     </div>
   );

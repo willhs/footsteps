@@ -1,3 +1,4 @@
+"use client";
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ViewState {
@@ -9,13 +10,36 @@ interface ViewState {
 }
 
 export default function useGlobeViewState() {
-  const [viewState, setViewState] = useState<ViewState>({
-    longitude: 0,
-    latitude: 20,
-    zoom: 1.5,
-    pitch: 0,
-    bearing: 0,
-  });
+  // Read optional initial state from URL query on first mount for QA/debug convenience
+  // Example: ?lat=28.6&lon=77.2&zoom=8
+  const getInitialViewState = (): ViewState => {
+    try {
+      if (typeof window !== 'undefined' && window.location && window.location.search) {
+        const sp = new URLSearchParams(window.location.search);
+        const lat = Number(sp.get('lat'));
+        const lon = Number(sp.get('lon') || sp.get('lng'));
+        const zoom = Number(sp.get('zoom') || sp.get('z'));
+        return {
+          longitude: Number.isFinite(lon) ? lon : 0,
+          latitude: Number.isFinite(lat) ? lat : 20,
+          zoom: Number.isFinite(zoom) ? zoom : 1.5,
+          pitch: 0,
+          bearing: 0,
+        };
+      }
+    } catch {
+      // ignore and fall back to defaults
+    }
+    return {
+      longitude: 0,
+      latitude: 20,
+      zoom: 1.5,
+      pitch: 0,
+      bearing: 0,
+    };
+  };
+
+  const [viewState, setViewState] = useState<ViewState>(getInitialViewState);
 
   const [isZooming, setIsZooming] = useState(false);
   const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);

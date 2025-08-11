@@ -1,0 +1,22 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+terraform.tfplan
+crash.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Local env files
+.env
+.env.local

@@ -119,4 +119,4 @@ Use caching where possible to reduce latency and network usage
 #### Server-Side Filtering
 - **Viewport culling**: Only send dots in visible area (60-90% reduction)
 - **LOD selection**: Automatic detail level based on zoom
-- **Compressed format**: Gzip + NDJSON for streaming efficiency
+- **Vector tiles**: MVT (gzipped PBF) for efficient transfer

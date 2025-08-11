@@ -1,0 +1,21 @@
+# Copy this file to terraform.tfvars and customize as needed
+
+project_id     = "footsteps-earth"
+region         = "us-central1"
+bucket_name    = "footsteps-earth-tiles"
+service_name   = "footsteps-time-app"
+
+# Container image (update after building)
+container_image = "gcr.io/footsteps-earth/footsteps-time-app:latest"
+
+# Scaling settings
+min_instances = 0  # Set to 0 for cost optimization
+max_instances = 100
+
+# Resource limits
+cpu_limit      = "2000m"  # 2 vCPUs
+memory_limit   = "2Gi"    # 2GB memory
+timeout_seconds = 300      # 5 minutes
+
+# Storage settings
+bucket_location = "US"  # Multi-region US

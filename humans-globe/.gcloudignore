@@ -1,0 +1,60 @@
+# Keep Cloud Build source small and deterministic.
+# Do NOT mirror .gitignore (we want lockfiles included).
+
+# Dependencies and caches
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.pnpm-store
+
+# Local env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Next.js outputs
+.next/
+out/
+build/
+dist/
+
+# Misc
+.DS_Store
+*.pem
+logs
+*.log
+pids
+*.pid
+*.seed
+*.pid.lock
+.cache
+.parcel-cache
+.eslintcache
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local data (GCS in prod)
+../data/
+data/
+
+# Git metadata
+.git
+.gitignore
+
+# Tests and coverage
+coverage/
+.nyc_output/
+junit.xml
+
+# Allow lockfiles to be uploaded for reproducible installs
+!package-lock.json
+!pnpm-lock.yaml
+!yarn.lock

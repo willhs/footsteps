@@ -67,7 +67,7 @@ export default function useGlobeViewState() {
         }
         zoomTimeoutRef.current = setTimeout(() => {
           setIsZooming(false);
-        }, 150);
+        }, 800); // Increased from 150ms to 800ms for better debouncing
       }
 
       const panThreshold = 0.1;
@@ -84,7 +84,7 @@ export default function useGlobeViewState() {
         }
         panTimeoutRef.current = setTimeout(() => {
           setIsPanning(false);
-        }, 300);
+        }, 600); // Increased from 300ms to 600ms for better debouncing
       }
     },
     [viewState, isZooming, isPanning]

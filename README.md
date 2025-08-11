@@ -14,7 +14,7 @@ Transform dry demographic data into an intuitive, time-scrubbing experience that
 
 - **🌐 Interactive 3D Globe** - Navigate and explore with full pan/zoom/rotate controls
 - **⏰ Time Travel** - Non-linear slider covering 100,000 BCE → 2025 CE with historical breakpoints
-- **👥 Human Dots** - Individual points representing settlements and populations
+- **👥 Settlement Points** - Representative points of human presence (aggregated by LOD)
 - **🔥 Heat-Map** - Population density visualization showing regional concentrations
 - **📊 Real-time Filtering** - Dots appear/disappear based on historical timeline
 - **⚡ Performance** - Efficient rendering of millions of data points
@@ -74,7 +74,7 @@ pnpm install
 # Generate sample data using Poetry scripts
 cd ..
 poetry run process-hyde         # Generate population density data
-poetry run process-cities       # Generate human dots data
+poetry run process-cities       # Generate city settlement points
 
 # Start the development server
 cd humans-globe
@@ -97,7 +97,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 📊 Data Sources
 
-- **Population Density**: HYDE 3.3 Database (History Database of the Global Environment)
+- **Population Density**: HYDE 3.5 Database (History Database of the Global Environment)
 - **Urban Settlements**: Reba et al. Historical Urban Population Dataset
 - **Sample Data**: Algorithmically generated for MVP demonstration
 
@@ -112,7 +112,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Data Pipeline (`/data/`)
 - **Python Scripts** - Data fetching and processing
 - **GeoPandas** - Geospatial data manipulation
-- **Vector Tiles** - Efficient data delivery (future enhancement)
+- **Vector Tiles** - Efficient data delivery (MBTiles + MVT)
 
 ### Key Components
 - `FootstepsViz.tsx` - Main 3D visualization with DeckGL layers

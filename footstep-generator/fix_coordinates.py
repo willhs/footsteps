@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Fix coordinate inversion issue in existing HYDE human dots data.
+DEPRECATED: Legacy fixer for the old NDJSON/"human_dots" GeoJSON.
+This tiles-only pipeline no longer produces hyde_human_dots.geojson. Kept only for
+archival reference; do not use.
 """
 import json
 import numpy as np
 
 def fix_coordinates():
     """Fix the latitude coordinate inversion in the existing GeoJSON."""
+    print("[DEPRECATED] fix_coordinates.py is part of the legacy NDJSON/dots pipeline and is not used anymore.\n"
+          "Tiles-only pipeline generates vector tiles via tippecanoe from temporary GeoJSONL.")
+    raise SystemExit(0)
     
     # Load existing data
     input_file = "processed/hyde_human_dots.geojson"

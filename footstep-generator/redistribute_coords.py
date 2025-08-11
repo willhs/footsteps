@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Redistribute coordinates to match realistic global population patterns.
+DEPRECATED: Legacy coordinate redistribution for old NDJSON/"human_dots" artifacts.
+Tiles-only pipeline does not use or produce hyde_human_dots*.geojson. Kept for archival; do not use.
 """
 import json
 import numpy as np
@@ -8,6 +9,9 @@ from collections import defaultdict
 
 def redistribute_coordinates():
     """Redistribute coordinates to match realistic historical population patterns."""
+    print("[DEPRECATED] redistribute_coords.py belongs to the legacy NDJSON/dots pipeline and is not used anymore.\n"
+          "Tiles-only pipeline generates vector tiles via tippecanoe from temporary GeoJSONL.")
+    raise SystemExit(0)
     
     input_file = "processed/hyde_human_dots_backup.geojson"
     output_file = "processed/hyde_human_dots.geojson"

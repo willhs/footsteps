@@ -4,6 +4,7 @@ resource "google_project_service" "required_apis" {
     "run.googleapis.com",
     "storage.googleapis.com",
     "cloudbuild.googleapis.com",
+    "artifactregistry.googleapis.com",
     "containerregistry.googleapis.com",
     "iam.googleapis.com"
   ])

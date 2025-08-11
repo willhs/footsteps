@@ -14,6 +14,7 @@ resource "google_project_iam_member" "github_actions_roles" {
     "roles/storage.objectViewer",     # Read from GCS bucket
     "roles/cloudbuild.builds.editor", # Use Cloud Build
     "roles/storage.admin",            # Push to Container Registry (GCS-backed)
+    "roles/artifactregistry.writer",  # Push/retag in Artifact Registry (GCR backends)
   ])
 
   project = var.project_id
@@ -99,5 +100,12 @@ resource "google_service_account_iam_member" "github_actions_act_as_app_sa" {
 resource "google_project_iam_member" "cloudbuild_storage_admin" {
   project = var.project_id
   role    = "roles/storage.admin"
+  member  = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+}
+
+# Ensure Cloud Build can push to Artifact Registry (for GCR-backed repos)
+resource "google_project_iam_member" "cloudbuild_artifactregistry_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
 }

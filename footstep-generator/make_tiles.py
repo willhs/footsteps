@@ -5,7 +5,7 @@ Creates .mbtiles files using tippecanoe for efficient web serving.
 
 Enhancements:
  - Tiles-only: generates per-year MBTiles directly from in-memory LOD data
-   produced by process_hyde.py (no NDJSON intermediates)
+   produced by process_hyde.py (no intermediate artifacts persisted)
  - Produces one MBTiles per year containing all LOD layers with appropriate
    zoom ranges, without dropping features (population preserving)
 """
@@ -47,22 +47,26 @@ def create_metadata_json(output_dir: str) -> None:
     config = {
         "tilejson": "2.2.0",
         "name": "Globe of Humans",
-        "description": "Human population visualization from 100,000 BCE to 2025 CE",
+        "description": "Human settlement visualization from 100,000 BCE to 2025 CE",
         "version": "1.0.0",
-        "attribution": "HYDE 3.3, Reba et al.",
+        "attribution": "HYDE 3.5, Reba et al.",
         "minzoom": 0,
-        "maxzoom": 10,
+        "maxzoom": 12,
         "bounds": [-180, -85, 180, 85],
         "center": [0, 0, 2],
         "layers": [
             {
-                "id": "population_density",
-                "description": "Population density heat-map",
+                "id": "settlements",
+                "description": "Aggregated human settlements by LOD",
                 "minzoom": 0,
-                "maxzoom": 8,
+                "maxzoom": 12,
                 "fields": {
-                    "density": "Number",
-                    "year": "Number"
+                    "population": "Number",
+                    "year": "Number",
+                    "lod_level": "Number",
+                    "grid_size": "Number",
+                    "source_dots": "Number",
+                    "density": "Number"
                 }
             }
         ]
@@ -169,7 +173,7 @@ def combine_lod_mbtiles(lod_mbtiles: List[str], out_mbtiles: str) -> bool:
 def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
     """Generate a single MBTiles for a given year by computing LODs and combining them.
 
-    Tiles-only: computes LODs in-memory (no NDJSON), writes temporary GeoJSONL per LOD,
+    Tiles-only: computes LODs in-memory (no intermediate artifacts), writes temporary GeoJSONL per LOD,
     builds per-LOD MBTiles with tippecanoe, and combines into a single yearly MBTiles.
     """
 

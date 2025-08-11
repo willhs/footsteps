@@ -79,7 +79,7 @@ pytest tests/ -v
 - **Pydantic V2 models**: Data validation, type safety, coordinate bounds checking
 - **Hierarchical LOD system**: Population conservation, spatial aggregation, zoom-level mapping
 - **Data processing pipeline**: ASC file parsing, settlement point creation, file I/O, error handling
-- **Performance optimizations**: Density-aware dot creation, memory usage estimation
+- **Performance optimizations**: Density-aware placement, memory usage estimation
 
 ## Data Flow
 

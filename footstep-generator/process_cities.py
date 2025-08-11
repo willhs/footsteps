@@ -299,7 +299,7 @@ def main():
     # Process cities to dots
     geojson_path = process_cities_to_dots(str(raw_dir), str(output_dir))
     
-    print(f"\n✓ Human dots data ready: {geojson_path}")
+    print(f"\n✓ Settlement points data ready: {geojson_path}")
     print("\nNext: Run make_tiles.py to generate vector tiles")
 
 if __name__ == "__main__":

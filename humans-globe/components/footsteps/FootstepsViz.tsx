@@ -658,7 +658,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       } : {},
       opacity
     );
-  }, [layerViewState, year, is3DMode, isTransitioning]);
+  }, [layerViewState, year, is3DMode, isTransitioning, startCrossFadeTransition]);
   
   // Current layer with dynamic opacity
   const humanTilesLayer = useMemo(() => {
@@ -727,7 +727,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   };
 
   const layers = useMemo(() => {
-    // Layer ordering: terrain -> basemap -> [previous human dots] -> current human dots (front)
+    // Layer ordering: terrain -> basemap -> [previous settlement points] -> current settlement points (front)
     const baseLayers = [terrainLayer, basemapLayer].filter(Boolean);
     const humanLayers = [];
     

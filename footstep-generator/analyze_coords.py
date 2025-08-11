@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Analyze coordinate distribution to understand the issue.
+DEPRECATED: Legacy analysis script for the old NDJSON/"human_dots" pipeline.
+This tiles-only pipeline does not produce hyde_human_dots.geojson and this script
+should not be used. Kept only for archival reference.
 """
 import json
 import numpy as np
 
 def analyze_coordinates():
     """Analyze the coordinate distribution."""
+    print("[DEPRECATED] analyze_coords.py is part of the legacy NDJSON/dots pipeline and is not used anymore.\n"
+          "Tiles-only pipeline generates vector tiles via tippecanoe from temporary GeoJSONL.")
+    raise SystemExit(0)
     
     input_file = "processed/hyde_human_dots.geojson"
     

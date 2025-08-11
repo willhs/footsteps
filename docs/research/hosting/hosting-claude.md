@@ -69,11 +69,16 @@ VM Path (Fly/Hetzner)
   - Set `DATA_DIR=/data/processed`; upload `data/processed` once.
 
 Serverless + Object Storage Path (Vercel/Cloudflare/Netlify)
-- Upload `data/processed/*.ndjson.gz` to R2/S3 (e.g., `dots/{year}_lod_{n}.ndjson.gz`).
-- Replace `fs.createReadStream(...).pipe(createGunzip())` with HTTP streaming from the bucket:
-  - Node runtimes (Vercel/Netlify): `fetch` signed URL → `zlib.createGunzip()` on the response stream; parse NDJSON line-by-line; keep early-break and aggregation.
-  - Cloudflare Workers: `fetch` R2 object → `new DecompressionStream('gzip')` → line-by-line reader; same filtering/aggregation.
-- Preserve headers (ETag, Cache-Control) and LOD selection by zoom.
+- Preferred: serve prebuilt vector tiles.
+  - Option A (API backed by MBTiles on disk/volume):
+    - Upload `data/tiles/humans/*.mbtiles` to a VM or attach a persistent volume.
+    - API route opens the MBTiles (SQLite) and returns tile bytes with
+      `SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?`.
+    - Set `Content-Type: application/x-protobuf`, strong `ETag`, and `Cache-Control: public, max-age=31536000, immutable`.
+  - Option B (pure serverless): convert MBTiles → PMTiles and host as a static file in R2/S3/Pages Assets.
+    - Frontend loads with `@protomaps/pmtiles` using a `PMTiles`/`MVTLayer` source.
+    - Benefits: zero server code, global edge caching, cheap egress.
+  - Keep LOD by zoom policy consistent with tile metadata; no NDJSON parsing is needed.
 
 ## Next Steps (choose one)
 

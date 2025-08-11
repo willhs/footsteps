@@ -419,7 +419,7 @@ class LODProcessor:
 
             print(
                 f"      {lod_level.name}: {lod_total:.0f} people "
-                f"({conservation_ratio:.1%} conserved, {len(aggregated)} dots)"
+                f"({conservation_ratio:.1%} conserved, {len(aggregated)} points)"
             )
 
             # Require 99%+ population conservation (allow for tiny floating point errors)

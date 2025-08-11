@@ -80,10 +80,12 @@ data "google_project" "current" {
   project_id = var.project_id
 }
 
-resource "google_service_account_iam_member" "github_actions_act_as_cloudbuild" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_actions.email}"
+# Ensure Cloud Build service account exists and fetch its email
+# Grant Service Account User at project level so GitHub Actions can act as required service accounts (Cloud Build, runtime SA)
+resource "google_project_iam_member" "github_actions_sa_user_project" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
 # Allow GitHub Actions SA to act as the app runtime service account used by Cloud Run

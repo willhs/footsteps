@@ -5,8 +5,6 @@ Converts ASCII grid files (.asc) to GeoJSON polygons with population density val
 """
 
 import argparse
-import gzip
-import json
 import os
 import pathlib
 from typing import Dict, List, Optional, Tuple
@@ -325,29 +323,6 @@ def find_hyde_files(raw_dir: str) -> Dict[int, str]:
     return hyde_files
 
 
-def check_year_already_processed(year: int, output_dir: str) -> bool:
-    """
-    Check if all LOD files for a given year already exist.
-    
-    Args:
-        year: Year to check
-        output_dir: Output directory to check for files
-        
-    Returns:
-        True if all LOD files exist, False otherwise
-    """
-    output_path = pathlib.Path(output_dir)
-    
-    # Check for all 4 LOD levels (0, 1, 2, 3)
-    for lod_level in range(4):
-        lod_filename = f"dots_{year}_lod_{lod_level}.ndjson.gz"
-        lod_path = output_path / lod_filename
-        if not lod_path.exists():
-            return False
-    
-    return True
-
-
 def process_year_with_hierarchical_lods(
     asc_file: str, year: int, output_dir: str, people_per_dot: int = 100, force: bool = False
 ) -> ProcessingResult:
@@ -364,18 +339,8 @@ def process_year_with_hierarchical_lods(
     Returns:
         ProcessingResult with LOD data and statistics
     """
-    # Check if year is already processed and skip if not forcing
-    if not force and check_year_already_processed(year, output_dir):
-        print(f"  Skipping year {year} - already processed (use --force to overwrite)")
-        return ProcessingResult(
-            year=year,
-            lod_data={level: [] for level in LODLevel},
-            total_population=0.0,
-            processing_stats={"skipped": True},
-        )
-    
-    action = "Reprocessing" if force and check_year_already_processed(year, output_dir) else "Processing"
-    print(f"  {action} year {year} with hierarchical LODs...")
+    # Process this year with hierarchical LODs (tiles-only pipeline; no NDJSON outputs)
+    print(f"  Processing year {year} with hierarchical LODs...")
 
     # Choose dot size for sparse eras (keep smaller dots for ancient periods)
     people_per_dot_effective = (
@@ -431,43 +396,7 @@ def process_year_with_hierarchical_lods(
     # Calculate total population
     total_population = sum(s.population for s in settlements)
 
-    # Save LOD data as separate files for each level
-    output_path = pathlib.Path(output_dir)
-    for lod_level, lod_settlements in lod_data.items():
-        if not lod_settlements:
-            continue
-
-        lod_filename = f"dots_{year}_lod_{lod_level.value}.ndjson.gz"
-        lod_path = output_path / lod_filename
-
-        with gzip.open(lod_path, "wt", encoding="utf-8") as f_nd:
-            for settlement in lod_settlements:
-                # Convert to GeoJSON-like format for compatibility
-                feature = {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            settlement.coordinates.longitude,
-                            settlement.coordinates.latitude,
-                        ],
-                    },
-                    "properties": {
-                        "population": settlement.total_population,
-                        "year": settlement.year,
-                        "type": "settlement",
-                        "lod_level": settlement.lod_level.value,
-                        "grid_size": settlement.grid_size_degrees,
-                        "source_dots": settlement.source_dot_count,
-                        "density": settlement.average_density,
-                    },
-                }
-                json.dump(feature, f_nd)
-                f_nd.write("\n")
-
-        print(
-            f"      → Saved {len(lod_settlements)} {lod_level.name} LOD dots to {lod_filename}"
-        )
+    # Tiles-only: no file writes here. LOD data is returned to the caller for tile generation.
 
     # Create processing result
     processing_stats = {
@@ -517,18 +446,6 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
             gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
             if not gdf.empty:
                 all_polygons.append(gdf)
-
-            # ---- New: write per-year NDJSON for fast API lookup ----
-            ndjson_path = pathlib.Path(output_dir) / f"dots_{year}.ndjson.gz"
-            with gzip.open(ndjson_path, "wt", encoding="utf-8") as f_nd:
-                # convert each feature to JSON and write per line
-                geojson_obj = json.loads(gdf.to_json())
-                for feat in geojson_obj["features"]:
-                    json.dump(feat, f_nd)
-                    f_nd.write("\n")
-            print(
-                f"      ➜ Saved {len(gdf)} dots to {ndjson_path.relative_to(output_dir)}"
-            )
         except Exception as e:
             print(f"  Error processing {asc_file}: {e}")
             continue
@@ -628,21 +545,20 @@ def main():
     processed_results = [r for r in results if not r.processing_stats.get('skipped', False)]
     skipped_results = [r for r in results if r.processing_stats.get('skipped', False)]
     
-    print(f"\n✓ Hierarchical LOD data ready in {output_dir}")
-    print(f"  Processed: {len(processed_results)} years")
+    print(f"\n✓ Hierarchical LOD data computed (tiles-only; no NDJSON written)")
+    print(f"  Years processed: {len(processed_results)}")
     if skipped_results:
         print(f"  Skipped: {len(skipped_results)} years (already processed)")
     
     if processed_results:
-        print("  Files generated:")
-        for result in processed_results[:3]:  # Show first 3 as examples
+        print("  LOD settlement counts (first 3 years):")
+        for result in processed_results[:3]:
             year = result.year
-            for level, settlements in result.lod_data.items():
-                if settlements:
-                    print(f"    dots_{year}_lod_{level.value}.ndjson.gz ({len(settlements)} settlements)")
+            counts = {level.name: len(setts) for level, setts in result.lod_data.items()}
+            print(f"    {year}: {counts}")
         if len(processed_results) > 3:
             print(f"    ... and {len(processed_results) - 3} more years")
-    print("\nNext: Update API to serve appropriate LOD level based on zoom")
+    print("\nNext: Use make_tiles.py to build MBTiles per year")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ resource "google_project_service" "required_apis" {
     "containerregistry.googleapis.com",
     "iam.googleapis.com"
   ])
-  
+
   project = var.project_id
   service = each.key
 
@@ -19,7 +19,7 @@ resource "google_service_account" "app_service_account" {
   account_id   = var.service_account_name
   display_name = "Footsteps Time App Service Account"
   description  = "Service account for the Footsteps Time Cloud Run application"
-  
+
   depends_on = [google_project_service.required_apis]
 }
 

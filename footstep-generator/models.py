@@ -58,11 +58,11 @@ class AggregatedSettlement(BaseModel):
 
 class LODConfiguration(BaseModel):
     """Configuration for Level-of-Detail processing."""
-    global_grid_size: float = Field(default=1.0, description="Grid size for global LOD (degrees)")
-    regional_grid_size: float = Field(default=0.25, description="Grid size for regional LOD") 
-    subregional_grid_size: float = Field(default=0.1, description="Grid size for subregional LOD")
-    local_grid_size: float = Field(default=0.05, description="Grid size for local LOD")
-    min_population_threshold: float = Field(default=0.0, description="Minimum population per cell - DISABLED for population preservation")
+    global_grid_size: float = Field(default=2.0, description="Grid size for global LOD (degrees)")
+    regional_grid_size: float = Field(default=0.5, description="Grid size for regional LOD") 
+    subregional_grid_size: float = Field(default=0.25, description="Grid size for subregional LOD")
+    local_grid_size: float = Field(default=0.1, description="Grid size for local LOD")
+    min_population_threshold: float = Field(default=50.0, description="Minimum population per cell - default threshold")
     
     @field_validator('global_grid_size', 'regional_grid_size', 'subregional_grid_size', 'local_grid_size')
     @classmethod

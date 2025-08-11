@@ -57,7 +57,7 @@ jobs:
         working-directory: ./humans-globe
         env:
           CI: true
-        run: pnpm test -- --ci --passWithNoTests
+        run: pnpm test --ci --passWithNoTests
 
   python:
     name: Python Tests

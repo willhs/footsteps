@@ -10,13 +10,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tempfile
 import pathlib
-import json
-import gzip
-from unittest.mock import patch, MagicMock
-import numpy as np
+from unittest.mock import patch
 
-from models import LODLevel, Coordinates, HumanSettlement, ProcessingResult
-from lod_processor import LODProcessor
+from models import LODLevel, ProcessingResult
 
 
 def create_mock_asc_content():
@@ -112,23 +108,29 @@ def test_integration_workflow():
             print(f"  ✓ Total population: {result.total_population}")
             print(f"  ✓ LOD levels generated: {len(result.lod_data)}")
             
-            # Check that files were created
-            lod_files = list(output_dir.glob("dots_1000_lod_*.ndjson.gz"))
-            print(f"  ✓ Created {len(lod_files)} LOD files")
-            
-            # Verify file contents
-            for lod_file in lod_files:
-                with gzip.open(lod_file, 'rt') as f:
-                    lines = f.readlines()
-                    if lines:  # Only check non-empty files
-                        first_feature = json.loads(lines[0])
-                        assert 'type' in first_feature
-                        assert 'geometry' in first_feature
-                        assert 'properties' in first_feature
-                        assert 'population' in first_feature['properties']
-                        print(f"    ✓ {lod_file.name}: {len(lines)} features")
-            
-            print("  ✓ All LOD files have valid GeoJSON structure")
+            # Tiles-only: verify no NDJSON files are written
+            ndjson_files = list(output_dir.glob("*.ndjson.gz"))
+            assert (
+                len(ndjson_files) == 0
+            ), "Tiles-only pipeline should not write NDJSON files"
+            print("  ✓ No NDJSON files written (tiles-only)")
+
+            # Validate LOD data content and population conservation
+            expected_total = sum([500 + i * 200 for i in range(5)])
+            assert abs(result.total_population - expected_total) < 1e-6
+            lod_keys = set(result.lod_data.keys())
+            for level in [
+                LODLevel.REGIONAL,
+                LODLevel.SUBREGIONAL,
+                LODLevel.LOCAL,
+                LODLevel.DETAILED,
+            ]:
+                # Keys may be Enum or raw values depending on Pydantic config
+                key = level if level in lod_keys else level.value
+                assert key in lod_keys
+                lod_sum = sum(s.total_population for s in result.lod_data[key])
+                assert 0.99 <= (lod_sum / expected_total) <= 1.01
+            print("  ✓ LOD data present and conserves population")
         
         print("✅ Integration workflow test passed!")
         return True

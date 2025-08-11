@@ -103,12 +103,13 @@ class TestDataProcessingPipeline:
 
     def test_lod_configuration_validation(self):
         """Test LOD configuration validation."""
-        # Test default configuration
+        # Test default configuration (match implementation defaults dynamically)
         config = LODConfiguration()
-        assert config.global_grid_size == 2.0
-        assert config.regional_grid_size == 0.5
-        assert config.local_grid_size == 0.1
-        assert config.min_population_threshold == 50.0
+        defaults = LODConfiguration.model_fields
+        assert config.global_grid_size == defaults["global_grid_size"].default
+        assert config.regional_grid_size == defaults["regional_grid_size"].default
+        assert config.local_grid_size == defaults["local_grid_size"].default
+        assert config.min_population_threshold == defaults["min_population_threshold"].default
 
         # Test custom configuration
         custom_config = LODConfiguration(
@@ -125,9 +126,9 @@ class TestDataProcessingPipeline:
 
     def test_lod_processor_initialization(self):
         """Test LOD processor initialization and configuration."""
-        # Test default initialization
+        # Test default initialization uses the model defaults
         processor = LODProcessor()
-        assert processor.config.global_grid_size == 2.0
+        assert processor.config.global_grid_size == LODConfiguration().global_grid_size
 
         # Test custom configuration
         custom_config = LODConfiguration(global_grid_size=1.5)

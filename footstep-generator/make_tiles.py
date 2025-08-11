@@ -4,10 +4,10 @@ Generate vector tiles from processed population and city data.
 Creates .mbtiles files using tippecanoe for efficient web serving.
 
 Enhancements:
-- Supports per-year, per-LOD MBTiles generation from processed NDJSON.gz outputs
-  emitted by process_hyde.py (dots_{year}_lod_{lod}.ndjson.gz)
-- Produces one MBTiles per year containing all LOD layers with appropriate
-  zoom ranges, without dropping features (population preserving)
+ - Tiles-only: generates per-year MBTiles directly from in-memory LOD data
+   produced by process_hyde.py (no NDJSON intermediates)
+ - Produces one MBTiles per year containing all LOD layers with appropriate
+   zoom ranges, without dropping features (population preserving)
 """
 
 import os
@@ -16,8 +16,10 @@ import subprocess
 import json
 import re
 import tempfile
-import gzip
 from typing import List, Dict, Any, Tuple, Optional
+
+# Import processing functions to compute LODs in-memory
+from process_hyde import find_hyde_files, process_year_with_hierarchical_lods
 
 def run_command(cmd: List[str], description: str) -> bool:
     """Run a shell command and return success status."""
@@ -233,34 +235,31 @@ LOD_ZOOM_RANGES: Dict[int, Tuple[int, int]] = {
     3: (6, 12),  # DETAILED at z6+
 }
 
-YEAR_LOD_PATTERN = re.compile(r"dots_(-?\d+)_lod_(\d)\.ndjson\.gz$")
-
-def find_year_lod_files(processed_dir: str) -> Dict[int, Dict[int, str]]:
-    """Discover processed NDJSON.gz files and return mapping year->lod->path."""
-    mapping: Dict[int, Dict[int, str]] = {}
-    pdir = pathlib.Path(processed_dir)
-    if not pdir.exists():
-        return mapping
-    for path in pdir.glob("dots_*_lod_*.ndjson.gz"):
-        m = YEAR_LOD_PATTERN.search(path.name)
-        if not m:
-            continue
-        year = int(m.group(1))
-        lod = int(m.group(2))
-        mapping.setdefault(year, {})[lod] = str(path)
-    return mapping
-
-def gunzip_to_temp(input_path: str) -> str:
-    """Decompress .gz NDJSON to a temporary .geojsonl file and return its path."""
-    with gzip.open(input_path, "rb") as fin:
-        data = fin.read()
-    # Write to temp file
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".geojsonl")
-    try:
-        tmp.write(data)
-    finally:
-        tmp.close()
-    return tmp.name
+def write_geojsonl_temp(settlements) -> str:
+    """Write AggregatedSettlement list to a temporary GeoJSONL file and return its path."""
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".geojsonl")
+    os.close(tmp_fd)
+    with open(tmp_path, "w", encoding="utf-8") as f_out:
+        for s in settlements:
+            feature = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [s.coordinates.longitude, s.coordinates.latitude],
+                },
+                "properties": {
+                    "population": s.total_population,
+                    "year": s.year,
+                    "type": "settlement",
+                    "lod_level": getattr(s.lod_level, "value", s.lod_level),
+                    "grid_size": s.grid_size_degrees,
+                    "source_dots": s.source_dot_count,
+                    "density": s.average_density,
+                },
+            }
+            f_out.write(json.dumps(feature))
+            f_out.write("\n")
+    return tmp_path
 
 def generate_mbtiles_for_lod(
     input_geojsonl: str,
@@ -278,7 +277,7 @@ def generate_mbtiles_for_lod(
         "--no-feature-limit",
         "--no-tile-size-limit",
         "--force",
-        "-l", f"human_dots_lod_{lod_level}",
+        "-l", f"humans_lod_{lod_level}",
         input_geojsonl,
     ]
     return run_command(cmd, f"LOD {lod_level} tiles (z{minzoom}-{maxzoom})")
@@ -293,15 +292,12 @@ def combine_lod_mbtiles(lod_mbtiles: List[str], out_mbtiles: str) -> bool:
     ]
     return run_command(cmd, "Combine LOD MBTiles -> yearly tileset")
 
-def generate_year_tiles(processed_dir: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
-    """Generate a single MBTiles for a given year by combining all LODs.
+def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
+    """Generate a single MBTiles for a given year by computing LODs and combining them.
 
-    Returns the path to the yearly MBTiles on success, or None on failure.
+    Tiles-only: computes LODs in-memory (no NDJSON), writes temporary GeoJSONL per LOD,
+    builds per-LOD MBTiles with tippecanoe, and combines into a single yearly MBTiles.
     """
-    year_map = find_year_lod_files(processed_dir).get(year, {})
-    if not year_map:
-        print(f"  ✗ No processed NDJSON found for year {year}")
-        return None
 
     tiles_dir_path = pathlib.Path(tiles_dir)
     tiles_dir_path.mkdir(parents=True, exist_ok=True)
@@ -311,24 +307,26 @@ def generate_year_tiles(processed_dir: str, tiles_dir: str, year: int, force: bo
         print(f"  ↪ Skipping year {year}: {final_path.name} already exists (use --force to overwrite)")
         return str(final_path)
 
-    # Generate per-LOD tiles
-    tmp_files: List[str] = []
+    # Compute LODs for this year
+    result = process_year_with_hierarchical_lods(asc_file, year, str(tiles_dir_path), force=force)
     lod_tiles: List[str] = []
+    tmp_files: List[str] = []
     try:
-        for lod, (minz, maxz) in LOD_ZOOM_RANGES.items():
-            src = year_map.get(lod)
-            if not src:
-                print(f"    ⚠︎ Missing LOD {lod} for year {year} — skipping this LOD")
+        for lod_level, settlements in sorted(
+            result.lod_data.items(), key=lambda x: getattr(x[0], "value", x[0])
+        ):
+            if not settlements:
                 continue
-            tmp = gunzip_to_temp(src)
-            tmp_files.append(tmp)
-            lod_out = tiles_dir_path / f"humans_{year}_lod_{lod}.mbtiles"
-            if lod_out.exists() and force:
-                lod_out.unlink()
-            ok = generate_mbtiles_for_lod(tmp, str(lod_out), lod, minz, maxz)
+            # Write temp GeoJSONL for this LOD
+            tmp_geojsonl = write_geojsonl_temp(settlements)
+            tmp_files.append(tmp_geojsonl)
+            minzoom, maxzoom = LOD_ZOOM_RANGES.get(int(getattr(lod_level, "value", lod_level)), (0, 12))
+            target_lod = int(getattr(lod_level, "value", lod_level))
+            tmp_mb = tempfile.mktemp(suffix=f".lod{target_lod}.mbtiles")
+            ok = generate_mbtiles_for_lod(tmp_geojsonl, tmp_mb, target_lod, minzoom, maxzoom)
             if not ok:
                 return None
-            lod_tiles.append(str(lod_out))
+            lod_tiles.append(tmp_mb)
 
         if not lod_tiles:
             print(f"  ✗ No LOD tiles were generated for {year}")
@@ -361,68 +359,39 @@ def main():
     print("=" * 40)
 
     script_dir = pathlib.Path(__file__).resolve().parent
-    default_processed = str(script_dir.parent / "data" / "processed")
+    default_raw = str(script_dir.parent / "data" / "raw" / "hyde-3.5")
     default_tiles = str(script_dir.parent / "data" / "tiles" / "humans")
 
-    parser = argparse.ArgumentParser(description="Generate MBTiles for Globe-of-Humans")
-    parser.add_argument("--mode", choices=["combined", "per-year"], default="per-year", help="Tile generation mode")
-    parser.add_argument("--processed-dir", default=default_processed, help="Directory with processed outputs")
+    parser = argparse.ArgumentParser(description="Generate MBTiles for Globe-of-Humans (tiles-only)")
+    parser.add_argument("--raw-dir", default=default_raw, help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, help="Output directory for per-year MBTiles")
     parser.add_argument("--years", nargs="*", type=int, help="Specific years to build (default: all found)")
     parser.add_argument("--force", action="store_true", help="Overwrite existing MBTiles")
     args = parser.parse_args()
 
-    processed_dir = args.processed_dir
+    raw_dir = args.raw_dir
 
-    if args.mode == "combined":
-        # Legacy combined mode (expects population_density.geojson/human_dots.geojson)
-        output_file = os.path.join(processed_dir, "globe_humans.mbtiles")
-        pathlib.Path(processed_dir).mkdir(parents=True, exist_ok=True)
-
-        density_file = os.path.join(processed_dir, "population_density.geojson")
-        dots_file = os.path.join(processed_dir, "human_dots.geojson")
-
-        print("Checking input files...")
-        has_density = pathlib.Path(density_file).exists()
-        has_dots = pathlib.Path(dots_file).exists()
-        print(f"  Population density: {'✓' if has_density else '✗'}")
-        print(f"  Human dots: {'✓' if has_dots else '✗'}")
-
-        if not has_density and not has_dots:
-            print("\n✗ No input data found!")
-            print("Run the following first:")
-            print("  python process_hyde.py")
-            print("  python process_cities.py")
-            return
-
-        success = create_simple_combined_tiles(processed_dir, output_file)
-        if success:
-            verify_tiles(output_file)
-            create_metadata_json(processed_dir)
-            print(f"\n✓ Vector tiles generated: {output_file}")
-            print("\nNext steps:")
-            print("1. Copy tiles to frontend: cp data/processed/globe_humans.mbtiles humans-globe/public/")
-            print("2. Start the Next.js development server")
-            print("3. Test the visualization!")
-        else:
-            print("\n✗ Tile generation failed")
-            print("Make sure tippecanoe is installed: brew install tippecanoe")
+    # Tiles-only per-year mode
+    hyde_map = find_hyde_files(raw_dir)
+    if not hyde_map:
+        print("✗ No HYDE ASC files found. Please download data first (see process_hyde.py).")
         return
 
-    # Per-year mode
-    year_map = find_year_lod_files(processed_dir)
-    if not year_map:
-        print("✗ No processed NDJSON.gz found. Run process_hyde.py first.")
-        return
-
-    target_years = args.years if args.years else sorted(year_map.keys())
+    target_years = args.years if args.years else sorted(hyde_map.keys())
+    missing = [y for y in (args.years or []) if y not in hyde_map]
+    if missing:
+        print(f"⚠️  Warning: requested years not found in raw data: {', '.join(map(str, missing))}")
     print(f"Found {len(target_years)} years to build: {', '.join(map(str, target_years))}")
     pathlib.Path(args.tiles_dir).mkdir(parents=True, exist_ok=True)
 
     built = 0
     for y in target_years:
         print(f"→ Building tiles for year {y}...")
-        out = generate_year_tiles(processed_dir, args.tiles_dir, y, force=args.force)
+        asc_file = hyde_map.get(y)
+        if not asc_file:
+            print(f"  ✗ Skipping year {y}: ASC file not found in {raw_dir}")
+            continue
+        out = generate_year_tiles(asc_file, args.tiles_dir, y, force=args.force)
         if out:
             built += 1
 

@@ -113,7 +113,8 @@ export function createHumanTilesLayer(
   onClick?: (info: unknown) => void,
   onHover?: (info: unknown) => void,
   extra?: { onTileLoad?: (tile: unknown) => void; onViewportLoad?: (tiles: unknown[]) => void },
-  opacity: number = 1.0
+  opacity: number = 1.0,
+  isInteracting?: boolean
 ) {
   const currentZoom = viewState?.zoom || 1;
   const layerId = `human-tiles-${year}-lod${lodLevel}-${radiusStrategy.getName()}`;
@@ -131,9 +132,12 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    data: `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
+    // During interactions, use a non-existent URL to prevent tile requests
+    data: isInteracting ? `/api/tiles/frozen/{z}/{x}/{y}.pbf` : `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
+    // Disable auto-highlighting during interactions to further reduce requests
+    autoHighlight: isInteracting ? false : false,
     // Use GeoJSON objects for simpler accessor logic
     binary: false,
     // Align with loaders.gl v4 API to avoid deprecated `options.gis` warnings

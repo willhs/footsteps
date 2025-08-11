@@ -38,7 +38,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   
   // Use the viewState hook for gesture tracking and management
-  const { viewState: hookViewState, onViewStateChange } = useGlobeViewState();
+  const { viewState: hookViewState, onViewStateChange, isZooming, isPanning } = useGlobeViewState();
   
   // View states for different modes - initialize from hook
   const [viewState2D, setViewState2D] = useState(() => ({
@@ -493,10 +493,34 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     return getLODLevel(roundedZoom);
   }, [roundedZoom]);
   
-  // Throttled zoom for layer dependencies - reduces recreation frequency
-  const throttledZoom = useMemo(() => {
-    return Math.floor(viewState.zoom * 4) / 4; // 0.25 precision throttling
-  }, [viewState.zoom]);
+  // Debounced zoom for layer dependencies - prevents recreation during interactions
+  const [debouncedZoom, setDebouncedZoom] = useState(viewState.zoom);
+  const zoomDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Clear any existing timeout
+    if (zoomDebounceRef.current) {
+      clearTimeout(zoomDebounceRef.current);
+    }
+    
+    // If actively zooming or panning, delay the update longer
+    const delay = (isZooming || isPanning) ? 1000 : 200;
+    
+    zoomDebounceRef.current = setTimeout(() => {
+      // Apply more aggressive throttling: 0.5 zoom precision for stability
+      const newThrottledZoom = Math.floor(viewState.zoom * 2) / 2;
+      setDebouncedZoom(newThrottledZoom);
+    }, delay);
+    
+    return () => {
+      if (zoomDebounceRef.current) {
+        clearTimeout(zoomDebounceRef.current);
+      }
+    };
+  }, [viewState.zoom, isZooming, isPanning]);
+  
+  // Legacy throttled zoom reference (kept for backwards compatibility in comments)
+  const throttledZoom = debouncedZoom;
   
   // Create stable viewState with throttled zoom for layer creation
   const layerViewState = useMemo(() => ({
@@ -554,14 +578,21 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   }, [year, stableLODLevel, throttledZoom, is3DMode, isTransitioning, layerViewState]);
   
   
-  // Enhanced layer creation with opacity support for smooth transitions
+  // Enhanced layer creation with opacity support for smooth transitions and interaction debouncing
   const createLayerWithOpacity = useCallback((opacity: number, lodLevel: number, isCurrentLayer: boolean = true) => {
     const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
+    
+    // During active zoom/pan interactions, freeze the layer's data URL to prevent new tile requests
+    const stableViewState = (isZooming || isPanning) ? {
+      ...layerViewState,
+      // Freeze zoom to prevent tile level changes during interaction
+      zoom: Math.floor(layerViewState.zoom)
+    } : layerViewState;
     
     return createHumanTilesLayer(
       year,
       lodLevel,
-      layerViewState,
+      stableViewState,
       radiusStrategy,
       // onClick
       (raw: unknown) => {
@@ -656,14 +687,39 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           }
         }
       } : {},
-      opacity
+      opacity,
+      isZooming || isPanning // Freeze tile loading during interactions
     );
-  }, [layerViewState, year, is3DMode, isTransitioning, startCrossFadeTransition]);
+  }, [layerViewState, year, is3DMode, isTransitioning, startCrossFadeTransition, isZooming, isPanning]);
   
-  // Current layer with dynamic opacity
-  const humanTilesLayer = useMemo(() => {
-    return createLayerWithOpacity(currentLayerOpacity, stableLODLevel, true);
-  }, [createLayerWithOpacity, currentLayerOpacity, stableLODLevel]);
+  // Debounced layer that prevents updates during rapid interactions
+  const [stableLayer, setStableLayer] = useState<unknown>(null);
+  const layerUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Clear any existing timeout
+    if (layerUpdateTimeoutRef.current) {
+      clearTimeout(layerUpdateTimeoutRef.current);
+    }
+    
+    // If actively interacting, delay the layer update significantly
+    const delay = (isZooming || isPanning) ? 1500 : 300;
+    
+    layerUpdateTimeoutRef.current = setTimeout(() => {
+      const newLayer = createLayerWithOpacity(currentLayerOpacity, stableLODLevel, true);
+      setStableLayer(newLayer);
+    }, delay);
+    
+    return () => {
+      if (layerUpdateTimeoutRef.current) {
+        clearTimeout(layerUpdateTimeoutRef.current);
+      }
+    };
+  }, [createLayerWithOpacity, currentLayerOpacity, stableLODLevel, isZooming, isPanning]);
+  
+  // Use stable layer during interactions, fresh layer when settled
+  const humanTilesLayer = (isZooming || isPanning) ? stableLayer : 
+    (stableLayer || createLayerWithOpacity(currentLayerOpacity, stableLODLevel, true));
   
   // Previous layer (maintained during transitions)
   const previousHumanTilesLayer = useMemo(() => {
@@ -679,11 +735,17 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   
   // Previous-layer capture handled in LOD-change effect above
   
-  // Cleanup transition timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
+      }
+      if (zoomDebounceRef.current) {
+        clearTimeout(zoomDebounceRef.current);
+      }
+      if (layerUpdateTimeoutRef.current) {
+        clearTimeout(layerUpdateTimeoutRef.current);
       }
     };
   }, []);

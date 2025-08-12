@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, memo, useCallback, useRef } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import { createBasemapLayer, createHumanTilesLayer, createStaticTerrainLayer, radiusStrategies } from '@/components/footsteps/layers/layers';
-import { WebMercatorViewport, _GlobeViewport as GlobeViewport } from '@deck.gl/core';
+import { WebMercatorViewport, _GlobeViewport as GlobeViewport, type Layer, type LayersList } from '@deck.gl/core';
 import HumanDotsOverlay from '@/components/footsteps/overlays/HumanDotsOverlay';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
@@ -504,7 +504,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     }
     
     // If actively zooming or panning, delay the update longer
-    const delay = (isZooming || isPanning) ? 1000 : 200;
+    const delay = (isZooming || isPanning) ? 350 : 150;
     
     zoomDebounceRef.current = setTimeout(() => {
       // Apply more aggressive throttling: 0.5 zoom precision for stability
@@ -582,13 +582,9 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const createLayerWithOpacity = useCallback((opacity: number, lodLevel: number, isCurrentLayer: boolean = true) => {
     const radiusStrategy = is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive;
     
-    // During active zoom/pan interactions, freeze the layer's data URL to prevent new tile requests
-    const stableViewState = (isZooming || isPanning) ? {
-      ...layerViewState,
-      // Freeze zoom to prevent tile level changes during interaction
-      zoom: Math.floor(layerViewState.zoom)
-    } : layerViewState;
-    
+    // Use live view state; allow tiles to load during interaction for responsiveness
+    const stableViewState = layerViewState;
+     
     return createHumanTilesLayer(
       year,
       lodLevel,
@@ -685,10 +681,13 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           } catch {
             setTileLoading(false);
           }
+        },
+        onTileError: (err: unknown) => {
+          // eslint-disable-next-line no-console
+          console.warn('[human-tiles] tile error', err);
         }
       } : {},
-      opacity,
-      isZooming || isPanning // Freeze tile loading during interactions
+      opacity
     );
   }, [layerViewState, year, is3DMode, isTransitioning, startCrossFadeTransition, isZooming, isPanning]);
   
@@ -703,7 +702,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     }
     
     // If actively interacting, delay the layer update significantly
-    const delay = (isZooming || isPanning) ? 1500 : 300;
+    const delay = (isZooming || isPanning) ? 450 : 200;
     
     layerUpdateTimeoutRef.current = setTimeout(() => {
       const newLayer = createLayerWithOpacity(currentLayerOpacity, stableLODLevel, true);
@@ -788,22 +787,22 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     }
   };
 
-  const layers = useMemo(() => {
+  const layers: LayersList = useMemo(() => {
     // Layer ordering: terrain -> basemap -> [previous settlement points] -> current settlement points (front)
-    const baseLayers = [terrainLayer, basemapLayer].filter(Boolean);
-    const humanLayers = [];
+    const baseLayers: Layer[] = [terrainLayer, basemapLayer].filter(Boolean) as Layer[];
+    const humanLayers: Layer[] = [];
     
     // Add previous layer first (will be behind current layer)
     if (previousHumanTilesLayer && isTransitioning) {
-      humanLayers.push(previousHumanTilesLayer);
+      humanLayers.push(previousHumanTilesLayer as Layer);
     }
     
     // Add current layer on top
     if (humanTilesLayer) {
-      humanLayers.push(humanTilesLayer);
+      humanLayers.push(humanTilesLayer as Layer);
     }
     
-    return [...baseLayers, ...humanLayers];
+    return [...baseLayers, ...humanLayers] as LayersList;
   }, [terrainLayer, basemapLayer, humanTilesLayer, previousHumanTilesLayer, isTransitioning]);
   
   return (

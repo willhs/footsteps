@@ -681,10 +681,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           } catch {
             setTileLoading(false);
           }
-        },
-        onTileError: (err: unknown) => {
-          // eslint-disable-next-line no-console
-          console.warn('[human-tiles] tile error', err);
         }
       } : {},
       opacity

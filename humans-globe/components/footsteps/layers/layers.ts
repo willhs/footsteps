@@ -112,9 +112,8 @@ export function createHumanTilesLayer(
   radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
   onClick?: (info: unknown) => void,
   onHover?: (info: unknown) => void,
-  extra?: { onTileLoad?: (tile: unknown) => void; onViewportLoad?: (tiles: unknown[]) => void },
-  opacity: number = 1.0,
-  isInteracting?: boolean
+  extra?: { onTileLoad?: (tile: unknown) => void; onViewportLoad?: (tiles: unknown[]) => void; onTileError?: (error: unknown) => void },
+  opacity: number = 1.0
 ) {
   const currentZoom = viewState?.zoom || 1;
   const layerId = `human-tiles-${year}-lod${lodLevel}-${radiusStrategy.getName()}`;
@@ -132,12 +131,10 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    // During interactions, use a non-existent URL to prevent tile requests
-    data: isInteracting ? `/api/tiles/frozen/{z}/{x}/{y}.pbf` : `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
+    data: `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
-    // Disable auto-highlighting during interactions to further reduce requests
-    autoHighlight: isInteracting ? false : false,
+    autoHighlight: false,
     // Use GeoJSON objects for simpler accessor logic
     binary: false,
     // Align with loaders.gl v4 API to avoid deprecated `options.gis` warnings
@@ -145,7 +142,10 @@ export function createHumanTilesLayer(
     loadOptions: {
       mvt: {
         coordinates: 'wgs84',
-        shape: 'geojson'
+        shape: 'geojson',
+        // Only parse the LOD layer we asked for to avoid mixing layers when
+        // serving from a combined yearly MBTiles.
+        layers: [`humans_lod_${lodLevel}`]
       }
     },
     pickable: true,
@@ -154,6 +154,7 @@ export function createHumanTilesLayer(
     onHover: onHover || (() => {}),
     onTileLoad: extra?.onTileLoad,
     onViewportLoad: extra?.onViewportLoad,
+    onTileError: extra?.onTileError,
     // Styling forwarded to GeoJsonLayer sublayers
     pointRadiusUnits: 'meters',
     getPointRadius: (f: unknown) => {

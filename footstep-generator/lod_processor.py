@@ -390,11 +390,12 @@ class LODProcessor:
             Appropriate LOD level for the zoom
         """
         # 4-level mapping: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
+        # Adjusted thresholds to delay LOD 3 transition and fix zoom 6+ discontinuity
         if zoom_level < 4:
             return LODLevel.REGIONAL
         elif zoom_level < 5:
             return LODLevel.SUBREGIONAL
-        elif zoom_level < 6:
+        elif zoom_level < 7:  # Extended LOD 2 range from <6 to <7
             return LODLevel.LOCAL
         else:
             return LODLevel.DETAILED

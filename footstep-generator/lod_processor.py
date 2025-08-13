@@ -200,13 +200,18 @@ class LODProcessor:
         """Create dots using deterministic positioning for settlement continuity."""
         # Calculate number of dots needed
         if settlement_type == "rural":
+            # One dot per people_per_dot for rural areas
             num_dots = max(1, int(cell_population / people_per_dot))
         elif settlement_type == "town":
-            effective_people_per_dot = people_per_dot * 5  # 5× more people per dot
-            num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))
+            # Increase dot density for towns at detailed LOD: fewer people per dot and higher cap
+            # This yields denser, more realistic point clouds at z6+ while keeping tiles manageable.
+            effective_people_per_dot = max(people_per_dot * 2, 50)
+            num_dots = max(1, min(25, int(cell_population / effective_people_per_dot)))
         else:  # city
-            effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
-            num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
+            # Increase dot density for cities at detailed LOD
+            # Use a moderate multiplier and a higher cap to avoid excessive thinning.
+            effective_people_per_dot = max(people_per_dot * 4, 100)
+            num_dots = max(1, min(75, int(cell_population / effective_people_per_dot)))
 
         population_per_dot = cell_population / num_dots
 

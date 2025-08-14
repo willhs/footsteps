@@ -200,11 +200,19 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
             tmp_files.append(tmp_geojsonl)
             minzoom, maxzoom = LOD_ZOOM_RANGES.get(int(getattr(lod_level, "value", lod_level)), (0, 12))
             target_lod = int(getattr(lod_level, "value", lod_level))
-            tmp_mb = tempfile.mktemp(suffix=f".lod{target_lod}.mbtiles")
-            ok = generate_mbtiles_for_lod(tmp_geojsonl, tmp_mb, target_lod, minzoom, maxzoom)
-            if not ok:
-                return None
-            lod_tiles.append(tmp_mb)
+
+            # Persist per-LOD MBTiles to tiles_dir so the server can serve
+            # /api/tiles/{year}/{lod}/... directly from humans_{year}_lod_{lod}.mbtiles
+            lod_out = tiles_dir_path / f"humans_{year}_lod_{target_lod}.mbtiles"
+            if lod_out.exists() and force:
+                lod_out.unlink()
+            if not lod_out.exists() or force:
+                ok = generate_mbtiles_for_lod(tmp_geojsonl, str(lod_out), target_lod, minzoom, maxzoom)
+                if not ok:
+                    return None
+            else:
+                print(f"  ↪ Skipping LOD {target_lod}: {lod_out.name} already exists (use --force to overwrite)")
+            lod_tiles.append(str(lod_out))
 
         if not lod_tiles:
             print(f"  ✗ No LOD tiles were generated for {year}")
@@ -243,7 +251,15 @@ def main():
     parser = argparse.ArgumentParser(description="Generate MBTiles for Globe-of-Humans (tiles-only)")
     parser.add_argument("--raw-dir", default=default_raw, help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, help="Output directory for per-year MBTiles")
-    parser.add_argument("--years", nargs="*", type=int, help="Specific years to build (default: all found)")
+    parser.add_argument(
+        "--years",
+        nargs="+",
+        type=int,
+        help=(
+            "One or more years to build (supports negative for BCE, e.g., -1000). "
+            "Omit this flag to build all found years."
+        ),
+    )
     parser.add_argument("--force", action="store_true", help="Overwrite existing MBTiles")
     args = parser.parse_args()
 

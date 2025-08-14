@@ -90,6 +90,12 @@ The application implements a four‑tier LOD system for performance at different
 - **Test**: `pnpm test`
 - **Lint**: `pnpm lint`
 
+### Data Deployment Commands
+- **Full local data deployment**: `cd iac/scripts && ./deploy-data-local.sh`
+- **Deploy data via GitHub Actions**: Go to Actions → "Deploy Data to GCS" → Run workflow
+- **Upload data only**: `cd iac/scripts && ./upload-data.sh`
+- **Preview data upload**: `cd iac/scripts && ./upload-data.sh --dry-run`
+
 ## Testing
 ### Data Processing Pipeline Tests
 All tests are located in `footstep-generator/tests/` directory:
@@ -108,3 +114,72 @@ All tests are located in `footstep-generator/tests/` directory:
 
 ### Manual testing on the front-end
 Use your playwright tool. The app should be running at e.g. port 4444. Ask the user for help if needed
+
+## Data Deployment Workflows
+
+The project supports two main workflows for deploying newly generated data to production:
+
+### 1. GitHub Actions Workflow (Recommended for Production)
+
+**Trigger**: Manual dispatch via GitHub Actions UI or API
+
+**Usage**:
+1. Go to GitHub Actions → "Deploy Data to GCS" 
+2. Click "Run workflow"
+3. Configure options:
+   - **Dry run**: Preview upload without actually uploading
+   - **Force upload**: Re-upload all files (skip existing file checks)
+   - **Redeploy app**: Trigger app redeployment after data upload
+
+**Benefits**:
+- ✅ Uses secure GitHub-managed authentication
+- ✅ Full audit trail and logging
+- ✅ Can trigger app redeployment automatically
+- ✅ Supports dry-run testing
+
+### 2. Local CLI Workflow (Fast Development)
+
+**Usage**: `cd iac/scripts && ./deploy-data-local.sh [options]`
+
+**Key Options**:
+- `--skip-processing`: Only upload existing files (don't regenerate data)
+- `--skip-upload`: Only process data locally (don't upload)
+- `--dry-run`: Preview what would be uploaded
+- `--force`: Force re-upload all files
+- `--deploy`: Trigger app redeployment after upload
+- `--bucket NAME`: Upload to custom bucket
+
+**Example Workflows**:
+```bash
+# Full workflow: process + upload
+./deploy-data-local.sh
+
+# Quick upload of existing data
+./deploy-data-local.sh --skip-processing
+
+# Test run without actual upload
+./deploy-data-local.sh --dry-run
+
+# Force complete refresh and redeploy
+./deploy-data-local.sh --force --deploy
+```
+
+**Benefits**:
+- ✅ Fast iteration during development
+- ✅ Full control over each step
+- ✅ Works offline for data processing
+- ✅ Integrated with existing data pipeline
+
+### Data Pipeline Overview
+
+1. **Generate Data**: `cd footstep-generator && python process_hyde.py && python make_tiles.py`
+2. **Upload to GCS**: MBTiles files → `gs://footsteps-earth-tiles/`
+3. **Deploy App**: Cloud Run pulls tiles from GCS bucket via API routes
+4. **Verify**: Check tiles API endpoint and frontend rendering
+
+### Prerequisites
+
+- **Python environment**: Set up in `footstep-generator/` with required dependencies
+- **HYDE data**: Downloaded in `data/raw/hyde-3.5/` 
+- **GCS authentication**: Either via `gcloud auth login` (local) or GitHub OIDC (Actions)
+- **Generated tiles**: MBTiles files in `data/tiles/humans/` directory

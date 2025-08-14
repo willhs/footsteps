@@ -43,11 +43,17 @@ Time navigation component for scrubbing through history with non-linear scaling 
 
 #### app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts (Tile API)
 Serves Mapbox Vector Tiles (MVT) points from MBTiles:
-- **Per-LOD + Year**: Prefers `humans_{year}_lod_{lod}.mbtiles`, falls back to `humans_{year}.mbtiles`
+- **Single Format**: Uses combined yearly MBTiles `humans_{year}.mbtiles`; `lod` selects the MVT layer
 - **MBTiles Access**: Uses `@mapbox/mbtiles` if available; falls back to `sqlite3` CLI
 - **Configurable Path**: `HUMANS_TILES_DIR` env var (default `../data/tiles/humans`)
 - **Caching**: Strong ETag + long-lived immutable cache headers
 - Legacy `/api/human-dots` endpoint removed
+
+##### Tile Caching (GCS → local)
+- GCS tiles are cached to a stable local path for reuse across requests.
+- Env `TILE_CACHE_DIR` controls the cache root (default: `/tmp/humans-tiles-cache`).
+- Cached files are not deleted per-request; only ephemeral `.download` temps are cleaned up.
+- Response header `X-Tile-Cache` indicates `hit` or `refresh`.
 
 ### Performance Architecture
 
@@ -92,8 +98,8 @@ const delay = isZooming ? 500 : 150; // Longer delays during zoom
 ### Relationship to Data Processing Pipeline
 This frontend consumes tiles produced by the Python pipeline in `../footstep-generator/`:
 - **Input Data**: HYDE 3.5 grids, etc.
-- **Tiling**: `make_tiles.py` generates per-year, per-LOD MBTiles with MVT points and combined yearly MBTiles
-- **Output**: `data/tiles/humans/humans_{year}_lod_{lod}.mbtiles` and `humans_{year}.mbtiles`
+- **Tiling**: `make_tiles.py` generates per-LOD tiles and combines them per-year
+- **Output**: `data/tiles/humans/humans_{year}.mbtiles` (combined yearly, contains LOD layers)
 - **Serving**: Next.js Tile API serves MVT from MBTiles; `HUMANS_TILES_DIR` can override tiles directory
 
 ## Commands

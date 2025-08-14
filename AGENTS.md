@@ -1,39 +1,102 @@
-# Repository Guidelines
+# AGENTS Guide
 
-Concise rules for contributing to Footsteps of Time. Keep diffs minimal, performance high, and tests green.
+Concise, actionable rules for working in this repo. Keep diffs minimal, performance high, and tests green.
 
-## Project Structure & Module Organization
-- `humans-globe/`: Next.js + TypeScript front-end.
-  - `app/`: routes, `globals.css` and layout.
-  - `components/`: React components (e.g., `FootstepsViz.tsx`, `TimeSlider.tsx`).
-  - `public/`: static assets.
-- `footstep-generator/`: Python data pipeline scripts and tests.
-  - `tests/`: pytest suites (`test_*.py`).
-- `data/`: generated artifacts (large, usually git-ignored).
-- `docs/`, `screenshots/`: supplementary docs and UI references.
+## Project Structure
+- `humans-globe/`: Next.js + TypeScript frontend
+  - `app/`: routes, API handlers, `globals.css`, layout
+  - `components/`: React components (viz, overlays, views, hooks)
+  - `lib/`: utilities (e.g., `tilesService.ts`, LOD helpers)
+  - `public/`: static assets
+- `footstep-generator/`: Python pipeline for HYDE → settlements → tiles
+  - `tests/`: pytest suites (`test_*.py`)
+- `data/`: generated artifacts (git-ignored; large)
+  - `raw/`, `processed/`, `tiles/humans/`
+- `docs/`, `screenshots/`: supplementary docs and UI references
 
-## Build, Test, and Development Commands
-- Frontend dev: `cd humans-globe && pnpm i && pnpm dev` (starts Next on port 4444).
-- Frontend build: `pnpm build && pnpm start` (production build/serve).
-- Frontend lint/format: `pnpm lint` • `pnpm format`.
-- Frontend tests: `pnpm test` (Jest + Testing Library).
-- Python setup: from repo root, `poetry install`.
-- Python tests: `poetry run pytest footstep-generator`.
+## Prerequisites
+- Node.js 20+ and `pnpm` (project uses `pnpm@10.x`)
+- Python 3.11 and `poetry`
+- For tiles: `tippecanoe` and `tile-join` (and `sqlite3` CLI) installed locally
+  - macOS: `brew install tippecanoe sqlite`
 
-## Coding Style & Naming Conventions
-- TypeScript: strict mode, functional components, React hooks; imports via `@/` alias; Tailwind in `globals.css` where appropriate.
-- Python: PEP 8/257, type hints, pure functions; formatting via Black/Isort; mypy for typing.
-- Names: descriptive, no abbreviations; files `PascalCase.tsx` for React components, `snake_case.py` for Python modules.
+## Quick Start
+- Frontend dev (port 4444):
+  - `cd humans-globe && pnpm i && pnpm dev`
+  - Open `http://localhost:4444`
+- Python env:
+  - From repo root: `poetry install`
+  - Run tests: `poetry run pytest footstep-generator -q`
+
+## Common Commands
+- Frontend
+  - Install: `cd humans-globe && pnpm i`
+  - Dev: `pnpm dev` (port 4444)
+  - Build/serve: `pnpm build && pnpm start`
+  - Lint: `pnpm lint`
+  - Format: `pnpm format`
+  - Tests: `pnpm test` (add `-- --watch` for watch mode)
+- Python (from repo root)
+  - Install deps: `poetry install`
+  - Tests: `poetry run pytest footstep-generator -q`
+  - Type-check: `poetry run mypy footstep-generator`
+  - Lint: `poetry run flake8 footstep-generator`
+  - Format: `poetry run isort footstep-generator && poetry run black footstep-generator`
+  - Run processors:
+    - HYDE → LOD compute: `poetry run python footstep-generator/process_hyde.py [--force]`
+    - Build tiles: `poetry run python footstep-generator/make_tiles.py --years 0 1000 1500 --force`
+    - Download data (if available): `poetry run python footstep-generator/fetch_data.py`
+
+## Data + Tiles Workflow
+1) Place HYDE ASCII grids (`popd_*.asc`) under `footstep-generator/data/raw/hyde-3.5/`
+2) Compute LODs and/or build tiles:
+   - All years found: `poetry run python footstep-generator/make_tiles.py`
+   - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020`
+   - Output goes to `data/tiles/humans/` (override with `--tiles-dir`)
+3) Serve tiles to the frontend during dev:
+   - `export HUMANS_TILES_DIR=$(pwd)/data/tiles/humans`
+   - `cd humans-globe && HUMANS_TILES_DIR=$HUMANS_TILES_DIR pnpm dev`
+   - Tiles API: `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
+
+Notes
+- LOD levels: `0` (regional), `1` (subregional), `2` (local), `3` (detailed)
+- `make_tiles.py` uses population-preserving LODs; temporary GeoJSONL is cleaned up automatically
+- If `sqlite3`/`@mapbox/mbtiles` is unavailable, the API route falls back where possible
+
+## Coding Style
+- TypeScript: strict mode, functional components, hooks; imports via `@/` alias; Tailwind in `globals.css`
+- Python: PEP 8/257, type hints, pure functions; Black/Isort for formatting; mypy for typing
+- Naming: `PascalCase.tsx` for React components; `snake_case.py` for Python modules
 
 ## Testing Guidelines
-- Frontend: co-locate `*.test.tsx` near components; test interactions and rendering; avoid snapshot churn.
-- Python: place `test_*.py` in `footstep-generator/tests`; test pure functions and data transforms.
-- Add tests for all non-trivial logic; prefer fast, deterministic tests.
+- Frontend: co-locate `*.test.tsx` near components; test interactions and rendering; avoid brittle snapshots
+- Python: place `test_*.py` in `footstep-generator/tests`; test pure functions and data transforms
+- Add tests for all non-trivial logic; keep tests fast and deterministic
 
-## Commit & Pull Request Guidelines
-- Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `chore:`). Small, focused changes.
-- PRs: clear description, motivation, and scope; link issues; attach screenshots/GIFs for UI; ensure `pnpm lint && pnpm test` and `poetry run pytest` pass.
+## Performance Notes
+- `components/footsteps/FootstepsViz.tsx`: target 60+ fps; batch GPU buffers; avoid per-frame allocations; prefer memoization
+- `components/footsteps/TimeSlider.tsx` (if present): <16 ms drag latency; keep handlers light; no heavy work in render
+- Frontend uses deck.gl; keep layer props stable; avoid unnecessary layer recreation
 
-## Notes for Performance-Critical Code
-- `humans-globe/components/FootstepsViz.tsx`: keep >60 fps; batch GPU buffers, avoid per-frame allocations.
-- `humans-globe/components/TimeSlider.tsx`: maintain <16 ms drag latency; no heavy work in render/handlers.
+## PR Checklist
+- Lint/format clean: `pnpm lint && pnpm format && poetry run black footstep-generator && poetry run isort footstep-generator`
+- Tests pass: `pnpm test` and `poetry run pytest footstep-generator`
+- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `chore:`
+- Include screenshots/GIFs for UI changes
+
+## Troubleshooting
+- No tiles in frontend:
+  - Ensure MBTiles exist under `data/tiles/humans`
+  - Export `HUMANS_TILES_DIR` before `pnpm dev`
+  - Verify API: `curl -I http://localhost:4444/api/tiles/1500/2/5/10/12.pbf`
+- `tippecanoe`/`tile-join` missing:
+  - Install via Homebrew: `brew install tippecanoe`
+- `sqlite3` CLI missing or MBTiles access fails:
+  - Install `sqlite` via package manager; API can also use `@mapbox/mbtiles` if available
+- Python geospatial deps heavy to install:
+  - Use Python 3.11 and Poetry; allow time for `geopandas` stack; consider a venv with cached wheels
+
+## House Rules
+- Keep diffs minimal and focused; avoid drive-by refactors
+- Preserve performance characteristics; profile before/after when touching hot paths
+- Prefer small, reviewable PRs with clear scope

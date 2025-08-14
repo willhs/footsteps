@@ -87,11 +87,7 @@ if ! command -v gcloud &> /dev/null; then
     exit 1
 fi
 
-# Check if gsutil is available
-if ! command -v gsutil &> /dev/null; then
-    echo "❌ Error: gsutil not found. Please install Google Cloud SDK"
-    exit 1
-fi
+# Note: Using gcloud storage commands instead of gsutil for Python 3.12+ compatibility
 
 # Set project
 echo "📋 Setting project to $PROJECT_ID"
@@ -99,7 +95,7 @@ gcloud config set project $PROJECT_ID
 
 # Check if bucket exists
 echo "🔍 Checking if bucket exists..."
-if ! gsutil ls -b gs://$BUCKET_NAME &> /dev/null; then
+if ! gcloud storage ls gs://$BUCKET_NAME &> /dev/null; then
     echo "❌ Error: Bucket gs://$BUCKET_NAME does not exist"
     echo "💡 Run 'terraform apply' first to create the bucket"
     exit 1
@@ -140,7 +136,7 @@ fi
 # Check for existing files (unless force mode)
 if [ "$FORCE_UPLOAD" = false ]; then
     echo "🔍 Checking for existing files..."
-    EXISTING_COUNT=$(gsutil ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
+    EXISTING_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
     
     if [ "$EXISTING_COUNT" -gt 0 ]; then
         echo "⚠️  Found $EXISTING_COUNT existing files in bucket"
@@ -152,15 +148,16 @@ fi
 echo "⬆️ Starting upload..."
 echo "📊 Progress will be shown below:"
 
-# Build gsutil command
-GSUTIL_CMD="gsutil -m rsync"
-if [ "$FORCE_UPLOAD" = false ]; then
-    GSUTIL_CMD="$GSUTIL_CMD -x '.*\.tmp$'"  # Exclude temp files
+# Build gcloud storage command
+GCLOUD_CMD="gcloud storage rsync --recursive"
+if [ "$FORCE_UPLOAD" = true ]; then
+    GCLOUD_CMD="$GCLOUD_CMD --delete-unmatched-destination-objects"
 fi
-GSUTIL_CMD="$GSUTIL_CMD -r '$DATA_DIR/' 'gs://$BUCKET_NAME/'"
+GCLOUD_CMD="$GCLOUD_CMD '$DATA_DIR/' 'gs://$BUCKET_NAME/'"
 
 # Execute upload with error handling
-if eval $GSUTIL_CMD; then
+echo "🔄 Running: $GCLOUD_CMD"
+if eval $GCLOUD_CMD; then
     echo "✅ File upload completed"
 else
     echo "❌ Upload failed. Check your authentication and network connection."
@@ -169,7 +166,7 @@ fi
 
 # Verify upload
 echo "🔍 Verifying upload integrity..."
-REMOTE_COUNT=$(gsutil ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
+REMOTE_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
 echo "📊 Local files: $FILE_COUNT, Remote files: $REMOTE_COUNT"
 
 if [ "$FILE_COUNT" -eq "$REMOTE_COUNT" ] && [ "$REMOTE_COUNT" -gt 0 ]; then
@@ -184,11 +181,13 @@ fi
 
 # Set public read permissions with error handling
 echo "🔓 Setting public read permissions..."
-if gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/*" 2>/dev/null; then
+# Note: gcloud storage doesn't have direct ACL commands, using gsutil for this specific task
+if command -v gsutil &> /dev/null && gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/*" 2>/dev/null; then
     echo "✅ Permissions set successfully"
 else
-    echo "⚠️  Warning: Could not set public permissions. Files may not be publicly accessible."
-    echo "💡 You may need additional IAM permissions or can set this manually in the console"
+    echo "⚠️  Warning: Could not set public permissions (gsutil unavailable or failed)."
+    echo "💡 Files should still be accessible via authenticated requests"
+    echo "🔧 To set public access manually: gcloud storage objects update gs://$BUCKET_NAME/* --add-acl-grant=entity=AllUsers,role=READER"
 fi
 
 # Final summary

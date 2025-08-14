@@ -11,7 +11,6 @@ import os
 import pathlib
 from typing import Dict, List, Optional, Tuple
 
-import geopandas as gpd
 import numpy as np
 from lod_processor import LODProcessor
 
@@ -29,7 +28,7 @@ from models import (
     SettlementContinuityConfig,
 )
 from pyproj import Geod
-from shapely.geometry import Point
+from typing import Iterable
 
 # Models and processors are now imported from separate modules
 
@@ -52,7 +51,7 @@ TARGET_YEARS: List[int] = []
 
 def ascii_grid_to_dots(
     asc_file: str, year: int, people_per_dot: int = 100
-) -> gpd.GeoDataFrame:
+) -> List[dict]:
     """
     Convert a HYDE ASC file to settlement points for consistent processing.
 
@@ -62,7 +61,7 @@ def ascii_grid_to_dots(
         people_per_dot: Number of people each dot represents
 
     Returns:
-        GeoDataFrame with point features (settlement points)
+        List of dicts with fields: lon, lat, population, year, type
     """
     print(f"  Processing year {year}...")
 
@@ -133,8 +132,7 @@ def ascii_grid_to_dots(
         valid_i = valid_indices[0]
         valid_j = valid_indices[1]
 
-        dots = []
-        dot_populations = []
+        dots: List[dict] = []
         total_people = 0
 
         # Create LOD processor instance once for reuse across all cells
@@ -154,12 +152,14 @@ def ascii_grid_to_dots(
             lat = yllcorner + (nrows - i - 0.5) * cellsize
             lon = lons[j]
 
-            # Skip Arctic and Antarctic regions where human populations would be minimal/impossible
-            if lat > 70 or lat < -60:  # Exclude extreme latitudes
+            # Skip extreme polar regions; keep more of high-lat Europe
+            if lat > 75 or lat < -70:
                 continue
 
             # Apply density threshold to filter noise in HYDE data
-            if density < 0.01:  # Less than 0.01 people per km² is likely noise
+            # Use a lower threshold for BCE years to retain sparse populations
+            min_density = 0.001 if year <= 0 else 0.01
+            if density < min_density:
                 continue
 
             # Calculate total population in this cell using geodesic area
@@ -182,8 +182,9 @@ def ascii_grid_to_dots(
             total_people += cell_population
 
             # Density-aware dot creation to handle high-concentration areas
+            # Use LOD 3 (detailed) logic for base settlements to get maximum granularity
             dots_created = lod_processor.create_density_aware_dots(
-                cell_population, lat, lon, cellsize, people_per_dot
+                cell_population, lat, lon, cellsize, people_per_dot, lod_level=3
             )
 
             for dot_info in dots_created:
@@ -196,72 +197,52 @@ def ascii_grid_to_dots(
                     )
                     continue
 
-                # Create point geometry
-                point = Point(dot_lon, dot_lat)
+                dots.append(
+                    {
+                        "lon": float(dot_lon),
+                        "lat": float(dot_lat),
+                        "population": float(dot_population),
+                        "year": int(year),
+                        "type": "settlement",
+                    }
+                )
 
-                dots.append(point)
-                dot_populations.append(dot_population)
-
-        # Create GeoDataFrame
+        # Return list of points
         if dots:
-            gdf = gpd.GeoDataFrame(
-                {
-                    "population": dot_populations,
-                    "year": year,
-                    "type": "settlement",
-                    "geometry": dots,
-                },
-                crs="EPSG:4326",
-            )
-
             # Add geographic validation by showing sample coordinates
-            if len(gdf) > 0:
-                sample_coords = [
-                    (p.x, p.y) for p in gdf.geometry.iloc[: min(5, len(gdf))]
-                ]
-                print(f"    Sample coordinates: {sample_coords}")
+            sample = dots[: min(5, len(dots))]
+            sample_coords = [(d["lon"], d["lat"]) for d in sample]
+            print(f"    Sample coordinates: {sample_coords}")
 
-                # Check for major regions (approximate bounding boxes)
-                usa_count = len(
-                    gdf[
-                        (gdf.geometry.x >= -125)
-                        & (gdf.geometry.x <= -66)
-                        & (gdf.geometry.y >= 20)
-                        & (gdf.geometry.y <= 49)
-                    ]
-                )
-                europe_count = len(
-                    gdf[
-                        (gdf.geometry.x >= -10)
-                        & (gdf.geometry.x <= 40)
-                        & (gdf.geometry.y >= 35)
-                        & (gdf.geometry.y <= 71)
-                    ]
-                )
-                china_count = len(
-                    gdf[
-                        (gdf.geometry.x >= 73)
-                        & (gdf.geometry.x <= 135)
-                        & (gdf.geometry.y >= 18)
-                        & (gdf.geometry.y <= 54)
-                    ]
-                )
+            # Check for major regions (approximate bounding boxes)
+            def count_where(pred: Iterable[bool]) -> int:
+                return sum(1 for v in pred if v)
 
-                print(
-                    f"    Regional distribution: USA: {usa_count}, Europe: {europe_count}, China: {china_count}"
-                )
+            usa_count = count_where(
+                (-125 <= d["lon"] <= -66) and (20 <= d["lat"] <= 49) for d in dots
+            )
+            europe_count = count_where(
+                (-10 <= d["lon"] <= 40) and (35 <= d["lat"] <= 71) for d in dots
+            )
+            china_count = count_where(
+                (73 <= d["lon"] <= 135) and (18 <= d["lat"] <= 54) for d in dots
+            )
 
             print(
-                f"    Created {len(gdf)} settlement points for year {year} ({total_people:,.0f} people)"
+                f"    Regional distribution: USA: {usa_count}, Europe: {europe_count}, China: {china_count}"
             )
-            return gdf
+
+            print(
+                f"    Created {len(dots)} settlement points for year {year} ({total_people:,.0f} people)"
+            )
+            return dots
         else:
             print(f"    No data found for year {year}")
-            return gpd.GeoDataFrame()
+            return []
 
     except Exception as e:
         print(f"    Error processing {asc_file}: {e}")
-        return gpd.GeoDataFrame()
+        return []
 
 
 def _parse_year_from_filename(name: str) -> Optional[int]:
@@ -361,8 +342,8 @@ def process_year_with_hierarchical_lods(
     lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
 
     # First convert ASC to settlements using existing logic
-    gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
-    if gdf.empty:
+    points = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
+    if not points:
         print(f"    No data found for year {year}")
         return ProcessingResult(
             year=year,
@@ -375,14 +356,13 @@ def process_year_with_hierarchical_lods(
     settlements = []
     cellsize = 0.083333  # HYDE 3.5 approximate resolution
 
-    for row in gdf.itertuples(index=False):
+    for d in points:
         try:
-            geom = row.geometry
             settlement = HumanSettlement(
-                coordinates=Coordinates(longitude=geom.x, latitude=geom.y),
-                population=float(row.population),
-                year=int(row.year),
-                settlement_type=row.type,
+                coordinates=Coordinates(longitude=float(d["lon"]), latitude=float(d["lat"])),
+                population=float(d["population"]),
+                year=int(d["year"]),
+                settlement_type=str(d.get("type", "settlement")),
                 source_resolution=cellsize,
             )
             settlements.append(settlement)
@@ -428,6 +408,16 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     """
     print("🌍 Processing HYDE data into settlement points...")
     print("  (Each point represents ~100 people)")
+
+    # Import geopandas lazily to avoid hard dependency when using tiles-only pipeline
+    try:
+        import geopandas as gpd  # type: ignore
+    except Exception as e:
+        raise RuntimeError(
+            "GeoPandas is required only for legacy GeoJSON output. "
+            "Use process_all_hyde_data_with_lods/make_tiles.py for tiles-only pipeline, "
+            "or install geopandas to use this function."
+        ) from e
 
     hyde_files = find_hyde_files(raw_dir)
     print(f"Found {len(hyde_files)} HYDE files to process")

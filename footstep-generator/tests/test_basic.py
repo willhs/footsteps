@@ -95,7 +95,8 @@ def test_basic_functionality():
     print(f"    City area: {len(city_dots)} dots")
     
     assert len(rural_dots) >= 1, "Rural areas should create at least 1 dot"
-    assert len(city_dots) <= 3, "Cities should create at most 3 dots"
+    assert 1 <= len(town_dots) <= 25, "Towns should create up to 25 dots"
+    assert 1 <= len(city_dots) <= 75, "Cities should create up to 75 dots"
     
     # Test 7: Zoom level mapping
     print("  ✓ Testing zoom level mapping...")

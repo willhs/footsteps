@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { getTileFilePath, downloadTileFile, cleanupTempFile } from '@/lib/tilesService';
+import { getLodTileFilePath, downloadTileFile, cleanupTempFile } from '@/lib/tilesService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -115,22 +115,23 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid LOD' }, { status: 400 });
   }
 
-  // Resolve file path using tiles service (handles both local and GCS)
-  const tileFile = await getTileFilePath(yr, lodLevel);
-  
+  // Resolve LOD-specific file path (humans_{year}_lod_{lod}.mbtiles)
+  const tileFile = await getLodTileFilePath(yr, lodLevel);
   if (!tileFile.exists) {
-    return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
+    return NextResponse.json({ error: 'Tileset not found for year/LOD' }, { status: 404 });
   }
-  
+
   // Download file if it's from GCS (for MBTiles access)
   let filepath: string;
-  let lodSource: string;
+  const lodSource: 'lod' = 'lod';
   let isTemp: boolean;
+  let cacheStatus: 'hit' | 'refresh' | undefined;
   
   try {
-    filepath = await downloadTileFile(tileFile);
-    lodSource = tileFile.path.includes('_lod_') ? 'per-lod' : 'year';
-    isTemp = !tileFile.isLocal;
+    const dl = await downloadTileFile(tileFile);
+    filepath = dl.path;
+    isTemp = dl.isTemp;
+    cacheStatus = dl.cacheStatus;
   } catch (downloadErr) {
     console.error('Failed to download tile file:', downloadErr);
     return NextResponse.json({ error: 'Failed to access tileset' }, { status: 500 });
@@ -159,7 +160,6 @@ export async function GET(
     let tile: Buffer | null = null;
 
     const hasMBTiles = (await getMBTilesCtor()) !== null;
-    
     if (hasMBTiles) {
       try {
         const mb = (await openMBTilesByPath(filepath)) as {
@@ -209,6 +209,10 @@ export async function GET(
       'X-GCS-Source': tileFile.isLocal ? 'false' : 'true',
       'Last-Modified': (tileFile.mtime || stat.mtime).toUTCString()
     };
+
+    if (cacheStatus) {
+      headers['X-Tile-Cache'] = cacheStatus;
+    }
 
     if (isGzip(tile)) {
       headers['Content-Encoding'] = 'gzip';

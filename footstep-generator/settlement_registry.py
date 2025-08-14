@@ -188,7 +188,7 @@ class SettlementRegistry:
                     position_idx += 1
 
         else:  # city
-            # Cities: Fixed relative positions within cell
+            # Cities: support many positions. Place canonical anchors, then fill with concentric rings
             fixed_positions = [
                 (0, 0),  # Center
                 (-0.25, -0.25),  # Southwest
@@ -197,6 +197,8 @@ class SettlementRegistry:
                 (0.25, 0.25),  # Northeast
             ]
 
+            created = 0
+            # Place fixed anchors first
             for i in range(min(num_positions, len(fixed_positions))):
                 offset_lat, offset_lon = fixed_positions[i]
                 settlement_lat = lat + offset_lat * cellsize
@@ -221,9 +223,56 @@ class SettlementRegistry:
                         longitude=settlement_lon, latitude=settlement_lat
                     ),
                     cell_id=cell_id,
-                    position_index=i,
+                    position_index=created,
                 )
                 positions.append(position)
+                created += 1
+
+            # If more positions are needed, fill with deterministic concentric rings within the cell
+            if created < num_positions:
+                radii = np.linspace(0.15, 0.5, num=4)  # fractions of half-cell
+                golden_angle = np.pi * (3 - np.sqrt(5))
+                idx = 0
+                max_extra = num_positions - created
+                for r in radii:
+                    if created >= num_positions:
+                        break
+                    pts = max(6, int(12 * r / radii[0]))
+                    for k in range(pts):
+                        if idx >= max_extra or created >= num_positions:
+                            break
+                        angle = (k * golden_angle) % (2 * np.pi)
+                        dlat = (r * (cellsize / 2)) * np.sin(angle)
+                        dlon = (r * (cellsize / 2)) * np.cos(angle)
+                        settlement_lat = lat + dlat
+                        settlement_lon = lon + dlon
+                        # small jitter to avoid perfect symmetry
+                        settlement_lat += rng.uniform(-cellsize / 100, cellsize / 100)
+                        settlement_lon += rng.uniform(-cellsize / 100, cellsize / 100)
+                        if not is_land(settlement_lat, settlement_lon):
+                            attempts = 0
+                            while True:
+                                rng_lat = rng.uniform(-cellsize / 2, cellsize / 2)
+                                rng_lon = rng.uniform(-cellsize / 2, cellsize / 2)
+                                settlement_lat = lat + rng_lat
+                                settlement_lon = lon + rng_lon
+                                if is_land(settlement_lat, settlement_lon) or attempts >= 10:
+                                    break
+                                attempts += 1
+
+                        settlement_lat = max(-90, min(90, settlement_lat))
+                        settlement_lon = max(-180, min(180, settlement_lon))
+
+                        position = SettlementPosition(
+                            coordinates=Coordinates(
+                                longitude=settlement_lon, latitude=settlement_lat
+                            ),
+                            cell_id=cell_id,
+                            position_index=created,
+                        )
+                        positions.append(position)
+                        created += 1
+                        idx += 1
 
         return positions
 

@@ -53,7 +53,7 @@ cd deep-footsteps
 # Run the automated setup script
 ./setup.sh
 
-# Start the development server
+# Start the development server (port 4444)
 cd humans-globe && pnpm dev
 ```
 
@@ -65,23 +65,24 @@ git clone <repository-url>
 cd deep-footsteps
 
 # Install Python dependencies with Poetry
-poetry install --only main
+poetry install
 
 # Install frontend dependencies
 cd humans-globe
 pnpm install
 
-# Generate sample data using Poetry scripts
+# Generate data and tiles
 cd ..
-poetry run process-hyde         # Generate population density data
-poetry run process-cities       # Generate city settlement points
+poetry run python footstep-generator/fetch_data.py      # Optional: download datasets
+poetry run python footstep-generator/process_hyde.py    # Compute population-preserving LODs
+poetry run python footstep-generator/make_tiles.py      # Build MBTiles (tiles-only)
 
 # Start the development server
 cd humans-globe
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open `http://localhost:4444` in your browser.
 
 ## 🎮 How to Use
 
@@ -109,15 +110,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first styling
 
-### Data Pipeline (`/data/`)
-- **Python Scripts** - Data fetching and processing
-- **GeoPandas** - Geospatial data manipulation
-- **Vector Tiles** - Efficient data delivery (MBTiles + MVT)
+### Data Pipeline (`/footstep-generator/`)
+- **Python Pipeline** - HYDE → settlement points with hierarchical LODs
+- **Tiles-only Output** - Per-year MBTiles generated via tippecanoe (temporary GeoJSONL only)
+- **Tools** - tippecanoe, tile-join, and optional sqlite3 CLI for verification
 
 ### Key Components
-- `FootstepsViz.tsx` - Main 3D visualization with DeckGL layers
-- `TimeSlider.tsx` - Non-linear time control interface
-- `useYear.ts` - State management for temporal navigation
+- `components/footsteps/FootstepsViz.tsx` - Main visualization (2D/3D views, tiles integration)
+- `lib/tilesService.ts` - Tile file resolution and optional GCS access
 
 ## 🛠️ Development
 
@@ -125,24 +125,28 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```
 deep-footsteps/
-├── humans-globe/              # Next.js frontend application
-│   ├── app/                   # App Router pages
-│   ├── components/            # React components
-│   ├── lib/                   # Utilities and hooks
-│   └── public/                # Static assets
-├── data/                      # Data processing pipeline
-│   ├── raw/                   # Downloaded datasets
-│   ├── processed/             # Processed GeoJSON files
-│   └── scripts/               # Python processing scripts
-└── docs/                      # Documentation
+├── humans-globe/                 # Next.js frontend application
+│   ├── app/                      # App Router pages + API
+│   ├── components/               # React components (viz, overlays, views)
+│   ├── lib/                      # Utilities and hooks
+│   └── public/                   # Static assets
+├── footstep-generator/           # Python data pipeline
+│   ├── data/                     # Local data roots for scripts
+│   │   └── raw/hyde-3.5/         # HYDE ASCII grids (popd_*.asc)
+│   └── tests/                    # pytest suites
+├── data/                         # Generated artifacts (git-ignored)
+│   └── tiles/humans/             # Output .mbtiles
+└── docs/                         # Documentation
 ```
 
-### Data Processing Workflow
+### Data + Tiles Workflow
 
-1. **Fetch Data** - `poetry run fetch-data` downloads HYDE and Reba datasets
-2. **Process Density** - `poetry run process-hyde` converts grids to heat-map polygons
-3. **Generate Dots** - `poetry run process-cities` creates individual human points
-4. **Create Tiles** - `poetry run make-tiles` generates vector tiles (optional)
+1. Place HYDE ASCII grids (`popd_*.asc`) in `footstep-generator/data/raw/hyde-3.5/`
+2. Build tiles (tiles-only, population-preserving LODs):
+   - All years found: `poetry run python footstep-generator/make_tiles.py`
+   - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020`
+3. Dev serving: export `HUMANS_TILES_DIR=$(pwd)/data/tiles/humans` before running the frontend
+4. Tile API: `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
 
 ### Processing Historical Data
 
@@ -157,14 +161,14 @@ poetry run fetch-data
 
 **If automated download fails** (common due to website restrictions), download manually:
 
-1. **HYDE 3.3 Population Density**:
+1. **HYDE 3.5 Population Density**:
    - Visit: https://pbl.nl/en/hyde
    - Navigate to 'Download' section  
    - Choose one scenario: **Baseline** (recommended), Lower, or Upper estimate
    - Download the `\zip` directory containing population files
    - Look for files like: `10000BC_pop.zip`, `1950AD_pop.zip`, etc.
    - Extract all `popd_*.asc` files (population density ASCII grids)
-   - Place all `.asc` files in: `data/raw/hyde_popd/`
+   - Place all `.asc` files in: `footstep-generator/data/raw/hyde-3.5/`
 
 2. **Reba Urban Gazetteer**:
    - Visit: https://sedac.ciesin.columbia.edu/data/set/historical-urban-population-3700-bc-ad-2000
@@ -175,47 +179,40 @@ poetry run fetch-data
 ### Step 2: Process Data
 
 ```bash
-poetry run process-hyde         # Creates population heat-map
-poetry run process-cities       # Creates human settlement dots
+poetry run python footstep-generator/process_hyde.py
+poetry run python footstep-generator/make_tiles.py
 ```
 
 ## 🎨 Customization
 
 ### Styling
 - Modify `globals.css` for theme changes
-- Update color scales in `FootstepsViz.tsx` for different heat-map colors
-- Adjust slider styling in `TimeSlider.tsx`
+- Adjust visualization styling in `components/footsteps` layers and views
 
 ### Data Visualization
-- Change dot sizes by modifying `getRadius` in the ScatterplotLayer
-- Adjust population density thresholds in data processing scripts
-- Add new data layers by extending the DeckGL configuration
+- Adjust dot/radius strategies in `components/footsteps/layers`
+- Tweak LOD behavior via `lib/lod` and pipeline configs in `footstep-generator`
 
 ### Time Scaling
-- Modify `TIME_BREAKPOINTS` in `useYear.ts` for different historical emphasis
-- Add more granular time periods or different scaling functions
+- Update time interaction components/hooks if present to change breakpoints
 
 ## 🚀 Deployment
 
-### Static Hosting (Recommended)
+### Server Hosting
 ```bash
 cd humans-globe
 pnpm build
 pnpm start
 ```
 
-Deploy the `out/` directory to Vercel, Netlify, or any static host.
-
-### With Tile Server
-For large datasets, deploy with a tile server:
-```bash
-docker run -p 8080:80 -v $(pwd)/data/processed:/data maptiler/tileserver-gl
-```
+### Tiles in Production
+- Local files: set `HUMANS_TILES_DIR=/path/to/data/tiles/humans` in the runtime env
+- GCS hosting (optional): set `NODE_ENV=production`, `GCP_PROJECT_ID`, and `GCS_BUCKET_NAME` to stream tiles from GCS
 
 
 ## 🙏 Acknowledgments
 
-- **HYDE 3.3 Team** - Historical population density data
+- **HYDE 3.5 Team** - Historical population density data
 - **Reba et al.** - Urban settlement historical records
 - **DeckGL Team** - Incredible WebGL visualization framework
 - **Next.js Team** - React framework powering the frontend

@@ -15,6 +15,7 @@ interface Props {
   totalPopulation: number;
   viewState: { zoom: number };
   samplingRate: number;
+  lodLevel: number;
   lodEnabled: boolean; // Always true now (server-controlled)
   toggleLOD: () => void; // No-op for backward compatibility
   renderMetrics: RenderMetrics;
@@ -35,6 +36,7 @@ export default function HumanDotsOverlay({
   totalPopulation,
   viewState,
   samplingRate,
+  lodLevel,
   // lodEnabled and toggleLOD intentionally not destructured to avoid unused vars
   renderMetrics,
   cacheSize,
@@ -100,13 +102,14 @@ export default function HumanDotsOverlay({
         </div>
       )}
 
-      {/* Development debugging - collapsed by default */}
+      {/* Development debugging - default open in development */}
       {isDevelopment && (
-        <details className="mt-3 text-xs text-gray-600">
+        <details open className="mt-3 text-xs text-gray-600">
           <summary className="cursor-pointer text-gray-500 hover:text-gray-400">Debug Info</summary>
           <div className="mt-2 pt-2 border-t border-gray-700 space-y-1">
-            <div>Zoom: {viewState.zoom.toFixed(1)}x • Sampling: {samplingRate.toFixed(1)}%</div>
+            <div>Zoom: {viewState.zoom.toFixed(1)}x • LOD: {lodLevel} • Sampling: {samplingRate.toFixed(1)}%</div>
             <div>Load: {renderMetrics.loadTime.toFixed(0)}ms • Cache: {cacheSize}</div>
+            <div>Dots drawn: {dotCount.toLocaleString()}</div>
             <div className="text-cyan-400">
               {is3DMode ? '3D Globe' : '2D Map'} • 
               {viewportBounds ? ` Filtered viewport` : ` Global data`}

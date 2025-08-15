@@ -113,7 +113,7 @@ LOD_ZOOM_RANGES: Dict[int, Tuple[int, int]] = {
     3: (6, 12),  # DETAILED at z6+
 }
 
-def write_geojsonl_temp(settlements) -> str:
+def write_geojsonl_temp(settlements, lod_level: int) -> str:
     """Write AggregatedSettlement list to a temporary GeoJSONL file and return its path."""
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".geojsonl")
     os.close(tmp_fd)
@@ -135,6 +135,10 @@ def write_geojsonl_temp(settlements) -> str:
                     "density": s.average_density,
                 },
             }
+            # Hint tippecanoe to start rendering LOD 3 points at z=6 to
+            # avoid a perceived density drop when switching from LOD 2 (z=5).
+            if int(getattr(s.lod_level, "value", lod_level)) == 3:
+                feature["tippecanoe"] = {"minzoom": 6, "maxzoom": 12}
             f_out.write(json.dumps(feature))
             f_out.write("\n")
     return tmp_path
@@ -158,6 +162,11 @@ def generate_mbtiles_for_lod(
         "-l", f"humans_lod_{lod_level}",
         input_geojsonl,
     ]
+    # Keep many more points visible at the first LOD 3 zoom (z=6)
+    # to avoid a perceived drop in density when switching from LOD 2 (z=5).
+    # Droprate 1 significantly reduces point thinning at lower zooms.
+    if lod_level == 3:
+        cmd[1:1] = ["-r", "1"]
     return run_command(cmd, f"LOD {lod_level} tiles (z{minzoom}-{maxzoom})")
 
 def combine_lod_mbtiles(lod_mbtiles: List[str], out_mbtiles: str) -> bool:
@@ -196,7 +205,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
             if not settlements:
                 continue
             # Write temp GeoJSONL for this LOD
-            tmp_geojsonl = write_geojsonl_temp(settlements)
+            tmp_geojsonl = write_geojsonl_temp(settlements, int(getattr(lod_level, "value", lod_level)))
             tmp_files.append(tmp_geojsonl)
             minzoom, maxzoom = LOD_ZOOM_RANGES.get(int(getattr(lod_level, "value", lod_level)), (0, 12))
             target_lod = int(getattr(lod_level, "value", lod_level))

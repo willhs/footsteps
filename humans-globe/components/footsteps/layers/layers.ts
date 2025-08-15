@@ -144,7 +144,7 @@ export function createHumanTilesLayer(
   return new MVTLayer({
     id: layerId,
     data: singleLayerMode
-      ? `/api/tiles/${year}/{z}/{x}/{y}.pbf`
+      ? `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`
       : `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,

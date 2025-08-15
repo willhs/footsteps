@@ -39,6 +39,9 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     clickPosition: { x: number; y: number };
   } | null>(null);
   
+  // Toggle between per-LOD tiles and single-layer yearly tiles
+  const [useSingleLayer, setUseSingleLayer] = useState(false);
+  
   // Save view mode preference to cookie
   useEffect(() => {
     setViewMode(is3DMode);
@@ -84,7 +87,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     setTileLoading(true);
     setFeatureCount(0);
     setTotalPopulation(0);
-  }, [year, stableLODLevel, is3DMode]);
+  }, [year, stableLODLevel, is3DMode, useSingleLayer]);
   
   
   // Feature extraction helper (quiet in production)
@@ -195,9 +198,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       1.0, // always use full opacity
       layerInstanceIdRef.current,
       // Disable depth test in 2D so dots render on top of terrain
-      is3DMode
+      is3DMode,
+      // Single-layer tiling mode switch
+      useSingleLayer
     );
-  }, [layerViewState, year, is3DMode, handleTooltipInteraction]);
+  }, [layerViewState, year, is3DMode, handleTooltipInteraction, useSingleLayer]);
   
   // Create human tiles layer (createHumanLayer is already memoized)
   const humanTilesLayer = createHumanLayer(stableLODLevel);
@@ -229,14 +234,28 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         viewState={viewState}
         samplingRate={100}
         lodLevel={stableLODLevel}
-        lodEnabled={true}
-        toggleLOD={() => {}}
+        lodEnabled={!useSingleLayer}
+        toggleLOD={() => setUseSingleLayer(v => !v)}
         renderMetrics={{loadTime: 0, processTime: 0, renderTime: 0, lastUpdate: 0}}
         cacheSize={1}
         progressiveRenderStatus={undefined}
         viewportBounds={null}
         is3DMode={is3DMode}
       />
+
+      {/* Mode toggle: LOD vs Single-layer */}
+      <div
+        className="absolute"
+        style={{ top: '11rem', left: '2rem', zIndex: 31 }}
+      >
+        <button
+          onClick={() => setUseSingleLayer(v => !v)}
+          className="px-3 py-1 text-xs rounded-md bg-gray-700/60 text-gray-200 hover:bg-gray-600/70 border border-gray-600/60"
+          title="Toggle between per-LOD tiles and single-layer tiles"
+        >
+          Mode: {useSingleLayer ? 'Single-layer' : 'LOD layers'}
+        </button>
+      </div>
       
       {/* View Mode Toggle */}
       <div className="absolute top-4 right-4 z-10">

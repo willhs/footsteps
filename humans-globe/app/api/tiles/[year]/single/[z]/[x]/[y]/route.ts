@@ -187,4 +187,3 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to serve tile' }, { status: 500 });
   }
 }
-

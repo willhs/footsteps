@@ -157,7 +157,7 @@ export function createHumanTilesLayer(
       mvt: {
         coordinates: 'wgs84',
         shape: 'geojson',
-        // Layer selection depends on tiling mode
+        // Lock to the canonical single-layer name in single-layer mode
         layers: singleLayerMode ? ['humans'] : [`humans_lod_${lodLevel}`]
       }
     },

@@ -35,6 +35,7 @@ download-hyde = "data.scripts.download_hyde_bulk:main"
 process-hyde = "data.scripts.process_hyde:main"
 process-cities = "data.scripts.process_cities:main"
 make-tiles = "data.scripts.make_tiles:main"
+verify-tiles = "scripts.verify_tiles_entry:main"
 
 [build-system]
 requires = ["poetry-core"]

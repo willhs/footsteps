@@ -16,10 +16,13 @@ import subprocess
 import json
 import re
 import tempfile
+import math
+import hashlib
 from typing import List, Dict, Any, Tuple, Optional
 
 # Import processing functions to compute LODs in-memory
 from process_hyde import find_hyde_files, process_year_with_hierarchical_lods
+from verify_tiles import verify_single_layer
 
 def run_command(cmd: List[str], description: str) -> bool:
     """Run a shell command and return success status."""
@@ -135,10 +138,86 @@ def write_geojsonl_temp(settlements, lod_level: int) -> str:
                     "density": s.average_density,
                 },
             }
-            # Hint tippecanoe to start rendering LOD 3 points at z=6 to
-            # avoid a perceived density drop when switching from LOD 2 (z=5).
-            if int(getattr(s.lod_level, "value", lod_level)) == 3:
-                feature["tippecanoe"] = {"minzoom": 6, "maxzoom": 12}
+            # Assign per-feature minzoom based on LOD and population importance
+            lv = int(getattr(s.lod_level, "value", lod_level))
+            if lv == 0:
+                tz = 0
+            elif lv == 1:
+                tz = 4
+            elif lv == 2:
+                tz = 5
+            else:
+                tz = 6
+            try:
+                if float(s.total_population) > 20000:
+                    tz = max(0, tz - 1)
+            except Exception:
+                pass
+            feature["tippecanoe"] = {"minzoom": tz, "maxzoom": 12}
+            f_out.write(json.dumps(feature))
+            f_out.write("\n")
+    return tmp_path
+
+def _wm_tile(lon: float, lat: float, z: int) -> tuple:
+    x = int((lon + 180.0) / 360.0 * (1 << z))
+    lat_rad = math.radians(lat)
+    y = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * (1 << z))
+    return x, y
+
+def _stable_key(lon: float, lat: float) -> int:
+    h = hashlib.md5(f"{lon:.6f},{lat:.6f}".encode("utf-8")).digest()
+    return int.from_bytes(h[:8], byteorder="big", signed=False)
+
+def write_combined_geojsonl(lod_map: Dict[Any, List[Any]]) -> str:
+    """Write a single-layer GeoJSONL using deterministic, population-preserving minzoom."""
+    # Collect detailed points
+    detailed = []
+    for lod_level, settlements in lod_map.items():
+        lv = int(getattr(lod_level, "value", lod_level))
+        if lv == 3:
+            for s in settlements:
+                detailed.append({
+                    "lon": float(s.coordinates.longitude),
+                    "lat": float(s.coordinates.latitude),
+                    "pop": float(s.total_population),
+                    "year": int(s.year),
+                    "grid": float(s.grid_size_degrees),
+                    "src": int(s.source_dot_count),
+                    "density": float(s.average_density),
+                })
+    # People-per-dot targets by zoom (tunable)
+    ppd = {0: 5_000_000, 1: 1_500_000, 2: 300_000, 3: 80_000, 4: 15_000, 5: 3_000, 6: 600}
+    minzoom = [12] * len(detailed)
+    for z in range(0, 7):
+        buckets: Dict[tuple, list] = {}
+        for idx, d in enumerate(detailed):
+            x, y = _wm_tile(d["lon"], d["lat"], z)
+            buckets.setdefault((x, y), []).append(idx)
+        for (x, y), idxs in buckets.items():
+            total_pop = sum(detailed[i]["pop"] for i in idxs)
+            target = max(1, int(math.ceil(total_pop / ppd[z])))
+            ranked = sorted(idxs, key=lambda i: (-detailed[i]["pop"], _stable_key(detailed[i]["lon"], detailed[i]["lat"])) )
+            for i in ranked[:target]:
+                if z < minzoom[i]:
+                    minzoom[i] = z
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".geojsonl")
+    os.close(tmp_fd)
+    with open(tmp_path, "w", encoding="utf-8") as f_out:
+        for i, d in enumerate(detailed):
+            feature = {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [d["lon"], d["lat"]]},
+                "properties": {
+                    "population": d["pop"],
+                    "year": d["year"],
+                    "type": "settlement",
+                    "lod_level": 3,
+                    "grid_size": d["grid"],
+                    "source_dots": d["src"],
+                    "density": d["density"],
+                },
+                "tippecanoe": {"minzoom": int(minzoom[i]), "maxzoom": 12},
+            }
             f_out.write(json.dumps(feature))
             f_out.write("\n")
     return tmp_path
@@ -178,6 +257,21 @@ def combine_lod_mbtiles(lod_mbtiles: List[str], out_mbtiles: str) -> bool:
         *lod_mbtiles,
     ]
     return run_command(cmd, "Combine LOD MBTiles -> yearly tileset")
+
+def generate_single_layer_mbtiles(input_geojsonl: str, out_mbtiles: str) -> bool:
+    cmd = [
+        "tippecanoe",
+        "-o", out_mbtiles,
+        "-Z", "0",
+        "-z", "12",
+        "--no-feature-limit",
+        "--no-tile-size-limit",
+        "--force",
+        "-r", "1",
+        "-l", "humans",
+        input_geojsonl,
+    ]
+    return run_command(cmd, "Single-layer yearly tiles (humans)")
 
 def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
     """Generate a single MBTiles for a given year by computing LODs and combining them.
@@ -270,6 +364,10 @@ def main():
         ),
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing MBTiles")
+    parser.add_argument("--year", type=int, help="Alias for building a single year (convenience)")
+    parser.add_argument("--single-layer", action="store_true", help="Also build single-layer humans_{year}.mbtiles with per-feature minzoom")
+    parser.add_argument("--verify", action="store_true", help="Run post-build verification (single-layer)")
+    parser.add_argument("--strict", action="store_true", help="Fail build on verification regressions")
     args = parser.parse_args()
 
     raw_dir = args.raw_dir
@@ -280,7 +378,7 @@ def main():
         print("✗ No HYDE ASC files found. Please download data first (see process_hyde.py).")
         return
 
-    target_years = args.years if args.years else sorted(hyde_map.keys())
+    target_years = args.years if args.years else ([args.year] if args.year is not None else sorted(hyde_map.keys()))
     missing = [y for y in (args.years or []) if y not in hyde_map]
     if missing:
         print(f"⚠️  Warning: requested years not found in raw data: {', '.join(map(str, missing))}")
@@ -297,11 +395,28 @@ def main():
         out = generate_year_tiles(asc_file, args.tiles_dir, y, force=args.force)
         if out:
             built += 1
+            if args.single_layer:
+                # Build single-layer variant using all LOD data deterministically
+                result = process_year_with_hierarchical_lods(asc_file, y, args.tiles_dir, force=args.force)
+                combined_geojsonl = write_combined_geojsonl(result.lod_data)
+                yearly_out = pathlib.Path(args.tiles_dir) / f"humans_{y}.mbtiles"
+                if yearly_out.exists() and args.force:
+                    yearly_out.unlink()
+                ok = generate_single_layer_mbtiles(combined_geojsonl, str(yearly_out))
+                try:
+                    os.unlink(combined_geojsonl)
+                except OSError:
+                    pass
+                if ok and args.verify:
+                    print("→ Verifying single-layer output…")
+                    ok2 = verify_single_layer(str(yearly_out), strict=args.strict)
+                    if args.strict and not ok2:
+                        raise SystemExit(1)
 
     print(f"\n✓ Built {built} yearly MBTiles → {args.tiles_dir}")
     print("Next:")
-    print("- Serve tiles via API route: /api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf")
-    print("- Frontend: use deck.gl MVTLayer with that URL template and LOD selection")
+    print("- Serve tiles via API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf (single-layer)")
+    print("- Frontend: MVTLayer with layer id 'humans'")
 
 if __name__ == "__main__":
     main()

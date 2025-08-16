@@ -116,19 +116,33 @@ export function createHumanTilesLayer(
   radiusStrategy: RadiusStrategy = radiusStrategies.zoomAdaptive,
   onClick?: (info: unknown) => void,
   onHover?: (info: unknown) => void,
-  extra?: { onTileLoad?: (tile: unknown) => void; onViewportLoad?: (tiles: unknown[]) => void; onTileError?: (error: unknown) => void },
+  extra?: {
+    onTileLoad?: (tile: unknown) => void;
+    onViewportLoad?: (tiles: unknown[]) => void;
+    onTileError?: (error: unknown) => void;
+    tileOptions?: {
+      refinementStrategy?: 'best-available' | 'no-overlap' | 'never' | ((...args: unknown[]) => unknown);
+      maxCacheSize?: number;
+      maxCacheByteSize?: number;
+      debounceTime?: number;
+      maxRequests?: number;
+      zoomOffset?: number;
+      useBinary?: boolean;
+      fadeMs?: number;
+      easing?: (t: number) => number;
+    }
+  },
   opacity: number = 1.0,
   instanceId?: string,
-  enableDepthTest: boolean = true,
-  singleLayerMode: boolean = false
+  enableDepthTest: boolean = true
 ) {
   const currentZoom = viewState?.zoom || 1;
+  const tileOptions = (extra && 'tileOptions' in extra ? extra.tileOptions : undefined) || {};
   
   // Generate unique layer ID to prevent deck.gl assertion failures from layer reuse
-  const baseId = singleLayerMode
-    ? `human-tiles-${year}-single-${radiusStrategy.getName()}`
-    : `human-tiles-${year}-lod${lodLevel}-${radiusStrategy.getName()}`;
+  const baseId = `human-tiles-${year}-single-${radiusStrategy.getName()}`;
   const layerId = instanceId || `${baseId}-${++layerCounter}-${Date.now()}`;
+  
   
   // Clamp tile zooms to the ranges actually present in each LOD's MBTiles.
   // This prevents deck.gl from requesting higher z tiles than exist when the
@@ -139,26 +153,29 @@ export function createHumanTilesLayer(
     2: { min: 5, max: 5 },
     3: { min: 6, max: 12 },
   };
-  const zoomRange = singleLayerMode ? { min: 0, max: 12 } : (lodZoomRanges[lodLevel] || { min: 0, max: 12 });
+  const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({
     id: layerId,
-    data: singleLayerMode
-      ? `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`
-      : `/api/tiles/${year}/${lodLevel}/{z}/{x}/{y}.pbf`,
+    data: `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`,
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
+    // Use best-available refinement to ensure tiles load
+    refinementStrategy: 'best-available',
+    // Set reasonable defaults for tile loading
+    maxCacheSize: tileOptions.maxCacheSize ?? 100,
+    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 32 * 1024 * 1024, // 32MB
+    debounceTime: tileOptions.debounceTime ?? 0, // No debounce by default
+    maxRequests: tileOptions.maxRequests ?? 6,
+    zoomOffset: tileOptions.zoomOffset ?? 0,
     autoHighlight: false,
-    // Use GeoJSON objects for simpler accessor logic
+    // Use GeoJSON for easier debugging
     binary: false,
-    // Align with loaders.gl v4 API to avoid deprecated `options.gis` warnings
-    // and ensure coordinates are returned in WGS84.
+    // Simplified load options
     loadOptions: {
       mvt: {
         coordinates: 'wgs84',
-        shape: 'geojson',
-        // Lock to the canonical single-layer name in single-layer mode
-        layers: singleLayerMode ? ['humans'] : [`humans_lod_${lodLevel}`]
+        shape: 'geojson'
       }
     },
     pickable: true,
@@ -202,17 +219,16 @@ export function createHumanTilesLayer(
     },
     opacity: opacity,
     parameters: {
-      // In 2D map view, disable depth testing so dots are never occluded
-      // by the terrain bitmap tiles (which write to depth buffer).
-      depthTest: enableDepthTest,
+      // Always disable depth test for dots so background layers never occlude them
+      depthTest: false,
       depthMask: false,
       blend: true,
       blendFunc: [770, 771]
     },
     transitions: {
       opacity: {
-        duration: 300,
-        easing: (t: number) => t * t * (3.0 - 2.0 * t) // smoothstep
+        duration: typeof tileOptions.fadeMs === 'number' ? tileOptions.fadeMs : 300,
+        easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)) // smoothstep
       }
     }
   });
@@ -309,4 +325,52 @@ export function createStaticTerrainLayer() {
       blend: false       // Disable blending for solid coverage
     }
   });
+}
+
+// Create plain background layers for better dot visibility
+export function createPlainBackgroundLayers() {
+  const seaLayer = new GeoJsonLayer({
+    id: 'plain-sea',
+    data: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
+          ]]
+        }
+      }]
+    },
+    filled: true,
+    stroked: false,
+    getFillColor: [20, 30, 45, 255], // Dark blue for sea
+    pickable: false,
+    opacity: 1.0,
+    parameters: {
+      depthTest: true,
+      depthMask: true,
+      blend: false
+    }
+  });
+
+  const continentsLayer = new GeoJsonLayer({
+    id: 'plain-continents',
+    // Using a more reliable CDN for world land data
+    data: 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
+    filled: true,
+    stroked: false,
+    getFillColor: [15, 15, 15, 255], // Very dark gray/black for continents
+    pickable: false,
+    opacity: 1.0,
+    parameters: {
+      depthTest: true,
+      depthMask: false, // Don't write to depth buffer so dots render on top
+      blend: true
+    }
+  });
+
+  return [seaLayer, continentsLayer];
 }

@@ -7,9 +7,19 @@ Use make_tiles.py to build MBTiles (MVT) from the returned LOD data.
 """
 
 import argparse
+import gc
 import os
 import pathlib
-from typing import Dict, List, Optional, Tuple
+import platform
+import subprocess
+from typing import Dict, List, Optional, Tuple, Any
+
+# Optional memory monitoring
+try:
+    import psutil
+    MEMORY_MONITORING = True
+except ImportError:
+    MEMORY_MONITORING = False
 
 import numpy as np
 from lod_processor import LODProcessor
@@ -49,8 +59,22 @@ TARGET_YEARS: List[int] = []
 # Hierarchical LOD creation is now handled by LODProcessor
 
 
+def get_memory_usage() -> str:
+    """Get current memory usage as a formatted string."""
+    if not MEMORY_MONITORING:
+        return "memory monitoring unavailable"
+    
+    try:
+        process = psutil.Process()
+        mem_info = process.memory_info()
+        mem_mb = mem_info.rss / 1024 / 1024  # Convert to MB
+        return f"{mem_mb:.1f}MB"
+    except Exception:
+        return "memory check failed"
+
+
 def ascii_grid_to_dots(
-    asc_file: str, year: int, people_per_dot: int = 100
+    asc_file: str, year: int, people_per_dot: int = 100, lod_processor: Optional[LODProcessor] = None
 ) -> List[dict]:
     """
     Convert a HYDE ASC file to settlement points for consistent processing.
@@ -128,39 +152,58 @@ def ascii_grid_to_dots(
 
         print(f"    Found {len(valid_indices[0])} cells with population data")
 
-        # Process all populated cells (no sampling)
+        # Process all populated cells (vectorized approach)
         valid_i = valid_indices[0]
         valid_j = valid_indices[1]
 
-        dots: List[dict] = []
-        total_people = 0
+        # Use provided LOD processor or create one if none provided
+        if lod_processor is None:
+            # Enable settlement continuity by default for better visual continuity
+            continuity_config = SettlementContinuityConfig(enable_continuity=True)
+            lod_processor = LODProcessor(continuity_config=continuity_config)
 
-        # Create LOD processor instance once for reuse across all cells
-        # Enable settlement continuity by default for better visual continuity
-        continuity_config = SettlementContinuityConfig(enable_continuity=True)
-        lod_processor = LODProcessor(continuity_config=continuity_config)
+        # Vectorize coordinate transformations for all valid cells
+        # HYDE ASCII grids list data rows from north (top) to south (bottom).
+        # Therefore row index `i` (0-based from the file) refers to latitude
+        #   lat = yllcorner + (nrows - i - 0.5) * cellsize
+        # which flips the y-axis correctly. This prevents vertically mirrored
+        # or "up-side-down" placement on the map.
+        cell_lats = yllcorner + (nrows - valid_i - 0.5) * cellsize
+        cell_lons = lons[valid_j]
+        cell_densities = data[valid_i, valid_j]
 
-        for idx in range(len(valid_i)):
-            i, j = valid_i[idx], valid_j[idx]
-            density = data[i, j]  # people per km²
+        # Apply vectorized filters
+        # Filter 1: Skip extreme polar regions; keep more of high-lat Europe
+        polar_mask = (cell_lats <= 75) & (cell_lats >= -70)
+        
+        # Filter 2: Apply density threshold to filter noise in HYDE data
+        # Use a lower threshold for BCE years to retain sparse populations
+        min_density = 0.001 if year <= 0 else 0.01
+        density_mask = cell_densities >= min_density
+        
+        # Combine all filters
+        valid_mask = polar_mask & density_mask
+        
+        # Apply filters to get final valid cells
+        final_i = valid_i[valid_mask]
+        final_j = valid_j[valid_mask]
+        final_lats = cell_lats[valid_mask]
+        final_lons = cell_lons[valid_mask]
+        final_densities = cell_densities[valid_mask]
+        
+        print(f"    After filtering: {len(final_i)} cells (from {len(valid_i)} with population)")
 
-            # HYDE ASCII grids list data rows from north (top) to south (bottom).
-            # Therefore row index `i` (0-based from the file) refers to latitude
-            #   lat = yllcorner + (nrows - i - 0.5) * cellsize
-            # which flips the y-axis correctly. This prevents vertically mirrored
-            # or "up-side-down" placement on the map.
-            lat = yllcorner + (nrows - i - 0.5) * cellsize
-            lon = lons[j]
-
-            # Skip extreme polar regions; keep more of high-lat Europe
-            if lat > 75 or lat < -70:
-                continue
-
-            # Apply density threshold to filter noise in HYDE data
-            # Use a lower threshold for BCE years to retain sparse populations
-            min_density = 0.001 if year <= 0 else 0.01
-            if density < min_density:
-                continue
+        # Pre-calculate all cell areas and populations using vectorized operations where possible
+        print(f"    Calculating areas and populations for {len(final_i)} cells...")
+        
+        # Pre-allocate arrays for batch processing
+        cell_areas_km2 = np.zeros(len(final_i))
+        cell_populations = np.zeros(len(final_i))
+        
+        # Calculate areas (geodesic calculation still needs to be done per-cell)
+        for idx in range(len(final_i)):
+            lat, lon = final_lats[idx], final_lons[idx]
+            density = final_densities[idx]
 
             # Calculate total population in this cell using geodesic area
             lon_w = lon - cellsize / 2
@@ -170,16 +213,28 @@ def ascii_grid_to_dots(
             cell_area_m2, _ = geod.polygon_area_perimeter(
                 [lon_w, lon_e, lon_e, lon_w], [lat_s, lat_s, lat_n, lat_n]
             )
-            cell_area_km2 = abs(cell_area_m2) / 1_000_000
-            cell_population = density * cell_area_km2
+            cell_areas_km2[idx] = abs(cell_area_m2) / 1_000_000
+            cell_populations[idx] = density * cell_areas_km2[idx]
 
-            # Apply maximum population cap per cell to prevent unrealistic concentrations
-            # Even modern megacities rarely exceed 100k people per km² average
-            max_reasonable_population = cell_area_km2 * 50000  # 50k people per km² max
-            if cell_population > max_reasonable_population:
-                cell_population = max_reasonable_population
+        # Apply vectorized population caps
+        max_reasonable_populations = cell_areas_km2 * 50000  # 50k people per km² max
+        cell_populations = np.minimum(cell_populations, max_reasonable_populations)
+        
+        total_people = np.sum(cell_populations)
+        print(f"    Total population calculated: {total_people:,.0f} people")
 
-            total_people += cell_population
+        # Initialize dot array manager with estimated capacity
+        from array_manager import estimate_dot_capacity, DotArrayManager
+        estimated_capacity = estimate_dot_capacity(cell_populations, people_per_dot)
+        dot_manager = DotArrayManager(estimated_capacity)
+        print(f"    Estimated dots needed: {estimated_capacity}")
+
+        # Process cells for dot creation
+        print(f"    Creating dots for {len(final_i)} cells...")
+        for idx in range(len(final_i)):
+            i, j = final_i[idx], final_j[idx]
+            lat, lon = final_lats[idx], final_lons[idx]
+            cell_population = cell_populations[idx]
 
             # Density-aware dot creation to handle high-concentration areas
             # Use LOD 3 (detailed) logic for base settlements to get maximum granularity
@@ -197,15 +252,13 @@ def ascii_grid_to_dots(
                     )
                     continue
 
-                dots.append(
-                    {
-                        "lon": float(dot_lon),
-                        "lat": float(dot_lat),
-                        "population": float(dot_population),
-                        "year": int(year),
-                        "type": "settlement",
-                    }
-                )
+                # Add dot to managed storage
+                dot_manager.add_dot(dot_lon, dot_lat, dot_population)
+
+        # Convert to final format and get statistics
+        dots = dot_manager.to_dict_list(year)
+        stats = dot_manager.get_statistics()
+        print(f"    Created {stats['count']} dots (estimated {estimated_capacity}, utilization: {stats['utilization']:.1%})")
 
         # Return list of points
         if dots:
@@ -214,34 +267,31 @@ def ascii_grid_to_dots(
             sample_coords = [(d["lon"], d["lat"]) for d in sample]
             print(f"    Sample coordinates: {sample_coords}")
 
-            # Check for major regions (approximate bounding boxes)
-            def count_where(pred: Iterable[bool]) -> int:
-                return sum(1 for v in pred if v)
-
-            usa_count = count_where(
-                (-125 <= d["lon"] <= -66) and (20 <= d["lat"] <= 49) for d in dots
-            )
-            europe_count = count_where(
-                (-10 <= d["lon"] <= 40) and (35 <= d["lat"] <= 71) for d in dots
-            )
-            china_count = count_where(
-                (73 <= d["lon"] <= 135) and (18 <= d["lat"] <= 54) for d in dots
-            )
-
-            print(
-                f"    Regional distribution: USA: {usa_count}, Europe: {europe_count}, China: {china_count}"
-            )
+            # Regional distribution debug removed for performance
 
             print(
                 f"    Created {len(dots)} settlement points for year {year} ({total_people:,.0f} people)"
             )
+            
+            # Clean up large arrays to free memory
+            del data, lons, lats, valid_mask, valid_indices
+            del cell_lats, cell_lons, cell_densities, final_i, final_j, final_lats, final_lons, final_densities
+            del cell_areas_km2, cell_populations, dot_manager
             return dots
         else:
             print(f"    No data found for year {year}")
+            # Clean up arrays even when no data found
+            del data, lons, lats, valid_mask, valid_indices
+            del cell_lats, cell_lons, cell_densities, final_i, final_j, final_lats, final_lons, final_densities
             return []
 
     except Exception as e:
         print(f"    Error processing {asc_file}: {e}")
+        # Clean up any allocated arrays on error
+        try:
+            del data, lons, lats
+        except:
+            pass
         return []
 
 
@@ -307,7 +357,7 @@ def find_hyde_files(raw_dir: str) -> Dict[int, str]:
 
 
 def process_year_with_hierarchical_lods(
-    asc_file: str, year: int, output_dir: str, people_per_dot: int = 100, force: bool = False
+    asc_file: str, year: int, output_dir: str, people_per_dot: int = 100, force: bool = False, lod_processor: Optional[LODProcessor] = None
 ) -> ProcessingResult:
     """
     Process a single year of HYDE data with hierarchical LOD generation.
@@ -330,20 +380,70 @@ def process_year_with_hierarchical_lods(
         10 if (year <= 0 and people_per_dot == 100) else people_per_dot
     )
 
-    # Create LOD processor with population-preserving configuration
-    lod_config = LODConfiguration(
-        global_grid_size=1.0,  # Finer global grid for better rural representation
-        regional_grid_size=0.25,  # Improved regional detail
-        local_grid_size=0.05,  # High local detail for rural populations
-        min_population_threshold=0.0,  # DISABLED - preserve all population
-    )
-    # Enable settlement continuity for hierarchical LOD processing
-    continuity_config = SettlementContinuityConfig(enable_continuity=True)
-    lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
+    # Use provided LOD processor or create one with optimal configuration
+    if lod_processor is None:
+        # Create LOD processor with population-preserving configuration
+        # Fixed grid size mapping: REGIONAL should have the largest grid (most coarse)
+        lod_config = LODConfiguration(
+            global_grid_size=1.0,  # REGIONAL LOD - coarse overview (this is where we want randomization!)
+            regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail  
+            local_grid_size=0.1,   # LOCAL LOD - fine detail
+            min_population_threshold=0.0,  # DISABLED - preserve all population
+        )
+        # Enable settlement continuity for hierarchical LOD processing
+        continuity_config = SettlementContinuityConfig(enable_continuity=True)
+        lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
 
-    # First convert ASC to settlements using existing logic
-    points = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
-    if not points:
+    # First convert ASC to settlements using shared LOD processor
+    points = ascii_grid_to_dots(asc_file, year, people_per_dot_effective, lod_processor)
+    # Normalize to list of dicts to support tests that patch this to return a GeoDataFrame
+    points_list: List[dict] = []
+    try:
+        # Pandas/GeoPandas DataFrame-like objects expose `.empty` and `.itertuples()`
+        is_df_like = hasattr(points, "empty") and hasattr(points, "itertuples")
+    except Exception:
+        is_df_like = False
+
+    if isinstance(points, list):
+        points_list = points
+    elif is_df_like:  # type: ignore[truthy-bool]
+        if getattr(points, "empty", True):
+            points_list = []
+        else:
+            cols = list(getattr(points, "columns", []))
+            has_geom = "geometry" in cols
+            for row in points.itertuples(index=False):  # type: ignore[attr-defined]
+                # Prefer geometry.x/y if present; fallback to lon/lat columns
+                lon_val = None
+                lat_val = None
+                if has_geom:
+                    geom = getattr(row, "geometry", None)
+                    if geom is not None:
+                        # shapely Point exposes .x/.y
+                        lon_val = getattr(geom, "x", None)
+                        lat_val = getattr(geom, "y", None)
+                if lon_val is None or lat_val is None:
+                    lon_val = getattr(row, "lon", None)
+                    lat_val = getattr(row, "lat", None)
+                if lon_val is None or lat_val is None:
+                    continue
+                points_list.append(
+                    {
+                        "lon": float(lon_val),
+                        "lat": float(lat_val),
+                        "population": float(getattr(row, "population", 0.0)),
+                        "year": int(getattr(row, "year", year)),
+                        "type": str(getattr(row, "type", "settlement")),
+                    }
+                )
+    else:
+        # Unknown type; attempt a best-effort conversion
+        try:
+            points_list = list(points) if points is not None else []  # type: ignore[arg-type]
+        except Exception:
+            points_list = []
+
+    if len(points_list) == 0:
         print(f"    No data found for year {year}")
         return ProcessingResult(
             year=year,
@@ -356,7 +456,7 @@ def process_year_with_hierarchical_lods(
     settlements = []
     cellsize = 0.083333  # HYDE 3.5 approximate resolution
 
-    for d in points:
+    for d in points_list:
         try:
             settlement = HumanSettlement(
                 coordinates=Coordinates(longitude=float(d["lon"]), latitude=float(d["lat"])),
@@ -391,12 +491,17 @@ def process_year_with_hierarchical_lods(
         "processing_time": 0.0,  # Could add timing here
     }
 
-    return ProcessingResult(
+    result = ProcessingResult(
         year=year,
         lod_data=lod_data,
         total_population=total_population,
         processing_stats=processing_stats,
     )
+    
+    # Clean up intermediate data structures to free memory
+    del settlements, points_list
+    
+    return result
 
 
 def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
@@ -461,9 +566,12 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
 
 def process_all_hyde_data_with_lods(
     raw_dir: str, output_dir: str, force: bool = False
-) -> List[ProcessingResult]:
+) -> List[Dict[str, Any]]:
     """
     Process all HYDE data with hierarchical LOD generation.
+    
+    Memory-optimized version that only retains processing statistics,
+    not the full LOD data, to prevent memory accumulation.
 
     Args:
         raw_dir: Directory containing HYDE ASC files
@@ -471,7 +579,7 @@ def process_all_hyde_data_with_lods(
         force: If True, overwrite existing files; if False, skip existing files
 
     Returns:
-        List of ProcessingResult objects for each year
+        List of lightweight processing statistics for each year
     """
     mode = "Reprocessing all" if force else "Processing new"
     print(f"🌍 {mode} HYDE data with hierarchical LODs...")
@@ -486,24 +594,67 @@ def process_all_hyde_data_with_lods(
             "Please run 'poetry run fetch-data' first to download the datasets."
         )
 
-    results = []
-
+    # Create shared LOD processor for all years to reduce overhead
+    # For batch processing, disable continuity to prevent memory accumulation in settlement registry
+    lod_config = LODConfiguration(
+        global_grid_size=1.0,  # REGIONAL LOD - coarse overview (this is where we want randomization!)
+        regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail  
+        local_grid_size=0.1,   # LOCAL LOD - fine detail
+        min_population_threshold=0.0,  # DISABLED - preserve all population
+    )
+    continuity_config = SettlementContinuityConfig(enable_continuity=False)  # Disable for batch processing
+    shared_lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
+    
+    # Only keep lightweight statistics, not full LOD data
+    processed_stats = []
+    total_population_all_years = 0.0
+    
+    # Report initial memory usage
+    initial_memory = get_memory_usage()
+    print(f"  Starting memory usage: {initial_memory}")
+    
     for year in sorted(hyde_files.keys()):
         asc_file = hyde_files[year]
         try:
-            result = process_year_with_hierarchical_lods(asc_file, year, output_dir, force=force)
-            results.append(result)
+            # Process year and get full result using shared LOD processor
+            result = process_year_with_hierarchical_lods(asc_file, year, output_dir, force=force, lod_processor=shared_lod_processor)
+            
+            # Extract only essential statistics
+            year_stats = {
+                "year": result.year,
+                "total_population": result.total_population,
+                "lod_counts": {
+                    level.name: len(settlements) 
+                    for level, settlements in result.lod_data.items()
+                },
+                "processing_stats": result.processing_stats
+            }
+            processed_stats.append(year_stats)
+            total_population_all_years += result.total_population
+            
+            # Explicitly free the large LOD data from memory
+            del result
+            
+            # Force garbage collection after each year to free memory
+            gc.collect()
+            
+            # Report memory usage after processing this year
+            current_memory = get_memory_usage()
+            print(f"    Memory after year {year}: {current_memory}")
 
         except Exception as e:
             print(f"  Error processing {asc_file}: {e}")
             continue
 
     # Print summary statistics
-    print(f"\n✓ Processed {len(results)} years with hierarchical LODs")
-    total_population = sum(r.total_population for r in results)
-    print(f"  Total population across all years: {total_population:,.0f}")
+    print(f"\n✓ Processed {len(processed_stats)} years with hierarchical LODs")
+    print(f"  Total population across all years: {total_population_all_years:,.0f}")
+    
+    # Report final memory usage
+    final_memory = get_memory_usage()
+    print(f"  Final memory usage: {final_memory} (started with {initial_memory})")
 
-    return results
+    return processed_stats
 
 
 def main():
@@ -515,6 +666,12 @@ def main():
         "--force", 
         action="store_true", 
         help="Force reprocessing of existing files (default: skip existing files)"
+    )
+    parser.add_argument(
+        "--years",
+        nargs="+",
+        type=int,
+        help="Process specific years (e.g., --years 1850 1900 or --years -1000 0 1850)"
     )
     args = parser.parse_args()
 
@@ -529,28 +686,80 @@ def main():
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    processing_mode = "force mode" if args.force else "incremental mode (skipping existing)"
-    print(f"Using hierarchical LOD processing as default (population-preserving) in {processing_mode}...")
-    results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir), force=args.force)
+    # Filter to specific years if requested
+    if args.years is not None:
+        hyde_files = find_hyde_files(str(raw_dir))
+        
+        # Validate all requested years exist
+        missing_years = [year for year in args.years if year not in hyde_files]
+        if missing_years:
+            available_years = sorted(hyde_files.keys())
+            print(f"❌ Years not found in HYDE data: {missing_years}")
+            print(f"Available years: {available_years[:5]}...{available_years[-5:]} ({len(available_years)} total)")
+            return
+        
+        # Process requested years
+        processing_mode = "force mode" if args.force else "incremental mode"
+        year_count = len(args.years)
+        year_word = "year" if year_count == 1 else "years"
+        print(f"🌍 Processing {year_count} {year_word} {args.years} with hierarchical LODs ({processing_mode})...")
+        
+        results = []
+        for i, year in enumerate(sorted(args.years), 1):
+            print(f"\n[{i}/{year_count}] Processing year {year}...")
+            asc_file = hyde_files[year]
+            try:
+                result = process_year_with_hierarchical_lods(asc_file, year, str(output_dir), force=args.force)
+                results.append(result)
+                
+                # Handle both LODLevel enum and integer keys
+                counts = {}
+                for level, setts in result.lod_data.items():
+                    level_name = level.name if hasattr(level, 'name') else f"LOD_{level}"
+                    counts[level_name] = len(setts)
+                print(f"✓ Year {year}: {counts} | Population: {result.total_population:,.0f}")
+                
+            except Exception as e:
+                print(f"❌ Error processing year {year}: {e}")
+                continue
+        
+        print(f"\n✓ Completed processing {len(results)}/{year_count} years")
+    else:
+        # Process all years
+        processing_mode = "force mode" if args.force else "incremental mode (skipping existing)"
+        print(f"Using hierarchical LOD processing as default (population-preserving) in {processing_mode}...")
+        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir), force=args.force)
 
-    # Count processed vs skipped results
-    processed_results = [r for r in results if not r.processing_stats.get('skipped', False)]
-    skipped_results = [r for r in results if r.processing_stats.get('skipped', False)]
+    # Only show summary for all-year processing
+    if args.years is None:
+        # Count processed vs skipped results (now working with stats dicts)
+        processed_results = [r for r in results if not r.get('processing_stats', {}).get('skipped', False)]
+        skipped_results = [r for r in results if r.get('processing_stats', {}).get('skipped', False)]
+        
+        print(f"\n✓ Hierarchical LOD data computed (tiles-only; no NDJSON written)")
+        print(f"  Years processed: {len(processed_results)}")
+        if skipped_results:
+            print(f"  Skipped: {len(skipped_results)} years (already processed)")
+        
+        if processed_results:
+            print("  LOD settlement counts (first 3 years):")
+            for result in processed_results[:3]:
+                year = result["year"]
+                counts = result["lod_counts"]
+                print(f"    {year}: {counts}")
+            if len(processed_results) > 3:
+                print(f"    ... and {len(processed_results) - 3} more years")
     
-    print(f"\n✓ Hierarchical LOD data computed (tiles-only; no NDJSON written)")
-    print(f"  Years processed: {len(processed_results)}")
-    if skipped_results:
-        print(f"  Skipped: {len(skipped_results)} years (already processed)")
-    
-    if processed_results:
-        print("  LOD settlement counts (first 3 years):")
-        for result in processed_results[:3]:
-            year = result.year
-            counts = {level.name: len(setts) for level, setts in result.lod_data.items()}
-            print(f"    {year}: {counts}")
-        if len(processed_results) > 3:
-            print(f"    ... and {len(processed_results) - 3} more years")
     print("\nNext: Use make_tiles.py to build MBTiles per year")
+
+    # macOS audible completion notification
+    try:
+        if platform.system() == "Darwin":
+            done_years = len(processed_results)
+            msg = f"HYDE processing complete. {done_years} years processed."
+            subprocess.run(["say", msg], check=False)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

@@ -19,7 +19,8 @@ def tile_len(conn: sqlite3.Connection, z: int, x: int, y_xyz: int) -> int:
     tms_y = (1 << z) - 1 - y_xyz
     cur = conn.cursor()
     cur.execute(
-        "SELECT length(tile_data) FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?",
+        "SELECT length(tile_data) FROM tiles "
+        "WHERE zoom_level=? AND tile_column=? AND tile_row=?",
         (z, x, tms_y),
     )
     row = cur.fetchone()
@@ -29,7 +30,10 @@ def tile_len(conn: sqlite3.Connection, z: int, x: int, y_xyz: int) -> int:
 def counts_by_zoom(path: str) -> List[Tuple[int, int]]:
     con = sqlite3.connect(path)
     cur = con.cursor()
-    cur.execute("SELECT zoom_level, count(*) FROM tiles GROUP BY zoom_level ORDER BY zoom_level")
+    cur.execute(
+        "SELECT zoom_level, count(*) FROM tiles "
+        "GROUP BY zoom_level ORDER BY zoom_level"
+    )
     rows = [(int(z), int(c)) for z, c in cur.fetchall()]
     con.close()
     return rows
@@ -69,7 +73,7 @@ def verify_single_layer(path: str, strict: bool = False) -> bool:
             for dx in (-1, 0, 1)
             for dy in (-1, 0, 1)
         ]
-        nz = sum(1 for l in lens if l > 0)
+        nz = sum(1 for length in lens if length > 0)
         total = sum(lens)
         print(f"  z6 {name}: nonzero {nz}/9, total bytes ~{total}")
         if nz > 0:
@@ -83,9 +87,17 @@ def verify_single_layer(path: str, strict: bool = False) -> bool:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Verify MBTiles coverage and density")
-    ap.add_argument("--tiles-dir", required=True, help="Directory with humans_{year}.mbtiles")
+    ap.add_argument(
+        "--tiles-dir",
+        required=True,
+        help="Directory with humans_{year}.mbtiles",
+    )
     ap.add_argument("--year", type=int, required=True, help="Year to verify")
-    ap.add_argument("--strict", action="store_true", help="Fail on basic coverage/density regressions")
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail on basic coverage/density regressions",
+    )
     args = ap.parse_args()
 
     single_path = os.path.join(args.tiles_dir, f"humans_{args.year}.mbtiles")
@@ -96,4 +108,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -60,7 +60,7 @@ def test_integration_workflow():
         output_dir.mkdir()
         
         # Mock the ascii_grid_to_dots function to return test data
-        def mock_ascii_grid_to_dots(asc_file, year, people_per_dot=100):
+        def mock_ascii_grid_to_dots(asc_file, year, people_per_dot=100, lod_processor=None):
             import geopandas as gpd
             from shapely.geometry import Point
             

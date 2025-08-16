@@ -102,9 +102,9 @@ def test_basic_functionality():
     print("  ✓ Testing zoom level mapping...")
     zoom_tests = [
         (0.5, LODLevel.REGIONAL),
-        (3.5, LODLevel.REGIONAL),
-        (4.5, LODLevel.SUBREGIONAL),
-        (5.5, LODLevel.LOCAL),
+        (1.5, LODLevel.REGIONAL),
+        (2.5, LODLevel.SUBREGIONAL),
+        (4.5, LODLevel.LOCAL),
         (6.5, LODLevel.DETAILED)
     ]
     

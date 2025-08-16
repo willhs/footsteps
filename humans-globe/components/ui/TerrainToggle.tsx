@@ -5,36 +5,39 @@ interface TerrainToggleProps {
   onToggle: (enabled: boolean) => void;
 }
 
+export const TOGGLE_BUTTON_TW =
+  'w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full leading-none text-2xl transition-colors duration-200';
+export const TOGGLE_CONTAINER_TW =
+  'inline-flex items-center gap-0 rounded-full bg-gray-700/70 p-0 backdrop-blur-md shadow-lg ring-1 ring-gray-600/40';
+
 export default function TerrainToggle({ showTerrain, onToggle }: TerrainToggleProps) {
   return (
-    <div className="relative inline-flex rounded-full bg-gray-700/70 p-0.5 backdrop-blur-md shadow-lg ring-1 ring-gray-600/40">
-      {/* Sliding highlight */}
-      <span
-        className={`absolute top-0.5 left-0.5 h-7 w-1/2 rounded-full bg-green-500/90 shadow-md transition-transform duration-300 ease-out ${
-          showTerrain ? '' : 'translate-x-full'
-        }`}
-      />
+    <div className={TOGGLE_CONTAINER_TW} role="group" aria-label="Background style">
       <button
         onClick={() => onToggle(true)}
-        className={`relative z-10 flex-1 text-center text-xs px-4 py-1.5 rounded-full transition-all duration-200 ${
-          showTerrain 
-            ? 'text-white font-bold shadow-inner' 
-            : 'text-gray-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-inner'
+        className={`${TOGGLE_BUTTON_TW}  ${
+          showTerrain
+            ? 'bg-emerald-500 text-white shadow-md'
+            : 'text-gray-200 hover:text-white hover:bg-white/10'
         }`}
-        title="Show Earth terrain imagery"
+        title="🏔️ Show terrain imagery"
+        aria-pressed={showTerrain}
+        aria-label="Terrain"
       >
-        Terrain
+        🏔️
       </button>
       <button
         onClick={() => onToggle(false)}
-        className={`relative z-10 flex-1 text-center text-xs px-4 py-1.5 rounded-full transition-all duration-200 ${
-          !showTerrain 
-            ? 'text-white font-bold shadow-inner' 
-            : 'text-gray-300 hover:text-white hover:bg-white/10 hover:scale-105 hover:shadow-inner'
+        className={`${TOGGLE_BUTTON_TW} ${
+          !showTerrain
+            ? 'bg-emerald-500 text-white shadow-md'
+            : 'text-gray-200 hover:text-white hover:bg-white/10'
         }`}
-        title="Show solid background for better dot visibility"
+        title="⚫️ Plain background for dot clarity"
+        aria-pressed={!showTerrain}
+        aria-label="Plain"
       >
-        Plain
+        ⚫️
       </button>
     </div>
   );

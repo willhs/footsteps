@@ -86,7 +86,7 @@ pytest tests/ -v
 1. **Raw Data**: HYDE 3.5 ASC grid files with population density
 2. **Processing**: Python pipeline converts grids to GeoJSON points with population attributes
 3. **LOD Generation**: Hierarchical aggregation creates multiple detail levels
-4. **Tiles**: MBTiles (per‑LOD and combined yearly) for vector tile serving (MVT)
+4. **Tiles**: Single‑layer MBTiles per year for vector tile serving (MVT)
 
 ## Target Years
 
@@ -99,6 +99,5 @@ The pipeline processes data for strategic historical periods:
 ## Output Format
 
 Generated artifacts:
-- `humans_{year}_lod_{lod}.mbtiles` — Per‑LOD tiles
-- `humans_{year}.mbtiles` — Combined yearly tiles
+- `humans_{year}.mbtiles` — Single yearly tileset (layer id `humans`) with per‑feature minzoom windows mapping zoom→LOD
 - Tippecanoe builds tiles from temporary GeoJSONL; no intermediate artifacts are persisted

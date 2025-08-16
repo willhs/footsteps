@@ -5,13 +5,13 @@ import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import { createHumanTilesLayer, createStaticTerrainLayer, createPlainBackgroundLayers, radiusStrategies } from '@/components/footsteps/layers/layers';
 import { type LayersList } from '@deck.gl/core';
-import HumanDotsOverlay from '@/components/footsteps/overlays/HumanDotsOverlay';
+import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import GlobeView3D from '@/components/footsteps/views/GlobeView3D';
 import MapView2D from '@/components/footsteps/views/MapView2D';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
-import TerrainToggle from '@/components/ui/TerrainToggle';
+import VizToggles from '@/components/ui/VizToggles';
 
 type PickingInfo = {
   object?: { properties?: { population?: number }; geometry?: { coordinates?: [number, number] } };
@@ -308,12 +308,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       )}
       
       {/* Data info overlay */}
-      <HumanDotsOverlay
+      <SupportingText
         loading={tileLoading}
         dotCount={featureCount}
         totalPopulation={totalPopulation}
         viewState={viewState}
-        samplingRate={100}
         lodLevel={stableLODLevel}
         lodEnabled={false}
         toggleLOD={() => {}}
@@ -322,40 +321,14 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         progressiveRenderStatus={undefined}
         viewportBounds={null}
         is3DMode={is3DMode}
+        year={year}
       />
       
-      {/* View Mode Toggle */}
+      {/* View Mode + Terrain toggles */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        {/* View Mode Toggle */}
-        <div className="relative inline-flex rounded-full bg-gray-700/60 p-1 backdrop-blur-md shadow-inner ring-1 ring-gray-600/60">
-          {/* Sliding highlight */}
-          <span
-            className={`absolute top-1 left-1 h-8 w-1/2 rounded-full bg-blue-500/80 transition-transform duration-300 ease-out ${
-              is3DMode ? 'translate-x-full' : ''
-            }`}
-          />
-          <button
-            onClick={() => setIs3DMode(false)}
-            className={`relative z-10 flex-1 text-center text-sm px-10 py-3 rounded-full transition-colors duration-200 ${
-              !is3DMode ? 'text-white font-bold ring-2 ring-white/80' : 'text-gray-300 hover:text-white'
-            }`}
-            title="2D Map View"
-          >
-            Map
-          </button>
-          <button
-            onClick={() => setIs3DMode(true)}
-            className={`relative z-10 flex-1 text-center text-sm px-10 py-3 rounded-full transition-colors duration-200 ${
-              is3DMode ? 'text-white font-bold ring-2 ring-white/80' : 'text-gray-300 hover:text-white'
-            }`}
-            title="3D Globe View"
-          >
-            Globe
-          </button>
-        </div>
-        
-        {/* Terrain Toggle */}
-        <TerrainToggle 
+        <VizToggles
+          is3DMode={is3DMode}
+          onModeChange={setIs3DMode}
           showTerrain={showTerrain}
           onToggle={setShowTerrain}
         />

@@ -1,8 +1,11 @@
+// Auto-generated LOD configuration - DO NOT EDIT MANUALLY
+// Generated from lod_config.py
+
 // Shared LOD selection used by client & server
-// Zoom thresholds aligned with improved generator zoom ranges for smoother transitions
+// Zoom thresholds updated: LOD 1 transitions earlier at zoom 2 for better detail
 export function getLODLevel(zoom: number): 0 | 1 | 2 | 3 {
-  if (zoom < 3) return 0;      // REGIONAL LOD (z0-2) - world/continental view
-  if (zoom < 5) return 1;      // SUBREGIONAL LOD (z3-4) - country/regional view  
-  if (zoom < 7) return 2;      // LOCAL LOD (z5-6) - sub-regional/county view
-  return 3;                    // DETAILED LOD (z7+) - city/settlement level
+  if (zoom < 2) return 0;      // REGIONAL - World view
+  if (zoom < 4) return 1;      // SUBREGIONAL - Continental/country view
+  if (zoom < 6) return 2;      // LOCAL - Regional/county view
+  return 3;                    // DETAILED - City/settlement level
 }

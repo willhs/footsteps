@@ -7,7 +7,6 @@ Implements hierarchical spatial aggregation for performance optimization.
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional
-from landmask import is_land
 from models import (
     LODLevel,
     Coordinates,
@@ -18,6 +17,7 @@ from models import (
     SettlementContinuityConfig,
 )
 from settlement_registry import SettlementRegistry
+from dot_generator import DotGenerator
 
 
 class LODProcessor:
@@ -33,6 +33,11 @@ class LODProcessor:
         self.continuity_config = continuity_config or SettlementContinuityConfig()
         self.settlement_registry = (
             SettlementRegistry() if self.continuity_config.enable_continuity else None
+        )
+        # Extracted dot generation logic
+        self.dot_generator = DotGenerator(
+            continuity_config=self.continuity_config,
+            settlement_registry=self.settlement_registry,
         )
 
     def create_hierarchical_lods(
@@ -55,7 +60,7 @@ class LODProcessor:
         year = settlements[0].year
 
         lod_results = {}
-        
+
         # LOD 3 (DETAILED): Use original settlements
         lod_results[LODLevel.DETAILED] = [
             AggregatedSettlement(
@@ -72,12 +77,13 @@ class LODProcessor:
             )
             for settlement in settlements
         ]
-        
+
         # Define grid sizes for each LOD level
+        # Map the 3 available config fields to 4 LOD levels
         grid_configs = {
-            LODLevel.REGIONAL: self.config.regional_grid_size,
-            LODLevel.SUBREGIONAL: self.config.subregional_grid_size,
-            LODLevel.LOCAL: self.config.local_grid_size
+            LODLevel.REGIONAL: self.config.global_grid_size,     # Coarsest: 1.0°
+            LODLevel.SUBREGIONAL: self.config.regional_grid_size, # Medium: 0.25°  
+            LODLevel.LOCAL: self.config.local_grid_size          # Finest: 0.05°
         }
 
         # Convert settlement data to NumPy arrays for vector operations
@@ -113,8 +119,17 @@ class LODProcessor:
             cell_area_km2 = (grid_size * 111.32) ** 2  # Rough conversion to km²
 
             for row in grouped.itertuples(index=False):
-                grid_x = row.x_idx * grid_size
-                grid_y = row.y_idx * grid_size
+                # Apply deterministic spatial randomization to break grid artifacts
+                # Apply to all aggregated LODs (0, 1, 2) but not DETAILED (3)
+                if lod_level in (LODLevel.REGIONAL, LODLevel.SUBREGIONAL, LODLevel.LOCAL):
+                    grid_x, grid_y = self._apply_spatial_randomization(
+                        row.x_idx, row.y_idx, grid_size, year
+                    )
+                else:
+                    # Keep exact grid positioning for DETAILED LOD (source data)
+                    grid_x = row.x_idx * grid_size
+                    grid_y = row.y_idx * grid_size
+                    
                 avg_density = row.total_population / cell_area_km2
                 try:
                     aggregated = AggregatedSettlement(
@@ -133,7 +148,8 @@ class LODProcessor:
 
             lod_results[lod_level] = aggregated_settlements
             print(
-                f"      → {len(aggregated_settlements)} aggregated settlements (from {len(settlements)} original)"
+                f"      → {len(aggregated_settlements)} aggregated settlements "
+                f"(from {len(settlements)} original)"
             )
 
         # Validate population conservation
@@ -151,51 +167,29 @@ class LODProcessor:
         lod_level: Optional[int] = None,
     ) -> List[tuple]:
         """
-        Create dots for a cell using density-aware strategy with deterministic positioning.
+        Create dots for a cell using density-aware strategy
+        with deterministic positioning.
 
         Args:
             cell_population: Total population in the cell
             lat, lon: Center coordinates of the cell
             cellsize: Size of the cell in degrees
             people_per_dot: Standard number of people per dot
-            lod_level: Level of detail (0=Regional, 1=Subregional, 2=Local, 3=Detailed)
+            lod_level: Level of detail
+                (0=Regional, 1=Subregional, 2=Local, 3=Detailed)
 
         Returns:
             List of (lat, lon, population) tuples for each dot to create
         """
-        dots = []
-
-        # Apply minimum population threshold - scale with dot size for sparse eras
-        # Use a lower cutoff for detailed (base) dots so extremely sparse BCE regions
-        # still contribute at least one dot and get aggregated into LOD 0-2.
-        if lod_level == 3:
-            # For base dots, lower cutoff significantly. For BCE-era runs
-            # (proxied by people_per_dot <= 10), allow very sparse cells through.
-            min_pop_cutoff = 0.5 if people_per_dot <= 10 else max(people_per_dot / 4, 0.5)
-        else:
-            # Coarser LODs can keep a higher cutoff to avoid noise
-            min_pop_cutoff = max(people_per_dot / 2, 5)
-        if cell_population < min_pop_cutoff:
-            return dots
-
-        # Determine settlement type based on population
-        if cell_population < self.continuity_config.rural_to_town_threshold:
-            settlement_type = "rural"
-        elif cell_population < self.continuity_config.town_to_city_threshold:
-            settlement_type = "town"
-        else:
-            settlement_type = "city"
-
-        # Use deterministic positioning if continuity is enabled
-        if self.settlement_registry is not None:
-            return self._create_deterministic_dots(
-                cell_population, lat, lon, cellsize, people_per_dot, settlement_type, lod_level
-            )
-        else:
-            # Fallback to original random positioning for backward compatibility
-            return self._create_random_dots(
-                cell_population, lat, lon, cellsize, people_per_dot, settlement_type, lod_level
-            )
+        # Delegate to extracted generator (preserves existing behavior)
+        return self.dot_generator.create_density_aware_dots(
+            cell_population=cell_population,
+            lat=lat,
+            lon=lon,
+            cellsize=cellsize,
+            people_per_dot=people_per_dot,
+            lod_level=lod_level,
+        )
 
     def _create_deterministic_dots(
         self,
@@ -207,54 +201,16 @@ class LODProcessor:
         settlement_type: str,
         lod_level: Optional[int] = None,
     ) -> List[tuple]:
-        """Create dots using deterministic positioning for settlement continuity."""
-        # LOD-aware dot distribution logic
-        # LOD 3 (Detailed zoom ≥6): More granular dots for detailed views
-        # LOD 0-2 (Coarser zoom <6): Fewer dots to avoid clutter
-        
-        if lod_level == 3:  # Detailed LOD - show more granular dots
-            if settlement_type == "rural":
-                # Rural at detailed level: standard granularity with a safety cap
-                num_dots = max(1, min(20, int(cell_population / people_per_dot)))
-            elif settlement_type == "town":
-                # Towns at detailed level: balanced density
-                effective_people_per_dot = max(people_per_dot * 2, 50)
-                num_dots = max(1, min(25, int(cell_population / effective_people_per_dot)))
-            else:  # city
-                # Cities at detailed level: rich structure without overwhelming the budget
-                effective_people_per_dot = max(people_per_dot * 4, 100)
-                num_dots = max(1, min(75, int(cell_population / effective_people_per_dot)))
-        else:  # LOD 0-2 - use original aggregated logic to avoid clutter
-            if settlement_type == "rural":
-                num_dots = max(1, int(cell_population / people_per_dot))
-            elif settlement_type == "town":
-                # Towns at coarse LOD: Fewer dots to reduce clutter
-                effective_people_per_dot = people_per_dot * 5  # 5× more people per dot
-                num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))
-            else:  # city
-                # Cities at coarse LOD: Very few dots to avoid overwhelming the view
-                effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
-                num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
-
-        population_per_dot = cell_population / num_dots
-
-        # Get deterministic positions from registry
-        positions = self.settlement_registry.get_deterministic_positions(
-            lat, lon, cellsize, num_dots, settlement_type
+        """Wrapper delegating to DotGenerator to preserve test back-compat."""
+        return self.dot_generator._create_deterministic_dots(
+            cell_population,
+            lat,
+            lon,
+            cellsize,
+            people_per_dot,
+            settlement_type,
+            lod_level,
         )
-
-        # Convert positions to dots
-        dots = []
-        for position in positions:
-            dots.append(
-                (
-                    position.coordinates.latitude,
-                    position.coordinates.longitude,
-                    population_per_dot,
-                )
-            )
-
-        return dots
 
     def _create_random_dots(
         self,
@@ -266,171 +222,16 @@ class LODProcessor:
         settlement_type: str,
         lod_level: Optional[int] = None,
     ) -> List[tuple]:
-        """Create dots using original random positioning (fallback)."""
-        dots = []
-
-        # LOD-aware density strategy
-        if lod_level == 3:  # Detailed LOD - show more granular dots
-            if settlement_type == "rural":
-                # Rural at detailed level: standard granularity with a safety cap
-                num_dots = max(1, min(20, int(cell_population / people_per_dot)))
-                population_per_dot = cell_population / num_dots
-
-                for _ in range(num_dots):
-                    attempts = 0
-                    while True:
-                        dot_lat = lat + np.random.uniform(-cellsize / 2, cellsize / 2)
-                        dot_lon = lon + np.random.uniform(-cellsize / 2, cellsize / 2)
-                        if is_land(dot_lat, dot_lon) or attempts >= 10:
-                            break
-                        attempts += 1
-                    dots.append((dot_lat, dot_lon, population_per_dot))
-
-            elif settlement_type == "town":
-                # Towns at detailed level: balanced density
-                effective_people_per_dot = max(people_per_dot * 2, 50)
-                num_dots = max(1, min(25, int(cell_population / effective_people_per_dot)))
-                population_per_dot = cell_population / num_dots
-
-                grid_size = int(np.ceil(np.sqrt(num_dots)))
-                grid_step = cellsize / (grid_size + 1)  # Add padding
-
-                dot_idx = 0
-                for i in range(grid_size):
-                    for j in range(grid_size):
-                        if dot_idx >= num_dots:
-                            break
-
-                        # Grid position with slight randomization
-                        offset_lat = (i - grid_size / 2 + 0.5) * grid_step
-                        offset_lon = (j - grid_size / 2 + 0.5) * grid_step
-
-                        # Add small random offset to avoid perfect grid
-                        attempts = 0
-                        while True:
-                            pert_lat = np.random.uniform(-grid_step / 4, grid_step / 4)
-                            pert_lon = np.random.uniform(-grid_step / 4, grid_step / 4)
-                            dot_lat = lat + offset_lat + pert_lat
-                            dot_lon = lon + offset_lon + pert_lon
-                            if is_land(dot_lat, dot_lon) or attempts >= 10:
-                                break
-                            attempts += 1
-                        dots.append((dot_lat, dot_lon, population_per_dot))
-                        dot_idx += 1
-
-            else:  # city at detailed level
-                # Cities at detailed level: rich structure without overwhelming the budget
-                effective_people_per_dot = max(people_per_dot * 4, 100)
-                num_dots = max(1, min(75, int(cell_population / effective_people_per_dot)))
-                population_per_dot = cell_population / num_dots
-
-                # Use fixed positions within cell to ensure consistency
-                positions = [
-                    (0, 0),  # Center
-                    (-0.25, -0.25),
-                    (0.25, -0.25),  # Lower corners
-                    (-0.25, 0.25),
-                    (0.25, 0.25),  # Upper corners
-                ]
-
-                for i in range(num_dots):
-                    if i < len(positions):
-                        offset_lat, offset_lon = positions[i]
-                        dot_lat = lat + offset_lat * cellsize
-                        dot_lon = lon + offset_lon * cellsize
-                    else:
-                        # For extra dots beyond fixed positions, use random placement
-                        dot_lat = lat + np.random.uniform(-cellsize / 2, cellsize / 2)
-                        dot_lon = lon + np.random.uniform(-cellsize / 2, cellsize / 2)
-                    
-                    if not is_land(dot_lat, dot_lon):
-                        attempts = 0
-                        while True:
-                            dot_lat = lat + np.random.uniform(-cellsize / 2, cellsize / 2)
-                            dot_lon = lon + np.random.uniform(-cellsize / 2, cellsize / 2)
-                            if is_land(dot_lat, dot_lon) or attempts >= 10:
-                                break
-                            attempts += 1
-                    dots.append((dot_lat, dot_lon, population_per_dot))
-
-        else:  # LOD 0-2 - use original aggregated logic to avoid clutter
-            if settlement_type == "rural":
-                # Rural areas: Standard approach with random placement
-                num_dots = max(1, int(cell_population / people_per_dot))
-                population_per_dot = cell_population / num_dots
-
-                for _ in range(num_dots):
-                    attempts = 0
-                    while True:
-                        dot_lat = lat + np.random.uniform(-cellsize / 2, cellsize / 2)
-                        dot_lon = lon + np.random.uniform(-cellsize / 2, cellsize / 2)
-                        if is_land(dot_lat, dot_lon) or attempts >= 10:
-                            break
-                        attempts += 1
-                    dots.append((dot_lat, dot_lon, population_per_dot))
-
-            elif settlement_type == "town":
-                # Towns at coarse LOD: Fewer dots to reduce clutter
-                effective_people_per_dot = people_per_dot * 5  # 5× more people per dot
-                num_dots = max(1, min(5, int(cell_population / effective_people_per_dot)))
-                population_per_dot = cell_population / num_dots
-
-                grid_size = int(np.ceil(np.sqrt(num_dots)))
-                grid_step = cellsize / (grid_size + 1)  # Add padding
-
-                dot_idx = 0
-                for i in range(grid_size):
-                    for j in range(grid_size):
-                        if dot_idx >= num_dots:
-                            break
-
-                        # Grid position with slight randomization
-                        offset_lat = (i - grid_size / 2 + 0.5) * grid_step
-                        offset_lon = (j - grid_size / 2 + 0.5) * grid_step
-
-                        # Add small random offset to avoid perfect grid
-                        attempts = 0
-                        while True:
-                            pert_lat = np.random.uniform(-grid_step / 4, grid_step / 4)
-                            pert_lon = np.random.uniform(-grid_step / 4, grid_step / 4)
-                            dot_lat = lat + offset_lat + pert_lat
-                            dot_lon = lon + offset_lon + pert_lon
-                            if is_land(dot_lat, dot_lon) or attempts >= 10:
-                                break
-                            attempts += 1
-                        dots.append((dot_lat, dot_lon, population_per_dot))
-                        dot_idx += 1
-
-            else:  # city at coarse LOD
-                # Cities at coarse LOD: Very few dots to avoid overwhelming the view
-                effective_people_per_dot = people_per_dot * 20  # 20× more people per dot
-                num_dots = max(1, min(3, int(cell_population / effective_people_per_dot)))
-                population_per_dot = cell_population / num_dots
-
-                # Use fixed positions within cell to ensure consistency
-                positions = [
-                    (0, 0),  # Center
-                    (-0.25, -0.25),
-                    (0.25, -0.25),  # Lower corners
-                    (-0.25, 0.25),
-                    (0.25, 0.25),  # Upper corners
-                ]
-
-                for i in range(num_dots):
-                    offset_lat, offset_lon = positions[i]
-                    dot_lat = lat + offset_lat * cellsize
-                    dot_lon = lon + offset_lon * cellsize
-                    if not is_land(dot_lat, dot_lon):
-                        attempts = 0
-                        while True:
-                            dot_lat = lat + np.random.uniform(-cellsize / 2, cellsize / 2)
-                            dot_lon = lon + np.random.uniform(-cellsize / 2, cellsize / 2)
-                            if is_land(dot_lat, dot_lon) or attempts >= 10:
-                                break
-                            attempts += 1
-                    dots.append((dot_lat, dot_lon, population_per_dot))
-
-        return dots
+        """Wrapper delegating to DotGenerator to preserve test back-compat."""
+        return self.dot_generator._create_random_dots(
+            cell_population,
+            lat,
+            lon,
+            cellsize,
+            people_per_dot,
+            settlement_type,
+            lod_level,
+        )
 
     def validate_settlement_data(
         self, settlements: List[HumanSettlement]
@@ -487,16 +288,20 @@ class LODProcessor:
         Returns:
             Appropriate LOD level for the zoom
         """
-        # 4-level mapping: 0=Regional, 1=Subregional, 2=Local, 3=Detailed
-        # Adjusted thresholds to delay LOD 3 transition and fix zoom 6+ discontinuity
-        if zoom_level < 4:
-            return LODLevel.REGIONAL
-        elif zoom_level < 5:
-            return LODLevel.SUBREGIONAL
-        elif zoom_level < 6:  # LOD 2 range ends at <6 to align with tiles/frontend
-            return LODLevel.LOCAL
-        else:
-            return LODLevel.DETAILED
+        from lod_config import get_lod_level_for_zoom
+        
+        # Use centralized configuration
+        lod_int = get_lod_level_for_zoom(zoom_level)
+        
+        # Convert to LODLevel enum
+        lod_mapping = {
+            0: LODLevel.REGIONAL,
+            1: LODLevel.SUBREGIONAL, 
+            2: LODLevel.LOCAL,
+            3: LODLevel.DETAILED
+        }
+        
+        return lod_mapping.get(lod_int, LODLevel.DETAILED)
 
     def _validate_population_conservation(
         self,
@@ -512,7 +317,7 @@ class LODProcessor:
 
         original_total = sum(s.population for s in original_settlements)
 
-        print(f"    Population Conservation Validation:")
+        print("    Population Conservation Validation:")
         print(f"      Original total: {original_total:.0f} people")
 
         for lod_level, aggregated in lod_results.items():
@@ -526,14 +331,16 @@ class LODProcessor:
                 f"({conservation_ratio:.1%} conserved, {len(aggregated)} points)"
             )
 
-            # Require 99%+ population conservation (allow for tiny floating point errors)
+            # Require 99%+ population conservation
+            # (allow for tiny floating point errors)
             if conservation_ratio < 0.99:
                 raise ValueError(
-                    f"LOD {lod_level.name} lost {(1-conservation_ratio):.1%} of population! "
+                    f"LOD {lod_level.name} lost "
+                    f"{(1-conservation_ratio):.1%} of population! "
                     f"({lod_total:.0f} vs {original_total:.0f})"
                 )
 
-        print(f"      Population conservation validated")
+        print("      Population conservation validated")
 
     def estimate_performance_impact(
         self, settlements: List[HumanSettlement], target_lod: LODLevel
@@ -565,3 +372,50 @@ class LODProcessor:
             "memory_reduction_mb": (original_count - target_count)
             * 0.1,  # Rough estimate
         }
+
+    def _apply_spatial_randomization(
+        self, x_idx: int, y_idx: int, grid_size: float, year: int
+    ) -> tuple[float, float]:
+        """
+        Apply deterministic spatial randomization to break grid artifacts.
+        
+        Uses fast deterministic randomization based on grid coordinates and year.
+        Ensures consistent results across LOD levels for the same underlying settlement.
+        
+        Args:
+            x_idx: Grid X index
+            y_idx: Grid Y index  
+            grid_size: Size of grid cell in degrees
+            year: Year for additional entropy
+            
+        Returns:
+            Tuple of (longitude, latitude) with randomized offset
+        """
+        # Create seed from original coordinates and year only
+        # This ensures same settlement gets same offset across all LOD levels
+        seed = hash((x_idx, y_idx, year)) & 0x7FFFFFFF  # Fast hash, ensure positive
+        
+        # Use seed for deterministic but pseudo-random offset
+        # Simple linear congruential generator for fast randomization
+        seed_x = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+        seed_y = (seed * 134775813 + 67890) & 0x7FFFFFFF
+        
+        # Convert to [-0.5, 0.5] range
+        offset_x = (seed_x / 0x7FFFFFFF) - 0.5
+        offset_y = (seed_y / 0x7FFFFFFF) - 0.5
+        
+        # Base grid position
+        grid_x = x_idx * grid_size
+        grid_y = y_idx * grid_size
+        
+        # Add controlled offset within grid cell (±25% of cell size)
+        # This breaks the regular pattern while keeping settlements clustered
+        offset_range = grid_size * 0.25
+        final_x = grid_x + offset_x * offset_range
+        final_y = grid_y + offset_y * offset_range
+        
+        # Clamp to valid coordinate ranges to prevent Pydantic validation errors
+        final_x = max(-180.0, min(180.0, final_x))
+        final_y = max(-90.0, min(90.0, final_y))
+        
+        return final_x, final_y

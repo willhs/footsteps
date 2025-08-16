@@ -32,8 +32,11 @@
       "Bash(git merge:*)",
       "Bash(git worktree:*)",
       "Bash(gcloud run services logs read:*)",
-      "Bash(./upload-data.sh)"
+      "Bash(./upload-data.sh)",
+      "mcp__playwright-local__browser_hover_text",
+      "Bash(npx tsc:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

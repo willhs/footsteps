@@ -261,10 +261,11 @@ class TestDataProcessingPipeline:
         processor = LODProcessor()
 
         # Test zoom level mappings (4 tiers: REGIONAL/SUBREGIONAL/LOCAL/DETAILED)
+        # Updated: LOD 1 transitions earlier at zoom 2
         assert processor.get_lod_level_for_zoom(0.5) == LODLevel.REGIONAL
-        assert processor.get_lod_level_for_zoom(3.5) == LODLevel.REGIONAL
-        assert processor.get_lod_level_for_zoom(4.5) == LODLevel.SUBREGIONAL
-        assert processor.get_lod_level_for_zoom(5.5) == LODLevel.LOCAL
+        assert processor.get_lod_level_for_zoom(1.5) == LODLevel.REGIONAL
+        assert processor.get_lod_level_for_zoom(2.5) == LODLevel.SUBREGIONAL
+        assert processor.get_lod_level_for_zoom(4.5) == LODLevel.LOCAL
         assert processor.get_lod_level_for_zoom(6.5) == LODLevel.DETAILED
         assert processor.get_lod_level_for_zoom(10.0) == LODLevel.DETAILED
 

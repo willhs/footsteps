@@ -6,8 +6,8 @@ Updated: 2025-08-10
 
 > Note: The app has migrated from a legacy NDJSON API to pre‑tiled vector tiles (MBTiles with MVT). The bullets below reflect the current architecture; much of the remainder of this doc describes the older NDJSON streaming approach and is kept for reference.
 
-- App: Next.js (Deck.gl) at `humans-globe/`, uses a Tile API `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`.
-- Data: MBTiles under `data/tiles/humans/` (per‑LOD `humans_{year}_lod_{lod}.mbtiles` and combined `humans_{year}.mbtiles`).
+- App: Next.js (Deck.gl) at `humans-globe/`, uses a Tile API `/api/tiles/{year}/single/{z}/{x}/{y}.pbf`.
+- Data: MBTiles under `data/tiles/humans/` (one per year, single layer `humans`).
 - Pipeline: Python generates tiles offline with Tippecanoe (see `footstep-generator/make_tiles.py`).
 - Tile behavior: Serves Mapbox Vector Tiles with ETag and immutable caching; frontend uses deck.gl `MVTLayer`.
 
@@ -94,4 +94,3 @@ Option B — Serverless + R2 (lowest cost)
 
 Appendix: Why not pure static export?
 - The app’s API route performs dynamic viewport filtering and on-the-fly aggregation. Pre-materializing all combinations is impractical; the streaming filter+aggregate keeps responses small and interactive behavior intact while remaining cheap on a VM or when backed by object storage.
-

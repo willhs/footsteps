@@ -18,6 +18,7 @@ import re
 import tempfile
 import math
 import hashlib
+import platform
 from typing import List, Dict, Any, Tuple, Optional
 
 # Import processing functions to compute LODs in-memory
@@ -108,13 +109,8 @@ def verify_tiles(tiles_file: str) -> bool:
 # Per-year, per-LOD tile generation
 # ---------------------------
 
-# Zoom ranges by LOD level (inclusive)
-LOD_ZOOM_RANGES: Dict[int, Tuple[int, int]] = {
-    0: (0, 3),   # REGIONAL visible at z0-3
-    1: (4, 4),   # SUBREGIONAL at z4
-    2: (5, 5),   # LOCAL at z5
-    3: (6, 12),  # DETAILED at z6+
-}
+# Import centralized LOD configuration
+from lod_config import LOD_ZOOM_RANGES
 
 def write_geojsonl_temp(settlements, lod_level: int) -> str:
     """Write AggregatedSettlement list to a temporary GeoJSONL file and return its path."""
@@ -186,7 +182,17 @@ def write_combined_geojsonl(lod_map: Dict[Any, List[Any]]) -> str:
                     "density": float(s.average_density),
                 })
     # People-per-dot targets by zoom (tunable)
-    ppd = {0: 5_000_000, 1: 1_500_000, 2: 300_000, 3: 80_000, 4: 15_000, 5: 3_000, 6: 600}
+    # People-per-dot targets by zoom (monotonic decreasing with zoom)
+    # Tune low zooms to avoid sparse appearance at 1–2x and ensure each zoom adds dots.
+    ppd = {
+        0: 2_000_000,  # very coarse
+        1:   300_000,
+        2:    60_000,
+        3:    20_000,
+        4:     5_000,
+        5:     2_000,
+        6:       600,  # detailed
+    }
     minzoom = [12] * len(detailed)
     for z in range(0, 7):
         buckets: Dict[tuple, list] = {}
@@ -220,6 +226,47 @@ def write_combined_geojsonl(lod_map: Dict[Any, List[Any]]) -> str:
             }
             f_out.write(json.dumps(feature))
             f_out.write("\n")
+    return tmp_path
+
+def write_combined_geojsonl_windows(lod_map: Dict[Any, List[Any]]) -> str:
+    """Write a single-layer GeoJSONL using population-preserving LOD windows.
+
+    Emits all LODs into one layer with non-overlapping minzoom/maxzoom so that at any
+    given zoom, exactly one LOD is visible and its features' populations sum to the
+    true total (conservation).
+    """
+    # Use centralized single-layer LOD windows
+    from lod_config import SINGLE_LAYER_LOD_WINDOWS
+    lod_windows = SINGLE_LAYER_LOD_WINDOWS
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".geojsonl")
+    os.close(tmp_fd)
+    with open(tmp_path, "w", encoding="utf-8") as f_out:
+        for lod_level, settlements in sorted(
+            lod_map.items(), key=lambda x: int(getattr(x[0], "value", x[0]))
+        ):
+            lv = int(getattr(lod_level, "value", lod_level))
+            minz, maxz = lod_windows.get(lv, (6, 12))
+            for s in settlements:
+                feature = {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [s.coordinates.longitude, s.coordinates.latitude],
+                    },
+                    "properties": {
+                        "population": s.total_population,
+                        "year": s.year,
+                        "type": "settlement",
+                        "lod_level": lv,
+                        "grid_size": s.grid_size_degrees,
+                        "source_dots": s.source_dot_count,
+                        "density": s.average_density,
+                    },
+                    "tippecanoe": {"minzoom": minz, "maxzoom": maxz},
+                }
+                f_out.write(json.dumps(feature))
+                f_out.write("\n")
     return tmp_path
 
 def generate_mbtiles_for_lod(
@@ -365,7 +412,21 @@ def main():
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing MBTiles")
     parser.add_argument("--year", type=int, help="Alias for building a single year (convenience)")
-    parser.add_argument("--single-layer", action="store_true", help="Also build single-layer humans_{year}.mbtiles with per-feature minzoom")
+    # Output mode flags: default to single-layer on
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--single-layer",
+        dest="single_layer",
+        action="store_true",
+        help="Build single-layer humans_{year}.mbtiles with LOD windows (default)",
+    )
+    group.add_argument(
+        "--no-single-layer",
+        dest="single_layer",
+        action="store_false",
+        help="Skip single-layer output (emit only per-LOD artifacts)",
+    )
+    parser.set_defaults(single_layer=True)
     parser.add_argument("--verify", action="store_true", help="Run post-build verification (single-layer)")
     parser.add_argument("--strict", action="store_true", help="Fail build on verification regressions")
     args = parser.parse_args()
@@ -398,7 +459,8 @@ def main():
             if args.single_layer:
                 # Build single-layer variant using all LOD data deterministically
                 result = process_year_with_hierarchical_lods(asc_file, y, args.tiles_dir, force=args.force)
-                combined_geojsonl = write_combined_geojsonl(result.lod_data)
+                # Use LOD windows so exactly one LOD is visible per zoom
+                combined_geojsonl = write_combined_geojsonl_windows(result.lod_data)
                 yearly_out = pathlib.Path(args.tiles_dir) / f"humans_{y}.mbtiles"
                 if yearly_out.exists() and args.force:
                     yearly_out.unlink()
@@ -417,6 +479,15 @@ def main():
     print("Next:")
     print("- Serve tiles via API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf (single-layer)")
     print("- Frontend: MVTLayer with layer id 'humans'")
+
+    # macOS audible completion notification
+    try:
+        if platform.system() == "Darwin":
+            # Keep it short and informative
+            msg = f"Tiles generation complete. Built {built} years."
+            subprocess.run(["say", msg], check=False)
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     main()

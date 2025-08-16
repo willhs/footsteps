@@ -95,7 +95,7 @@ To achieve the cheapest hosting option, the following adaptations are needed:
 ```
 
 ### 3. API Route Replacement
-- Prefer vector tiles: serve `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf` (or host `.mbtiles` via a static tile server/CDN)
+- Prefer vector tiles: serve `/api/tiles/{year}/single/{z}/{x}/{y}.pbf` (or host yearly `.mbtiles` via a static tile server/CDN)
 - If pursuing a pure static site, pre-host PBF tiles or expose MBTiles via a lightweight tile server; keep client-side LOD selection
 - Maintain caching and performance optimizations (ETag, immutable caching)
 

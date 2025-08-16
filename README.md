@@ -142,11 +142,11 @@ deep-footsteps/
 ### Data + Tiles Workflow
 
 1. Place HYDE ASCII grids (`popd_*.asc`) in `footstep-generator/data/raw/hyde-3.5/`
-2. Build tiles (tiles-only, population-preserving LODs):
-   - All years found: `poetry run python footstep-generator/make_tiles.py`
-   - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020`
+2. Build tiles (single-layer, population‑preserving LOD windows):
+   - All years found: `poetry run python footstep-generator/make_tiles.py --single-layer --verify --strict`
+   - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020 --single-layer --verify --strict`
 3. Dev serving: export `HUMANS_TILES_DIR=$(pwd)/data/tiles/humans` before running the frontend
-4. Tile API: `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
+4. Tile API: `/api/tiles/{year}/single/{z}/{x}/{y}.pbf` (layer id `humans`)
 
 ### Processing Historical Data
 

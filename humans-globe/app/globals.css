@@ -1,7 +1,7 @@
+@import "tailwindcss";
+@source "./**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 @import 'rc-slider/assets/index.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --background: #0a0a0a;

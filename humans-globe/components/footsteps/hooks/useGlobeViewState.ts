@@ -1,6 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+type BasicViewState = {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch?: number;
+  bearing?: number;
+};
+
 interface ViewState {
   longitude: number;
   latitude: number;
@@ -48,15 +56,23 @@ export default function useGlobeViewState() {
   const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onViewStateChange = useCallback(
-    ({ viewState: newViewState }: { viewState: ViewState }) => {
-      const oldZoom = viewState.zoom;
-      const newZoom = newViewState.zoom;
-      const oldLon = viewState.longitude;
-      const newLon = newViewState.longitude;
-      const oldLat = viewState.latitude;
-      const newLat = newViewState.latitude;
+    ({ viewState: newViewState }: { viewState: BasicViewState }) => {
+      const normalized: ViewState = {
+        longitude: newViewState.longitude,
+        latitude: newViewState.latitude,
+        zoom: newViewState.zoom,
+        pitch: newViewState.pitch ?? 0,
+        bearing: newViewState.bearing ?? 0,
+      };
 
-      setViewState(newViewState);
+      const oldZoom = viewState.zoom;
+      const newZoom = normalized.zoom;
+      const oldLon = viewState.longitude;
+      const newLon = normalized.longitude;
+      const oldLat = viewState.latitude;
+      const newLat = normalized.latitude;
+
+      setViewState(normalized);
 
       if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
         if (!isZooming) {

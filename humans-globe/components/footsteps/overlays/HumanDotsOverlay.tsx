@@ -48,7 +48,7 @@ export default function HumanDotsOverlay({
     return (
       <div
         className="absolute backdrop-blur-md bg-black/50 rounded-lg p-4 text-white font-sans flex items-center justify-center"
-        style={{ top: '2rem', left: '2rem', zIndex: 30, minWidth: '200px', minHeight: '120px' }}
+        style={{ top: '5rem', left: '2rem', zIndex: 30, minWidth: '200px', minHeight: '120px' }}
       >
         <span className="animate-pulse text-sm text-gray-300">Loading human presence data…</span>
       </div>
@@ -60,10 +60,10 @@ export default function HumanDotsOverlay({
   
   // Format population with appropriate scale indicators
   const formatPopulation = (pop: number): string => {
-    if (pop >= 1_000_000_000) return `${(pop / 1_000_000_000).toFixed(1)}B people`;
-    if (pop >= 1_000_000) return `${(pop / 1_000_000).toFixed(1)}M people`;
-    if (pop >= 1_000) return `${(pop / 1_000).toFixed(0)}K people`;
-    return `${pop.toLocaleString()} people`;
+    if (pop >= 1_000_000_000) return `${Math.round(pop / 1_000_000_000).toLocaleString()}B people`;
+    if (pop >= 1_000_000) return `${Math.round(pop / 1_000_000).toLocaleString()}M people`;
+    if (pop >= 1_000) return `${Math.round(pop / 1_000).toLocaleString()}K people`;
+    return `${Math.round(pop).toLocaleString()} people`;
   };
 
   // Contextual detail level description
@@ -75,9 +75,9 @@ export default function HumanDotsOverlay({
   };
 
   return (
-    <div
+      <div
       className="absolute backdrop-blur-md bg-black/50 rounded-lg p-4 text-white font-sans"
-      style={{ top: '2rem', left: '2rem', zIndex: 30 }}
+      style={{ top: '5rem', left: '2rem', zIndex: 30 }}
     >
       {/* Hero content: what users are seeing */}
       <div className="text-sm text-sky-300 font-normal mb-1">Human Presence</div>

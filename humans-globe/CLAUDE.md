@@ -41,13 +41,12 @@ The core component managing the 3D globe visualization, data loading, and user i
 #### TimeSlider.tsx
 Time navigation component for scrubbing through history with non-linear scaling optimized for the historical span.
 
-#### app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts (Tile API)
-Serves Mapbox Vector Tiles (MVT) points from MBTiles:
-- **Single Format**: Uses combined yearly MBTiles `humans_{year}.mbtiles`; `lod` selects the MVT layer
+#### app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts (Tile API)
+Serves Mapbox Vector Tiles (MVT) points from yearly MBTiles:
+- **Single Layer**: `humans_{year}.mbtiles` with one layer id `humans`; per‑feature minzoom windows map zoom→LOD (0: z0–3, 1: z4, 2: z5, 3: z6+)
 - **MBTiles Access**: Uses `@mapbox/mbtiles` if available; falls back to `sqlite3` CLI
 - **Configurable Path**: `HUMANS_TILES_DIR` env var (default `../data/tiles/humans`)
-- **Caching**: Strong ETag + long-lived immutable cache headers
-- Legacy `/api/human-dots` endpoint removed
+- **Caching**: Strong ETag + long‑lived immutable cache headers
 
 ##### Tile Caching (GCS → local)
 - GCS tiles are cached to a stable local path for reuse across requests.
@@ -58,11 +57,11 @@ Serves Mapbox Vector Tiles (MVT) points from MBTiles:
 ### Performance Architecture
 
 #### LOD (Level of Detail) System
-The frontend integrates with a four‑tier LOD system for performance at different zoom levels:
-- **LOD 0 – Regional** (zoom < 4): Coarse clusters for fast world/regional overview
-- **LOD 1 – Subregional** (4 ≤ zoom < 5): Mid‑detail clusters for country/province scale
-- **LOD 2 – Local** (5 ≤ zoom < 6): High detail for sub‑province/county scale
-- **LOD 3 – Detailed** (zoom ≥ 6): Full resolution data
+LOD is handled in the tiles via per‑feature minzoom windows so that at each zoom only one LOD is visible and populations are conserved:
+- **LOD 0 – Regional** (z0–3)
+- **LOD 1 – Subregional** (z4)
+- **LOD 2 – Local** (z5)
+- **LOD 3 – Detailed** (z6–12)
 
 #### Frontend Performance Optimizations
 - **Memoized Layers**: Prevents layer recreation on every render using `useMemo()`
@@ -89,17 +88,16 @@ const delay = isZooming ? 500 : 150; // Longer delays during zoom
 
 ### Data Flow
 1. **User Interaction**: User changes time slider or zooms/pans globe
-2. **LOD Selection (frontend)**: `lib/lod.ts` maps zoom → LOD; `FootstepsViz.tsx` passes `lod` to the layer
-3. **Tile Requests**: deck.gl `MVTLayer` fetches `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
-4. **Decoding + Styling**: `MVTLayer` decodes MVT and sublayers style by population and radius strategy
-5. **GPU Rendering**: Deck.gl renders dots on the globe
-6. **Caching**: HTTP caching handled per tile; deck.gl manages tile cache
+2. **Tile Requests**: deck.gl `MVTLayer` fetches `/api/tiles/{year}/single/{z}/{x}/{y}.pbf`
+3. **Decoding + Styling**: `MVTLayer` decodes the `humans` layer and styles by population and radius strategy
+4. **GPU Rendering**: Deck.gl renders dots on the globe
+5. **Caching**: HTTP caching handled per tile; deck.gl manages tile cache
 
 ### Relationship to Data Processing Pipeline
 This frontend consumes tiles produced by the Python pipeline in `../footstep-generator/`:
 - **Input Data**: HYDE 3.5 grids, etc.
-- **Tiling**: `make_tiles.py` generates per-LOD tiles and combines them per-year
-- **Output**: `data/tiles/humans/humans_{year}.mbtiles` (combined yearly, contains LOD layers)
+- **Tiling**: `make_tiles.py` generates per‑LOD tiles and writes a single‑layer yearly MBTiles with LOD windows
+- **Output**: `data/tiles/humans/humans_{year}.mbtiles` (single layer `humans`)
 - **Serving**: Next.js Tile API serves MVT from MBTiles; `HUMANS_TILES_DIR` can override tiles directory
 
 ## Commands
@@ -136,10 +134,9 @@ This frontend consumes tiles produced by the Python pipeline in `../footstep-gen
 
 ## Key Files
 - **Main Component**: `components/footsteps/FootstepsViz.tsx`
-- **Tile API**: `app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts`
+- **Tile API**: `app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts`
 - **Layer Logic**: `components/footsteps/layers/layers.ts`
 - **Time Controls**: `components/ui/TimeSlider.tsx`
-- **LOD Utils**: `lib/lod.ts`
 
 ## Data Processing Context
 The frontend serves as the visualization layer for a larger historical demographics project. Raw HYDE 3.5 data is processed by a Python pipeline that:

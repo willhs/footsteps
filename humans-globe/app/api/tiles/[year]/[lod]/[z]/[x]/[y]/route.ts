@@ -123,7 +123,7 @@ export async function GET(
 
   // Download file if it's from GCS (for MBTiles access)
   let filepath: string;
-  const lodSource: 'lod' = 'lod';
+  const lodSource = 'lod' as const;
   let isTemp: boolean;
   let cacheStatus: 'hit' | 'refresh' | undefined;
   

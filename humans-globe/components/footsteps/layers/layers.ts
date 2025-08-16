@@ -131,6 +131,7 @@ export function createHumanTilesLayer(
       fadeMs?: number;
       easing?: (t: number) => number;
     }
+    debugTint?: [number, number, number];
   },
   opacity: number = 1.0,
   instanceId?: string,
@@ -175,7 +176,9 @@ export function createHumanTilesLayer(
     loadOptions: {
       mvt: {
         coordinates: 'wgs84',
-        shape: 'geojson'
+        shape: 'geojson',
+        // Single-layer yearly MBTiles exports features under the 'humans' layer
+        layers: ['humans']
       }
     },
     pickable: true,
@@ -183,7 +186,42 @@ export function createHumanTilesLayer(
     onClick: onClick || (() => {}),
     onHover: onHover || (() => {}),
     // Ensure deck.gl always receives callable callbacks to avoid TypeErrors
-    onTileLoad: (typeof extra?.onTileLoad === 'function' ? extra?.onTileLoad : (() => {})),
+    onTileLoad: (tile: unknown) => {
+      try {
+        // Attach an approximate byteLength so Tileset2D doesn't error
+        const t = tile as { content?: unknown };
+        const content = (t && 'content' in t) ? (t as any).content : undefined;
+        const hasFiniteByteLength = typeof (content as any)?.byteLength === 'number' && Number.isFinite((content as any).byteLength);
+        if (content && !hasFiniteByteLength) {
+          let approx = 0;
+          try {
+            if (typeof content === 'string') {
+              approx = content.length;
+            } else if (content instanceof ArrayBuffer || ArrayBuffer.isView(content)) {
+              // Covers ArrayBuffer and typed arrays
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              approx = (content as any).byteLength || 0;
+            } else {
+              // Fall back to JSON size estimate for GeoJSON-like objects
+              approx = JSON.stringify(content).length;
+            }
+          } catch {
+            // Ignore estimation errors; leave undefined
+          }
+          if (Number.isFinite(approx) && approx > 0) {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (content as any).byteLength = approx;
+            } catch {
+              // If content is not extensible, ignore
+            }
+          }
+        }
+      } catch {
+        // Swallow any defensive errors here
+      }
+      if (typeof extra?.onTileLoad === 'function') extra.onTileLoad(tile);
+    },
     onViewportLoad: (typeof extra?.onViewportLoad === 'function' ? extra?.onViewportLoad : (() => {})),
     onTileError: (typeof extra?.onTileError === 'function' ? extra?.onTileError : (() => {})),
     // Styling forwarded to GeoJsonLayer sublayers
@@ -205,17 +243,29 @@ export function createHumanTilesLayer(
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const population = Number((f as any)?.properties?.population || 0);
-        if (population > 20000) return [255, 100, 0, 240];
-        if (population > 5000) return [255, 140, 0, 220];
-        if (population > 1000) return [255, 180, 0, 200];
-        return [255, 200, 100, 180];
+        // Use fixed alpha; rely on layer.opacity for crossfades to avoid double-dimming
+        let base: [number, number, number, number];
+        if (population > 20000) base = [255, 100, 0, 240];
+        else if (population > 5000) base = [255, 140, 0, 220];
+        else if (population > 1000) base = [255, 180, 0, 200];
+        else base = [255, 200, 100, 180];
+        // Apply optional debug tint to help visualize crossfade layers in dev
+        const tint = extra?.debugTint;
+        if (tint && Array.isArray(tint)) {
+          const clamp = (v: number) => Math.max(0, Math.min(255, v));
+          const r = clamp(base[0] + tint[0]);
+          const g = clamp(base[1] + tint[1]);
+          const b = clamp(base[2] + tint[2]);
+          return [r, g, b, base[3]] as [number, number, number, number];
+        }
+        return base;
       } catch {
         return [255, 200, 100, 180];
       }
     },
     updateTriggers: {
       getPointRadius: [year, lodLevel, Math.floor((currentZoom || 0) * 4) / 4, radiusStrategy.getName()],
-      getFillColor: [year, lodLevel]
+      getFillColor: [year, lodLevel, (extra as { debugTint?: [number, number, number] } | undefined)?.debugTint?.join(',')]
     },
     opacity: opacity,
     parameters: {
@@ -229,6 +279,10 @@ export function createHumanTilesLayer(
       opacity: {
         duration: typeof tileOptions.fadeMs === 'number' ? tileOptions.fadeMs : 300,
         easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)) // smoothstep
+      },
+      getPointRadius: {
+        duration: 250,
+        easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t))
       }
     }
   });

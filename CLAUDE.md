@@ -56,7 +56,7 @@ Follow principles of the The Visual Display of Quantitative Information by Edwar
   - `createHumanTilesLayer()` (deck.gl `MVTLayer` for vector tiles)
   - (removed) Legacy scatterplot layer `createHumanDotsLayer()` was deleted; project is tiles-only
 - **components/ui/TimeSlider.tsx**: Time navigation component
-- **app/api/tiles/[year]/[lod]/[z]/[x]/[y]/route.ts**: Tile API serving MVT from MBTiles; legacy `/api/human-dots` endpoint removed
+- **app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts**: Tile API serving MVT from per-year MBTiles; legacy `/api/human-dots` endpoint removed
 
 ### Data Pipeline (footstep-generator/)
 - **Python-based processing pipeline** converting HYDE 3.5 demographic data to tiles

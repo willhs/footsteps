@@ -35,7 +35,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
@@ -75,6 +75,17 @@ jobs:
       uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: ${{ env.PROJECT_ID }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.8.5
+
+    - name: Apply Terraform
+      working-directory: ./iac
+      run: |
+        terraform init
+        terraform apply -auto-approve
         
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker
@@ -118,6 +129,45 @@ jobs:
         gcloud container images add-tag --quiet \
           "$IMAGE_TAG" \
           "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest"
+
+    - name: Build and push Cache Warmer image
+      working-directory: ./cache-warmer
+      run: |
+        # Tag for cache warmer image using commit SHA
+        IMAGE_TAG_CACHE="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}-cache-warmer:${{ github.event.workflow_run.head_sha }}"
+
+        # Build and push using Cloud Build with async + polling
+        BUILD_ID=$(gcloud builds submit \
+          --tag "$IMAGE_TAG_CACHE" \
+          --timeout=10m \
+          --format='value(id)' \
+          --async \
+          .)
+
+        echo "⏳ Submitted Cache Warmer Build: $BUILD_ID"
+        echo "🔎 Waiting for cache warmer build to complete..."
+        for i in {1..90}; do
+          STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
+          echo "Attempt $i: status=$STATUS"
+          if [ "$STATUS" = "SUCCESS" ]; then
+            echo "✅ Cache warmer build succeeded"
+            break
+          fi
+          if [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
+            echo "❌ Cache warmer build failed with status: $STATUS"
+            exit 1
+          fi
+          sleep 10
+        done
+        if [ "$STATUS" != "SUCCESS" ]; then
+          echo "❌ Cache warmer build did not complete within expected time"
+          exit 1
+        fi
+
+        # Also tag cache warmer as latest
+        gcloud container images add-tag --quiet \
+          "$IMAGE_TAG_CACHE" \
+          "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}-cache-warmer:latest"
           
     - name: Deploy to Cloud Run
       run: |
@@ -132,7 +182,7 @@ jobs:
           --min-instances=0 \
           --max-instances=100 \
           --timeout=300 \
-          --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/app/data/tiles/humans"
+          --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
           
     - name: Get service URL
       id: deploy
@@ -178,6 +228,13 @@ jobs:
           echo "❌ Tiles API test failed with HTTP $HTTP_STATUS"
           exit 1
         fi
+
+    - name: Warm Cache
+      run: |
+        echo "🔥 Executing cache warmer job..."
+        gcloud run jobs execute ${{ env.SERVICE_NAME }}-cache-warmer \
+          --region ${{ env.REGION }} \
+          --wait
         
     - name: Deployment summary
       run: |

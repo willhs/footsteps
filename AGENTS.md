@@ -56,7 +56,7 @@ Concise, actionable rules for working in this repo. Keep diffs minimal, performa
 3) Serve tiles to the frontend during dev:
    - `export HUMANS_TILES_DIR=$(pwd)/data/tiles/humans`
    - `cd humans-globe && HUMANS_TILES_DIR=$HUMANS_TILES_DIR pnpm dev`
-   - Tiles API: `/api/tiles/{year}/{lod}/{z}/{x}/{y}.pbf`
+  - Tiles API: `/api/tiles/{year}/single/{z}/{x}/{y}.pbf`
 
 Notes
 - LOD levels: `0` (regional), `1` (subregional), `2` (local), `3` (detailed)

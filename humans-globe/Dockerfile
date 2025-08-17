@@ -50,7 +50,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Create directories for tiles (will be populated at runtime from GCS)
+# Create directories for tiles
+# /data will be mounted from persistent disk in production, local files in development
+RUN mkdir -p /data/tiles/humans && chown -R nextjs:nodejs /data
 RUN mkdir -p /app/data/tiles/humans && chown -R nextjs:nodejs /app/data
 RUN mkdir -p /tmp && chown -R nextjs:nodejs /tmp
 

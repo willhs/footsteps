@@ -1,14 +1,14 @@
 # 🌍 Globe of Humans
 
-**A living atlas of human presence on Earth from 100,000 BCE to 2025 CE**
+**A living atlas that shows everyone who ever lived, throughout all of human history.**
 
-Watch humanity spread, cluster, and explode into cities on an interactive 3D globe. Experience the vast sweep of human history as a visceral time-lapse journey from the first settlements to modern megacities.
+Shows an instantiation of history from the data available, as accurately as possible.
 
 ![Globe of Humans Demo](docs/demo-screenshot.png)
 
 ## 🎯 Vision
 
-Transform dry demographic data into an intuitive, time-scrubbing experience that makes 100,000 years of human presence instantly graspable. See individual dots representing humans and settlements emerge, grow, and spread across continents as you drag through time.
+A living atlas that shows everyone who ever lived, throughout all of human history. Shows an instantiation of history from the data available, as accurately as possible.
 
 ## ✨ Features
 
@@ -27,19 +27,6 @@ Transform dry demographic data into an intuitive, time-scrubbing experience that
  - pnpm
 - Python ≥ 3.11
 - Poetry (for Python dependency management)
-
-#### Installing Poetry
-
-```bash
-# macOS/Linux
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Windows (PowerShell)
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-
-# Alternative: via pip
-pip install poetry
-```
 
 ### Installation
 
@@ -118,6 +105,28 @@ Open `http://localhost:4444` in your browser.
 ### Key Components
 - `components/footsteps/FootstepsViz.tsx` - Main visualization (2D/3D views, tiles integration)
 - `lib/tilesService.ts` - Tile file resolution and optional GCS access
+- `app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts` - Tile API serving per-year MBTiles (`humans_{year}.mbtiles`, layer id `humans`)
+
+### Tile Serving & APIs
+
+* __Routes__
+  - `GET /api/tiles/{year}/single/{z}/{x}/{y}.pbf`
+    - Serves combined yearly MBTiles (`humans_{year}.mbtiles`) with single layer id `humans`.
+
+* __Tile files__
+  - Combined, single-layer per year: `humans_{year}.mbtiles`
+  - Optional per-LOD artifacts (internal, not served): `humans_{year}_lod_{lod}.mbtiles` (lod ∈ {0,1,2,3})
+
+* __Frontend integration__
+  - MVT requests use `/api/tiles/{year}/single/{z}/{x}/{y}.pbf` and expect layer id `humans`.
+
+* __Environment__
+  - Dev/local: tiles resolved from `HUMANS_TILES_DIR` (default: `../data/tiles/humans` relative to `humans-globe/` runtime).
+  - Prod/GCS: set `NODE_ENV=production`, `GCP_PROJECT_ID`, `GCS_BUCKET_NAME` to serve from Google Cloud Storage.
+  - Tile cache dir (GCS only): `TILE_CACHE_DIR` (default `/tmp/humans-tiles-cache`) for downloaded `.mbtiles` reuse.
+
+* __Caching__
+  - Strong caching with ETag/Last-Modified, immutable 1y cache for hits; automatic gzip detection for tiles.
 
 ## 🛠️ Development
 
@@ -145,8 +154,20 @@ deep-footsteps/
 2. Build tiles (single-layer, population‑preserving LOD windows):
    - All years found: `poetry run python footstep-generator/make_tiles.py --single-layer --verify --strict`
    - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020 --single-layer --verify --strict`
+   - Outputs:
+     - `data/tiles/humans/humans_{year}.mbtiles` (single-layer, used by frontend)
+     - `data/tiles/humans/humans_{year}_lod_{lod}.mbtiles` (optional per-LOD artifacts, internal/debug)
 3. Dev serving: export `HUMANS_TILES_DIR=$(pwd)/data/tiles/humans` before running the frontend
 4. Tile API: `/api/tiles/{year}/single/{z}/{x}/{y}.pbf` (layer id `humans`)
+
+#### LOD System
+
+- Zoom < 2 → LOD 0 (Regional)
+- Zoom < 4 → LOD 1 (Subregional)
+- Zoom < 6 → LOD 2 (Local)
+- Zoom ≥ 6 → LOD 3 (Detailed)
+
+Single-layer tiles use non-overlapping zoom windows per LOD so only one LOD is visible at any zoom. Source of truth: `footstep-generator/lod_config.py` → auto-generated into `humans-globe/lib/lod.ts`.
 
 ### Processing Historical Data
 
@@ -208,6 +229,7 @@ pnpm start
 ### Tiles in Production
 - Local files: set `HUMANS_TILES_DIR=/path/to/data/tiles/humans` in the runtime env
 - GCS hosting (optional): set `NODE_ENV=production`, `GCP_PROJECT_ID`, and `GCS_BUCKET_NAME` to stream tiles from GCS
+- Optional cache dir for GCS downloads: `TILE_CACHE_DIR` (default `/tmp/humans-tiles-cache`)
 
 
 ## 🙏 Acknowledgments

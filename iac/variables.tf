@@ -69,3 +69,27 @@ variable "bucket_location" {
   type        = string
   default     = "US"
 }
+
+variable "enable_persistent_cache" {
+  description = "Enable persistent disk for tile caching (recommended for production)"
+  type        = bool
+  default     = true
+}
+
+variable "cache_disk_size_gb" {
+  description = "Size of persistent disk for tile cache in GB"
+  type        = number
+  default     = 20
+}
+
+variable "enable_cache_warming" {
+  description = "Enable cache warming job after deployment"
+  type        = bool
+  default     = true
+}
+
+variable "cache_warming_timeout" {
+  description = "Timeout for cache warming job in seconds"
+  type        = number
+  default     = 1800
+}

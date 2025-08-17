@@ -105,7 +105,7 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
       className="fixed bg-black/80 backdrop-blur-sm rounded-lg p-6"
       style={{ bottom: '2rem', left: '2rem', right: '2rem', zIndex: 40 }}
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         {/* Current year display */}
         <div className="flex items-center justify-end mb-4">
           <div className="text-2xl font-bold text-blue-400">
@@ -114,7 +114,7 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
         </div>
         
         {/* Slider */}
-        <div className="px-4 pb-8">
+        <div className="px-4 pb-8 w-full">
           <Slider
             min={0}
             max={100}
@@ -122,7 +122,7 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
             onChange={(value) => onChange(Array.isArray(value) ? value[0] : value)}
             marks={marks}
             step={0.1}
-            className="mb-8"
+            className="mb-8 w-full"
             trackStyle={{ backgroundColor: '#0ea5e9', height: 6 }}
             railStyle={{ backgroundColor: '#334155', height: 6 }}
             handleStyle={{

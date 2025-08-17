@@ -36,9 +36,13 @@ export interface DownloadResult {
  * Get the tiles directory path based on environment
  */
 export function getTilesDir(): string {
-  // Allow override via env; default to repo-level data/tiles/humans
+  // Production and development both use /data/tiles/humans
+  // Production: mounted persistent disk
+  // Development: local filesystem
   const fromEnv = process.env.HUMANS_TILES_DIR;
   if (fromEnv) return fromEnv;
+  
+  // Default development path (relative to repo)
   return path.resolve(process.cwd(), '..', 'data', 'tiles', 'humans');
 }
 
@@ -65,22 +69,7 @@ export async function getTileFilePath(year: number, lodLevel: number): Promise<T
   }
 }
 
-/**
- * Resolve LOD-specific tileset file path (humans_{year}_lod_{lod}.mbtiles)
- * Used as a fallback when the combined per-year MBTiles is missing certain tiles.
- */
-export async function getLodTileFilePath(year: number, lodLevel: number): Promise<TileFile> {
-  const lodFilename = `humans_${year}_lod_${lodLevel}.mbtiles`;
-
-  if (process.env.NODE_ENV === 'production' && process.env.GCS_BUCKET_NAME) {
-    const bucketName = process.env.GCS_BUCKET_NAME;
-    return await checkGCSFile(bucketName, lodFilename);
-  } else {
-    const tilesDir = getTilesDir();
-    const lodPath = path.join(tilesDir, lodFilename);
-    return checkLocalFile(lodPath);
-  }
-}
+// Note: Per-LOD tiles are no longer used; consolidated to single per-year MBTiles.
 
 /**
  * Check if a local file exists and get its stats
@@ -158,7 +147,7 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
     const bucket = storageClient.bucket(bucketName);
     const file = bucket.file(filename);
 
-    // Cache dir can be overridden; default to /tmp cache
+    // Cache dir: persistent disk in production, /tmp in development
     const cacheRoot = process.env.TILE_CACHE_DIR || path.join('/tmp', 'humans-tiles-cache');
     const cachePath = path.join(cacheRoot, bucketName, path.dirname(filename));
     const finalPath = path.join(cacheRoot, bucketName, filename);

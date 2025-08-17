@@ -73,3 +73,40 @@ output "github_secrets_setup" {
     Value: ${google_service_account.github_actions.email}
   EOT
 }
+
+# Persistent disk cache outputs
+output "persistent_cache_enabled" {
+  description = "Whether persistent disk cache is enabled"
+  value       = var.enable_persistent_cache
+}
+
+output "cache_disk_name" {
+  description = "Name of the persistent disk for tile cache"
+  value       = var.enable_persistent_cache ? google_compute_disk.tile_cache_disk[0].name : null
+}
+
+output "cache_disk_size" {
+  description = "Size of the persistent disk cache in GB"
+  value       = var.enable_persistent_cache ? "${var.cache_disk_size_gb}GB" : "N/A"
+}
+
+output "cache_disk_cost_estimate" {
+  description = "Estimated monthly cost for persistent disk cache (USD)"
+  value       = var.enable_persistent_cache ? "$${var.cache_disk_size_gb * 0.040}" : "$0"
+}
+
+# Cache warming job outputs
+output "cache_warming_enabled" {
+  description = "Whether cache warming job is enabled"
+  value       = var.enable_cache_warming && var.enable_persistent_cache
+}
+
+output "cache_warmer_job_name" {
+  description = "Name of the cache warming Cloud Run Job"
+  value       = var.enable_cache_warming && var.enable_persistent_cache ? google_cloud_run_v2_job.cache_warmer[0].name : null
+}
+
+output "cache_warming_command" {
+  description = "Command to manually trigger cache warming"
+  value       = var.enable_cache_warming && var.enable_persistent_cache ? "gcloud run jobs execute ${google_cloud_run_v2_job.cache_warmer[0].name} --region ${var.region} --wait" : "Cache warming not enabled"
+}

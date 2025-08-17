@@ -34,7 +34,10 @@
       "Bash(gcloud run services logs read:*)",
       "Bash(./upload-data.sh)",
       "mcp__playwright-local__browser_hover_text",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(./deploy-data-local.sh:*)",
+      "Bash(./iac/scripts/deploy-data-local.sh:*)",
+      "Bash(./upload-data.sh:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

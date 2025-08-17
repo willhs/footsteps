@@ -352,7 +352,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
             target_lod = int(getattr(lod_level, "value", lod_level))
 
             # Persist per-LOD MBTiles to tiles_dir so the server can serve
-            # /api/tiles/{year}/{lod}/... directly from humans_{year}_lod_{lod}.mbtiles
+            # Per-LOD artifacts exist (humans_{year}_lod_{lod}.mbtiles) but the frontend uses the single per-year endpoint
             lod_out = tiles_dir_path / f"humans_{year}_lod_{target_lod}.mbtiles"
             if lod_out.exists() and force:
                 lod_out.unlink()

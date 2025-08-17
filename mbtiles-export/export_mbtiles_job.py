@@ -10,6 +10,9 @@ Environment variables:
   CONCURRENCY    (default: 8)               Parallel uploads per instance
   OVERWRITE      (default: false)           If false, skip existing objects (uses if_generation_match=0)
   YEARS          (optional)                 Comma-separated list to restrict years, e.g. "-1000,0,100"
+  TMP_DIR        (default: /tmp)            Directory for temp files
+  DOWNLOAD_CHUNK_MB        (default: 8)     Per-chunk read size from GCS when downloading MBTiles
+  LOG_PROGRESS_EVERY_MB    (default: 100)   Log download progress every N MB
 
 Notes:
 - Expects MBTiles named like humans_{year}.mbtiles to parse {year}
@@ -24,6 +27,7 @@ import sys
 import sqlite3
 import logging
 import tempfile
+import time
 import concurrent.futures as futures
 from typing import Iterable, Optional, Set
 
@@ -71,6 +75,12 @@ def get_env() -> dict:
         "CONCURRENCY": int(os.environ.get("CONCURRENCY", "8")),
         "OVERWRITE": env_bool("OVERWRITE", False),
         "YEARS": set(filter(None, (s.strip() for s in os.environ.get("YEARS", "").split(",")))) or None,
+        "TMP_DIR": os.environ.get("TMP_DIR", "/tmp"),
+        "DOWNLOAD_CHUNK_MB": int(os.environ.get("DOWNLOAD_CHUNK_MB", "8")),
+        "LOG_PROGRESS_EVERY_MB": int(os.environ.get("LOG_PROGRESS_EVERY_MB", "100")),
+        # Cloud Run Jobs task sharding
+        "TASK_INDEX": int(os.environ.get("CLOUD_RUN_TASK_INDEX", "0")),
+        "TASK_COUNT": int(os.environ.get("CLOUD_RUN_TASK_COUNT", "1")),
     }
 
 
@@ -117,6 +127,9 @@ def export_one_mbtiles(
     out_prefix_base: str,
     overwrite: bool,
     concurrency: int,
+    tmp_dir: str,
+    download_chunk_mb: int,
+    log_progress_every_mb: int,
 ) -> tuple[int, int, int]:
     """Download src_blob (MBTiles) to /tmp, iterate tiles, and upload to dst_bucket.
     Returns (total_tiles, uploaded, skipped).
@@ -125,11 +138,61 @@ def export_one_mbtiles(
     if year is None:
         raise RuntimeError(f"Could not parse year from {src_blob.name}")
 
-    # Download MBTiles to local tmp
+    # Download MBTiles to local tmp (streamed with progress)
     basename = os.path.basename(src_blob.name)
-    tmp_path = os.path.join(tempfile.gettempdir(), basename)
-    LOG.info(f"Downloading {src_blob.name} -> {tmp_path}")
-    src_blob.download_to_filename(tmp_path)
+    # Prefer configured TMP_DIR, else fall back to system temp dir
+    tmp_base = tmp_dir or tempfile.gettempdir()
+    tmp_path = os.path.join(tmp_base, basename)
+
+    # Ensure we know the size for progress logs
+    size_bytes = src_blob.size
+    if size_bytes is None:
+        try:
+            src_blob.reload()
+            size_bytes = src_blob.size
+        except Exception:
+            size_bytes = None
+
+    chunk_bytes = max(1, download_chunk_mb) * 1024 * 1024
+    log_every = max(1, log_progress_every_mb) * 1024 * 1024
+    LOG.info(
+        "Downloading %s (%.1f MB) -> %s in %d MB chunks",
+        src_blob.name,
+        (size_bytes or 0) / 1_000_000.0,
+        tmp_path,
+        download_chunk_mb,
+    )
+    t0 = time.time()
+    read_bytes = 0
+    last_log_at = 0
+    # Use blob.open to stream without buffering whole object in memory
+    with src_blob.open("rb") as reader, open(tmp_path, "wb") as out:
+        while True:
+            buf = reader.read(chunk_bytes)
+            if not buf:
+                break
+            out.write(buf)
+            read_bytes += len(buf)
+            if read_bytes - last_log_at >= log_every:
+                dt = max(time.time() - t0, 1e-6)
+                mbps = (read_bytes / 1_000_000.0) / dt
+                if size_bytes:
+                    LOG.info(
+                        "Downloading %s: %.1f / %.1f MB (%.2f MB/s)",
+                        basename,
+                        read_bytes / 1_000_000.0,
+                        size_bytes / 1_000_000.0,
+                        mbps,
+                    )
+                else:
+                    LOG.info(
+                        "Downloading %s: %.1f MB (%.2f MB/s)",
+                        basename,
+                        read_bytes / 1_000_000.0,
+                        mbps,
+                    )
+                last_log_at = read_bytes
+    LOG.info("Finished download %s in %.1fs", basename, time.time() - t0)
 
     # Open SQLite and export tiles
     total = uploaded = skipped = 0
@@ -206,13 +269,35 @@ def main() -> None:
     src_bucket = client.bucket(cfg["SRC_BUCKET"])
     dst_bucket = client.bucket(cfg["DST_BUCKET"])
 
+    # Materialize and deterministically order blobs for sharding
+    blobs_all = list(list_mbtiles(client, cfg["SRC_BUCKET"], cfg["SRC_PREFIX"]))
+    blobs_all.sort(key=lambda b: b.name)
+
+    # Apply year filter if provided
+    if years_filter is not None:
+        blobs_all = [b for b in blobs_all if (parse_year_from_blob_name(b.name) in years_filter)]
+
+    # Shard across tasks using modulo index
+    ti = cfg["TASK_INDEX"]
+    tc = cfg["TASK_COUNT"]
+    if tc < 1:
+        tc = 1
+    selected = [b for i, b in enumerate(blobs_all) if (i % tc) == ti]
+
+    LOG.info(
+        "Sharding: task %d/%d selected %d of %d files (filter=%s)",
+        ti + 1,
+        tc,
+        len(selected),
+        len(blobs_all),
+        sorted(list(years_filter)) if years_filter else "<none>",
+    )
+
     total_files = exported_files = 0
-    for blob in list_mbtiles(client, cfg["SRC_BUCKET"], cfg["SRC_PREFIX"]):
+    for blob in selected:
         year = parse_year_from_blob_name(blob.name)
         if year is None:
             LOG.info("Skipping non-year blob: %s", blob.name)
-            continue
-        if years_filter and year not in years_filter:
             continue
         total_files += 1
         LOG.info("Processing %s (year=%s)", blob.name, year)
@@ -223,6 +308,9 @@ def main() -> None:
             out_prefix_base=cfg["OUT_PREFIX"],
             overwrite=cfg["OVERWRITE"],
             concurrency=cfg["CONCURRENCY"],
+            tmp_dir=cfg["TMP_DIR"],
+            download_chunk_mb=cfg["DOWNLOAD_CHUNK_MB"],
+            log_progress_every_mb=cfg["LOG_PROGRESS_EVERY_MB"],
         )
         exported_files += 1
         LOG.info("Completed %s: tiles=%d uploaded=%d skipped=%d", blob.name, t, up, sk)

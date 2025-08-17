@@ -181,15 +181,15 @@ echo "✅ Export completed for $EXPORTED_COUNT MBTiles files"
 
 # Upload static tiles to GCS with correct metadata
 echo ""
-echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ ..."
+echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ (resume-friendly, no overwrite) ..."
 if command -v gsutil >/dev/null 2>&1; then
   # Use gsutil to set metadata headers during upload
-  if gsutil -m cp -r \
+  if gsutil -m cp -n -r \
       -h "Cache-Control:public, max-age=31536000, immutable" \
       -h "Content-Type:application/x-protobuf" \
       -h "Content-Encoding:gzip" \
       "$ZXY_OUT_DIR"/* "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-    echo "✅ Static tiles uploaded with metadata (gsutil)"
+    echo "✅ Static tiles uploaded with metadata (gsutil, no-clobber)"
   else
     echo "❌ Failed to upload static tiles via gsutil"
     exit 1

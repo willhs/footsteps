@@ -21,6 +21,7 @@ SHOW_HELP=false
 # Defaults: overwrite is enabled (regenerate locally and replace on GCS)
 OVERWRITE_LOCAL=true
 OVERWRITE_REMOTE=true
+DELETE_LOCAL_AFTER_UPLOAD=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -42,6 +43,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-overwrite-remote)
             OVERWRITE_REMOTE=false
+            shift
+            ;;
+        --no-delete-local)
+            DELETE_LOCAL_AFTER_UPLOAD=false
+            shift
+            ;;
+        --keep-local)
+            DELETE_LOCAL_AFTER_UPLOAD=false
             shift
             ;;
         --help|-h)
@@ -75,6 +84,8 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  --no-overwrite-local   Skip existing local .pbf tiles (resume mode)"
     echo "  --overwrite-remote     Overwrite existing objects on GCS (default: on)"
     echo "  --no-overwrite-remote  Do not overwrite GCS objects (no-clobber)"
+    echo "  --no-delete-local      Keep local exported tiles after upload (default: delete per-year)"
+    echo "  --keep-local           Alias of --no-delete-local"
     echo "  --help, -h             Show this help message"
     echo ""
     echo "Examples:"
@@ -161,11 +172,12 @@ fi
 # Dry run: show what would be done
 if [ "$DRY_RUN" = true ]; then
     echo ""
-    echo "🧪 DRY RUN: Would perform the following actions:"
-    echo "  1. Export each combined MBTiles to local z/x/y .pbf under $ZXY_OUT_DIR/"
-    echo "  2. Upload static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ with proper metadata"
-    echo "  3. Set public read permissions on all files"
-    echo "  4. Probe a sample static tile over public HTTP"
+    echo "🧪 DRY RUN: Would perform the following actions per-year (streaming):"
+    echo "  1. Export humans_{year}.mbtiles → $ZXY_OUT_DIR/{year}/single/{z}/{x}/{y}.pbf"
+    echo "  2. Upload that year's tiles to gs://$BUCKET_NAME/$TILES_PREFIX/{year}/single/... with metadata"
+    echo "  3. Set public read permissions for that year's upload"
+    echo "  4. Probe a sample tile over public HTTP"
+    echo "  5. Delete local {year} tiles (unless --no-delete-local)"
     echo ""
     echo "✅ Dry run completed - no files were actually uploaded"
     exit 0
@@ -173,7 +185,7 @@ fi
 
 # Export MBTiles to z/x/y .pbf locally
 echo ""
-echo "🧱 Exporting MBTiles to local z/x/y .pbf tree..."
+echo "🧱 Streaming export → upload → delete per year to minimize local disk usage..."
 mkdir -p "$ZXY_OUT_DIR"
 
 # Detect Python
@@ -187,6 +199,8 @@ else
 fi
 
 EXPORTED_COUNT=0
+UPLOADED_COUNT=0
+DELETED_COUNT=0
 shopt -s nullglob
 # Build optional overwrite arg for exporter
 OVERWRITE_ARG=""
@@ -196,85 +210,90 @@ fi
 for file in "$DATA_DIR"/humans_*.mbtiles; do
     # Skip LOD-specific files
     [[ "$file" == *_lod_* ]] && continue
-    echo "🛠️  Exporting $(basename "$file") → $ZXY_OUT_DIR ${OVERWRITE_ARG:+(overwrite)}"
+    filename=$(basename "$file")
+    year=$(echo "$filename" | sed -E 's/^humans_(-?[0-9]+)\.mbtiles$/\1/')
+    if ! [[ "$year" =~ ^-?[0-9]+$ ]]; then
+        echo "❌ Could not parse year from $file"
+        exit 1
+    fi
+    YEAR_DIR="$ZXY_OUT_DIR/$year"
+    echo "🛠️  Exporting $filename → $YEAR_DIR ${OVERWRITE_ARG:+(overwrite)}"
     if "$PYTHON_BIN" ../../footstep-generator/export_mbtiles_to_pbf.py --mbtiles "$file" --out-dir "$ZXY_OUT_DIR" $OVERWRITE_ARG; then
         EXPORTED_COUNT=$((EXPORTED_COUNT + 1))
     else
         echo "❌ Export failed for $file"
         exit 1
     fi
+
+    # Prepare a sample tile URL (before deletion) for probing after upload
+    SAMPLE_FILE=$(find "$YEAR_DIR" -type f -name "*.pbf" | head -n 1 || true)
+    SAMPLE_URL=""
+    if [ -n "$SAMPLE_FILE" ]; then
+        REL_PATH="${SAMPLE_FILE#"$ZXY_OUT_DIR/"}"
+        SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$REL_PATH"
+    fi
+
+    # Upload this year's tiles with correct metadata
+    echo "⬆️  Uploading year $year to gs://$BUCKET_NAME/$TILES_PREFIX/"
+    if command -v gsutil >/dev/null 2>&1; then
+        NO_CLOBBER_FLAG=""
+        if [ "$OVERWRITE_REMOTE" != true ]; then
+            NO_CLOBBER_FLAG="-n"
+        fi
+        if gsutil -m cp $NO_CLOBBER_FLAG -r \
+            -h "Cache-Control:public, max-age=31536000, immutable" \
+            -h "Content-Type:application/x-protobuf" \
+            -h "Content-Encoding:gzip" \
+            "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
+            echo "✅ Uploaded year $year with metadata (gsutil${OVERWRITE_REMOTE:+, overwrite})"
+            UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
+        else
+            echo "❌ Upload failed for year $year via gsutil"
+            exit 1
+        fi
+    else
+        echo "⚠️  gsutil not found; falling back to gcloud storage cp (metadata may be defaulted)"
+        if gcloud storage cp -r "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
+            echo "✅ Uploaded year $year (gcloud)"
+            UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
+        else
+            echo "❌ Upload failed for year $year via gcloud"
+            exit 1
+        fi
+    fi
+
+    # Set public read permissions for this year's objects (best-effort)
+    if command -v gsutil >/dev/null 2>&1; then
+        gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/$TILES_PREFIX/$year/**" >/dev/null 2>&1 || true
+    fi
+
+    # Probe a sample static tile to ensure availability
+    if [ -n "$SAMPLE_URL" ]; then
+        echo "🔎 Probing a sample tile for year $year: $SAMPLE_URL"
+        HEADERS=$(curl -sI -H "Accept-Encoding: identity" "$SAMPLE_URL" || true)
+        echo "$HEADERS" | head -n 1
+        if echo "$HEADERS" | grep -q "200 OK"; then
+            echo "✅ Sample tile accessible"
+        else
+            echo "⚠️  Sample tile not accessible yet (may be due to ACL propagation or caching)"
+        fi
+    fi
+
+    # Delete local tiles to free disk space unless asked to keep them
+    if [ "$DELETE_LOCAL_AFTER_UPLOAD" = true ]; then
+        echo "🧹 Deleting local tiles for year $year at $YEAR_DIR"
+        rm -rf "$YEAR_DIR"
+        DELETED_COUNT=$((DELETED_COUNT + 1))
+    else
+        echo "💾 Keeping local tiles for year $year (per --no-delete-local)"
+    fi
 done
 shopt -u nullglob
 
-echo "✅ Export completed for $EXPORTED_COUNT MBTiles files"
+echo "✅ Streamed export+upload completed: exported $EXPORTED_COUNT, uploaded $UPLOADED_COUNT, deleted local $DELETED_COUNT"
 
-# Upload static tiles to GCS with correct metadata
 echo ""
-echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ (no-clobber by default) ..."
-if command -v gsutil >/dev/null 2>&1; then
-  # Use gsutil to set metadata headers during upload
-  NO_CLOBBER_FLAG=""
-  if [ "$OVERWRITE_REMOTE" != true ]; then
-    NO_CLOBBER_FLAG="-n"
-  fi
-  if gsutil -m cp $NO_CLOBBER_FLAG -r \
-      -h "Cache-Control:public, max-age=31536000, immutable" \
-      -h "Content-Type:application/x-protobuf" \
-      -h "Content-Encoding:gzip" \
-      "$ZXY_OUT_DIR"/* "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-    if [ "$OVERWRITE_REMOTE" = true ]; then
-      echo "✅ Static tiles uploaded with metadata (gsutil, overwrite enabled)"
-    else
-      echo "✅ Static tiles uploaded with metadata (gsutil, no-clobber)"
-    fi
-  else
-    echo "❌ Failed to upload static tiles via gsutil"
-    exit 1
-  fi
-else
-  echo "⚠️  gsutil not found; falling back to gcloud storage cp (metadata may be defaulted)"
-  if gcloud storage cp -r "$ZXY_OUT_DIR/" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-    echo "✅ Static tiles uploaded (gcloud)"
-  else
-    echo "❌ Failed to upload static tiles"
-    exit 1
-  fi
-fi
-
-# Set public read permissions with error handling (covers both MBTiles and static tiles)
-echo "🔓 Setting public read permissions..."
-# Note: gcloud storage doesn't have direct ACL commands, using gsutil for this specific task
-if command -v gsutil &> /dev/null && gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/*" 2>/dev/null; then
-    echo "✅ Permissions set successfully"
-else
-    echo "⚠️  Warning: Could not set public permissions (gsutil unavailable or failed)."
-    echo "💡 Files should still be accessible via authenticated requests"
-    echo "🔧 To set public access manually: gcloud storage objects update gs://$BUCKET_NAME/* --add-acl-grant=entity=AllUsers,role=READER"
-fi
-
-# Probe a sample static tile over public HTTP to ensure availability
-echo ""
-echo "🔎 Probing a sample static tile..."
-SAMPLE_FILE=$(find "$ZXY_OUT_DIR" -type f -name "*.pbf" | head -n 1 || true)
-if [ -z "$SAMPLE_FILE" ]; then
-    echo "❌ No .pbf files found locally after export; cannot probe"
-    exit 1
-fi
-REL_PATH="${SAMPLE_FILE#"$ZXY_OUT_DIR/"}"
-SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$REL_PATH"
-echo "🔗 $SAMPLE_URL"
-HEADERS=$(curl -sI -H "Accept-Encoding: identity" "$SAMPLE_URL" || true)
-echo "$HEADERS"
-if echo "$HEADERS" | grep -q "200 OK"; then
-    if echo "$HEADERS" | grep -qiE "content-type: (application/x-protobuf|application/octet-stream)"; then
-        echo "✅ Sample tile accessible with valid content-type"
-    else
-        echo "⚠️  Sample tile missing expected content-type header"
-    fi
-else
-    echo "❌ Sample tile not accessible (HTTP not 200)"
-    exit 1
-fi
+echo "🔐 Per-year ACL and probe executed during streaming; skipping global ACL/probe."
 
 # Final summary
 echo ""

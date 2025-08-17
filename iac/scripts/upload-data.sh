@@ -155,11 +155,12 @@ if [ -z "$BUCKET_CHECK_STATUS" ]; then
 fi
 
 # Count and validate files (exclude LOD-specific files)
-FILE_COUNT=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | wc -l)
-COMBINED_SIZE=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | xargs du -ch 2>/dev/null | tail -1 | cut -f1 || echo "unknown")
-TOTAL_SIZE=$(du -sh "$DATA_DIR" 2>/dev/null | cut -f1 || echo "unknown")
-
-echo "📦 Found $FILE_COUNT combined MBTiles files to export (size: $COMBINED_SIZE of $TOTAL_SIZE total)"
+echo "🔢 Scanning for combined MBTiles (excluding LOD-specific)..."
+FILE_COUNT=$(find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | wc -l)
+echo "🧮 Computing combined MBTiles size (fast)..."
+COMBINED_SIZE=$(find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | xargs du -ch 2>/dev/null | tail -1 | cut -f1 || echo "unknown")
+# Skip total directory size to avoid traversing massive zxy trees
+echo "📦 Found $FILE_COUNT combined MBTiles files to export (MBTiles size: $COMBINED_SIZE)"
 echo "🚀 Optimized export: Excluding LOD-specific files (66% size reduction)"
 
 if [ "$FILE_COUNT" -eq 0 ]; then
@@ -170,18 +171,18 @@ fi
 
 # List files to be processed (only combined yearly files)
 echo "📋 MBTiles to export:"
-find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
+find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
     filename=$(basename "$file")
     filesize=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "?")
     echo "  ✅ $filename ($filesize)"
 done
 
 # Show excluded files for transparency
-LOD_COUNT=$(find "$DATA_DIR" -name "humans_*_lod_*.mbtiles" | wc -l)
+LOD_COUNT=$(find "$DATA_DIR" -maxdepth 1 -name "humans_*_lod_*.mbtiles" | wc -l)
 if [ "$LOD_COUNT" -gt 0 ]; then
     echo ""
     echo "⏭️ Excluding $LOD_COUNT LOD-specific files (server uses combined files only):"
-    find "$DATA_DIR" -name "humans_*_lod_*.mbtiles" | sort | head -5 | while read -r file; do
+    find "$DATA_DIR" -maxdepth 1 -name "humans_*_lod_*.mbtiles" | sort | head -5 | while read -r file; do
         filename=$(basename "$file")
         echo "  ❌ $filename (not needed)"
     done
@@ -264,7 +265,6 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
         --cache-control="public, max-age=31536000, immutable" \
         --content-type="application/x-protobuf" \
         --content-encoding="gzip" \
-        --canned-acl="publicRead" \
         "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
         echo "✅ Uploaded year $year with metadata (gcloud${OVERWRITE_REMOTE:+, overwrite})"
         UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
@@ -273,7 +273,7 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
         exit 1
     fi
 
-    # Public access handled via --canned-acl=publicRead or bucket-level IAM; skipping per-object ACL changes
+    # Public access handled via bucket-level IAM; skipping per-object ACL changes
 
     # Probe a sample static tile to ensure availability
     if [ -n "$SAMPLE_URL" ]; then

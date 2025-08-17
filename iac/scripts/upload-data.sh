@@ -125,12 +125,37 @@ fi
 echo "📋 Setting project to $PROJECT_ID"
 gcloud config set project $PROJECT_ID
 
-# Check if bucket exists
-echo "🔍 Checking if bucket exists..."
-if ! gcloud storage ls gs://$BUCKET_NAME &> /dev/null; then
-    echo "❌ Error: Bucket gs://$BUCKET_NAME does not exist"
+# Check if bucket exists (fast, non-hanging)
+echo "🔍 Checking if bucket exists (fast probe)..."
+BUCKET_CHECK_STATUS=""
+if command -v curl >/dev/null 2>&1; then
+  # 200 or 403 imply the bucket exists; 404 means it does not
+  BUCKET_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+    --connect-timeout 3 --max-time 6 \
+    "https://storage.googleapis.com/storage/v1/b/$BUCKET_NAME") || BUCKET_HTTP=""
+  if [ "$BUCKET_HTTP" = "200" ] || [ "$BUCKET_HTTP" = "403" ]; then
+    echo "✅ Bucket exists (HTTP $BUCKET_HTTP)"
+    BUCKET_CHECK_STATUS="ok"
+  elif [ "$BUCKET_HTTP" = "404" ]; then
+    echo "❌ Error: Bucket gs://$BUCKET_NAME not found (HTTP 404)"
     echo "💡 Run 'terraform apply' first to create the bucket"
     exit 1
+  else
+    echo "⚠️  Bucket probe inconclusive (HTTP: ${BUCKET_HTTP:-none}), falling back to gsutil..."
+  fi
+fi
+if [ -z "$BUCKET_CHECK_STATUS" ]; then
+  if command -v gsutil >/dev/null 2>&1; then
+    if gsutil -q ls -b "gs://$BUCKET_NAME" >/dev/null 2>&1; then
+      echo "✅ Bucket exists (gsutil)"
+    else
+      echo "❌ Error: Bucket gs://$BUCKET_NAME does not exist (gsutil)"
+      echo "💡 Run 'terraform apply' first to create the bucket"
+      exit 1
+    fi
+  else
+    echo "⚠️  Cannot verify bucket reliably (no curl success and gsutil missing). Proceeding anyway."
+  fi
 fi
 
 # Count and validate files (exclude LOD-specific files)

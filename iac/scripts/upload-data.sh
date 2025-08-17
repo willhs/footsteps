@@ -18,11 +18,30 @@ TILES_PREFIX="tiles/humans"
 BUCKET_NAME="$DEFAULT_BUCKET_NAME"
 DRY_RUN=false
 SHOW_HELP=false
+# Defaults: overwrite is enabled (regenerate locally and replace on GCS)
+OVERWRITE_LOCAL=true
+OVERWRITE_REMOTE=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        --overwrite-local)
+            OVERWRITE_LOCAL=true
+            shift
+            ;;
+        --no-overwrite-local)
+            OVERWRITE_LOCAL=false
+            shift
+            ;;
+        --overwrite-remote)
+            OVERWRITE_REMOTE=true
+            shift
+            ;;
+        --no-overwrite-remote)
+            OVERWRITE_REMOTE=false
             shift
             ;;
         --help|-h)
@@ -51,8 +70,12 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  bucket-name    GCS bucket name (default: $DEFAULT_BUCKET_NAME)"
     echo ""
     echo "Options:"
-    echo "  --dry-run      Show what would be done without actually uploading"
-    echo "  --help, -h     Show this help message"
+    echo "  --dry-run              Show what would be done without actually uploading"
+    echo "  --overwrite-local      Regenerate local .pbf tiles (default: on)"
+    echo "  --no-overwrite-local   Skip existing local .pbf tiles (resume mode)"
+    echo "  --overwrite-remote     Overwrite existing objects on GCS (default: on)"
+    echo "  --no-overwrite-remote  Do not overwrite GCS objects (no-clobber)"
+    echo "  --help, -h             Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                           # Export and upload static tiles to default bucket"
@@ -61,6 +84,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo ""
     echo "Behavior:"
     echo "  - Exports each combined MBTiles to static z/x/y .pbf and uploads to gs://$DEFAULT_BUCKET_NAME/$TILES_PREFIX/{year}/single/{z}/{x}/{y}.pbf"
+    echo "  - Default upload overwrites existing objects. Use --no-overwrite-remote for no-clobber."
     echo "  - Sets long Cache-Control and appropriate Content-Type/Encoding for static tiles"
     exit 0
 fi
@@ -164,11 +188,16 @@ fi
 
 EXPORTED_COUNT=0
 shopt -s nullglob
+# Build optional overwrite arg for exporter
+OVERWRITE_ARG=""
+if [ "$OVERWRITE_LOCAL" = true ]; then
+    OVERWRITE_ARG="--overwrite"
+fi
 for file in "$DATA_DIR"/humans_*.mbtiles; do
     # Skip LOD-specific files
     [[ "$file" == *_lod_* ]] && continue
-    echo "🛠️  Exporting $(basename "$file") → $ZXY_OUT_DIR"
-    if "$PYTHON_BIN" ../../footstep-generator/export_mbtiles_to_pbf.py --mbtiles "$file" --out-dir "$ZXY_OUT_DIR"; then
+    echo "🛠️  Exporting $(basename "$file") → $ZXY_OUT_DIR ${OVERWRITE_ARG:+(overwrite)}"
+    if "$PYTHON_BIN" ../../footstep-generator/export_mbtiles_to_pbf.py --mbtiles "$file" --out-dir "$ZXY_OUT_DIR" $OVERWRITE_ARG; then
         EXPORTED_COUNT=$((EXPORTED_COUNT + 1))
     else
         echo "❌ Export failed for $file"
@@ -181,15 +210,23 @@ echo "✅ Export completed for $EXPORTED_COUNT MBTiles files"
 
 # Upload static tiles to GCS with correct metadata
 echo ""
-echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ (resume-friendly, no overwrite) ..."
+echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ (no-clobber by default) ..."
 if command -v gsutil >/dev/null 2>&1; then
   # Use gsutil to set metadata headers during upload
-  if gsutil -m cp -n -r \
+  NO_CLOBBER_FLAG=""
+  if [ "$OVERWRITE_REMOTE" != true ]; then
+    NO_CLOBBER_FLAG="-n"
+  fi
+  if gsutil -m cp $NO_CLOBBER_FLAG -r \
       -h "Cache-Control:public, max-age=31536000, immutable" \
       -h "Content-Type:application/x-protobuf" \
       -h "Content-Encoding:gzip" \
       "$ZXY_OUT_DIR"/* "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-    echo "✅ Static tiles uploaded with metadata (gsutil, no-clobber)"
+    if [ "$OVERWRITE_REMOTE" = true ]; then
+      echo "✅ Static tiles uploaded with metadata (gsutil, overwrite enabled)"
+    else
+      echo "✅ Static tiles uploaded with metadata (gsutil, no-clobber)"
+    fi
   else
     echo "❌ Failed to upload static tiles via gsutil"
     exit 1

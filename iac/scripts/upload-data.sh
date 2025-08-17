@@ -129,11 +129,11 @@ gcloud config set project $PROJECT_ID
 echo "🔍 Checking if bucket exists (fast probe)..."
 BUCKET_CHECK_STATUS=""
 if command -v curl >/dev/null 2>&1; then
-  # 200 or 403 imply the bucket exists; 404 means it does not
+  # 200, 401, or 403 imply the bucket exists; 404 means it does not
   BUCKET_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
     --connect-timeout 3 --max-time 6 \
     "https://storage.googleapis.com/storage/v1/b/$BUCKET_NAME") || BUCKET_HTTP=""
-  if [ "$BUCKET_HTTP" = "200" ] || [ "$BUCKET_HTTP" = "403" ]; then
+  if [ "$BUCKET_HTTP" = "200" ] || [ "$BUCKET_HTTP" = "403" ] || [ "$BUCKET_HTTP" = "401" ]; then
     echo "✅ Bucket exists (HTTP $BUCKET_HTTP)"
     BUCKET_CHECK_STATUS="ok"
   elif [ "$BUCKET_HTTP" = "404" ]; then
@@ -141,20 +141,16 @@ if command -v curl >/dev/null 2>&1; then
     echo "💡 Run 'terraform apply' first to create the bucket"
     exit 1
   else
-    echo "⚠️  Bucket probe inconclusive (HTTP: ${BUCKET_HTTP:-none}), falling back to gsutil..."
+    echo "⚠️  Bucket probe inconclusive (HTTP: ${BUCKET_HTTP:-none}), falling back to gcloud..."
   fi
 fi
 if [ -z "$BUCKET_CHECK_STATUS" ]; then
-  if command -v gsutil >/dev/null 2>&1; then
-    if gsutil -q ls -b "gs://$BUCKET_NAME" >/dev/null 2>&1; then
-      echo "✅ Bucket exists (gsutil)"
-    else
-      echo "❌ Error: Bucket gs://$BUCKET_NAME does not exist (gsutil)"
-      echo "💡 Run 'terraform apply' first to create the bucket"
-      exit 1
-    fi
+  if gcloud storage buckets describe "gs://$BUCKET_NAME" --format="value(name)" >/dev/null 2>&1; then
+    echo "✅ Bucket exists (gcloud)"
   else
-    echo "⚠️  Cannot verify bucket reliably (no curl success and gsutil missing). Proceeding anyway."
+    echo "❌ Error: Bucket gs://$BUCKET_NAME does not exist (gcloud)"
+    echo "💡 Run 'terraform apply' first to create the bucket"
+    exit 1
   fi
 fi
 
@@ -258,39 +254,26 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
         SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$REL_PATH"
     fi
 
-    # Upload this year's tiles with correct metadata
+    # Upload this year's tiles with correct metadata (prefer gcloud for Python 3.12+ compatibility)
     echo "⬆️  Uploading year $year to gs://$BUCKET_NAME/$TILES_PREFIX/"
-    if command -v gsutil >/dev/null 2>&1; then
-        NO_CLOBBER_FLAG=""
-        if [ "$OVERWRITE_REMOTE" != true ]; then
-            NO_CLOBBER_FLAG="-n"
-        fi
-        if gsutil -m cp $NO_CLOBBER_FLAG -r \
-            -h "Cache-Control:public, max-age=31536000, immutable" \
-            -h "Content-Type:application/x-protobuf" \
-            -h "Content-Encoding:gzip" \
-            "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-            echo "✅ Uploaded year $year with metadata (gsutil${OVERWRITE_REMOTE:+, overwrite})"
-            UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
-        else
-            echo "❌ Upload failed for year $year via gsutil"
-            exit 1
-        fi
+    NO_CLOBBER_FLAG=""
+    if [ "$OVERWRITE_REMOTE" != true ]; then
+        NO_CLOBBER_FLAG="--no-clobber"
+    fi
+    if gcloud storage cp -r $NO_CLOBBER_FLAG \
+        --cache-control="public, max-age=31536000, immutable" \
+        --content-type="application/x-protobuf" \
+        --content-encoding="gzip" \
+        --canned-acl="publicRead" \
+        "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
+        echo "✅ Uploaded year $year with metadata (gcloud${OVERWRITE_REMOTE:+, overwrite})"
+        UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
     else
-        echo "⚠️  gsutil not found; falling back to gcloud storage cp (metadata may be defaulted)"
-        if gcloud storage cp -r "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-            echo "✅ Uploaded year $year (gcloud)"
-            UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
-        else
-            echo "❌ Upload failed for year $year via gcloud"
-            exit 1
-        fi
+        echo "❌ Upload failed for year $year via gcloud"
+        exit 1
     fi
 
-    # Set public read permissions for this year's objects (best-effort)
-    if command -v gsutil >/dev/null 2>&1; then
-        gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/$TILES_PREFIX/$year/**" >/dev/null 2>&1 || true
-    fi
+    # Public access handled via --canned-acl=publicRead or bucket-level IAM; skipping per-object ACL changes
 
     # Probe a sample static tile to ensure availability
     if [ -n "$SAMPLE_URL" ]; then

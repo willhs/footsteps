@@ -76,12 +76,12 @@ resource "google_storage_bucket_iam_member" "app_bucket_access" {
 # Persistent disk for tile caching (optional)
 resource "google_compute_disk" "tile_cache_disk" {
   count = var.enable_persistent_cache ? 1 : 0
-  
-  name  = "${var.service_name}-tile-cache"
-  type  = "pd-standard"  # Standard persistent disk (most cost-effective)
-  zone  = "${var.region}-a"
-  size  = var.cache_disk_size_gb
-  
+
+  name = "${var.service_name}-tile-cache"
+  type = "pd-standard" # Standard persistent disk (most cost-effective)
+  zone = "${var.region}-a"
+  size = var.cache_disk_size_gb
+
   # Labels for organization
   labels = {
     environment = "production"
@@ -95,7 +95,7 @@ resource "google_compute_disk" "tile_cache_disk" {
 # Cloud Run Job for cache warming
 resource "google_cloud_run_v2_job" "cache_warmer" {
   count = var.enable_cache_warming && var.enable_persistent_cache ? 1 : 0
-  
+
   name     = "${var.service_name}-cache-warmer"
   location = var.region
 
@@ -103,15 +103,15 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
     template {
       # Use same service account as main app
       service_account = google_service_account.app_service_account.email
-      
+
       # Task configuration
-      task_count          = 1
-      parallelism         = 1
-      task_timeout        = "${var.cache_warming_timeout}s"
-      
+      task_count   = 1
+      parallelism  = 1
+      task_timeout = "${var.cache_warming_timeout}s"
+
       containers {
         image = "${var.container_image}-cache-warmer"
-        
+
         # Resource limits for cache warming
         resources {
           limits = {
@@ -119,47 +119,47 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
             memory = "1Gi"
           }
         }
-        
+
         # Environment variables for cache warming
         env {
           name  = "NODE_ENV"
           value = "production"
         }
-        
+
         env {
           name  = "GCP_PROJECT_ID"
           value = var.project_id
         }
-        
+
         env {
           name  = "GCS_BUCKET_NAME"
           value = google_storage_bucket.data_bucket.name
         }
-        
+
         env {
           name  = "TILE_CACHE_DIR"
           value = "/data/tiles/humans"
         }
-        
+
         env {
           name  = "CACHE_WARMING_CONCURRENCY"
           value = "3"
         }
-        
+
         # Mount persistent disk for cache warming
         volume_mounts {
           name       = "tile-cache-volume"
           mount_path = "/data"
         }
       }
-      
+
       # Volume for persistent cache (same as main app)
       volumes {
         name = "tile-cache-volume"
         gce_persistent_disk {
-          pd_name    = google_compute_disk.tile_cache_disk[0].name
-          fs_type    = "ext4"
-          read_only  = false
+          pd_name   = google_compute_disk.tile_cache_disk[0].name
+          fs_type   = "ext4"
+          read_only = false
         }
       }
     }
@@ -277,9 +277,9 @@ resource "google_cloud_run_v2_service" "app" {
       content {
         name = "tile-cache-volume"
         gce_persistent_disk {
-          pd_name    = google_compute_disk.tile_cache_disk[0].name
-          fs_type    = "ext4"
-          read_only  = false
+          pd_name   = google_compute_disk.tile_cache_disk[0].name
+          fs_type   = "ext4"
+          read_only = false
         }
       }
     }

@@ -38,7 +38,12 @@ def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
 
-def export_mbtiles_to_pbf(mbtiles_path: str, out_dir: str, year: Optional[int] = None) -> int:
+def export_mbtiles_to_pbf(
+    mbtiles_path: str,
+    out_dir: str,
+    year: Optional[int] = None,
+    overwrite: bool = False,
+) -> int:
     mb = Path(mbtiles_path)
     if not mb.exists():
         raise FileNotFoundError(f"MBTiles not found: {mbtiles_path}")
@@ -67,8 +72,8 @@ def export_mbtiles_to_pbf(mbtiles_path: str, out_dir: str, year: Optional[int] =
         y_xyz = (1 << z) - 1 - y_tms
         # Create output path
         out_path = base / str(z) / str(x) / f"{y_xyz}.pbf"
-        # Resume-friendly: skip if tile already exported
-        if out_path.exists():
+        # Resume-friendly: skip if tile already exported (unless overwrite)
+        if out_path.exists() and not overwrite:
             count += 1
             continue
         ensure_dir(out_path.parent)
@@ -88,9 +93,10 @@ def main() -> None:
     ap.add_argument("--mbtiles", required=True, help="Path to humans_{year}.mbtiles")
     ap.add_argument("--out-dir", required=True, help="Base output directory (will write {year}/single/{z}/{x}/{y}.pbf)")
     ap.add_argument("--year", type=int, help="Year (optional; parsed from filename if omitted)")
+    ap.add_argument("--overwrite", action="store_true", help="Overwrite existing .pbf tiles if present")
     args = ap.parse_args()
 
-    count = export_mbtiles_to_pbf(args.mbtiles, args.out_dir, year=args.year)
+    count = export_mbtiles_to_pbf(args.mbtiles, args.out_dir, year=args.year, overwrite=args.overwrite)
     print(f"✓ Exported {count} tiles from {args.mbtiles} to {args.out_dir}")
 
 

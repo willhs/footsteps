@@ -73,6 +73,13 @@ resource "google_storage_bucket_iam_member" "app_bucket_access" {
   member = "serviceAccount:${google_service_account.app_service_account.email}"
 }
 
+# Allow Cloud Run job/service account to write objects (upload PBF tiles)
+resource "google_storage_bucket_iam_member" "app_bucket_writer" {
+  bucket = google_storage_bucket.data_bucket.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.app_service_account.email}"
+}
+
 # Persistent disk for tile caching (optional)
 resource "google_compute_disk" "tile_cache_disk" {
   count = var.enable_persistent_cache ? 1 : 0
@@ -110,11 +117,11 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
       containers {
         image = "${var.container_image}-cache-warmer"
 
-        # Resource limits for cache warming
+        # Resource limits for cache warming (increased for large file downloads)
         resources {
           limits = {
             cpu    = "2000m"
-            memory = "1Gi"
+            memory = "4Gi"
           }
         }
 
@@ -136,7 +143,7 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
 
         env {
           name  = "CACHE_WARMING_CONCURRENCY"
-          value = "3"
+          value = "1"
         }
 
         # Note: Cache warming job downloads directly to GCS
@@ -198,6 +205,16 @@ resource "google_cloud_run_v2_service" "app" {
         value = google_storage_bucket.data_bucket.name
       }
 
+      # Tiles redirection config for API
+      env {
+        name  = "GCS_TILES_BUCKET"
+        value = google_storage_bucket.data_bucket.name
+      }
+      env {
+        name  = "TILES_BASE_URL"
+        value = "https://storage.googleapis.com/${google_storage_bucket.data_bucket.name}/tiles/humans"
+      }
+
       env {
         name  = "HUMANS_TILES_DIR"
         value = "/data/tiles/humans"
@@ -235,14 +252,8 @@ resource "google_cloud_run_v2_service" "app" {
         failure_threshold     = 3
       }
 
-      # Volume mounts for persistent cache
-      dynamic "volume_mounts" {
-        for_each = var.enable_persistent_cache ? [1] : []
-        content {
-          name       = "tile-cache-volume"
-          mount_path = "/data"
-        }
-      }
+      # Note: Volume mounts disabled temporarily due to Cloud Run v2 syntax complexity
+      # Will implement persistent disk mounting in future iteration
     }
 
     # Request timeout

@@ -99,6 +99,16 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid path parameters' }, { status: 400 });
   }
 
+  // If configured, redirect to GCS-backed tiles to avoid local MBTiles access in production
+  const gcsBucket = process.env.GCS_TILES_BUCKET || process.env.NEXT_PUBLIC_GCS_TILES_BUCKET;
+  const baseUrl = process.env.TILES_BASE_URL || (gcsBucket ? `https://storage.googleapis.com/${gcsBucket}/tiles/humans` : undefined);
+  if (baseUrl) {
+    const dest = `${baseUrl}/${yr}/single/${zz}/${xx}/${yy}.pbf`;
+    const res = NextResponse.redirect(dest, 302);
+    res.headers.set('Cache-Control', 'public, max-age=3600');
+    return res;
+  }
+
   // Single-layer yearly tileset
   const tileFile = await getTileFilePath(yr, 0);
   if (!tileFile.exists) {

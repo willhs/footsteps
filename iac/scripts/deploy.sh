@@ -15,7 +15,6 @@ APP_DIR="../../humans-globe"
 # Parse arguments
 SKIP_BUILD=false
 SKIP_DATA=false
-SKIP_CACHE_WARMING=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -27,13 +26,9 @@ while [[ $# -gt 0 ]]; do
             SKIP_DATA=true
             shift
             ;;
-        --skip-cache-warming)
-            SKIP_CACHE_WARMING=true
-            shift
-            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--skip-build] [--skip-data] [--skip-cache-warming]"
+            echo "Usage: $0 [--skip-build] [--skip-data]"
             exit 1
             ;;
     esac
@@ -84,25 +79,22 @@ if [ "$SKIP_BUILD" = false ]; then
     echo "✅ Main container built and pushed to $IMAGE_NAME"
     cd - > /dev/null
     
-    # Build cache warming container
-    echo "🔥 Building cache warming container..."
-    cd "../cache-warmer"
-    CACHE_WARMER_IMAGE="$IMAGE_NAME-cache-warmer"
-    gcloud builds submit --tag "$CACHE_WARMER_IMAGE" .
-    echo "✅ Cache warmer container built and pushed to $CACHE_WARMER_IMAGE"
-    cd - > /dev/null
+    # Cache warmer image removed (deprecated)
 else
     echo "⏭️  Skipping container build"
 fi
 
 # Deploy to Cloud Run
 echo "🚀 Deploying to Cloud Run..."
+## Build env vars for the service (runtime only)
+ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_NAME" \
     --platform managed \
     --region "$REGION" \
     --allow-unauthenticated \
-    --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans" \
+    --set-env-vars="$ENV_VARS" \
     --memory=2Gi \
     --cpu=2 \
     --timeout=300 \
@@ -127,30 +119,7 @@ else
     echo "⚠️  Service returned HTTP $HTTP_STATUS. Check the logs for issues."
 fi
 
-# Trigger cache warming if not skipping
-if [ "$SKIP_CACHE_WARMING" = false ]; then
-    echo ""
-    echo "🔥 Starting cache warming process..."
-    echo "📦 This will pre-download all tile files (~12GB) to persistent cache"
-    echo "⏱️  Expected time: 10-15 minutes"
-    
-    CACHE_WARMER_JOB="$SERVICE_NAME-cache-warmer"
-    
-    # Execute the cache warming job
-    echo "🚀 Executing cache warming job: $CACHE_WARMER_JOB"
-    if gcloud run jobs execute "$CACHE_WARMER_JOB" --region="$REGION" --wait; then
-        echo "✅ Cache warming completed successfully!"
-        echo "🚀 All tile files are now cached and ready for instant access"
-    else
-        echo "❌ Cache warming failed. Check the job logs:"
-        echo "   gcloud logging read 'resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"$CACHE_WARMER_JOB\"' --limit=50 --format=json"
-        echo "⚠️  The application will still work, but first access to new years will be slow"
-    fi
-else
-    echo ""
-    echo "⏭️  Skipping cache warming"
-    echo "💡 Note: First access to each year will require ~30s download from GCS"
-fi
+# Cache warming deprecated; tiles served directly from GCS/CDN
 
 echo ""
 echo "✨ Deployment complete!"

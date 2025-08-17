@@ -1,5 +1,6 @@
 import { GeoJsonLayer, BitmapLayer } from '@deck.gl/layers';
 import { TileLayer, MVTLayer } from '@deck.gl/geo-layers';
+import { getTileUrlPattern } from '@/lib/tilesConfig';
 
 // Strategy pattern for radius calculation
 interface RadiusStrategy {
@@ -158,7 +159,7 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    data: `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`,
+    data: getTileUrlPattern(year),
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
     // Use best-available refinement to ensure tiles load

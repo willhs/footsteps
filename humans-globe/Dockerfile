@@ -27,6 +27,8 @@ COPY . .
 # Set environment variables for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_TILES_BASE_URL="https://storage.googleapis.com/footsteps-earth-tiles/tiles/humans"
+ENV NEXT_PUBLIC_TILES_BASE_URL=${NEXT_PUBLIC_TILES_BASE_URL}
 
 # Build the application
 RUN \

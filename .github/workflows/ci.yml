@@ -116,3 +116,35 @@ jobs:
       - name: Terraform validate
         working-directory: ./iac
         run: terraform validate
+
+  gcs_tiles_probe:
+    name: GCS Tiles Availability
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Probe public static PBF tiles on GCS
+        run: |
+          set -e
+          BASE="https://storage.googleapis.com/footsteps-earth-tiles/tiles/humans"
+          YEARS=("-1000" "0" "1000")
+          COORDS=("0/0/0" "1/0/0" "1/1/0" "2/2/1" "2/0/0")
+
+          echo "🔍 Probing for any available static PBF tile..."
+          for y in "${YEARS[@]}"; do
+            for c in "${COORDS[@]}"; do
+              URL="$BASE/$y/single/$c.pbf"
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Accept-Encoding: identity" "$URL")
+              if [ "$CODE" = "200" ]; then
+                # check content-type hints
+                HDRS=$(curl -sI -H "Accept-Encoding: identity" "$URL")
+                CT=$(echo "$HDRS" | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}' | tr -d '\r')
+                if echo "$CT" | grep -qi 'protobuf\|octet-stream'; then
+                  echo "✅ Found tile: $URL ($CT)"
+                  exit 0
+                fi
+              fi
+              echo "⏭️  Miss $URL (HTTP $CODE)"
+            done
+          done
+          echo "❌ No sample tiles found at expected GCS location"
+          exit 1

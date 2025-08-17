@@ -96,6 +96,15 @@ The application implements a four‑tier LOD system for performance at different
 - **Upload data only**: `cd iac/scripts && ./upload-data.sh`
 - **Preview data upload**: `cd iac/scripts && ./upload-data.sh --dry-run`
 
+### Deployment Diagnostics
+- **Debug deployment issues**: `cd iac/scripts && ./debug-deploy.sh`
+  - Comprehensive deployment health check
+  - Validates terraform configuration
+  - Checks Cloud Run service status
+  - Reviews recent deployment logs
+  - Tests API endpoints
+  - Suggests automated fixes
+
 ## Testing
 ### Data Processing Pipeline Tests
 All tests are located in `footstep-generator/tests/` directory:

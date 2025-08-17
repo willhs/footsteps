@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Upload MBTiles files to GCS bucket
-# Usage: ./upload-data.sh [bucket-name] [--dry-run] [--force] [--help]
+# Export MBTiles to static z/x/y .pbf and upload to GCS
+# Usage: ./upload-data.sh [bucket-name] [--dry-run] [--help]
 
 set -e
 
@@ -9,11 +9,14 @@ set -e
 PROJECT_ID="footsteps-earth"
 DEFAULT_BUCKET_NAME="footsteps-earth-tiles"
 DATA_DIR="../../data/tiles/humans"
+# Local export directory for static z/x/y .pbf tiles
+ZXY_OUT_DIR="../../data/tiles/humans/zxy"
+# GCS prefix for static tiles
+TILES_PREFIX="tiles/humans"
 
 # Parse arguments
 BUCKET_NAME="$DEFAULT_BUCKET_NAME"
 DRY_RUN=false
-FORCE_UPLOAD=false
 SHOW_HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -22,17 +25,13 @@ while [[ $# -gt 0 ]]; do
             DRY_RUN=true
             shift
             ;;
-        --force)
-            FORCE_UPLOAD=true
-            shift
-            ;;
         --help|-h)
             SHOW_HELP=true
             shift
             ;;
         -*)
             echo "Unknown option: $1"
-            echo "Usage: $0 [bucket-name] [--dry-run] [--force] [--help]"
+            echo "Usage: $0 [bucket-name] [--dry-run] [--help]"
             exit 1
             ;;
         *)
@@ -44,7 +43,7 @@ done
 
 # Show help if requested
 if [ "$SHOW_HELP" = true ]; then
-    echo "Upload MBTiles files to GCS bucket"
+    echo "Export MBTiles locally and upload static PBF tiles to GCS"
     echo ""
     echo "Usage: $0 [bucket-name] [options]"
     echo ""
@@ -52,27 +51,25 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  bucket-name    GCS bucket name (default: $DEFAULT_BUCKET_NAME)"
     echo ""
     echo "Options:"
-    echo "  --dry-run      Show what would be uploaded without actually uploading"
-    echo "  --force        Force re-upload all files (skip existing file checks)"
+    echo "  --dry-run      Show what would be done without actually uploading"
     echo "  --help, -h     Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                           # Upload to default bucket"
-    echo "  $0 my-bucket                 # Upload to custom bucket"
-    echo "  $0 --dry-run                 # Preview what would be uploaded"
-    echo "  $0 --force                   # Force re-upload all files"
+    echo "  $0                           # Export and upload static tiles to default bucket"
+    echo "  $0 my-bucket                 # Export and upload to custom bucket"
+    echo "  $0 --dry-run                 # Preview steps only"
+    echo ""
+    echo "Behavior:"
+    echo "  - Exports each combined MBTiles to static z/x/y .pbf and uploads to gs://$DEFAULT_BUCKET_NAME/$TILES_PREFIX/{year}/single/{z}/{x}/{y}.pbf"
+    echo "  - Sets long Cache-Control and appropriate Content-Type/Encoding for static tiles"
     exit 0
 fi
 
 # Show configuration
 if [ "$DRY_RUN" = true ]; then
-    echo "🧪 DRY RUN: Previewing upload to GCS bucket: $BUCKET_NAME"
+    echo "🧪 DRY RUN: Previewing static tiles export + upload to: gs://$BUCKET_NAME/$TILES_PREFIX/"
 else
-    echo "🚀 Uploading data files to GCS bucket: $BUCKET_NAME"
-fi
-
-if [ "$FORCE_UPLOAD" = true ]; then
-    echo "⚡ Force mode: Will re-upload all files"
+    echo "🚀 Exporting and uploading static tiles to: gs://$BUCKET_NAME/$TILES_PREFIX/"
 fi
 
 # Check if data directory exists
@@ -106,8 +103,8 @@ FILE_COUNT=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | wc -l
 COMBINED_SIZE=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | xargs du -ch 2>/dev/null | tail -1 | cut -f1 || echo "unknown")
 TOTAL_SIZE=$(du -sh "$DATA_DIR" 2>/dev/null | cut -f1 || echo "unknown")
 
-echo "📦 Found $FILE_COUNT combined MBTiles files to upload (size: $COMBINED_SIZE of $TOTAL_SIZE total)"
-echo "🚀 Optimized upload: Excluding LOD-specific files (66% size reduction)"
+echo "📦 Found $FILE_COUNT combined MBTiles files to export (size: $COMBINED_SIZE of $TOTAL_SIZE total)"
+echo "🚀 Optimized export: Excluding LOD-specific files (66% size reduction)"
 
 if [ "$FILE_COUNT" -eq 0 ]; then
     echo "❌ Error: No combined MBTiles files found in $DATA_DIR"
@@ -116,7 +113,7 @@ if [ "$FILE_COUNT" -eq 0 ]; then
 fi
 
 # List files to be processed (only combined yearly files)
-echo "📋 Files to upload:"
+echo "📋 MBTiles to export:"
 find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
     filename=$(basename "$file")
     filesize=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "?")
@@ -137,75 +134,77 @@ if [ "$LOD_COUNT" -gt 0 ]; then
     fi
 fi
 
-# Dry run: show what would be uploaded
+# Dry run: show what would be done
 if [ "$DRY_RUN" = true ]; then
     echo ""
     echo "🧪 DRY RUN: Would perform the following actions:"
-    echo "  1. Upload $FILE_COUNT MBTiles files to gs://$BUCKET_NAME/"
-    echo "  2. Set public read permissions on all files"
-    echo "  3. Verify upload integrity"
+    echo "  1. Export each combined MBTiles to local z/x/y .pbf under $ZXY_OUT_DIR/"
+    echo "  2. Upload static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ with proper metadata"
+    echo "  3. Set public read permissions on all files"
+    echo "  4. Probe a sample static tile over public HTTP"
     echo ""
     echo "✅ Dry run completed - no files were actually uploaded"
     exit 0
 fi
 
-# Check for existing files (unless force mode)
-if [ "$FORCE_UPLOAD" = false ]; then
-    echo "🔍 Checking for existing files..."
-    EXISTING_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
-    
-    if [ "$EXISTING_COUNT" -gt 0 ]; then
-        echo "⚠️  Found $EXISTING_COUNT existing files in bucket"
-        echo "💡 Use --force to re-upload all files, or files will be synced intelligently"
-    fi
+# Export MBTiles to z/x/y .pbf locally
+echo ""
+echo "🧱 Exporting MBTiles to local z/x/y .pbf tree..."
+mkdir -p "$ZXY_OUT_DIR"
+
+# Detect Python
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN=python3
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN=python
+else
+  echo "❌ Python not found on PATH"
+  exit 1
 fi
 
-# Upload files with progress
-echo "⬆️ Starting upload..."
-echo "📊 Progress will be shown below:"
-
-# Upload only combined yearly files (exclude LOD-specific files)
-echo "🔄 Uploading combined yearly files only..."
-UPLOAD_SUCCESS=true
-UPLOADED_COUNT=0
-
-find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
-    filename=$(basename "$file")
-    echo "⬆️ Uploading $filename..."
-    if gcloud storage cp "$file" "gs://$BUCKET_NAME/$filename"; then
-        echo "✅ $filename uploaded successfully"
-        UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
+EXPORTED_COUNT=0
+shopt -s nullglob
+for file in "$DATA_DIR"/humans_*.mbtiles; do
+    # Skip LOD-specific files
+    [[ "$file" == *_lod_* ]] && continue
+    echo "🛠️  Exporting $(basename "$file") → $ZXY_OUT_DIR"
+    if "$PYTHON_BIN" ../../footstep-generator/export_mbtiles_to_pbf.py --mbtiles "$file" --out-dir "$ZXY_OUT_DIR"; then
+        EXPORTED_COUNT=$((EXPORTED_COUNT + 1))
     else
-        echo "❌ Failed to upload $filename"
-        UPLOAD_SUCCESS=false
-        break
+        echo "❌ Export failed for $file"
+        exit 1
     fi
 done
+shopt -u nullglob
 
-if [ "$UPLOAD_SUCCESS" = true ]; then
-    echo "✅ File upload completed"
-else
-    echo "❌ Upload failed. Check your authentication and network connection."
+echo "✅ Export completed for $EXPORTED_COUNT MBTiles files"
+
+# Upload static tiles to GCS with correct metadata
+echo ""
+echo "⬆️ Uploading static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/ ..."
+if command -v gsutil >/dev/null 2>&1; then
+  # Use gsutil to set metadata headers during upload
+  if gsutil -m cp -r \
+      -h "Cache-Control:public, max-age=31536000, immutable" \
+      -h "Content-Type:application/x-protobuf" \
+      -h "Content-Encoding:gzip" \
+      "$ZXY_OUT_DIR"/* "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
+    echo "✅ Static tiles uploaded with metadata (gsutil)"
+  else
+    echo "❌ Failed to upload static tiles via gsutil"
     exit 1
+  fi
+else
+  echo "⚠️  gsutil not found; falling back to gcloud storage cp (metadata may be defaulted)"
+  if gcloud storage cp -r "$ZXY_OUT_DIR/" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
+    echo "✅ Static tiles uploaded (gcloud)"
+  else
+    echo "❌ Failed to upload static tiles"
+    exit 1
+  fi
 fi
 
-# Verify upload (only check combined yearly files)
-echo "🔍 Verifying upload integrity..."
-REMOTE_COMBINED_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/humans_*.mbtiles" 2>/dev/null | grep -v "_lod_" | wc -l || echo "0")
-echo "📊 Local combined files: $FILE_COUNT, Remote combined files: $REMOTE_COMBINED_COUNT"
-
-if [ "$FILE_COUNT" -eq "$REMOTE_COMBINED_COUNT" ] && [ "$REMOTE_COMBINED_COUNT" -gt 0 ]; then
-    echo "✅ Upload verification passed!"
-    echo "🎯 Optimized deployment: Using only combined yearly files"
-else
-    echo "❌ Upload verification failed:"
-    echo "  - Expected: $FILE_COUNT combined files"
-    echo "  - Found: $REMOTE_COMBINED_COUNT combined files"
-    echo "💡 Check gcloud output above for errors"
-    exit 1
-fi
-
-# Set public read permissions with error handling
+# Set public read permissions with error handling (covers both MBTiles and static tiles)
 echo "🔓 Setting public read permissions..."
 # Note: gcloud storage doesn't have direct ACL commands, using gsutil for this specific task
 if command -v gsutil &> /dev/null && gsutil -m acl ch -r -u AllUsers:R "gs://$BUCKET_NAME/*" 2>/dev/null; then
@@ -216,9 +215,34 @@ else
     echo "🔧 To set public access manually: gcloud storage objects update gs://$BUCKET_NAME/* --add-acl-grant=entity=AllUsers,role=READER"
 fi
 
+# Probe a sample static tile over public HTTP to ensure availability
+echo ""
+echo "🔎 Probing a sample static tile..."
+SAMPLE_FILE=$(find "$ZXY_OUT_DIR" -type f -name "*.pbf" | head -n 1 || true)
+if [ -z "$SAMPLE_FILE" ]; then
+    echo "❌ No .pbf files found locally after export; cannot probe"
+    exit 1
+fi
+REL_PATH="${SAMPLE_FILE#"$ZXY_OUT_DIR/"}"
+SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$REL_PATH"
+echo "🔗 $SAMPLE_URL"
+HEADERS=$(curl -sI -H "Accept-Encoding: identity" "$SAMPLE_URL" || true)
+echo "$HEADERS"
+if echo "$HEADERS" | grep -q "200 OK"; then
+    if echo "$HEADERS" | grep -qiE "content-type: (application/x-protobuf|application/octet-stream)"; then
+        echo "✅ Sample tile accessible with valid content-type"
+    else
+        echo "⚠️  Sample tile missing expected content-type header"
+    fi
+else
+    echo "❌ Sample tile not accessible (HTTP not 200)"
+    exit 1
+fi
+
 # Final summary
 echo ""
 echo "🎉 Data upload completed successfully!"
-echo "📦 Uploaded $FILE_COUNT MBTiles files ($TOTAL_SIZE total)"
-echo "🌐 Files are publicly accessible at: https://storage.googleapis.com/$BUCKET_NAME/"
+echo "📦 Exported and uploaded static tiles from $FILE_COUNT MBTiles (local size: $TOTAL_SIZE)"
+echo "🗂️  Synced static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/"
+echo "🌐 Base URL: https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/"
 echo "🔗 View in console: https://console.cloud.google.com/storage/browser/$BUCKET_NAME"

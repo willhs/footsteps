@@ -101,25 +101,41 @@ if ! gcloud storage ls gs://$BUCKET_NAME &> /dev/null; then
     exit 1
 fi
 
-# Count and validate files
-FILE_COUNT=$(find "$DATA_DIR" -name "*.mbtiles" | wc -l)
+# Count and validate files (exclude LOD-specific files)
+FILE_COUNT=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | wc -l)
+COMBINED_SIZE=$(find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | xargs du -ch 2>/dev/null | tail -1 | cut -f1 || echo "unknown")
 TOTAL_SIZE=$(du -sh "$DATA_DIR" 2>/dev/null | cut -f1 || echo "unknown")
 
-echo "📦 Found $FILE_COUNT MBTiles files to process (total size: $TOTAL_SIZE)"
+echo "📦 Found $FILE_COUNT combined MBTiles files to upload (size: $COMBINED_SIZE of $TOTAL_SIZE total)"
+echo "🚀 Optimized upload: Excluding LOD-specific files (66% size reduction)"
 
 if [ "$FILE_COUNT" -eq 0 ]; then
-    echo "❌ Error: No MBTiles files found in $DATA_DIR"
+    echo "❌ Error: No combined MBTiles files found in $DATA_DIR"
     echo "💡 Run 'cd footstep-generator && python process_hyde.py && python make_tiles.py' first"
     exit 1
 fi
 
-# List files to be processed
-echo "📋 Files to process:"
-find "$DATA_DIR" -name "*.mbtiles" | sort | while read -r file; do
+# List files to be processed (only combined yearly files)
+echo "📋 Files to upload:"
+find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
     filename=$(basename "$file")
     filesize=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "?")
-    echo "  - $filename ($filesize)"
+    echo "  ✅ $filename ($filesize)"
 done
+
+# Show excluded files for transparency
+LOD_COUNT=$(find "$DATA_DIR" -name "humans_*_lod_*.mbtiles" | wc -l)
+if [ "$LOD_COUNT" -gt 0 ]; then
+    echo ""
+    echo "⏭️ Excluding $LOD_COUNT LOD-specific files (server uses combined files only):"
+    find "$DATA_DIR" -name "humans_*_lod_*.mbtiles" | sort | head -5 | while read -r file; do
+        filename=$(basename "$file")
+        echo "  ❌ $filename (not needed)"
+    done
+    if [ "$LOD_COUNT" -gt 5 ]; then
+        echo "  ... and $((LOD_COUNT - 5)) more LOD-specific files"
+    fi
+fi
 
 # Dry run: show what would be uploaded
 if [ "$DRY_RUN" = true ]; then
@@ -148,34 +164,44 @@ fi
 echo "⬆️ Starting upload..."
 echo "📊 Progress will be shown below:"
 
-# Build gcloud storage command
-GCLOUD_CMD="gcloud storage rsync --recursive"
-if [ "$FORCE_UPLOAD" = true ]; then
-    GCLOUD_CMD="$GCLOUD_CMD --delete-unmatched-destination-objects"
-fi
-GCLOUD_CMD="$GCLOUD_CMD '$DATA_DIR/' 'gs://$BUCKET_NAME/'"
+# Upload only combined yearly files (exclude LOD-specific files)
+echo "🔄 Uploading combined yearly files only..."
+UPLOAD_SUCCESS=true
+UPLOADED_COUNT=0
 
-# Execute upload with error handling
-echo "🔄 Running: $GCLOUD_CMD"
-if eval $GCLOUD_CMD; then
+find "$DATA_DIR" -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
+    filename=$(basename "$file")
+    echo "⬆️ Uploading $filename..."
+    if gcloud storage cp "$file" "gs://$BUCKET_NAME/$filename"; then
+        echo "✅ $filename uploaded successfully"
+        UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
+    else
+        echo "❌ Failed to upload $filename"
+        UPLOAD_SUCCESS=false
+        break
+    fi
+done
+
+if [ "$UPLOAD_SUCCESS" = true ]; then
     echo "✅ File upload completed"
 else
     echo "❌ Upload failed. Check your authentication and network connection."
     exit 1
 fi
 
-# Verify upload
+# Verify upload (only check combined yearly files)
 echo "🔍 Verifying upload integrity..."
-REMOTE_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/*.mbtiles" 2>/dev/null | wc -l || echo "0")
-echo "📊 Local files: $FILE_COUNT, Remote files: $REMOTE_COUNT"
+REMOTE_COMBINED_COUNT=$(gcloud storage ls "gs://$BUCKET_NAME/humans_*.mbtiles" 2>/dev/null | grep -v "_lod_" | wc -l || echo "0")
+echo "📊 Local combined files: $FILE_COUNT, Remote combined files: $REMOTE_COMBINED_COUNT"
 
-if [ "$FILE_COUNT" -eq "$REMOTE_COUNT" ] && [ "$REMOTE_COUNT" -gt 0 ]; then
+if [ "$FILE_COUNT" -eq "$REMOTE_COMBINED_COUNT" ] && [ "$REMOTE_COMBINED_COUNT" -gt 0 ]; then
     echo "✅ Upload verification passed!"
+    echo "🎯 Optimized deployment: Using only combined yearly files"
 else
     echo "❌ Upload verification failed:"
-    echo "  - Expected: $FILE_COUNT files"
-    echo "  - Found: $REMOTE_COUNT files"
-    echo "💡 Check gsutil output above for errors"
+    echo "  - Expected: $FILE_COUNT combined files"
+    echo "  - Found: $REMOTE_COMBINED_COUNT combined files"
+    echo "💡 Check gcloud output above for errors"
     exit 1
 fi
 

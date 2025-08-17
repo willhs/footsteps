@@ -105,9 +105,7 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
       service_account = google_service_account.app_service_account.email
 
       # Task configuration
-      task_count   = 1
-      parallelism  = 1
-      task_timeout = "${var.cache_warming_timeout}s"
+      max_retries = 3
 
       containers {
         image = "${var.container_image}-cache-warmer"
@@ -137,30 +135,12 @@ resource "google_cloud_run_v2_job" "cache_warmer" {
         }
 
         env {
-          name  = "TILE_CACHE_DIR"
-          value = "/data/tiles/humans"
-        }
-
-        env {
           name  = "CACHE_WARMING_CONCURRENCY"
           value = "3"
         }
 
-        # Mount persistent disk for cache warming
-        volume_mounts {
-          name       = "tile-cache-volume"
-          mount_path = "/data"
-        }
-      }
-
-      # Volume for persistent cache (same as main app)
-      volumes {
-        name = "tile-cache-volume"
-        gce_persistent_disk {
-          pd_name   = google_compute_disk.tile_cache_disk[0].name
-          fs_type   = "ext4"
-          read_only = false
-        }
+        # Note: Cache warming job downloads directly to GCS
+        # Main service will cache from GCS to persistent disk
       }
     }
   }
@@ -272,17 +252,9 @@ resource "google_cloud_run_v2_service" "app" {
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
     # Volumes for persistent cache
-    dynamic "volumes" {
-      for_each = var.enable_persistent_cache ? [1] : []
-      content {
-        name = "tile-cache-volume"
-        gce_persistent_disk {
-          pd_name   = google_compute_disk.tile_cache_disk[0].name
-          fs_type   = "ext4"
-          read_only = false
-        }
-      }
-    }
+    # Note: Persistent disk mounting in Cloud Run v2 has complex requirements
+    # For now, we'll use the simple approach of downloading from GCS to local cache
+    # TODO: Implement proper persistent disk mounting when syntax is stable
   }
 
   # Traffic configuration

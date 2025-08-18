@@ -170,25 +170,7 @@ check_deployment_logs() {
     }
 }
 
-# Function to check cache warming job
-check_cache_warming() {
-    print_section "🔥 Checking Cache Warming Job"
-    
-    CACHE_WARMER_JOB="$SERVICE_NAME-cache-warmer"
-    
-    if gcloud run jobs describe "$CACHE_WARMER_JOB" --region="$REGION" > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Cache warming job exists${NC}"
-        
-        # Check recent executions
-        echo -e "${BLUE}📊 Recent job executions:${NC}"
-        gcloud run jobs executions list --job="$CACHE_WARMER_JOB" --region="$REGION" --limit=3 --format="table(name,status,completionTime)" 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  No job execution history${NC}"
-        }
-    else
-        echo -e "${YELLOW}⚠️  Cache warming job not found${NC}"
-        echo -e "${YELLOW}💡 This is optional but recommended for performance${NC}"
-    fi
-}
+## Cache warming job checks removed (deprecated)
 
 # Function to check persistent disk
 check_persistent_disk() {
@@ -226,7 +208,7 @@ test_api_endpoints() {
         if curl -sf "$TEST_TILE_URL" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ Tiles API responds${NC}"
         else
-            echo -e "${YELLOW}⚠️  Tiles API not responding (might need cache warming)${NC}"
+            echo -e "${YELLOW}⚠️  Tiles API not responding${NC}"
         fi
     fi
 }
@@ -250,9 +232,7 @@ suggest_fixes() {
     echo -e "${BLUE}4. Check Detailed Logs:${NC}"
     echo "   gcloud logging read 'resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME' --limit=50"
     echo ""
-    echo -e "${BLUE}5. Manual Cache Warming:${NC}"
-    echo "   gcloud run jobs execute $SERVICE_NAME-cache-warmer --region=$REGION"
-    echo ""
+    # Cache warming is deprecated
 }
 
 # Main execution
@@ -278,8 +258,7 @@ main() {
     check_deployment_logs
     echo ""
     
-    check_cache_warming
-    echo ""
+    # Cache warming check removed
     
     check_persistent_disk
     echo ""

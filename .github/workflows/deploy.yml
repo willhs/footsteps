@@ -179,20 +179,7 @@ jobs:
           exit 1
         fi
         
-    - name: Test tiles API
-      run: |
-        # Test that the tiles API is working
-        echo "🧪 Testing tiles API..."
-        TILES_URL="${{ steps.deploy.outputs.SERVICE_URL }}/api/tiles/-1000/0/1/0/0.pbf"
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$TILES_URL")
-        
-        if [ "$HTTP_STATUS" = "200" ]; then
-          echo "✅ Tiles API test passed!"
-        else
-          echo "❌ Tiles API test failed with HTTP $HTTP_STATUS"
-          exit 1
-        fi
-
+    # Tiles API test removed - app now fetches tiles directly from GCS
     # Cache warming API call removed (deprecated)
         
     - name: Deployment summary

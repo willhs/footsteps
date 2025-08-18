@@ -11,15 +11,17 @@ set -euo pipefail
 #
 JOB_NAME=${JOB_NAME:-mbtiles-export}
 REGION=${REGION:-us-central1}
+PROJECT=${PROJECT:-footsteps-earth}
 
 if [[ -n "${YEARS:-}" ]]; then
   echo "🛠️  Updating job env YEARS=$YEARS"
   gcloud run jobs update "$JOB_NAME" \
     --region "$REGION" \
-    --set-env-vars YEARS="$YEARS"
+    --project "$PROJECT" \
+    --update-env-vars YEARS="$YEARS"
 fi
 
 echo "▶️  Executing job $JOB_NAME in $REGION"
-gcloud run jobs execute "$JOB_NAME" --region "$REGION" --wait
+gcloud run jobs execute "$JOB_NAME" --region "$REGION" --project "$PROJECT" --wait
 
 echo "✅ Job finished"

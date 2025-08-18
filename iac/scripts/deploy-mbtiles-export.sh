@@ -36,18 +36,22 @@ OVERWRITE=${OVERWRITE:-false}
 # Try to infer the app service account from terraform output if not provided
 SERVICE_ACCOUNT=${SERVICE_ACCOUNT:-}
 if [[ -z "$SERVICE_ACCOUNT" ]]; then
-  if command -v terraform >/dev/null 2>&1 && [[ -f "$REPO_ROOT/iac/terraform.tfstate" ]]; then
-    # best-effort extraction
-    SERVICE_ACCOUNT=$(grep -o '"footsteps-app-service-account@[^"]*' "$REPO_ROOT/iac/terraform.tfstate" | head -n1 | sed 's/"//g') || true
+  if command -v terraform >/dev/null 2>&1; then
+    if terraform -chdir="$REPO_ROOT/iac" output -raw service_account_email >/dev/null 2>&1; then
+      SERVICE_ACCOUNT=$(terraform -chdir="$REPO_ROOT/iac" output -raw service_account_email)
+    elif [[ -f "$REPO_ROOT/iac/terraform.tfstate" ]]; then
+      # fallback best-effort extraction from state file
+      SERVICE_ACCOUNT=$(grep -o '"footsteps-app-service-account@[^"]*' "$REPO_ROOT/iac/terraform.tfstate" | head -n1 | sed 's/"//g') || true
+    fi
   fi
 fi
 
 pushd "$REPO_ROOT/mbtiles-export" >/dev/null
 
-echo "🧱 Building image: $IMAGE"
-gcloud builds submit --tag "$IMAGE"
+echo "🧱 Building image: $IMAGE (project: $PROJECT)"
+gcloud builds submit --tag "$IMAGE" --project "$PROJECT"
 
-echo "🚀 Deploying Cloud Run Job: $JOB_NAME in $REGION"
+echo "🚀 Deploying Cloud Run Job: $JOB_NAME in $REGION (project: $PROJECT)"
 EXTRA_SA=()
 if [[ -n "$SERVICE_ACCOUNT" ]]; then
   EXTRA_SA=("--service-account" "$SERVICE_ACCOUNT")
@@ -56,10 +60,11 @@ fi
 gcloud run jobs deploy "$JOB_NAME" \
   --image "$IMAGE" \
   --region "$REGION" \
+  --project "$PROJECT" \
   "${EXTRA_SA[@]}" \
   --max-retries=3 \
-  --task-timeout=3600s \
-  --memory=2Gi \
+  --task-timeout=21600s \
+  --memory=4Gi \
   --cpu=2 \
   --set-env-vars SRC_BUCKET="$BUCKET",SRC_PREFIX="$SRC_PREFIX",DST_BUCKET="$BUCKET",OUT_PREFIX="$OUT_PREFIX",CONCURRENCY="$CONCURRENCY",OVERWRITE="$OVERWRITE"
 

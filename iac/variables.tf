@@ -82,14 +82,4 @@ variable "cache_disk_size_gb" {
   default     = 20
 }
 
-variable "enable_cache_warming" {
-  description = "Enable cache warming job after deployment"
-  type        = bool
-  default     = true
-}
-
-variable "cache_warming_timeout" {
-  description = "Timeout for cache warming job in seconds"
-  type        = number
-  default     = 1800
-}
+## Cache warmer variables removed (deprecated)

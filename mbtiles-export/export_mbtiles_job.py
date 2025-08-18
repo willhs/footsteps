@@ -13,6 +13,7 @@ Environment variables:
   TMP_DIR        (default: /tmp)            Directory for temp files
   DOWNLOAD_CHUNK_MB        (default: 8)     Per-chunk read size from GCS when downloading MBTiles
   LOG_PROGRESS_EVERY_MB    (default: 100)   Log download progress every N MB
+  LOG_EXPORT_EVERY_TILES   (default: 50000) Log export progress every N tiles
 
 Notes:
 - Expects MBTiles named like humans_{year}.mbtiles to parse {year}
@@ -78,6 +79,7 @@ def get_env() -> dict:
         "TMP_DIR": os.environ.get("TMP_DIR", "/tmp"),
         "DOWNLOAD_CHUNK_MB": int(os.environ.get("DOWNLOAD_CHUNK_MB", "8")),
         "LOG_PROGRESS_EVERY_MB": int(os.environ.get("LOG_PROGRESS_EVERY_MB", "100")),
+        "LOG_EXPORT_EVERY_TILES": int(os.environ.get("LOG_EXPORT_EVERY_TILES", "50000")),
         # Cloud Run Jobs task sharding
         "TASK_INDEX": int(os.environ.get("CLOUD_RUN_TASK_INDEX", "0")),
         "TASK_COUNT": int(os.environ.get("CLOUD_RUN_TASK_COUNT", "1")),
@@ -130,6 +132,7 @@ def export_one_mbtiles(
     tmp_dir: str,
     download_chunk_mb: int,
     log_progress_every_mb: int,
+    log_export_every_tiles: int,
 ) -> tuple[int, int, int]:
     """Download src_blob (MBTiles) to /tmp, iterate tiles, and upload to dst_bucket.
     Returns (total_tiles, uploaded, skipped).
@@ -207,8 +210,11 @@ def export_one_mbtiles(
         cur.execute("PRAGMA temp_store=MEMORY")
         cur.execute("SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles")
 
+        LOG.info("Exporting tiles from %s -> %s", basename, out_base)
         with futures.ThreadPoolExecutor(max_workers=concurrency) as pool:
             pending: Set[futures.Future] = set()
+            t_export_start = time.time()
+            log_every_tiles = max(1, int(log_export_every_tiles))
 
             def submit_row(z: int, x: int, y_tms: int, data: Optional[bytes]):
                 nonlocal uploaded, skipped
@@ -232,6 +238,19 @@ def export_one_mbtiles(
                             uploaded += 1
                         else:
                             LOG.warning(f"Upload error: {d.exception()}")
+                # Periodic progress logging
+                if (total % log_every_tiles) == 0:
+                    dt = max(time.time() - t_export_start, 1e-6)
+                    rate = total / dt
+                    LOG.info(
+                        "Export progress %s: read=%d uploaded=%d skipped=%d pending=%d (%.0f tiles/s)",
+                        basename,
+                        total,
+                        uploaded,
+                        skipped,
+                        len(pending),
+                        rate,
+                    )
             # Drain remaining
             for d in futures.as_completed(pending):
                 if d.exception() is None and d.result() is False:
@@ -240,6 +259,14 @@ def export_one_mbtiles(
                     uploaded += 1
                 else:
                     LOG.warning(f"Upload error: {d.exception()}")
+            LOG.info(
+                "Finished export %s: tiles=%d uploaded=%d skipped=%d in %.1fs",
+                basename,
+                total,
+                uploaded,
+                skipped,
+                time.time() - t_export_start,
+            )
     finally:
         con.close()
         try:
@@ -311,6 +338,7 @@ def main() -> None:
             tmp_dir=cfg["TMP_DIR"],
             download_chunk_mb=cfg["DOWNLOAD_CHUNK_MB"],
             log_progress_every_mb=cfg["LOG_PROGRESS_EVERY_MB"],
+            log_export_every_tiles=cfg["LOG_EXPORT_EVERY_TILES"],
         )
         exported_files += 1
         LOG.info("Completed %s: tiles=%d uploaded=%d skipped=%d", blob.name, t, up, sk)

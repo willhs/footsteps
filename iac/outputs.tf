@@ -95,18 +95,4 @@ output "cache_disk_cost_estimate" {
   value       = var.enable_persistent_cache ? "$${var.cache_disk_size_gb * 0.040}" : "$0"
 }
 
-# Cache warming job outputs
-output "cache_warming_enabled" {
-  description = "Whether cache warming job is enabled"
-  value       = var.enable_cache_warming && var.enable_persistent_cache
-}
-
-output "cache_warmer_job_name" {
-  description = "Name of the cache warming Cloud Run Job"
-  value       = var.enable_cache_warming && var.enable_persistent_cache ? google_cloud_run_v2_job.cache_warmer[0].name : null
-}
-
-output "cache_warming_command" {
-  description = "Command to manually trigger cache warming"
-  value       = var.enable_cache_warming && var.enable_persistent_cache ? "gcloud run jobs execute ${google_cloud_run_v2_job.cache_warmer[0].name} --region ${var.region} --wait" : "Cache warming not enabled"
-}
+## Cache warmer outputs removed (deprecated)

@@ -37,7 +37,11 @@
       "Bash(npx tsc:*)",
       "Bash(./deploy-data-local.sh:*)",
       "Bash(./iac/scripts/deploy-data-local.sh:*)",
-      "Bash(./upload-data.sh:*)"
+      "Bash(./upload-data.sh:*)",
+      "Bash(gcloud builds:*)",
+      "Bash(gcloud logging read:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

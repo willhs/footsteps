@@ -6,7 +6,8 @@ resource "google_project_service" "required_apis" {
     "cloudbuild.googleapis.com",
     "artifactregistry.googleapis.com",
     "containerregistry.googleapis.com",
-    "iam.googleapis.com"
+    "iam.googleapis.com",
+    "cloudresourcemanager.googleapis.com"
   ])
 
   project = var.project_id

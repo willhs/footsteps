@@ -226,7 +226,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
               setTileLoading(false);
 
               // Start crossfade once new layer has some tiles
-              if (!newLayerReadyRef.current && isYearCrossfading) {
+              // Guard against race where onViewportLoad fires before isYearCrossfading updates
+              if (!newLayerReadyRef.current && (isYearCrossfading || yearChangedThisRender)) {
                 newLayerReadyRef.current = true;
                 setCurrentYearOpacity(1);
                 setPrevYearOpacity(0);
@@ -273,7 +274,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       instanceId,
       is3DMode
     );
-  }, [layerViewState, is3DMode, isZooming, isPanning, isYearCrossfading]);
+  }, [layerViewState, is3DMode, isZooming, isPanning, isYearCrossfading, yearChangedThisRender]);
 
   // Fallback: if a tile arrived before crossfade flag turned true, start crossfade now.
   useEffect(() => {

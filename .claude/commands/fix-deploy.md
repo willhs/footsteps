@@ -29,8 +29,12 @@ Follow this diagnostic workflow:
 - Read this document at @.claude/commands/fix-deploy.md
 - In the Guest book section below, 
   - If there are more than 10 entries then delete then delete the top one
-  - Add an entry to the bottom: write a few sentences about how this document could be improved, taking into account yours and the other members of the guest books experience of this task and how this document could have better prepared them for the task
+  - Add an entry to the bottom: write a few sentences about how this document could be improved, taking into account your experience of this task and how this document could have better prepared you for the task
+  - Now, consider the guest book entries and decided whether you think you can improve this document in terms of simplicity, reducing the number of steps to fix a deployment.
+  - If so: make any changes you think would improve this document. Don't change the title or main themes.
 
 
 Guest book:
+
+**Entry 1**: The workflow diagnostics were straightforward—GitHub CLI helped quickly identify recent failures. The fix was simple once I understood that tiles API tests were obsolete after the GCS migration. This document could benefit from: (1) mentioning checking environment variables when API tests fail, (2) noting that architecture changes might make workflow tests outdated, and (3) suggesting to verify what the current deployment actually uses (API vs direct GCS) before assuming test validity.
 

@@ -1,6 +1,9 @@
 // Centralized tile URL configuration for frontend
-// Use NEXT_PUBLIC_TILES_BASE_URL to point to a static tiles host (e.g., GCS/CDN)
-// Falls back to Next.js API route when not set for local development.
+// Priority:
+// 1) NEXT_PUBLIC_TILES_BASE_URL (explicit full base URL)
+// 2) NEXT_PUBLIC_GCS_TILES_BUCKET => https://storage.googleapis.com/{bucket}/tiles/humans
+// 3) In production: default to prod bucket (footsteps-earth-tiles)
+// 4) Fallback: Next.js API route (/api/tiles) for local development.
 
 function normalizeBase(url: string): string {
   let u = url.trim();
@@ -10,8 +13,24 @@ function normalizeBase(url: string): string {
 }
 
 export function getTilesBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_TILES_BASE_URL || '/api/tiles';
-  return normalizeBase(base);
+  // 1) Explicit base URL takes precedence
+  const explicit = process.env.NEXT_PUBLIC_TILES_BASE_URL;
+  if (explicit) return normalizeBase(explicit);
+
+  // 2) Compute from public GCS bucket env if provided
+  const bucket = process.env.NEXT_PUBLIC_GCS_TILES_BUCKET;
+  if (bucket) {
+    return normalizeBase(`https://storage.googleapis.com/${bucket}/tiles/humans`);
+  }
+
+  // 3) Default to prod GCS in production builds
+  if (process.env.NODE_ENV === 'production') {
+    // Note: this default aligns with our deploy-data pipeline
+    return 'https://storage.googleapis.com/footsteps-earth-tiles/tiles/humans';
+  }
+
+  // 4) Local dev default: use API route that serves from filesystem
+  return '/api/tiles';
 }
 
 // Returns a deck.gl URL template for a given year

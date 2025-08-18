@@ -8,11 +8,11 @@ terraform {
     }
   }
 
-  # Optional: Store Terraform state in GCS bucket
-  # backend "gcs" {
-  #   bucket = "footsteps-earth-terraform-state"
-  #   prefix = "terraform/state"
-  # }
+  # Store Terraform state in GCS bucket
+  backend "gcs" {
+    bucket = "footsteps-earth-terraform-state"
+    prefix = "terraform/state"
+  }
 }
 
 provider "google" {

@@ -99,65 +99,7 @@ resource "google_compute_disk" "tile_cache_disk" {
   depends_on = [google_project_service.required_apis]
 }
 
-# Cloud Run Job for cache warming
-resource "google_cloud_run_v2_job" "cache_warmer" {
-  count = var.enable_cache_warming && var.enable_persistent_cache ? 1 : 0
-
-  name     = "${var.service_name}-cache-warmer"
-  location = var.region
-
-  template {
-    template {
-      # Use same service account as main app
-      service_account = google_service_account.app_service_account.email
-
-      # Task configuration
-      max_retries = 3
-
-      containers {
-        image = "${var.container_image}-cache-warmer"
-
-        # Resource limits for cache warming (increased for large file downloads)
-        resources {
-          limits = {
-            cpu    = "2000m"
-            memory = "4Gi"
-          }
-        }
-
-        # Environment variables for cache warming
-        env {
-          name  = "NODE_ENV"
-          value = "production"
-        }
-
-        env {
-          name  = "GCP_PROJECT_ID"
-          value = var.project_id
-        }
-
-        env {
-          name  = "GCS_BUCKET_NAME"
-          value = google_storage_bucket.data_bucket.name
-        }
-
-        env {
-          name  = "CACHE_WARMING_CONCURRENCY"
-          value = "1"
-        }
-
-        # Note: Cache warming job downloads directly to GCS
-        # Main service will cache from GCS to persistent disk
-      }
-    }
-  }
-
-  depends_on = [
-    google_project_service.required_apis,
-    google_service_account.app_service_account,
-    google_compute_disk.tile_cache_disk
-  ]
-}
+## Cache warmer job removed (deprecated)
 
 # Cloud Run service
 resource "google_cloud_run_v2_service" "app" {
@@ -281,9 +223,9 @@ resource "google_cloud_run_v2_service" "app" {
 }
 
 # Make Cloud Run service publicly accessible
-resource "google_cloud_run_service_iam_member" "public_invoker" {
+resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   location = google_cloud_run_v2_service.app.location
-  service  = google_cloud_run_v2_service.app.name
+  name     = google_cloud_run_v2_service.app.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }

@@ -7,7 +7,7 @@ import {
   createStaticTerrainLayer,
   createPlainBackgroundLayers,
 } from '@/components/footsteps/layers';
-import { createHumanLayerFactory } from '@/components/footsteps/layers/humanLayerFactory';
+import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
@@ -86,69 +86,27 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   // Simplified: use viewState directly since LOD system provides stability
   const layerViewState = viewState;
 
-  const createHumanLayerForYear = useMemo(
-    () =>
-      createHumanLayerFactory({
-        is3DMode,
-        layerViewState,
-        isZooming,
-        isPanning,
-        isYearCrossfading,
-        newLayerReadyRef,
-        newLayerHasTileRef,
-        startCrossfade,
-        setTileLoading,
-        setFeatureCount,
-        setTotalPopulation,
-        setTooltipData,
-      }),
-    [
-      is3DMode,
-      layerViewState,
-      isZooming,
-      isPanning,
+  const [currentYearLayer, previousYearLayer] = useHumanLayers({
+    year,
+    lodLevel: stableLODLevel,
+    is3DMode,
+    layerViewState,
+    isZooming,
+    isPanning,
+    crossfade: {
+      prevYear: renderPrevYear,
+      currentYearOpacity: renderCurrentOpacity,
+      prevYearOpacity: renderPrevOpacity,
       isYearCrossfading,
       newLayerReadyRef,
       newLayerHasTileRef,
       startCrossfade,
-      setTileLoading,
-      setFeatureCount,
-      setTotalPopulation,
-      setTooltipData,
-    ],
-  );
-
-  // Create human tiles layers for current and (if crossfading) previous year
-  const currentYearLayer = useMemo(
-    () =>
-      createHumanLayerForYear(
-        year,
-        stableLODLevel,
-        renderCurrentOpacity,
-        `human-layer-${year}`,
-        true,
-      ),
-    [createHumanLayerForYear, year, stableLODLevel, renderCurrentOpacity],
-  );
-
-  const previousYearLayer = useMemo(
-    () =>
-      renderPrevYear !== null
-        ? createHumanLayerForYear(
-            renderPrevYear as number,
-            stableLODLevel,
-            renderPrevOpacity,
-            `human-layer-${renderPrevYear}`,
-            false,
-          )
-        : null,
-    [
-      createHumanLayerForYear,
-      renderPrevYear,
-      stableLODLevel,
-      renderPrevOpacity,
-    ],
-  );
+    },
+    setTileLoading,
+    setFeatureCount,
+    setTotalPopulation,
+    setTooltipData,
+  });
 
   // Layer ordering: background layers -> settlement points
   const layers: LayersList = previousYearLayer

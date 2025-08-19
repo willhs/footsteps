@@ -11,6 +11,41 @@ export function formatPopulation(pop: number): string {
   return `${Math.round(pop).toLocaleString()} people`;
 }
 
+// Translate population counts into a qualitative scale.
+// Used by overlays and will support future charts.
+export function getPopulationScale(population: number): {
+  scale: string;
+  icon: string;
+  significance: string;
+} {
+  if (population > 1_000_000) {
+    return {
+      scale: 'Megacity',
+      icon: '🏙️',
+      significance: 'Major urban center',
+    };
+  }
+  if (population > 500_000) {
+    return { scale: 'Metropolis', icon: '🌆', significance: 'Large city' };
+  }
+  if (population > 100_000) {
+    return { scale: 'City', icon: '🏘️', significance: 'Urban settlement' };
+  }
+  if (population > 50_000) {
+    return { scale: 'Large Town', icon: '🏘️', significance: 'Regional center' };
+  }
+  if (population > 10_000) {
+    return { scale: 'Town', icon: '🏘️', significance: 'Local hub' };
+  }
+  if (population > 2_000) {
+    return { scale: 'Village', icon: '🏠', significance: 'Rural community' };
+  }
+  if (population > 500) {
+    return { scale: 'Hamlet', icon: '🏡', significance: 'Small settlement' };
+  }
+  return { scale: 'Outpost', icon: '⛺', significance: 'Remote presence' };
+}
+
 // Describe the level of detail based on zoom level
 export function getDetailContext(zoom: number): string {
   if (zoom < 4) return 'Regional clusters • Showing major population centers';

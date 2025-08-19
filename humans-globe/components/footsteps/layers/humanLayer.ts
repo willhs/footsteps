@@ -67,13 +67,12 @@ export function createHumanTilesLayer(
     maxRequests: tileOptions.maxRequests ?? 6,
     zoomOffset: tileOptions.zoomOffset ?? 0,
     autoHighlight: false,
-    // Use GeoJSON for easier debugging
-    binary: false,
+    // Use binary tiles for performance
+    binary: true,
     // Simplified load options
     loadOptions: {
       mvt: {
         coordinates: 'wgs84',
-        shape: 'geojson',
         // Single-layer yearly MBTiles exports features under the 'humans' layer
         layers: ['humans'],
       },
@@ -257,7 +256,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
         tileOptions: {
           fadeMs: fadeMs,
           debounceTime: isZooming || isPanning ? 80 : 20,
-          useBinary: false,
+          useBinary: true,
         },
         debugTint:
           process.env.NODE_ENV !== 'production' && isYearCrossfading

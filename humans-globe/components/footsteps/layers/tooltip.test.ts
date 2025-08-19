@@ -5,8 +5,8 @@ describe('buildTooltipData', () => {
     const info: PickingInfo = {
       object: {
         properties: { population: 123 },
-        geometry: { coordinates: [1, 2] },
       },
+      coordinate: [1, 2],
       x: 10,
       y: 20,
     };

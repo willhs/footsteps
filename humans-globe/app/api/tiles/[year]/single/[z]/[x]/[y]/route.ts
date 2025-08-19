@@ -124,7 +124,7 @@ export async function GET(
     filepath = dl.path;
     isTemp = dl.isTemp;
     cacheStatus = dl.cacheStatus;
-  } catch (e) {
+  } catch (_e) {
     return NextResponse.json({ error: 'Failed to access tileset' }, { status: 500 });
   }
 

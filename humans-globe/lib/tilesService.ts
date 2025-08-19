@@ -172,7 +172,7 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
     // Move into place (overwrite if exists)
     try {
       fs.renameSync(tmpDownload, finalPath);
-    } catch (e) {
+    } catch (_e) {
       // If cross-device or rename fails, copy then unlink
       fs.copyFileSync(tmpDownload, finalPath);
       try { fs.unlinkSync(tmpDownload); } catch { /* ignore */ }

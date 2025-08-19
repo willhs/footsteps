@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @source "./**/*.{js,ts,jsx,tsx,mdx}";
 @source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 @import 'rc-slider/assets/index.css';
@@ -63,4 +63,30 @@ main {
 .rc-slider-mark-text-active:last-of-type {
   color: #38bdf8 !important; /* Accent colour */
   font-weight: 600;
+}
+
+@layer components {
+  .time-slider-container {
+    @apply fixed bottom-8 left-8 right-8 z-40 bg-black/80 backdrop-blur-sm rounded-lg p-6;
+  }
+
+  .time-slider .rc-slider-track {
+    @apply bg-sky-500 h-1.5;
+  }
+
+  .time-slider .rc-slider-rail {
+    @apply bg-slate-700 h-1.5;
+  }
+
+  .time-slider .rc-slider-handle {
+    @apply bg-slate-800 border-[3px] border-sky-500 w-6 h-6 mt-[-9px] shadow-[0_0_10px_rgba(14,165,233,0.5)];
+  }
+
+  .time-slider .rc-slider-dot {
+    @apply bg-slate-600 border-2 border-slate-500;
+  }
+
+  .time-slider .rc-slider-dot-active {
+    @apply bg-sky-500 border-2 border-sky-400;
+  }
 }

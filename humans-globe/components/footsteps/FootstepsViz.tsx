@@ -1,34 +1,21 @@
 'use client';
 
-import { useState, useMemo, useEffect, memo, useCallback } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import {
-  createHumanTilesLayer,
   createStaticTerrainLayer,
   createPlainBackgroundLayers,
-  radiusStrategies,
 } from '@/components/footsteps/layers';
+import { createHumanLayerFactory } from '@/components/footsteps/layers/humanLayerFactory';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
-import useYearCrossfade, {
-  YEAR_FADE_MS,
-  NEW_YEAR_FADE_MS,
-} from '@/components/footsteps/hooks/useYearCrossfade';
+import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
-
-type PickingInfo = {
-  object?: {
-    properties?: { population?: number };
-    geometry?: { coordinates?: [number, number] };
-  };
-  x?: number;
-  y?: number;
-};
 
 interface FootstepsVizProps {
   year: number;
@@ -99,212 +86,69 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   // Simplified: use viewState directly since LOD system provides stability
   const layerViewState = viewState;
 
-  // Hoisted helper so it's available to callbacks declared below
-  function featuresFromTile(
-    tile: any,
-  ): Array<{ properties?: { population?: number } }> {
-    try {
-      const tileCoords = tile?.index
-        ? `${tile.index.z}/${tile.index.x}/${tile.index.y}`
-        : 'unknown';
-      void tileCoords; // quiet unused in production
-      const possibleFeatures = [
-        tile?.data?.features,
-        tile?.content?.features,
-        tile?.data,
-        tile?.content,
-        tile?.data?.layers?.['humans']?.features,
-        tile?.content?.layers?.['humans']?.features,
-        Array.isArray(tile?.data) ? tile.data : null,
-        Array.isArray(tile?.content) ? tile.content : null,
-      ].filter(Boolean);
-
-      for (let i = 0; i < possibleFeatures.length; i++) {
-        const candidate = possibleFeatures[i];
-        if (Array.isArray(candidate) && candidate.length > 0) {
-          return candidate;
-        }
-      }
-      return [];
-    } catch (error) {
-      console.error(`[FEATURE-EXTRACT-ERROR]:`, error);
-      return [];
-    }
-  }
-
-  const createHumanLayerForYear = useCallback(
-    (
-      targetYear: number,
-      lodLevel: number,
-      layerOpacity: number,
-      instanceId: string,
-      isNewYearLayer: boolean,
-    ) => {
-      const radiusStrategy = is3DMode
-        ? radiusStrategies.globe3D
-        : radiusStrategies.zoomAdaptive;
-
-      // Crossfade policy:
-      // - Before new tiles are ready: no transitions (avoid enter fade on prev layer)
-      // - When crossfade starts: NEW fades in briefly (NEW_YEAR_FADE_MS) for visibility,
-      //   PREV fades out (YEAR_FADE_MS)
-      const fadeMs = newLayerReadyRef.current
-        ? isNewYearLayer
-          ? NEW_YEAR_FADE_MS
-          : YEAR_FADE_MS
-        : 0;
-
-      return createHumanTilesLayer(
-        targetYear,
-        lodLevel,
-        layerViewState,
-        radiusStrategy,
-        // onClick
-        (raw: unknown) => {
-          const info = raw as PickingInfo;
-          if (info?.object) {
-            const f = info.object as any;
-            const population = f?.properties?.population || 0;
-            const coordinates = (f?.geometry?.coordinates as [
-              number,
-              number,
-            ]) || [0, 0];
-            const clickPosition = { x: info.x || 0, y: info.y || 0 };
-            setTooltipData({
-              population,
-              coordinates,
-              year: targetYear,
-              clickPosition,
-            });
-          }
-        },
-        // onHover
-        (raw: unknown) => {
-          const info = raw as PickingInfo;
-          if (info?.object) {
-            const f = info.object as any;
-            const population = f?.properties?.population || 0;
-            const coordinates = (f?.geometry?.coordinates as [
-              number,
-              number,
-            ]) || [0, 0];
-            const clickPosition = { x: info.x || 0, y: info.y || 0 };
-            setTooltipData({
-              population,
-              coordinates,
-              year: targetYear,
-              clickPosition,
-            });
-          } else {
-            setTooltipData(null);
-          }
-        },
-        {
-          onTileLoad: (_tile: unknown) => {
-            // Only consider tile readiness/loading state from the NEW year layer.
-            // Do NOT start crossfade here; wait for onViewportLoad to ensure full coverage.
-            if (isNewYearLayer) {
-              setTileLoading(false);
-              if (!newLayerHasTileRef.current) {
-                newLayerHasTileRef.current = true;
-              }
-            }
-          },
-          onViewportLoad: (rawTiles: unknown[]) => {
-            try {
-              // Update metrics from the new (target) year layer when it reports tiles
-              if (isNewYearLayer) {
-                const tiles = rawTiles as Array<unknown>;
-                let count = 0;
-                let pop = 0;
-                for (const t of tiles) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const tile = t as any;
-                  const feats = featuresFromTile(tile);
-                  count += feats.length;
-                  for (const g of feats)
-                    pop += Number(g?.properties?.population) || 0;
-                }
-                setFeatureCount(count);
-                setTotalPopulation(pop);
-                setTileLoading(false);
-
-                // Start crossfade once new layer has some tiles
-                startCrossfade();
-              }
-            } catch (error) {
-              console.error(
-                `[VIEWPORT-LOAD-ERROR] Year: ${targetYear}, LOD: ${lodLevel}:`,
-                error,
-              );
-              setTileLoading(false);
-            }
-          },
-          onTileError: (error: unknown) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const errorInfo = error as any;
-            const tileCoords = errorInfo?.tile?.index || errorInfo?.index || {};
-            const url = errorInfo?.tile?.url || errorInfo?.url || 'unknown';
-            const status =
-              errorInfo?.response?.status || errorInfo?.status || 'unknown';
-            console.error(`[TILE-ERROR] Failed to load tile:`, {
-              year: targetYear,
-              lodLevel,
-              coords: `${tileCoords.z}/${tileCoords.x}/${tileCoords.y}`,
-              url,
-              status,
-              error: errorInfo?.message || errorInfo?.error || errorInfo,
-            });
-            setTileLoading(false);
-          },
-          tileOptions: {
-            fadeMs: fadeMs, // drives opacity transitions per crossfade policy
-            debounceTime: isZooming || isPanning ? 80 : 20,
-            useBinary: false,
-          },
-          // Dev-only tint to make crossfade layers visually distinct during debugging
-          debugTint:
-            process.env.NODE_ENV !== 'production' && isYearCrossfading
-              ? isNewYearLayer
-                ? [0, 30, 80]
-                : [80, 0, 0]
-              : undefined,
-        },
-        layerOpacity,
-        instanceId,
+  const createHumanLayerForYear = useMemo(
+    () =>
+      createHumanLayerFactory({
         is3DMode,
-      );
-    },
+        layerViewState,
+        isZooming,
+        isPanning,
+        isYearCrossfading,
+        newLayerReadyRef,
+        newLayerHasTileRef,
+        startCrossfade,
+        setTileLoading,
+        setFeatureCount,
+        setTotalPopulation,
+        setTooltipData,
+      }),
     [
-      layerViewState,
       is3DMode,
+      layerViewState,
       isZooming,
       isPanning,
       isYearCrossfading,
-      newLayerHasTileRef,
       newLayerReadyRef,
+      newLayerHasTileRef,
       startCrossfade,
+      setTileLoading,
+      setFeatureCount,
+      setTotalPopulation,
+      setTooltipData,
     ],
   );
 
   // Create human tiles layers for current and (if crossfading) previous year
-  const currentYearLayer = createHumanLayerForYear(
-    year,
-    stableLODLevel,
-    renderCurrentOpacity,
-    `human-layer-${year}`,
-    true,
+  const currentYearLayer = useMemo(
+    () =>
+      createHumanLayerForYear(
+        year,
+        stableLODLevel,
+        renderCurrentOpacity,
+        `human-layer-${year}`,
+        true,
+      ),
+    [createHumanLayerForYear, year, stableLODLevel, renderCurrentOpacity],
   );
-  const previousYearLayer =
-    renderPrevYear !== null
-      ? createHumanLayerForYear(
-          renderPrevYear as number,
-          stableLODLevel,
-          renderPrevOpacity,
-          `human-layer-${renderPrevYear}`,
-          false,
-        )
-      : null;
+
+  const previousYearLayer = useMemo(
+    () =>
+      renderPrevYear !== null
+        ? createHumanLayerForYear(
+            renderPrevYear as number,
+            stableLODLevel,
+            renderPrevOpacity,
+            `human-layer-${renderPrevYear}`,
+            false,
+          )
+        : null,
+    [
+      createHumanLayerForYear,
+      renderPrevYear,
+      stableLODLevel,
+      renderPrevOpacity,
+    ],
+  );
 
   // Layer ordering: background layers -> settlement points
   const layers: LayersList = previousYearLayer

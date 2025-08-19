@@ -5,6 +5,11 @@ import parseInitialViewState, {
   type ViewState,
 } from '@/lib/parseInitialViewState';
 
+// Thresholds centralized for easy tweaking; small changes below these values
+// come from deck.gl's internal updates and shouldn't trigger interaction flags.
+const ZOOM_DELTA_THRESHOLD = 0.01;
+const PAN_THRESHOLD = 0.1;
+
 type BasicViewState = {
   longitude: number;
   latitude: number;
@@ -47,15 +52,13 @@ export default function useGlobeViewState() {
 
       if (
         typeof normalized.zoom === 'number' &&
-        Math.abs(normalized.zoom - oldState.zoom) > 0.01
+        Math.abs(normalized.zoom - oldState.zoom) > ZOOM_DELTA_THRESHOLD
       ) {
         triggerZoom();
       }
-
-      const panThreshold = 0.1;
       if (
-        (Math.abs(normalized.longitude - oldState.longitude) > panThreshold ||
-          Math.abs(normalized.latitude - oldState.latitude) > panThreshold) &&
+        (Math.abs(normalized.longitude - oldState.longitude) > PAN_THRESHOLD ||
+          Math.abs(normalized.latitude - oldState.latitude) > PAN_THRESHOLD) &&
         !isZoomingRef.current
       ) {
         triggerPan();

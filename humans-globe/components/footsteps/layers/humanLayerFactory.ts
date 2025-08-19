@@ -1,4 +1,3 @@
-import type { MutableRefObject } from 'react';
 import { createHumanTilesLayer, radiusStrategies } from './index';
 import { NEW_YEAR_FADE_MS, YEAR_FADE_MS } from '../hooks/useYearCrossfade';
 
@@ -67,9 +66,6 @@ interface HumanLayerFactoryOptions {
   isZooming: boolean;
   isPanning: boolean;
   isYearCrossfading: boolean;
-  newLayerReadyRef: MutableRefObject<boolean>;
-  newLayerHasTileRef: MutableRefObject<boolean>;
-  startCrossfade: () => void;
   setTileLoading: (loading: boolean) => void;
   setFeatureCount: (count: number) => void;
   setTotalPopulation: (total: number) => void;
@@ -91,9 +87,6 @@ export function createHumanLayerFactory(options: HumanLayerFactoryOptions) {
     isZooming,
     isPanning,
     isYearCrossfading,
-    newLayerReadyRef,
-    newLayerHasTileRef,
-    startCrossfade,
     setTileLoading,
     setFeatureCount,
     setTotalPopulation,
@@ -111,11 +104,7 @@ export function createHumanLayerFactory(options: HumanLayerFactoryOptions) {
       ? radiusStrategies.globe3D
       : radiusStrategies.zoomAdaptive;
 
-    const fadeMs = newLayerReadyRef.current
-      ? isNewYearLayer
-        ? NEW_YEAR_FADE_MS
-        : YEAR_FADE_MS
-      : 0;
+    const fadeMs = isNewYearLayer ? NEW_YEAR_FADE_MS : YEAR_FADE_MS;
 
     return createHumanTilesLayer(
       targetYear,
@@ -135,9 +124,6 @@ export function createHumanLayerFactory(options: HumanLayerFactoryOptions) {
         onTileLoad: (_tile: unknown) => {
           if (isNewYearLayer) {
             setTileLoading(false);
-            if (!newLayerHasTileRef.current) {
-              newLayerHasTileRef.current = true;
-            }
           }
         },
         onViewportLoad: (rawTiles: unknown[]) => {
@@ -155,7 +141,6 @@ export function createHumanLayerFactory(options: HumanLayerFactoryOptions) {
               setFeatureCount(count);
               setTotalPopulation(pop);
               setTileLoading(false);
-              startCrossfade();
             }
           } catch (error) {
             console.error(

@@ -53,15 +53,9 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
 
-  const {
-    prevYear: renderPrevYear,
-    currentYearOpacity: renderCurrentOpacity,
-    prevYearOpacity: renderPrevOpacity,
-    isYearCrossfading,
-    newLayerReadyRef,
-    newLayerHasTileRef,
-    startCrossfade,
-  } = useYearCrossfade(year);
+  const { previousYear, currentOpacity, previousOpacity } =
+    useYearCrossfade(year);
+  const isYearCrossfading = previousYear !== null;
 
   // Reset metrics when year changes
   useEffect(() => {
@@ -94,9 +88,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         isZooming,
         isPanning,
         isYearCrossfading,
-        newLayerReadyRef,
-        newLayerHasTileRef,
-        startCrossfade,
         setTileLoading,
         setFeatureCount,
         setTotalPopulation,
@@ -108,9 +99,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       isZooming,
       isPanning,
       isYearCrossfading,
-      newLayerReadyRef,
-      newLayerHasTileRef,
-      startCrossfade,
       setTileLoading,
       setFeatureCount,
       setTotalPopulation,
@@ -124,30 +112,25 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       createHumanLayerForYear(
         year,
         stableLODLevel,
-        renderCurrentOpacity,
+        currentOpacity,
         `human-layer-${year}`,
         true,
       ),
-    [createHumanLayerForYear, year, stableLODLevel, renderCurrentOpacity],
+    [createHumanLayerForYear, year, stableLODLevel, currentOpacity],
   );
 
   const previousYearLayer = useMemo(
     () =>
-      renderPrevYear !== null
+      previousYear !== null
         ? createHumanLayerForYear(
-            renderPrevYear as number,
+            previousYear as number,
             stableLODLevel,
-            renderPrevOpacity,
-            `human-layer-${renderPrevYear}`,
+            previousOpacity,
+            `human-layer-${previousYear}`,
             false,
           )
         : null,
-    [
-      createHumanLayerForYear,
-      renderPrevYear,
-      stableLODLevel,
-      renderPrevOpacity,
-    ],
+    [createHumanLayerForYear, previousYear, stableLODLevel, previousOpacity],
   );
 
   // Layer ordering: background layers -> settlement points
@@ -172,12 +155,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         fadeMs: opacityTransition?.duration,
         is3DMode,
         isYearCrossfading,
-        newLayerReady: newLayerReadyRef.current,
       });
     };
     logLayer(currentYearLayer, 'current', year);
     if (previousYearLayer)
-      logLayer(previousYearLayer, 'previous', renderPrevYear as number);
+      logLayer(previousYearLayer, 'previous', previousYear as number);
   } catch {
     // ignore logging errors in dev
   }

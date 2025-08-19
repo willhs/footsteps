@@ -1,7 +1,7 @@
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
-import { ensureByteLength } from '@/lib/ensureByteLength';
+import { ensureByteLength, type ByteLengthInput } from '@/lib/ensureByteLength';
 
 // Helper: map population to a base display radius in meters
 function getBaseRadiusFromPopulation(population: number): number {
@@ -94,7 +94,7 @@ export function createHumanTilesLayer(
     onHover: onHover || (() => {}),
     // Ensure deck.gl always receives callable callbacks to avoid TypeErrors
     onTileLoad: (tile: unknown) => {
-      const content = (tile as { content?: unknown })?.content;
+      const content = (tile as { content?: ByteLengthInput })?.content;
       try {
         ensureByteLength(content);
       } catch {

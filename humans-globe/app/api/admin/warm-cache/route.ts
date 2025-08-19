@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
-import { downloadTileFile } from '@/lib/tilesService';
+import { downloadTileFile, getTilesBucket } from '@/lib/tilesService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-async function listYearsFromBucket(bucketName: string): Promise<{ name: string; size: number; updated?: string }[]> {
+async function listYearsFromBucket(
+  bucketName: string,
+): Promise<{ name: string; size: number; updated?: string }[]> {
   const storage = new Storage({ projectId: process.env.GCP_PROJECT_ID });
   const bucket = storage.bucket(bucketName);
   const [files] = await bucket.getFiles({ prefix: 'humans_', delimiter: '/' });
   return files
     .filter((f) => f.name.endsWith('.mbtiles'))
     .filter((f) => !f.name.includes('_lod_'))
-    .map((f) => ({ name: f.name, size: Number.parseInt(String(f.metadata.size || '0'), 10), updated: f.metadata.updated }));
+    .map((f) => ({
+      name: f.name,
+      size: Number.parseInt(String(f.metadata.size || '0'), 10),
+      updated: f.metadata.updated,
+    }));
 }
 
 export async function POST(req: Request) {
@@ -25,17 +31,31 @@ export async function POST(req: Request) {
     }
   }
 
-  if (process.env.NODE_ENV !== 'production' || !process.env.GCP_PROJECT_ID || !process.env.GCS_BUCKET_NAME) {
-    return NextResponse.json({ error: 'Warming only available in production with GCS' }, { status: 400 });
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    !process.env.GCP_PROJECT_ID ||
+    !process.env.GCS_TILES_BUCKET
+  ) {
+    return NextResponse.json(
+      { error: 'Warming only available in production with GCS' },
+      { status: 400 },
+    );
   }
 
-  const concurrency = Number.parseInt(process.env.CACHE_WARMING_CONCURRENCY || '2', 10);
-  const bucketName = process.env.GCS_BUCKET_NAME!;
+  const concurrency = Number.parseInt(
+    process.env.CACHE_WARMING_CONCURRENCY || '2',
+    10,
+  );
+  const bucketName = getTilesBucket();
 
   try {
     const items = await listYearsFromBucket(bucketName);
     if (items.length === 0) {
-      return NextResponse.json({ ok: true, warmed: 0, message: 'No tile files found' });
+      return NextResponse.json({
+        ok: true,
+        warmed: 0,
+        message: 'No tile files found',
+      });
     }
 
     const queue = [...items];
@@ -78,4 +98,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
-

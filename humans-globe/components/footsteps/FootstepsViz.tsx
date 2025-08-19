@@ -8,7 +8,7 @@ import {
   createStaticTerrainLayer,
   createPlainBackgroundLayers,
   radiusStrategies,
-} from '@/components/footsteps/layers/layers';
+} from '@/components/footsteps/layers';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';

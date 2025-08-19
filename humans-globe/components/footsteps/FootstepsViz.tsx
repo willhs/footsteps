@@ -198,18 +198,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         totalPopulation={totalPopulation}
         viewState={viewState}
         lodLevel={stableLODLevel}
-        lodEnabled={false}
-        toggleLOD={() => {}}
-        renderMetrics={{
-          loadTime: 0,
-          processTime: 0,
-          renderTime: 0,
-          lastUpdate: 0,
-        }}
-        cacheSize={1}
-        progressiveRenderStatus={undefined}
-        viewportBounds={null}
-        is3DMode={is3DMode}
         year={year}
       />
 

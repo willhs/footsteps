@@ -73,6 +73,23 @@ Notes
 - Python: place `test_*.py` in `footstep-generator/tests`; test pure functions and data transforms
 - Add tests for all non-trivial logic; keep tests fast and deterministic
 
+### Which Tests to Run Based on Changes
+- **Frontend changes** (`humans-globe/`):
+  - `cd humans-globe && pnpm test`
+  - `pnpm lint` and `pnpm format`
+- **Python changes** (`footstep-generator/`):
+  - `poetry run pytest footstep-generator -q`
+  - `poetry run mypy footstep-generator`
+  - `poetry run black footstep-generator && poetry run isort footstep-generator`
+- **Data processing changes** (HYDE pipeline, LOD system):
+  - `poetry run pytest footstep-generator/tests/test_e2e.py -v`
+  - `python footstep-generator/tests/test_integration.py`
+- **API changes** (`app/api/`):
+  - Both frontend and Python tests
+  - Manual API testing: `curl -I http://localhost:4444/api/tiles/1500/2/5/10/12.pbf`
+- **Cross-cutting changes** (affecting both frontend and backend):
+  - Run all tests: `pnpm test && poetry run pytest footstep-generator -q`
+
 ## Performance Notes
 - `components/footsteps/FootstepsViz.tsx`: target 60+ fps; batch GPU buffers; avoid per-frame allocations; prefer memoization
 - `components/footsteps/TimeSlider.tsx` (if present): <16 ms drag latency; keep handlers light; no heavy work in render

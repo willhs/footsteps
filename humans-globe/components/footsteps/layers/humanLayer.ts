@@ -1,22 +1,9 @@
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
-import { ensureByteLength, type ByteLengthInput } from '@/lib/ensureByteLength';
-
-// Helper: map population to a base display radius in meters
-function getBaseRadiusFromPopulation(population: number): number {
-  if (population > 1_000_000) return 60000; // Super cities: 60km
-  if (population > 100_000) return 40000; // Massive cities: 40km
-  if (population > 50_000) return 25000; // Major cities: 25km
-  if (population > 20_000) return 15000; // Large settlements: 15km
-  if (population > 5_000) return 8000; // Medium settlements: 8km
-  if (population > 1_000) return 4000; // Small settlements: 4km
-  if (population > 100) return 2000; // Villages: 2km
-  return 1000; // Tiny settlements: 1km
-}
-
-// Global layer counter to ensure unique IDs
-let layerCounter = 0;
+import { getPointRadius } from './radius';
+import { createLayerId, createOnTileLoadHandler } from './tileCache';
+import { getFillColor } from './color';
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -59,8 +46,7 @@ export function createHumanTilesLayer(
     (extra && 'tileOptions' in extra ? extra.tileOptions : undefined) || {};
 
   // Generate unique layer ID to prevent deck.gl assertion failures from layer reuse
-  const baseId = `human-tiles-${year}-single-${radiusStrategy.getName()}`;
-  const layerId = instanceId || `${baseId}-${++layerCounter}-${Date.now()}`;
+  const layerId = createLayerId(year, radiusStrategy, instanceId);
   const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({
@@ -93,15 +79,7 @@ export function createHumanTilesLayer(
     onClick: onClick || (() => {}),
     onHover: onHover || (() => {}),
     // Ensure deck.gl always receives callable callbacks to avoid TypeErrors
-    onTileLoad: (tile: unknown) => {
-      const content = (tile as { content?: ByteLengthInput })?.content;
-      try {
-        ensureByteLength(content);
-      } catch {
-        /* ignore byteLength estimation errors */
-      }
-      if (typeof extra?.onTileLoad === 'function') extra.onTileLoad(tile);
-    },
+    onTileLoad: createOnTileLoadHandler(extra?.onTileLoad),
     onViewportLoad:
       typeof extra?.onViewportLoad === 'function'
         ? extra?.onViewportLoad
@@ -112,41 +90,13 @@ export function createHumanTilesLayer(
     pointRadiusUnits: 'meters',
     getPointRadius: (f: unknown) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const feature = f as any;
-        const pop = Number(feature?.properties?.population || 0);
-        const base = getBaseRadiusFromPopulation(pop);
-        const radius = radiusStrategy.calculateRadius(base, currentZoom);
-        return radius;
+        return getPointRadius(f, currentZoom, radiusStrategy);
       } catch (error) {
         console.error(`[RADIUS-ERROR]:`, error);
         return 2000;
       }
     },
-    getFillColor: (f: unknown) => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const population = Number((f as any)?.properties?.population || 0);
-        // Use fixed alpha; rely on layer.opacity for crossfades to avoid double-dimming
-        let base: [number, number, number, number];
-        if (population > 20000) base = [255, 100, 0, 240];
-        else if (population > 5000) base = [255, 140, 0, 220];
-        else if (population > 1000) base = [255, 180, 0, 200];
-        else base = [255, 200, 100, 180];
-        // Apply optional debug tint to help visualize crossfade layers in dev
-        const tint = extra?.debugTint;
-        if (tint && Array.isArray(tint)) {
-          const clamp = (v: number) => Math.max(0, Math.min(255, v));
-          const r = clamp(base[0] + tint[0]);
-          const g = clamp(base[1] + tint[1]);
-          const b = clamp(base[2] + tint[2]);
-          return [r, g, b, base[3]] as [number, number, number, number];
-        }
-        return base;
-      } catch {
-        return [255, 200, 100, 180];
-      }
-    },
+    getFillColor: (f: unknown) => getFillColor(f, extra?.debugTint),
     updateTriggers: {
       getPointRadius: [
         year,

@@ -147,31 +147,38 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     ? ([...backgroundLayers, previousYearLayer, currentYearLayer] as LayersList)
     : ([...backgroundLayers, currentYearLayer] as LayersList);
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const logLayer = (layer: any, tag: string, tagYear: number | null) => {
-      const props = layer?.props || {};
-      const transitions = props?.transitions || {};
-      const opacityTransition = transitions?.opacity || {};
-      // eslint-disable-next-line no-console
-      console.log('[LAYER-VIS]', {
-        tag,
-        year: tagYear,
-        id: props?.id ?? layer?.id,
-        opacity: props?.opacity,
-        visible: props?.visible,
-        pickable: props?.pickable,
-        fadeMs: opacityTransition?.duration,
-        is3DMode,
-        isYearCrossfading,
-        newLayerReady: newLayerReadyRef.current,
-      });
-    };
-    logLayer(currentYearLayer, 'current', year);
-    if (previousYearLayer)
-      logLayer(previousYearLayer, 'previous', renderPrevYear as number);
-  } catch {
-    // ignore logging errors in dev
+  const newLayerReady = newLayerReadyRef.current;
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks, react-hooks/exhaustive-deps
+    useEffect(() => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const logLayer = (layer: any, tag: string, tagYear: number | null) => {
+          const props = layer?.props || {};
+          const transitions = props?.transitions || {};
+          const opacityTransition = transitions?.opacity || {};
+          // eslint-disable-next-line no-console
+          console.log('[LAYER-VIS]', {
+            tag,
+            year: tagYear,
+            id: props?.id ?? layer?.id,
+            opacity: props?.opacity,
+            visible: props?.visible,
+            pickable: props?.pickable,
+            fadeMs: opacityTransition?.duration,
+            is3DMode,
+            isYearCrossfading,
+            newLayerReady,
+          });
+        };
+        logLayer(currentYearLayer, 'current', year);
+        if (previousYearLayer)
+          logLayer(previousYearLayer, 'previous', renderPrevYear as number);
+      } catch {
+        // ignore logging errors in dev
+      }
+    }, [currentYearLayer, previousYearLayer]);
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import DeckGL, { type DeckGLProps } from '@deck.gl/react';
 import { _GlobeView as GlobeView, type LayersList } from '@deck.gl/core';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 type BasicViewState = {
   longitude: number;
@@ -29,23 +29,26 @@ export default function DeckGLView({
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
 
+  const globeView = useMemo(() => new GlobeView(), []);
+
+  const controller2D = useMemo(
+    () => ({
+      dragPan: true,
+      dragRotate: true,
+      scrollZoom: true,
+      touchZoom: true,
+      touchRotate: true,
+      keyboard: false,
+    }),
+    [],
+  );
+
   return (
     <DeckGL
-      views={is3D ? new GlobeView() : undefined}
+      views={is3D ? globeView : undefined}
       viewState={viewState}
       onViewStateChange={onViewStateChange}
-      controller={
-        is3D
-          ? true
-          : {
-              dragPan: true,
-              dragRotate: true,
-              scrollZoom: true,
-              touchZoom: true,
-              touchRotate: true,
-              keyboard: false,
-            }
-      }
+      controller={is3D ? true : controller2D}
       layers={layers}
       getCursor={() => 'crosshair'}
       style={{ background: is3D ? '#000010' : '#000810' }}

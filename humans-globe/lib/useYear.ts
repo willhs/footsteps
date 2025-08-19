@@ -2,6 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { TARGET_YEARS } from './constants';
+import { formatYear } from './format';
+
+export { formatYear };
 
 // Data range constants (based on our available HYDE 3.3 data)
 const MIN_YEAR = TARGET_YEARS[0]; // -10000 BCE
@@ -19,24 +22,22 @@ const COMPRESSION_FACTOR = 800;
 function getScaledPosition(year: number): number {
   const minYear = MIN_YEAR; // -10000
   const maxYear = MAX_YEAR; // 1940
-  
+
   // Calculate "years ago" from the most recent year (1500)
   // More recent years have smaller "years ago" values
   const yearsAgo = maxYear - year;
   const maxYearsAgo = maxYear - minYear;
-  
+
   const compressionFactor = COMPRESSION_FACTOR;
-  
+
   const logYearsAgo = Math.log(yearsAgo + compressionFactor);
   const logMaxYearsAgo = Math.log(maxYearsAgo + compressionFactor);
-  
+
   // Invert: recent years (small logYearsAgo) get high slider positions
-  const position = 1 - (logYearsAgo / logMaxYearsAgo);
-  
+  const position = 1 - logYearsAgo / logMaxYearsAgo;
+
   return position * 100;
 }
-
-
 
 // Convert year to slider position (0-100) using normalised logarithmic scale
 // Raw maximum position computed for MAX_YEAR (most recent)
@@ -54,17 +55,17 @@ function getYearFromScaledPosition(position: number): number {
   const maxYear = MAX_YEAR;
   const maxYearsAgo = maxYear - minYear;
 
-    const compressionFactor = COMPRESSION_FACTOR;
-  
+  const compressionFactor = COMPRESSION_FACTOR;
+
   // position is 0-100 normalised; map back to raw 0-RAW_MAX_POSITION
-  const positionRatio = (position / 100);
+  const positionRatio = position / 100;
   const rawPos = positionRatio * RAW_MAX_POSITION;
   // Convert rawPos to same ratio for log calculation
   const logPositionRatio = rawPos / RAW_MAX_POSITION;
 
   const logMaxYearsAgo = Math.log(maxYearsAgo + compressionFactor);
   const logYearsAgo = (1 - logPositionRatio) * logMaxYearsAgo;
-    let yearsAgo = Math.exp(logYearsAgo) - compressionFactor;
+  let yearsAgo = Math.exp(logYearsAgo) - compressionFactor;
   if (yearsAgo < 0) yearsAgo = 0; // prevent overshoot beyond most recent year
   const year = maxYear - yearsAgo;
 
@@ -89,42 +90,30 @@ export function sliderToYear(position: number): number {
       closestYear = targetYear;
     }
   }
-    return closestYear;
-}
-
-// Format year for display
-export function formatYear(year: number): string {
-  if (year < 0) {
-    const absYear = Math.abs(year);
-    return `${absYear} BC`;
-  } else if (year === 0) {
-    return '1 CE';
-  } else {
-    return `${year} CE`;
-  }
+  return closestYear;
 }
 
 // Custom hook for year state management
 export function useYear(initialYear: number = 0) {
   const [year, setYear] = useState(initialYear);
   const [sliderValue, setSliderValue] = useState(yearToSlider(initialYear));
-  
+
   const updateYear = useCallback((newYear: number) => {
     setYear(newYear);
     setSliderValue(yearToSlider(newYear));
   }, []);
-  
+
   const updateSlider = useCallback((newSliderValue: number) => {
     const newYear = sliderToYear(newSliderValue);
     setSliderValue(newSliderValue);
     setYear(newYear);
   }, []);
-  
+
   return {
     year,
     sliderValue,
     updateYear,
     updateSlider,
-    formattedYear: formatYear(year)
+    formattedYear: formatYear(year),
   };
 }

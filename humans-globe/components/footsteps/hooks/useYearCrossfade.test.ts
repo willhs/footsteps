@@ -20,34 +20,24 @@ describe('useYearCrossfade', () => {
       },
     );
 
-    expect(result.current.prevYear).toBeNull();
-    expect(result.current.currentYearOpacity).toBe(1);
-    expect(result.current.prevYearOpacity).toBe(0);
-    expect(result.current.isYearCrossfading).toBe(false);
+    expect(result.current.previousYear).toBeNull();
+    expect(result.current.currentOpacity).toBe(1);
+    expect(result.current.previousOpacity).toBe(0);
 
     act(() => {
       rerender({ year: 1500 });
     });
 
-    expect(result.current.prevYear).toBe(1000);
-    expect(result.current.currentYearOpacity).toBe(0);
-    expect(result.current.prevYearOpacity).toBe(1);
-    expect(result.current.isYearCrossfading).toBe(true);
+    expect(result.current.previousYear).toBe(1000);
+    expect(result.current.currentOpacity).toBe(0);
+    expect(result.current.previousOpacity).toBe(1);
 
     act(() => {
-      result.current.startCrossfade();
+      jest.advanceTimersByTime(YEAR_FADE_MS + 20);
     });
 
-    expect(result.current.prevYear).toBe(1000);
-    expect(result.current.currentYearOpacity).toBe(1);
-    expect(result.current.prevYearOpacity).toBe(0);
-    expect(result.current.isYearCrossfading).toBe(true);
-
-    act(() => {
-      jest.advanceTimersByTime(YEAR_FADE_MS + 60);
-    });
-
-    expect(result.current.prevYear).toBeNull();
-    expect(result.current.isYearCrossfading).toBe(false);
+    expect(result.current.previousYear).toBeNull();
+    expect(result.current.currentOpacity).toBeCloseTo(1);
+    expect(result.current.previousOpacity).toBeCloseTo(0);
   });
 });

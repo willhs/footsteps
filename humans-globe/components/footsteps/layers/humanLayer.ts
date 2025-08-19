@@ -47,10 +47,6 @@ export function createHumanTilesLayer(
 
   // Generate unique layer ID to prevent deck.gl assertion failures from layer reuse
   const layerId = createLayerId(year, radiusStrategy, instanceId);
-
-  // Clamp tile zooms to the ranges actually present in each LOD's MBTiles.
-  // This prevents deck.gl from requesting higher z tiles than exist when the
-  // viewport zoom is between integer levels (e.g. z=4.8 with LOD 1 → still use z=4 tiles).
   const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({

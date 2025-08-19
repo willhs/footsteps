@@ -49,7 +49,7 @@ export function getTilesDir(): string {
 /**
  * Determine the appropriate tile file path based on environment
  */
-export async function getTileFilePath(year: number, lodLevel: number): Promise<TileFile> {
+export async function getTileFilePath(year: number, _lodLevel: number): Promise<TileFile> {
   // Single canonical format: combined per-year MBTiles
   const yearlyFilename = `humans_${year}.mbtiles`;
   
@@ -172,7 +172,7 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
     // Move into place (overwrite if exists)
     try {
       fs.renameSync(tmpDownload, finalPath);
-    } catch (_e) {
+    } catch {
       // If cross-device or rename fails, copy then unlink
       fs.copyFileSync(tmpDownload, finalPath);
       try { fs.unlinkSync(tmpDownload); } catch { /* ignore */ }

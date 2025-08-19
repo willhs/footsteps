@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  getTooltipPosition,
-  getPopulationScale,
-  formatCoordinates,
-} from './tooltipUtils';
+import { getTooltipPosition, formatCoordinates } from './tooltipUtils';
+import { getPopulationScale } from '@/lib/format';
 
 interface TooltipData {
   population: number;

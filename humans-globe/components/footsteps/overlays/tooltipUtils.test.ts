@@ -1,8 +1,5 @@
-import {
-  getTooltipPosition,
-  getPopulationScale,
-  formatCoordinates,
-} from './tooltipUtils';
+import { getTooltipPosition, formatCoordinates } from './tooltipUtils';
+import { getPopulationScale } from '@/lib/format';
 
 describe('getTooltipPosition', () => {
   it('positions tooltip to the left when near the right edge', () => {

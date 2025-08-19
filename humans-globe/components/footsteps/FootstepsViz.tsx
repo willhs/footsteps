@@ -8,7 +8,7 @@ import {
   CONTINENTS_LAYER,
   TERRAIN_LAYER,
 } from '@/components/footsteps/layers';
-import { createHumanLayerFactory } from '@/components/footsteps/layers/humanLayerFactory';
+import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';

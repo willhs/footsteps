@@ -10,4 +10,5 @@ export {
   CONTINENTS_LAYER,
   TERRAIN_LAYER,
 } from './backgroundLayers';
-export { createHumanTilesLayer } from './humanLayer';
+export { createHumanTilesLayer, createHumanLayerFactory } from './humanLayer';
+export type { HumanLayerCallbacks, HumanLayerMetrics, HumanLayerFactoryConfig } from './humanLayer';

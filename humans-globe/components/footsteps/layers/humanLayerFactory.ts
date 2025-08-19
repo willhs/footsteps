@@ -1,4 +1,3 @@
-import type { MutableRefObject } from 'react';
 import { createHumanTilesLayer, radiusStrategies } from './index';
 import { buildTooltipData, type PickingInfo } from './tooltip';
 import { aggregateTileMetrics } from './tileMetrics';

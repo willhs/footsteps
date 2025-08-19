@@ -35,17 +35,13 @@ interface FootstepsVizProps {
 }
 
 function FootstepsViz({ year }: FootstepsVizProps) {
-  // View mode toggle state with cookie persistence for SSR compatibility
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
-  // Terrain toggle state - default to plain mode for better dot visibility
   const [showTerrain, setShowTerrain] = useState(false);
 
-  // Simplified viewState management - single state for both modes
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
 
-  // Population tooltip state
   const [tooltipData, setTooltipData] = useState<{
     population: number;
     coordinates: [number, number];
@@ -54,14 +50,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     clickPosition: { x: number; y: number };
   } | null>(null);
 
-  // Save view mode preference to cookie
   useEffect(() => {
     setViewMode(is3DMode);
   }, [is3DMode]);
 
-  // Removed complex viewport bounds system - tiles handle spatial filtering efficiently
-
-  // Simplified loading state tracking
   const [tileLoading, setTileLoading] = useState<boolean>(true);
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);

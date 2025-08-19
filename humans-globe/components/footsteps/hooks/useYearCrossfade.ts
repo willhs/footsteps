@@ -9,6 +9,8 @@ export default function useYearCrossfade(year: number) {
   const previousYearRef = useRef<number>(year);
   const animationRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
+  const newLayerReadyRef = useRef<boolean>(false);
+  const newLayerHasTileRef = useRef<boolean>(false);
 
   const [previousYear, setPreviousYear] = useState<number | null>(null);
   const [currentOpacity, setCurrentOpacity] = useState(1);
@@ -24,11 +26,20 @@ export default function useYearCrossfade(year: number) {
     setPreviousYear(fromYear);
     setCurrentOpacity(0);
     setPreviousOpacity(1);
+    newLayerReadyRef.current = false;
+    newLayerHasTileRef.current = false;
 
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
+  }, [year]);
 
+  const startCrossfade = () => {
+    if (newLayerReadyRef.current || previousYear === null) {
+      return;
+    }
+    newLayerReadyRef.current = true;
+    
     startTimeRef.current = Date.now();
 
     const step = () => {
@@ -40,17 +51,27 @@ export default function useYearCrossfade(year: number) {
         animationRef.current = requestAnimationFrame(step);
       } else {
         setPreviousYear(null);
+        animationRef.current = undefined;
       }
     };
 
     animationRef.current = requestAnimationFrame(step);
+  };
 
+  useEffect(() => {
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [year]);
+  }, []);
 
-  return { previousYear, currentOpacity, previousOpacity };
+  return { 
+    previousYear, 
+    currentOpacity, 
+    previousOpacity, 
+    newLayerReadyRef,
+    newLayerHasTileRef,
+    startCrossfade
+  };
 }

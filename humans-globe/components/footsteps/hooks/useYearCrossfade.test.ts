@@ -32,6 +32,11 @@ describe('useYearCrossfade', () => {
     expect(result.current.currentOpacity).toBe(0);
     expect(result.current.previousOpacity).toBe(1);
 
+    // Trigger the crossfade manually (this is how it works now)
+    act(() => {
+      result.current.startCrossfade();
+    });
+
     act(() => {
       jest.advanceTimersByTime(YEAR_FADE_MS + 20);
     });

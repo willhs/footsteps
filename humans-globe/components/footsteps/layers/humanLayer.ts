@@ -252,7 +252,14 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
             status,
             error: errorInfo?.message || errorInfo?.error || errorInfo,
           });
-          callbacks.setTileLoading(false);
+          if (newLayerHasTileRef.current) {
+            triggerCrossfade(
+              callbacks.setTileLoading,
+              callbacks.startCrossfade,
+            );
+          } else {
+            callbacks.setTileLoading(false);
+          }
         },
         tileOptions: {
           fadeMs: fadeMs,

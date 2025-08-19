@@ -36,40 +36,6 @@ export function getTooltipPosition(
 
   return { left, top };
 }
-
-export function getPopulationScale(population: number): {
-  scale: string;
-  icon: string;
-  significance: string;
-} {
-  if (population > 1000000) {
-    return {
-      scale: 'Megacity',
-      icon: '🏙️',
-      significance: 'Major urban center',
-    };
-  }
-  if (population > 500000) {
-    return { scale: 'Metropolis', icon: '🌆', significance: 'Large city' };
-  }
-  if (population > 100000) {
-    return { scale: 'City', icon: '🏘️', significance: 'Urban settlement' };
-  }
-  if (population > 50000) {
-    return { scale: 'Large Town', icon: '🏘️', significance: 'Regional center' };
-  }
-  if (population > 10000) {
-    return { scale: 'Town', icon: '🏘️', significance: 'Local hub' };
-  }
-  if (population > 2000) {
-    return { scale: 'Village', icon: '🏠', significance: 'Rural community' };
-  }
-  if (population > 500) {
-    return { scale: 'Hamlet', icon: '🏡', significance: 'Small settlement' };
-  }
-  return { scale: 'Outpost', icon: '⛺', significance: 'Remote presence' };
-}
-
 export function formatCoordinates(coords: [number, number]): string {
   const [lon, lat] = coords;
   const latDir = lat >= 0 ? 'N' : 'S';

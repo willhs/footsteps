@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, memo } from 'react';
-import { getViewMode, setViewMode } from '@/lib/viewModeStore';
+import { useViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import {
   createStaticTerrainLayer,
@@ -22,8 +22,8 @@ interface FootstepsVizProps {
 }
 
 function FootstepsViz({ year }: FootstepsVizProps) {
-  // View mode toggle state with cookie persistence for SSR compatibility
-  const [is3DMode, setIs3DMode] = useState(() => getViewMode());
+  // View mode toggle state with cookie persistence
+  const [is3DMode, setIs3DMode] = useViewMode();
 
   // Terrain toggle state - default to plain mode for better dot visibility
   const [showTerrain, setShowTerrain] = useState(false);
@@ -40,11 +40,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     settlementType?: string;
     clickPosition: { x: number; y: number };
   } | null>(null);
-
-  // Save view mode preference to cookie
-  useEffect(() => {
-    setViewMode(is3DMode);
-  }, [is3DMode]);
 
   // Removed complex viewport bounds system - tiles handle spatial filtering efficiently
 

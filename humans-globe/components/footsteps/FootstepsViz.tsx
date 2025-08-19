@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import {
-  createStaticTerrainLayer,
-  createPlainBackgroundLayers,
+  SEA_LAYER,
+  CONTINENTS_LAYER,
+  TERRAIN_LAYER,
 } from '@/components/footsteps/layers';
 import { createHumanLayerFactory } from '@/components/footsteps/layers/humanLayerFactory';
 import { type LayersList } from '@deck.gl/core';
@@ -72,9 +73,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   // Background layers - terrain or plain based on toggle
   const backgroundLayers = useMemo(() => {
-    return showTerrain
-      ? [createStaticTerrainLayer()]
-      : createPlainBackgroundLayers();
+    return showTerrain ? [TERRAIN_LAYER] : [SEA_LAYER, CONTINENTS_LAYER];
   }, [showTerrain]);
 
   // Stable LOD level for memoization - only changes at discrete boundaries

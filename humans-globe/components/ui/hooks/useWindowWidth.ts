@@ -8,9 +8,22 @@ export default function useWindowWidth() {
   const [width, setWidth] = useState<number>(1024);
 
   useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth);
+    let frameId: number | null = null;
+
+    const handleResize = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        setWidth(window.innerWidth);
+        frameId = null;
+      });
+    };
+
+    handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
   }, []);
 
   return width;

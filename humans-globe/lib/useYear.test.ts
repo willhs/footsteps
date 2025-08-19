@@ -26,6 +26,11 @@ describe('yearToSlider and sliderToYear', () => {
       expect(sliderToYear(pos)).toBe(year);
     }
   });
+
+  it('round trips non-target years to nearest target year', () => {
+    expect(sliderToYear(yearToSlider(1066))).toBe(1100);
+    expect(sliderToYear(yearToSlider(-9500))).toBe(-10000);
+  });
 });
 
 describe('formatYear', () => {

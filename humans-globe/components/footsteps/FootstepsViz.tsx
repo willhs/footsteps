@@ -22,17 +22,13 @@ interface FootstepsVizProps {
 }
 
 function FootstepsViz({ year }: FootstepsVizProps) {
-  // View mode toggle state with cookie persistence for SSR compatibility
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
-  // Terrain toggle state - default to plain mode for better dot visibility
   const [showTerrain, setShowTerrain] = useState(false);
 
-  // Simplified viewState management - single state for both modes
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
 
-  // Population tooltip state
   const [tooltipData, setTooltipData] = useState<{
     population: number;
     coordinates: [number, number];
@@ -41,14 +37,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     clickPosition: { x: number; y: number };
   } | null>(null);
 
-  // Save view mode preference to cookie
   useEffect(() => {
     setViewMode(is3DMode);
   }, [is3DMode]);
 
-  // Removed complex viewport bounds system - tiles handle spatial filtering efficiently
-
-  // Simplified loading state tracking
   const [tileLoading, setTileLoading] = useState<boolean>(true);
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
@@ -138,30 +130,32 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     ? ([...backgroundLayers, previousYearLayer, currentYearLayer] as LayersList)
     : ([...backgroundLayers, currentYearLayer] as LayersList);
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const logLayer = (layer: any, tag: string, tagYear: number | null) => {
-      const props = layer?.props || {};
-      const transitions = props?.transitions || {};
-      const opacityTransition = transitions?.opacity || {};
-      // eslint-disable-next-line no-console
-      console.log('[LAYER-VIS]', {
-        tag,
-        year: tagYear,
-        id: props?.id ?? layer?.id,
-        opacity: props?.opacity,
-        visible: props?.visible,
-        pickable: props?.pickable,
-        fadeMs: opacityTransition?.duration,
-        is3DMode,
-        isYearCrossfading,
-      });
-    };
-    logLayer(currentYearLayer, 'current', year);
-    if (previousYearLayer)
-      logLayer(previousYearLayer, 'previous', previousYear as number);
-  } catch {
-    // ignore logging errors in dev
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const logLayer = (layer: any, tag: string, tagYear: number | null) => {
+        const props = layer?.props || {};
+        const transitions = props?.transitions || {};
+        const opacityTransition = transitions?.opacity || {};
+        // eslint-disable-next-line no-console
+        console.log('[LAYER-VIS]', {
+          tag,
+          year: tagYear,
+          id: props?.id ?? layer?.id,
+          opacity: props?.opacity,
+          visible: props?.visible,
+          pickable: props?.pickable,
+          fadeMs: opacityTransition?.duration,
+          is3DMode,
+          isYearCrossfading,
+        });
+      };
+      logLayer(currentYearLayer, 'current', year);
+      if (previousYearLayer)
+        logLayer(previousYearLayer, 'previous', previousYear as number);
+    } catch {
+      // ignore logging errors in dev
+    }
   }
 
   return (

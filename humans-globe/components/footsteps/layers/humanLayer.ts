@@ -1,6 +1,7 @@
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
+import { ensureByteLength } from '@/lib/ensureByteLength';
 
 // Helper: map population to a base display radius in meters
 function getBaseRadiusFromPopulation(population: number): number {
@@ -60,16 +61,6 @@ export function createHumanTilesLayer(
   // Generate unique layer ID to prevent deck.gl assertion failures from layer reuse
   const baseId = `human-tiles-${year}-single-${radiusStrategy.getName()}`;
   const layerId = instanceId || `${baseId}-${++layerCounter}-${Date.now()}`;
-
-  // Clamp tile zooms to the ranges actually present in each LOD's MBTiles.
-  // This prevents deck.gl from requesting higher z tiles than exist when the
-  // viewport zoom is between integer levels (e.g. z=4.8 with LOD 1 → still use z=4 tiles).
-  const lodZoomRanges: Record<number, { min: number; max: number }> = {
-    0: { min: 0, max: 3 },
-    1: { min: 4, max: 4 },
-    2: { min: 5, max: 5 },
-    3: { min: 6, max: 12 },
-  };
   const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({
@@ -103,43 +94,11 @@ export function createHumanTilesLayer(
     onHover: onHover || (() => {}),
     // Ensure deck.gl always receives callable callbacks to avoid TypeErrors
     onTileLoad: (tile: unknown) => {
+      const content = (tile as { content?: unknown })?.content;
       try {
-        // Attach an approximate byteLength so Tileset2D doesn't error
-        const t = tile as { content?: unknown };
-        const content = t && 'content' in t ? (t as any).content : undefined;
-        const hasFiniteByteLength =
-          typeof (content as any)?.byteLength === 'number' &&
-          Number.isFinite((content as any).byteLength);
-        if (content && !hasFiniteByteLength) {
-          let approx = 0;
-          try {
-            if (typeof content === 'string') {
-              approx = content.length;
-            } else if (
-              content instanceof ArrayBuffer ||
-              ArrayBuffer.isView(content)
-            ) {
-              // Covers ArrayBuffer and typed arrays
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              approx = (content as any).byteLength || 0;
-            } else {
-              // Fall back to JSON size estimate for GeoJSON-like objects
-              approx = JSON.stringify(content).length;
-            }
-          } catch {
-            // Ignore estimation errors; leave undefined
-          }
-          if (Number.isFinite(approx) && approx > 0) {
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (content as any).byteLength = approx;
-            } catch {
-              // If content is not extensible, ignore
-            }
-          }
-        }
+        ensureByteLength(content);
       } catch {
-        // Swallow any defensive errors here
+        /* ignore byteLength estimation errors */
       }
       if (typeof extra?.onTileLoad === 'function') extra.onTileLoad(tile);
     },

@@ -1,6 +1,7 @@
 'use client';
 
-import TerrainToggle, { TOGGLE_BUTTON_TW, TOGGLE_CONTAINER_TW } from './TerrainToggle';
+import ToggleButton, { TOGGLE_CONTAINER_TW } from './ToggleButton';
+import TerrainToggle from './TerrainToggle';
 
 interface VizTogglesProps {
   showTerrain: boolean;
@@ -21,32 +22,24 @@ export default function VizToggles({
     <div className={className}>
       {/* 2D / 3D view toggle */}
       <div className={TOGGLE_CONTAINER_TW} role="group" aria-label="View mode">
-        <button
+        <ToggleButton
+          pressed={!is3DMode}
           onClick={() => onModeChange(false)}
-          className={`${TOGGLE_BUTTON_TW} ${
-            !is3DMode
-              ? 'bg-blue-500 text-white shadow-md'
-              : 'text-gray-200 hover:text-white hover:bg-white/10'
-          }`}
+          label="Map view"
           title="🗺️ 2D Map view"
-          aria-pressed={!is3DMode}
-          aria-label="Map view"
+          activeClassName="bg-blue-500 text-white shadow-md"
         >
           🗺️
-        </button>
-        <button
+        </ToggleButton>
+        <ToggleButton
+          pressed={is3DMode}
           onClick={() => onModeChange(true)}
-          className={`${TOGGLE_BUTTON_TW} ${
-            is3DMode
-              ? 'bg-blue-500 text-white shadow-md'
-              : 'text-gray-200 hover:text-white hover:bg-white/10'
-          }`}
+          label="Globe view"
           title="🌍 3D Globe view"
-          aria-pressed={is3DMode}
-          aria-label="Globe view"
+          activeClassName="bg-blue-500 text-white shadow-md"
         >
           🌍
-        </button>
+        </ToggleButton>
       </div>
 
       {/* Terrain / Plain toggle */}

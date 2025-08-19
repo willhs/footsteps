@@ -8,13 +8,12 @@ import {
   createStaticTerrainLayer,
   createPlainBackgroundLayers,
   radiusStrategies,
-} from '@/components/footsteps/layers/layers';
+} from '@/components/footsteps/layers';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
-import GlobeView3D from '@/components/footsteps/views/GlobeView3D';
-import MapView2D from '@/components/footsteps/views/MapView2D';
+import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade, {
   YEAR_FADE_MS,
@@ -341,19 +340,12 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   return (
     <div className="relative w-full h-full">
-      {is3DMode ? (
-        <GlobeView3D
-          viewState={viewState}
-          onViewStateChange={onViewStateChange}
-          layers={layers}
-        />
-      ) : (
-        <MapView2D
-          viewState={viewState}
-          onViewStateChange={onViewStateChange}
-          layers={layers}
-        />
-      )}
+      <DeckGLView
+        mode={is3DMode ? '3d' : '2d'}
+        viewState={viewState}
+        onViewStateChange={onViewStateChange}
+        layers={layers}
+      />
 
       {/* Data info overlay */}
       <SupportingText

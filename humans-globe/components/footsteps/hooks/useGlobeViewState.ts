@@ -1,5 +1,6 @@
-"use client";
+'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import useDebouncedFlag from '@/components/footsteps/hooks/useDebouncedFlag';
 
 type BasicViewState = {
   longitude: number;
@@ -22,7 +23,11 @@ export default function useGlobeViewState() {
   // Example: ?lat=28.6&lon=77.2&zoom=8
   const getInitialViewState = (): ViewState => {
     try {
-      if (typeof window !== 'undefined' && window.location && window.location.search) {
+      if (
+        typeof window !== 'undefined' &&
+        window.location &&
+        window.location.search
+      ) {
         const sp = new URLSearchParams(window.location.search);
         const lat = Number(sp.get('lat'));
         const lon = Number(sp.get('lon') || sp.get('lng'));
@@ -48,12 +53,15 @@ export default function useGlobeViewState() {
   };
 
   const [viewState, setViewState] = useState<ViewState>(getInitialViewState);
+  const viewStateRef = useRef<ViewState>(viewState);
 
-  const [isZooming, setIsZooming] = useState(false);
-  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isZooming, triggerZoom] = useDebouncedFlag(800);
+  const [isPanning, triggerPan] = useDebouncedFlag(600);
 
-  const [isPanning, setIsPanning] = useState(false);
-  const panTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isZoomingRef = useRef(isZooming);
+  useEffect(() => {
+    isZoomingRef.current = isZooming;
+  }, [isZooming]);
 
   const onViewStateChange = useCallback(
     ({ viewState: newViewState }: { viewState: BasicViewState }) => {
@@ -65,57 +73,28 @@ export default function useGlobeViewState() {
         bearing: newViewState.bearing ?? 0,
       };
 
-      const oldZoom = viewState.zoom;
-      const newZoom = normalized.zoom;
-      const oldLon = viewState.longitude;
-      const newLon = normalized.longitude;
-      const oldLat = viewState.latitude;
-      const newLat = normalized.latitude;
-
+      const oldState = viewStateRef.current;
+      viewStateRef.current = normalized;
       setViewState(normalized);
 
-      if (typeof newZoom === 'number' && Math.abs(newZoom - oldZoom) > 0.01) {
-        if (!isZooming) {
-          setIsZooming(true);
-        }
-        if (zoomTimeoutRef.current) {
-          clearTimeout(zoomTimeoutRef.current);
-        }
-        zoomTimeoutRef.current = setTimeout(() => {
-          setIsZooming(false);
-        }, 800); // Increased from 150ms to 800ms for better debouncing
+      if (
+        typeof normalized.zoom === 'number' &&
+        Math.abs(normalized.zoom - oldState.zoom) > 0.01
+      ) {
+        triggerZoom();
       }
 
       const panThreshold = 0.1;
       if (
-        (Math.abs(newLon - oldLon) > panThreshold ||
-          Math.abs(newLat - oldLat) > panThreshold) &&
-        !isZooming
+        (Math.abs(normalized.longitude - oldState.longitude) > panThreshold ||
+          Math.abs(normalized.latitude - oldState.latitude) > panThreshold) &&
+        !isZoomingRef.current
       ) {
-        if (!isPanning) {
-          setIsPanning(true);
-        }
-        if (panTimeoutRef.current) {
-          clearTimeout(panTimeoutRef.current);
-        }
-        panTimeoutRef.current = setTimeout(() => {
-          setIsPanning(false);
-        }, 600); // Increased from 300ms to 600ms for better debouncing
+        triggerPan();
       }
     },
-    [viewState, isZooming, isPanning]
+    [triggerZoom, triggerPan],
   );
-
-  useEffect(() => {
-    return () => {
-      if (zoomTimeoutRef.current) {
-        clearTimeout(zoomTimeoutRef.current);
-      }
-      if (panTimeoutRef.current) {
-        clearTimeout(panTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return { viewState, isZooming, isPanning, onViewStateChange };
 }

@@ -122,7 +122,7 @@ Open `http://localhost:4444` in your browser.
 
 * __Environment__
   - Dev/local: tiles resolved from `HUMANS_TILES_DIR` (default: `../data/tiles/humans` relative to `humans-globe/` runtime).
-  - Prod/GCS: set `NODE_ENV=production`, `GCP_PROJECT_ID`, `GCS_BUCKET_NAME` to serve from Google Cloud Storage.
+  - Prod/GCS: set `NODE_ENV=production`, `GCP_PROJECT_ID`, `GCS_TILES_BUCKET` to serve from Google Cloud Storage.
   - Tile cache dir (GCS only): `TILE_CACHE_DIR` (default `/tmp/humans-tiles-cache`) for downloaded `.mbtiles` reuse.
 
 * __Caching__
@@ -228,7 +228,7 @@ pnpm start
 
 ### Tiles in Production
 - Local files: set `HUMANS_TILES_DIR=/path/to/data/tiles/humans` in the runtime env
-- GCS hosting (optional): set `NODE_ENV=production`, `GCP_PROJECT_ID`, and `GCS_BUCKET_NAME` to stream tiles from GCS
+- GCS hosting (optional): set `NODE_ENV=production`, `GCP_PROJECT_ID`, and `GCS_TILES_BUCKET` to stream tiles from GCS
 - Optional cache dir for GCS downloads: `TILE_CACHE_DIR` (default `/tmp/humans-tiles-cache`)
 
 

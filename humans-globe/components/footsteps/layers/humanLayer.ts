@@ -225,6 +225,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
               metrics.setFeatureCount(metricsResult.count);
               metrics.setTotalPopulation(metricsResult.population);
               triggerCrossfade(
+                newLayerHasTileRef,
                 callbacks.setTileLoading,
                 callbacks.startCrossfade,
               );

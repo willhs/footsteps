@@ -18,6 +18,17 @@ function getStorageClient(): Storage {
   return storage;
 }
 
+export function getTilesBucket(): string {
+  const bucket = process.env.GCS_TILES_BUCKET;
+  if (!bucket) {
+    const msg =
+      'GCS_TILES_BUCKET environment variable is required in production';
+    console.error(msg);
+    throw new Error(msg);
+  }
+  return bucket;
+}
+
 export interface TileFile {
   exists: boolean;
   path: string;
@@ -41,7 +52,7 @@ export function getTilesDir(): string {
   // Development: local filesystem
   const fromEnv = process.env.HUMANS_TILES_DIR;
   if (fromEnv) return fromEnv;
-  
+
   // Default development path (relative to repo)
   return path.resolve(process.cwd(), '..', 'data', 'tiles', 'humans');
 }
@@ -49,24 +60,27 @@ export function getTilesDir(): string {
 /**
  * Determine the appropriate tile file path based on environment
  */
-export async function getTileFilePath(year: number, _lodLevel: number): Promise<TileFile> {
+export async function getTileFilePath(
+  year: number,
+  _lodLevel: number,
+): Promise<TileFile> {
   // Single canonical format: combined per-year MBTiles
   const yearlyFilename = `humans_${year}.mbtiles`;
-  
-  if (process.env.NODE_ENV === 'production' && process.env.GCS_BUCKET_NAME) {
+
+  if (process.env.NODE_ENV === 'production') {
     // Production: Try GCS bucket
-    const bucketName = process.env.GCS_BUCKET_NAME;
-    
+    const bucketName = getTilesBucket();
+
     // Use combined per-year MBTiles only
     return await checkGCSFile(bucketName, yearlyFilename);
-  } else {
-    // Development: Use local filesystem
-    const tilesDir = getTilesDir();
-    
-    // Use combined per-year MBTiles only
-    const yearlyPath = path.join(tilesDir, yearlyFilename);
-    return checkLocalFile(yearlyPath);
   }
+
+  // Development: Use local filesystem
+  const tilesDir = getTilesDir();
+
+  // Use combined per-year MBTiles only
+  const yearlyPath = path.join(tilesDir, yearlyFilename);
+  return checkLocalFile(yearlyPath);
 }
 
 // Note: Per-LOD tiles are no longer used; consolidated to single per-year MBTiles.
@@ -82,13 +96,13 @@ function checkLocalFile(filePath: string): TileFile {
       path: filePath,
       isLocal: true,
       size: stats.size,
-      mtime: stats.mtime
+      mtime: stats.mtime,
     };
   } catch {
     return {
       exists: false,
       path: filePath,
-      isLocal: true
+      isLocal: true,
     };
   }
 }
@@ -96,34 +110,37 @@ function checkLocalFile(filePath: string): TileFile {
 /**
  * Check if a GCS file exists and get its metadata
  */
-async function checkGCSFile(bucketName: string, filename: string): Promise<TileFile> {
+async function checkGCSFile(
+  bucketName: string,
+  filename: string,
+): Promise<TileFile> {
   try {
     const storageClient = getStorageClient();
     const bucket = storageClient.bucket(bucketName);
     const file = bucket.file(filename);
-    
+
     const [exists] = await file.exists();
     if (!exists) {
       return {
         exists: false,
         path: `gs://${bucketName}/${filename}`,
-        isLocal: false
+        isLocal: false,
       };
     }
-    
+
     const [metadata] = await file.getMetadata();
     return {
       exists: true,
       path: `gs://${bucketName}/${filename}`,
       isLocal: false,
       size: parseInt(String(metadata.size ?? '0'), 10),
-      mtime: new Date(metadata.updated || metadata.timeCreated || Date.now())
+      mtime: new Date(metadata.updated || metadata.timeCreated || Date.now()),
     };
   } catch {
     return {
       exists: false,
       path: `gs://${bucketName}/${filename}`,
-      isLocal: false
+      isLocal: false,
     };
   }
 }
@@ -131,7 +148,9 @@ async function checkGCSFile(bucketName: string, filename: string): Promise<TileF
 /**
  * Download a GCS file to local temp location for MBTiles access
  */
-export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResult> {
+export async function downloadTileFile(
+  tileFile: TileFile,
+): Promise<DownloadResult> {
   if (tileFile.isLocal) {
     // Treat local files as cache hits for telemetry purposes
     return { path: tileFile.path, isTemp: false, cacheStatus: 'hit' };
@@ -148,7 +167,8 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
     const file = bucket.file(filename);
 
     // Cache dir: persistent disk in production, /tmp in development
-    const cacheRoot = process.env.TILE_CACHE_DIR || path.join('/tmp', 'humans-tiles-cache');
+    const cacheRoot =
+      process.env.TILE_CACHE_DIR || path.join('/tmp', 'humans-tiles-cache');
     const cachePath = path.join(cacheRoot, bucketName, path.dirname(filename));
     const finalPath = path.join(cacheRoot, bucketName, filename);
 
@@ -175,12 +195,20 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
     } catch {
       // If cross-device or rename fails, copy then unlink
       fs.copyFileSync(tmpDownload, finalPath);
-      try { fs.unlinkSync(tmpDownload); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(tmpDownload);
+      } catch {
+        /* ignore */
+      }
     }
 
     // Align mtime with remote metadata when available for caching logic
     if (tileFile.mtime) {
-      try { fs.utimesSync(finalPath, new Date(), tileFile.mtime); } catch { /* ignore */ }
+      try {
+        fs.utimesSync(finalPath, new Date(), tileFile.mtime);
+      } catch {
+        /* ignore */
+      }
     }
 
     return { path: finalPath, isTemp: false, cacheStatus: 'refresh' };
@@ -195,7 +223,8 @@ export async function downloadTileFile(tileFile: TileFile): Promise<DownloadResu
 export function cleanupTempFile(filePath: string): void {
   // Only remove ephemeral temp files. Cached files are stable paths under
   // /tmp/humans-tiles-cache/... and should not be deleted per request.
-  const isEphemeral = filePath.startsWith('/tmp/') && filePath.includes('.download');
+  const isEphemeral =
+    filePath.startsWith('/tmp/') && filePath.includes('.download');
   if (isEphemeral) {
     try {
       fs.unlinkSync(filePath);

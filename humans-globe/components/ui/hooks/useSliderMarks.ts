@@ -27,29 +27,32 @@ const formatLabel = (year: number, compact = false) => {
   return year.toString();
 };
 
+// Precompute sorted years and corresponding slider positions
+const YEARS_SORTED = [...TARGET_YEARS].sort((a, b) => a - b);
+const YEAR_SLIDER_MAP = YEARS_SORTED.reduce<Record<number, number>>(
+  (acc, year) => {
+    acc[year] = yearToSlider(year);
+    return acc;
+  },
+  {},
+);
+
 // Determine which years to label based on available slider width and logarithmic scale
 // Ensures a minimum pixel spacing between labels to avoid overlap on medium screens
 const MIN_LABEL_SPACING_PX = 70;
 
-const getResponsiveYears = (width: number, currentYear: number): number[] => {
-  // Calculate minimum spacing in slider % units
+const getResponsiveYears = (width: number): number[] => {
   const thresholdPercent = (MIN_LABEL_SPACING_PX / width) * 100;
-  const yearsSorted = [...TARGET_YEARS].sort((a, b) => a - b);
   const selected: number[] = [];
-  yearsSorted.forEach((year) => {
-    const pos = yearToSlider(year);
+  YEARS_SORTED.forEach((year) => {
+    const pos = YEAR_SLIDER_MAP[year];
     const tooClose = selected.some(
-      (sel) => Math.abs(pos - yearToSlider(sel)) < thresholdPercent,
+      (sel) => Math.abs(pos - YEAR_SLIDER_MAP[sel]) < thresholdPercent,
     );
     if (!tooClose) {
       selected.push(year);
     }
   });
-  // Ensure the currentYear is always included
-  if (!selected.includes(currentYear)) {
-    selected.push(currentYear);
-    selected.sort((a, b) => a - b);
-  }
   return selected;
 };
 
@@ -57,27 +60,52 @@ export default function useSliderMarks(currentSliderValue: number) {
   const width = useWindowWidth();
   const compact = width < 640; // Tailwind's sm breakpoint (640px)
 
-  return useMemo(() => {
+  const keyYears = useMemo(() => getResponsiveYears(width), [width]);
+
+  const baseMarks = useMemo(() => {
     const marks: Record<
       number,
       { label: string; style?: React.CSSProperties }
     > = {};
-    const currentYear = sliderToYear(currentSliderValue);
-    const keyYears = getResponsiveYears(width, currentYear);
-
-    keyYears.forEach((year: number) => {
-      if (!TARGET_YEARS.includes(year)) return;
-      const position = yearToSlider(year);
-      const isCurrent = Math.abs(currentSliderValue - position) < 0.05; // slider uses 0.1 step
+    keyYears.forEach((year) => {
+      const position = YEAR_SLIDER_MAP[year];
       marks[position] = {
         label: formatLabel(year, compact),
         style: {
-          color: isCurrent ? '#38bdf8' : '#f1f5f9',
-          fontWeight: isCurrent ? 600 : 400,
+          color: '#f1f5f9',
+          fontWeight: 400,
           fontSize: compact ? '0.7rem' : undefined,
         },
       };
     });
     return marks;
-  }, [currentSliderValue, compact, width]);
+  }, [keyYears, compact]);
+
+  return useMemo(() => {
+    const currentYear = sliderToYear(currentSliderValue);
+    const position = YEAR_SLIDER_MAP[currentYear];
+    const marks = { ...baseMarks };
+
+    if (!marks[position]) {
+      marks[position] = {
+        label: formatLabel(currentYear, compact),
+        style: {
+          color: '#38bdf8',
+          fontWeight: 600,
+          fontSize: compact ? '0.7rem' : undefined,
+        },
+      };
+    } else {
+      marks[position] = {
+        ...marks[position],
+        style: {
+          ...marks[position].style,
+          color: '#38bdf8',
+          fontWeight: 600,
+        },
+      };
+    }
+
+    return marks;
+  }, [currentSliderValue, baseMarks, compact]);
 }

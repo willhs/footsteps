@@ -2,6 +2,11 @@ export interface Feature {
   properties?: { population?: number };
 }
 
+export interface TileMetrics {
+  count: number;
+  population: number;
+}
+
 export function featuresFromTile(tile: unknown): Feature[] {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +39,7 @@ export function featuresFromTile(tile: unknown): Feature[] {
   }
 }
 
-export function aggregateTileMetrics(tiles: unknown[]) {
+export function aggregateTileMetrics(tiles: unknown[]): TileMetrics {
   let count = 0;
   let population = 0;
   for (const t of tiles) {

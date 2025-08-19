@@ -11,7 +11,6 @@ import {
 import { createHumanLayerFactory } from '@/components/footsteps/layers/humanLayerFactory';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
-import LegendOverlay from '@/components/footsteps/overlays/LegendOverlay';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
@@ -197,9 +196,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           onToggle={setShowTerrain}
         />
       </div>
-
-      {/* Legend */}
-      <LegendOverlay />
 
       {/* Population Tooltip */}
       <PopulationTooltip

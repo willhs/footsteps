@@ -96,11 +96,15 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         isYearCrossfading,
         newLayerReadyRef,
         newLayerHasTileRef,
-        startCrossfade,
-        setTileLoading,
-        setFeatureCount,
-        setTotalPopulation,
-        setTooltipData,
+        callbacks: {
+          startCrossfade,
+          setTileLoading,
+          setTooltipData,
+        },
+        metrics: {
+          setFeatureCount,
+          setTotalPopulation,
+        },
       }),
     [
       is3DMode,

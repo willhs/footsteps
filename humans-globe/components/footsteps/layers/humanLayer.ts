@@ -7,7 +7,13 @@ import { createLayerId, createOnTileLoadHandler } from './tileCache';
 import { getFillColor } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
 import { aggregateTileMetrics } from './tileMetrics';
+import type { TileMetrics } from './tileMetrics';
 import { computeFadeMs, handleTileLoad, triggerCrossfade } from './crossfade';
+
+const tileMetricsWorker: Worker | null =
+  typeof window !== 'undefined'
+    ? new Worker(new URL('./tileMetrics.worker.ts', import.meta.url))
+    : null;
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -221,14 +227,30 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
         onViewportLoad: (rawTiles: unknown[]) => {
           try {
             if (isNewYearLayer) {
-              const metricsResult = aggregateTileMetrics(rawTiles);
-              metrics.setFeatureCount(metricsResult.count);
-              metrics.setTotalPopulation(metricsResult.population);
-              triggerCrossfade(
-                newLayerHasTileRef,
-                callbacks.setTileLoading,
-                callbacks.startCrossfade,
-              );
+              if (tileMetricsWorker) {
+                tileMetricsWorker.onmessage = (
+                  e: MessageEvent<TileMetrics>,
+                ) => {
+                  const { count, population } = e.data;
+                  metrics.setFeatureCount(count);
+                  metrics.setTotalPopulation(population);
+                  triggerCrossfade(
+                    newLayerHasTileRef,
+                    callbacks.setTileLoading,
+                    callbacks.startCrossfade,
+                  );
+                };
+                tileMetricsWorker.postMessage(rawTiles);
+              } else {
+                const metricsResult = aggregateTileMetrics(rawTiles);
+                metrics.setFeatureCount(metricsResult.count);
+                metrics.setTotalPopulation(metricsResult.population);
+                triggerCrossfade(
+                  newLayerHasTileRef,
+                  callbacks.setTileLoading,
+                  callbacks.startCrossfade,
+                );
+              }
             }
           } catch (error) {
             console.error(

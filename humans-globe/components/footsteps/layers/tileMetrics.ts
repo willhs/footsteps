@@ -2,6 +2,11 @@ export interface Feature {
   properties?: { population?: number };
 }
 
+export interface TileMetrics {
+  count: number;
+  population: number;
+}
+
 function asFeatureArray(candidate: unknown): Feature[] | null {
   return Array.isArray(candidate) && candidate.length > 0
     ? (candidate as Feature[])
@@ -44,7 +49,7 @@ export function featuresFromTile(tile: unknown): Feature[] {
   }
 }
 
-export function aggregateTileMetrics(tiles: unknown[]) {
+export function aggregateTileMetrics(tiles: unknown[]): TileMetrics {
   let count = 0;
   let population = 0;
   for (const t of tiles) {

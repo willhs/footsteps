@@ -72,25 +72,40 @@ function getYearFromScaledPosition(position: number): number {
   return Math.round(year);
 }
 
-// Convert slider position (0-100) to year (snaps to available target years)
+// Convert slider position (0-100) to year.
+// Uses binary search to snap to the closest value in TARGET_YEARS.
 export function sliderToYear(position: number): number {
   const clamped = Math.min(Math.max(position, 0), 100);
   // Map slider 0-100 back to raw position
   const rawPos = (clamped / 100) * RAW_MAX_POSITION;
   const theoreticalYear = getYearFromScaledPosition(rawPos);
 
-  // Snap to nearest target year
-  let closestYear = TARGET_YEARS[0];
-  let minDistance = Math.abs(theoreticalYear - closestYear);
+  // Snap to nearest target year using binary search for efficiency
+  let low = 0;
+  let high = TARGET_YEARS.length - 1;
 
-  for (const targetYear of TARGET_YEARS) {
-    const distance = Math.abs(theoreticalYear - targetYear);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestYear = targetYear;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const midYear = TARGET_YEARS[mid];
+    if (midYear === theoreticalYear) {
+      return midYear;
+    }
+    if (midYear < theoreticalYear) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
     }
   }
-  return closestYear;
+
+  if (low >= TARGET_YEARS.length) return TARGET_YEARS[TARGET_YEARS.length - 1];
+  if (high < 0) return TARGET_YEARS[0];
+
+  const lowerYear = TARGET_YEARS[high];
+  const upperYear = TARGET_YEARS[low];
+
+  return theoreticalYear - lowerYear <= upperYear - theoreticalYear
+    ? lowerYear
+    : upperYear;
 }
 
 // Custom hook for year state management

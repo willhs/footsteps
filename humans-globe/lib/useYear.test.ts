@@ -14,6 +14,16 @@ describe('yearToSlider and sliderToYear', () => {
     expect(sliderToYear(yearToSlider(0))).toBe(0);
   });
 
+  it('clamps slider positions outside the 0-100 range', () => {
+    expect(sliderToYear(-10)).toBe(-10000);
+    expect(sliderToYear(110)).toBe(1500);
+  });
+
+  it('chooses the lower year when equidistant', () => {
+    const pos = yearToSlider(50);
+    expect(sliderToYear(pos)).toBe(0);
+  });
+
   it('round trips target years', () => {
     const targetYears = [
       -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000, 0,

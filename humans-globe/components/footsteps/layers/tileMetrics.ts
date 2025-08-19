@@ -2,6 +2,12 @@ export interface Feature {
   properties?: { population?: number };
 }
 
+function asFeatureArray(candidate: unknown): Feature[] | null {
+  return Array.isArray(candidate) && candidate.length > 0
+    ? (candidate as Feature[])
+    : null;
+}
+
 export function featuresFromTile(tile: unknown): Feature[] {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,23 +16,27 @@ export function featuresFromTile(tile: unknown): Feature[] {
       ? `${t.index.z}/${t.index.x}/${t.index.y}`
       : 'unknown';
     void tileCoords;
-    const possibleFeatures = [
-      t?.data?.features,
-      t?.content?.features,
-      t?.data,
-      t?.content,
-      t?.data?.layers?.['humans']?.features,
-      t?.content?.layers?.['humans']?.features,
-      Array.isArray(t?.data) ? t.data : null,
-      Array.isArray(t?.content) ? t.content : null,
-    ].filter(Boolean);
 
-    for (let i = 0; i < possibleFeatures.length; i++) {
-      const candidate = possibleFeatures[i];
-      if (Array.isArray(candidate) && candidate.length > 0) {
-        return candidate as Feature[];
-      }
-    }
+    let features: Feature[] | null;
+
+    features = asFeatureArray(t?.data?.features);
+    if (features) return features;
+
+    features = asFeatureArray(t?.content?.features);
+    if (features) return features;
+
+    features = asFeatureArray(t?.data);
+    if (features) return features;
+
+    features = asFeatureArray(t?.content);
+    if (features) return features;
+
+    features = asFeatureArray(t?.data?.layers?.['humans']?.features);
+    if (features) return features;
+
+    features = asFeatureArray(t?.content?.layers?.['humans']?.features);
+    if (features) return features;
+
     return [];
   } catch (error) {
     console.error(`[FEATURE-EXTRACT-ERROR]:`, error);

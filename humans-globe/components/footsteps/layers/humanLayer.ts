@@ -277,6 +277,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           });
           if (newLayerHasTileRef.current) {
             triggerCrossfade(
+              newLayerHasTileRef,
               callbacks.setTileLoading,
               callbacks.startCrossfade,
             );

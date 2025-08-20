@@ -26,9 +26,13 @@ export function handleTileLoad(
 }
 
 export function triggerCrossfade(
+  newLayerHasTileRef: MutableRefObject<boolean>,
   setTileLoading: (loading: boolean) => void,
   startCrossfade: () => void,
 ) {
+  if (!newLayerHasTileRef.current) {
+    return;
+  }
   setTileLoading(false);
   startCrossfade();
 }

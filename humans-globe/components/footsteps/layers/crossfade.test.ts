@@ -33,9 +33,11 @@ describe('crossfade helpers', () => {
   });
 
   it('triggers crossfade', () => {
+    const hasTileRef = { current: true } as MutableRefObject<boolean>;
     let loading = true;
     let crossfaded = false;
     triggerCrossfade(
+      hasTileRef,
       (l) => {
         loading = l;
       },
@@ -43,6 +45,42 @@ describe('crossfade helpers', () => {
         crossfaded = true;
       },
     );
+    expect(loading).toBe(false);
+    expect(crossfaded).toBe(true);
+  });
+
+  it('defers crossfade until a tile is loaded', () => {
+    const hasTileRef = { current: false } as MutableRefObject<boolean>;
+    let loading = true;
+    let crossfaded = false;
+
+    triggerCrossfade(
+      hasTileRef,
+      (l) => {
+        loading = l;
+      },
+      () => {
+        crossfaded = true;
+      },
+    );
+
+    expect(loading).toBe(true);
+    expect(crossfaded).toBe(false);
+
+    handleTileLoad(true, hasTileRef, (l) => {
+      loading = l;
+    });
+
+    triggerCrossfade(
+      hasTileRef,
+      (l) => {
+        loading = l;
+      },
+      () => {
+        crossfaded = true;
+      },
+    );
+
     expect(loading).toBe(false);
     expect(crossfaded).toBe(true);
   });

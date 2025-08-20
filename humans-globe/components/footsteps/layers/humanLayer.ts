@@ -8,7 +8,7 @@ import { getFillColor } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
 import { aggregateTileMetrics } from './tileMetrics';
 import type { TileMetrics } from './tileMetrics';
-import { computeFadeMs, handleTileLoad, triggerCrossfade } from './crossfade';
+// Removed crossfade imports
 
 const tileMetricsWorker: Worker | null =
   typeof window !== 'undefined'
@@ -144,9 +144,8 @@ export function createHumanTilesLayer(
   });
 }
 
-// Factory pattern for human layers with crossfading and metrics
+// Factory pattern for human layers with metrics
 export interface HumanLayerCallbacks {
-  startCrossfade: () => void;
   setTileLoading: (loading: boolean) => void;
   setTooltipData: (
     data: {
@@ -169,8 +168,6 @@ export interface HumanLayerFactoryConfig {
   layerViewState: { zoom?: number } | null;
   isZooming: boolean;
   isPanning: boolean;
-  isYearCrossfading: boolean;
-  newLayerReadyRef: MutableRefObject<boolean>;
   newLayerHasTileRef: MutableRefObject<boolean>;
   callbacks: HumanLayerCallbacks;
   metrics: HumanLayerMetrics;
@@ -182,8 +179,6 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     layerViewState,
     isZooming,
     isPanning,
-    isYearCrossfading,
-    newLayerReadyRef,
     newLayerHasTileRef,
     callbacks,
     metrics,
@@ -199,8 +194,6 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     const radiusStrategy = is3DMode
       ? radiusStrategies.globe3D
       : radiusStrategies.zoomAdaptive;
-
-    const fadeMs = computeFadeMs(isNewYearLayer, newLayerReadyRef);
 
     return createHumanTilesLayer(
       targetYear,
@@ -218,11 +211,12 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
       },
       {
         onTileLoad: (_tile: unknown) => {
-          handleTileLoad(
-            isNewYearLayer,
-            newLayerHasTileRef,
-            callbacks.setTileLoading,
-          );
+          if (isNewYearLayer) {
+            callbacks.setTileLoading(false);
+            if (!newLayerHasTileRef.current) {
+              newLayerHasTileRef.current = true;
+            }
+          }
         },
         onViewportLoad: (rawTiles: unknown[]) => {
           try {
@@ -234,22 +228,14 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
                   const { count, population } = e.data;
                   metrics.setFeatureCount(count);
                   metrics.setTotalPopulation(population);
-                  triggerCrossfade(
-                    newLayerHasTileRef,
-                    callbacks.setTileLoading,
-                    callbacks.startCrossfade,
-                  );
+                  callbacks.setTileLoading(false);
                 };
                 tileMetricsWorker.postMessage(rawTiles);
               } else {
                 const metricsResult = aggregateTileMetrics(rawTiles);
                 metrics.setFeatureCount(metricsResult.count);
                 metrics.setTotalPopulation(metricsResult.population);
-                triggerCrossfade(
-                  newLayerHasTileRef,
-                  callbacks.setTileLoading,
-                  callbacks.startCrossfade,
-                );
+                callbacks.setTileLoading(false);
               }
             }
           } catch (error) {
@@ -275,27 +261,14 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
             status,
             error: errorInfo?.message || errorInfo?.error || errorInfo,
           });
-          if (newLayerHasTileRef.current) {
-            triggerCrossfade(
-              newLayerHasTileRef,
-              callbacks.setTileLoading,
-              callbacks.startCrossfade,
-            );
-          } else {
-            callbacks.setTileLoading(false);
-          }
+          callbacks.setTileLoading(false);
         },
         tileOptions: {
-          fadeMs: fadeMs,
+          fadeMs: 0, // No crossfade animation
           debounceTime: isZooming || isPanning ? 80 : 20,
           useBinary: false,
         },
-        debugTint:
-          process.env.NODE_ENV !== 'production' && isYearCrossfading
-            ? isNewYearLayer
-              ? [0, 30, 80]
-              : [80, 0, 0]
-            : undefined,
+        debugTint: undefined,
       },
       layerOpacity,
       instanceId,

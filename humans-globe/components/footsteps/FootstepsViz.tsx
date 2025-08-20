@@ -49,11 +49,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     previousYear,
     currentOpacity,
     previousOpacity,
-    newLayerReadyRef,
     newLayerHasTileRef,
-    startCrossfade,
   } = useYearCrossfade(year);
-  const isYearCrossfading = previousYear !== null;
 
   // Reset metrics when year changes
   useEffect(() => {
@@ -83,11 +80,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         layerViewState,
         isZooming,
         isPanning,
-        isYearCrossfading,
-        newLayerReadyRef,
         newLayerHasTileRef,
         callbacks: {
-          startCrossfade,
           setTileLoading,
           setTooltipData,
         },
@@ -101,10 +95,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       layerViewState,
       isZooming,
       isPanning,
-      isYearCrossfading,
-      newLayerReadyRef,
       newLayerHasTileRef,
-      startCrossfade,
       setTileLoading,
       setFeatureCount,
       setTotalPopulation,
@@ -112,7 +103,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     ],
   );
 
-  // Create human tiles layers for current and (if crossfading) previous year
+  // Create human tiles layer for current year
   const currentYearLayer = useMemo(
     () =>
       createHumanLayerForYear(
@@ -161,7 +152,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           pickable: props?.pickable,
           fadeMs: opacityTransition?.duration,
           is3DMode,
-          isYearCrossfading,
         });
       };
       logLayer(currentYearLayer, 'current', year);

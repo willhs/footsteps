@@ -6,14 +6,8 @@ import { getPointRadius } from './radius';
 import { createLayerId, createOnTileLoadHandler } from './tileCache';
 import { getFillColor } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
-import { aggregateTileMetrics } from './tileMetrics';
-import type { TileMetrics } from './tileMetrics';
+import { getWorkerManager } from './WorkerManager';
 // Removed crossfade imports
-
-const tileMetricsWorker: Worker | null =
-  typeof window !== 'undefined'
-    ? new Worker(new URL('./tileMetrics.worker.ts', import.meta.url))
-    : null;
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -221,22 +215,12 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
         onViewportLoad: (rawTiles: unknown[]) => {
           try {
             if (isNewYearLayer) {
-              if (tileMetricsWorker) {
-                tileMetricsWorker.onmessage = (
-                  e: MessageEvent<TileMetrics>,
-                ) => {
-                  const { count, population } = e.data;
-                  metrics.setFeatureCount(count);
-                  metrics.setTotalPopulation(population);
-                  callbacks.setTileLoading(false);
-                };
-                tileMetricsWorker.postMessage(rawTiles);
-              } else {
-                const metricsResult = aggregateTileMetrics(rawTiles);
+              const workerManager = getWorkerManager();
+              workerManager.calculateMetrics(rawTiles, (metricsResult) => {
                 metrics.setFeatureCount(metricsResult.count);
                 metrics.setTotalPopulation(metricsResult.population);
                 callbacks.setTileLoading(false);
-              }
+              });
             }
           } catch (error) {
             console.error(

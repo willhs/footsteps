@@ -9,15 +9,16 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
-- Run `pnpm lint` in humans-globe/ to catch config issues
+- Run `pnpm lint` and `npx tsc --noEmit` in humans-globe/ to catch config and type issues
 - Check if recent architecture changes made workflow tests obsolete
 - If working with feature branches: check for merge conflicts with main first
 - Verify environment variables match current architecture (API vs GCS direct access)
 
 1. Confirm and identify the issue:
 
-- Use the github and/or gcloud cli to find the status of the last workflow that ran. Current workflows are 'cli' and 'deploy'.
+- Use the github and/or gcloud cli to find the status of the last workflow that ran. Current workflows are 'ci' and 'deploy'.
 - Distinguish between deployment infrastructure issues vs code/branch issues (merge conflicts, linting, test failures)
+- Common infrastructure issues: stale terraform state locks (use `terraform force-unlock [LOCK_ID]`)
 - If there are any issues, do any investigation needed to understand the problem well enough to come up with a solution to fix it
 
 2. Fix the issue
@@ -28,7 +29,8 @@ Follow this diagnostic workflow:
 3. Deploy and evaluate
 
 - Deploy the app by committing your fix in git and deploying. This will trigger the gh workflows
-- Either poll results or wait for user response
+- Monitor both GitHub workflow completion AND actual Cloud Run service status (`gcloud run services list`)
+- Test app directly with curl/browser even if workflow still running—deployment often succeeds before workflow completes
 - If success: go to phase 4
 - If still failing: go back to phase 1
 
@@ -49,4 +51,6 @@ Guest book:
 **Entry 2**: ESLint errors caused CI failure, specifically react/prop-types rule triggering on non-React object properties. Fix was disabling the redundant rule in TypeScript project. Document could be improved by: (1) mentioning common ESLint/TypeScript configuration issues that can block CI, (2) noting that lint errors vs warnings have different CI impacts, and (3) suggesting to run `pnpm lint` locally first to catch config issues before committing.
 
 **Entry 3**: Successfully merged Codex-generated binary tiles branch with minimal issues. Main challenge was merge conflict in tileMetrics.ts requiring manual resolution to preserve both binary implementation and TileMetrics interface. Tests passed, only minor ESLint fix needed. Document could be improved by: (1) adding guidance for feature branch merges vs deployment fixes, (2) recommending test-driven verification of changes before assuming deployment issues, and (3) including merge conflict resolution as a common step when multiple developers/tools modify similar code areas.
+
+**Entry 4**: Primary issue was TypeScript compilation errors blocking CI (FootstepsViz null assertion, missing webworker lib, incomplete PickingInfo mocks). Secondary issue was stale Terraform state lock from 2 days ago preventing deployment. Document improvements: (1) add "run type check" to health checks alongside lint, (2) mention terraform state lock resolution (`force-unlock`) as common infrastructure issue, (3) emphasize checking actual app response even if workflow still running—Cloud Run deployment succeeded before workflow completion.
 

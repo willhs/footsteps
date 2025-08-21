@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 
-export default function useYearCrossfade(year: number) {
+export default function useYearCrossfade(_year: number) {
   const newLayerHasTileRef = useRef<boolean>(false);
 
   return {

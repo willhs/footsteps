@@ -11,10 +11,13 @@ Follow this diagnostic workflow:
 
 - Run `pnpm lint` in humans-globe/ to catch config issues
 - Check if recent architecture changes made workflow tests obsolete
+- If working with feature branches: check for merge conflicts with main first
+- Verify environment variables match current architecture (API vs GCS direct access)
 
 1. Confirm and identify the issue:
 
 - Use the github and/or gcloud cli to find the status of the last workflow that ran. Current workflows are 'cli' and 'deploy'.
+- Distinguish between deployment infrastructure issues vs code/branch issues (merge conflicts, linting, test failures)
 - If there are any issues, do any investigation needed to understand the problem well enough to come up with a solution to fix it
 
 2. Fix the issue
@@ -44,4 +47,6 @@ Guest book:
 **Entry 1**: The workflow diagnostics were straightforward—GitHub CLI helped quickly identify recent failures. The fix was simple once I understood that tiles API tests were obsolete after the GCS migration. This document could benefit from: (1) mentioning checking environment variables when API tests fail, (2) noting that architecture changes might make workflow tests outdated, and (3) suggesting to verify what the current deployment actually uses (API vs direct GCS) before assuming test validity.
 
 **Entry 2**: ESLint errors caused CI failure, specifically react/prop-types rule triggering on non-React object properties. Fix was disabling the redundant rule in TypeScript project. Document could be improved by: (1) mentioning common ESLint/TypeScript configuration issues that can block CI, (2) noting that lint errors vs warnings have different CI impacts, and (3) suggesting to run `pnpm lint` locally first to catch config issues before committing.
+
+**Entry 3**: Successfully merged Codex-generated binary tiles branch with minimal issues. Main challenge was merge conflict in tileMetrics.ts requiring manual resolution to preserve both binary implementation and TileMetrics interface. Tests passed, only minor ESLint fix needed. Document could be improved by: (1) adding guidance for feature branch merges vs deployment fixes, (2) recommending test-driven verification of changes before assuming deployment issues, and (3) including merge conflict resolution as a common step when multiple developers/tools modify similar code areas.
 

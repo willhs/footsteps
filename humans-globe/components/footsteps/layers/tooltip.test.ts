@@ -9,6 +9,12 @@ describe('buildTooltipData', () => {
       coordinate: [1, 2],
       x: 10,
       y: 20,
+      // Required deck.gl PickingInfo fields
+      color: null,
+      layer: null,
+      index: 0,
+      picked: true,
+      pixelRatio: 1,
     };
     const result = buildTooltipData(info, 1500);
     expect(result).toEqual({
@@ -20,7 +26,16 @@ describe('buildTooltipData', () => {
   });
 
   it('returns null when no object', () => {
-    const info: PickingInfo = { x: 1, y: 2 };
+    const info: PickingInfo = {
+      x: 1,
+      y: 2,
+      // Required deck.gl PickingInfo fields
+      color: null,
+      layer: null,
+      index: -1,
+      picked: false,
+      pixelRatio: 1,
+    };
     expect(buildTooltipData(info, 1500)).toBeNull();
   });
 });

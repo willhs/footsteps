@@ -155,8 +155,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         });
       };
       logLayer(currentYearLayer, 'current', year);
-      if (previousYearLayer)
-        logLayer(previousYearLayer, 'previous', previousYear as number);
+      if (previousYearLayer && previousYear !== null)
+        logLayer(previousYearLayer, 'previous', previousYear);
     } catch {
       // ignore logging errors in dev
     }

@@ -87,7 +87,7 @@ fi
 # Deploy to Cloud Run
 echo "🚀 Deploying to Cloud Run..."
 ## Build env vars for the service (runtime only)
-ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCS_TILES_BUCKET=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
 
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_NAME" \

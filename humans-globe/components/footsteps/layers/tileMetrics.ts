@@ -5,11 +5,16 @@ import {
 
 export { type Feature };
 
+export interface TileMetrics {
+  count: number;
+  population: number;
+}
+
 export function featuresFromTile(tile: unknown): Feature[] {
   return extractFeaturesFromBinaryTile(tile);
 }
 
-export function aggregateTileMetrics(tiles: unknown[]) {
+export function aggregateTileMetrics(tiles: unknown[]): TileMetrics {
   let count = 0;
   let population = 0;
   for (const t of tiles) {

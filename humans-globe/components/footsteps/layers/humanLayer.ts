@@ -6,8 +6,8 @@ import { getPointRadius } from './radius';
 import { createLayerId, createOnTileLoadHandler } from './tileCache';
 import { getFillColor } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
-import { aggregateTileMetrics } from './tileMetrics';
-import { computeFadeMs, handleTileLoad, triggerCrossfade } from './crossfade';
+import { getWorkerManager } from './WorkerManager';
+// Removed crossfade imports
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -137,9 +137,8 @@ export function createHumanTilesLayer(
   });
 }
 
-// Factory pattern for human layers with crossfading and metrics
+// Factory pattern for human layers with metrics
 export interface HumanLayerCallbacks {
-  startCrossfade: () => void;
   setTileLoading: (loading: boolean) => void;
   setTooltipData: (
     data: {
@@ -162,8 +161,6 @@ export interface HumanLayerFactoryConfig {
   layerViewState: { zoom?: number } | null;
   isZooming: boolean;
   isPanning: boolean;
-  isYearCrossfading: boolean;
-  newLayerReadyRef: MutableRefObject<boolean>;
   newLayerHasTileRef: MutableRefObject<boolean>;
   callbacks: HumanLayerCallbacks;
   metrics: HumanLayerMetrics;
@@ -175,8 +172,6 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     layerViewState,
     isZooming,
     isPanning,
-    isYearCrossfading,
-    newLayerReadyRef,
     newLayerHasTileRef,
     callbacks,
     metrics,
@@ -192,8 +187,6 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     const radiusStrategy = is3DMode
       ? radiusStrategies.globe3D
       : radiusStrategies.zoomAdaptive;
-
-    const fadeMs = computeFadeMs(isNewYearLayer, newLayerReadyRef);
 
     return createHumanTilesLayer(
       targetYear,
@@ -211,22 +204,22 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
       },
       {
         onTileLoad: (_tile: unknown) => {
-          handleTileLoad(
-            isNewYearLayer,
-            newLayerHasTileRef,
-            callbacks.setTileLoading,
-          );
+          if (isNewYearLayer) {
+            callbacks.setTileLoading(false);
+            if (!newLayerHasTileRef.current) {
+              newLayerHasTileRef.current = true;
+            }
+          }
         },
         onViewportLoad: (rawTiles: unknown[]) => {
           try {
             if (isNewYearLayer) {
-              const metricsResult = aggregateTileMetrics(rawTiles);
-              metrics.setFeatureCount(metricsResult.count);
-              metrics.setTotalPopulation(metricsResult.population);
-              triggerCrossfade(
-                callbacks.setTileLoading,
-                callbacks.startCrossfade,
-              );
+              const workerManager = getWorkerManager();
+              workerManager.calculateMetrics(rawTiles, (metricsResult) => {
+                metrics.setFeatureCount(metricsResult.count);
+                metrics.setTotalPopulation(metricsResult.population);
+                callbacks.setTileLoading(false);
+              });
             }
           } catch (error) {
             console.error(
@@ -254,16 +247,11 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           callbacks.setTileLoading(false);
         },
         tileOptions: {
-          fadeMs: fadeMs,
+          fadeMs: 0, // No crossfade animation
           debounceTime: isZooming || isPanning ? 80 : 20,
           useBinary: true,
         },
-        debugTint:
-          process.env.NODE_ENV !== 'production' && isYearCrossfading
-            ? isNewYearLayer
-              ? [0, 30, 80]
-              : [80, 0, 0]
-            : undefined,
+        debugTint: undefined,
       },
       layerOpacity,
       instanceId,

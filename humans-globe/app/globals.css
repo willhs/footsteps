@@ -90,3 +90,20 @@ main {
     @apply bg-sky-500 border-2 border-sky-400;
   }
 }
+
+/* Move Next.js error overlay up to avoid TimeSlider overlap */
+/* Target the specific Next.js toast element with maximum specificity */
+html body div[data-nextjs-toast="true"].nextjs-toast {
+  bottom: 200px !important;
+  left: 20px !important;
+}
+
+/* Alternative approach using CSS custom properties to override inline styles */
+div[data-nextjs-toast="true"] {
+  bottom: 200px !important;
+}
+
+/* Fallback with attribute selector for any toast-like elements */
+[data-nextjs-toast] {
+  bottom: 200px !important;
+}

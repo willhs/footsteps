@@ -96,8 +96,8 @@ Notes
 - Frontend uses deck.gl; keep layer props stable; avoid unnecessary layer recreation
 
 ## PR Checklist
-- Lint/format clean: `pnpm lint && pnpm format && poetry run black footstep-generator && poetry run isort footstep-generator`
-- Tests pass: `pnpm test` and `poetry run pytest footstep-generator`
+- Lint/format clean: `pnpm lint && pnpm format` and/or `poetry run black footstep-generator && poetry run isort footstep-generator`
+- Tests pass: `pnpm test` and/or `poetry run pytest footstep-generator`
 - Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `chore:`
 - Include screenshots/GIFs for UI changes
 

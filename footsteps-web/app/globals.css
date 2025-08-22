@@ -67,27 +67,61 @@ main {
 
 @layer components {
   .time-slider-container {
-    @apply fixed bottom-8 left-8 right-8 z-40 bg-black/80 backdrop-blur-sm rounded-lg p-6;
+    @apply fixed bottom-6 left-6 right-6 z-40;
+    @apply bg-gradient-to-t from-black/90 via-black/80 to-black/60;
+    @apply backdrop-blur-md rounded-2xl;
+    @apply p-8 md:p-10;
+    @apply border border-slate-800/50;
+    @apply shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(14,165,233,0.1)];
   }
 
+  /* Enhanced slider track with glow effect */
   .time-slider .rc-slider-track {
-    @apply bg-sky-500 h-1.5;
+    @apply bg-gradient-to-r from-sky-600 to-sky-400 h-2;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.6), 0 0 24px rgba(14, 165, 233, 0.3);
   }
 
   .time-slider .rc-slider-rail {
-    @apply bg-slate-700 h-1.5;
+    @apply bg-slate-600/40 h-2;
   }
 
+  /* Enhanced handle with better visibility and tactile feel */
   .time-slider .rc-slider-handle {
-    @apply bg-slate-800 border-[3px] border-sky-500 w-6 h-6 mt-[-9px] shadow-[0_0_10px_rgba(14,165,233,0.5)];
+    @apply bg-slate-900 border-[4px] border-sky-400 w-7 h-7 mt-[-10px];
+    @apply shadow-[0_0_20px_rgba(14,165,233,0.8),0_0_40px_rgba(14,165,233,0.4)];
+    @apply transition-all duration-200 ease-out;
   }
 
+  .time-slider .rc-slider-handle:hover {
+    @apply border-sky-300 scale-110;
+    box-shadow: 0 0 30px rgba(14, 165, 233, 1), 0 0 60px rgba(14, 165, 233, 0.6);
+  }
+
+  .time-slider .rc-slider-handle:focus {
+    @apply outline-none border-sky-300;
+    box-shadow: 0 0 30px rgba(14, 165, 233, 1), 0 0 60px rgba(14, 165, 233, 0.6);
+  }
+
+  /* Subtle dot styling that doesn't compete with the main interaction */
   .time-slider .rc-slider-dot {
-    @apply bg-slate-600 border-2 border-slate-500;
+    @apply bg-slate-700 border-2 border-slate-600 opacity-60;
   }
 
   .time-slider .rc-slider-dot-active {
-    @apply bg-sky-500 border-2 border-sky-400;
+    @apply bg-sky-500/60 border-2 border-sky-400/60 opacity-80;
+  }
+
+  /* Enhanced responsive design for mobile */
+  @media (max-width: 640px) {
+    .time-slider-container {
+      @apply bottom-4 left-4 right-4 p-6;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .time-slider-container {
+      @apply bottom-3 left-3 right-3 p-5;
+    }
   }
 }
 

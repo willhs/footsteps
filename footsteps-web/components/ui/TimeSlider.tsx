@@ -40,32 +40,9 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
 
   return (
     <div className="time-slider-container">
-      <div className="w-full space-y-6">
-        {/* Current year display - Subtle yet prominent */}
-        <div className="flex items-center justify-center">
-          <div 
-            className={`text-xl sm:text-2xl font-semibold transition-all duration-200 ${
-              isDragging 
-                ? 'text-sky-300' 
-                : 'text-sky-400'
-            }`}
-            style={{ 
-              color: isDragging ? '#7dd3fc' : '#0ea5e9'
-            }}
-          >
-            {formatYear(currentYear)}
-          </div>
-        </div>
-
-        {/* Time travel tagline - Contextual guidance */}
-        <div className="text-center">
-          <p className="text-slate-400 text-sm font-light tracking-wide">
-            {isDragging ? 'Traveling through time...' : 'Drag to explore human history'}
-          </p>
-        </div>
-
+      <div className="w-full">
         {/* Time slider - Primary interaction with enhanced feedback */}
-        <div className="px-6 pb-4">
+        <div className="px-6 py-4">
           <Slider
             min={0}
             max={100}

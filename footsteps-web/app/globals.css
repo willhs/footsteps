@@ -47,68 +47,118 @@ main {
   border-color: #38bdf8;
 }
 
-/* Improved contrast for slider year labels */
+/* Enhanced slider year labels with design system hierarchy */
 .rc-slider-mark-text {
-  color: #f1f5f9 !important; /* Lighter text for higher contrast */
-  font-size: 12px;
+  color: #f1f5f9 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  transition: all 200ms ease-out;
 }
 
-/* Highlight labels that are to the left of the handle */
+/* Milestone labels (major historical periods) */
+.rc-slider-mark-text[style*="color: rgb(56, 189, 248)"] {
+  font-weight: 500 !important;
+}
+
+/* Current year - subtle but clear emphasis */
+.rc-slider-mark-text[style*="color: rgb(14, 165, 233)"] {
+  font-weight: 600 !important;
+}
+
+/* Remove old active styles that conflict with new system */
 .rc-slider-mark-text-active {
-  color: #f1f5f9 !important; /* Same as default, no emphasis */
-  font-weight: 400;
+  /* Styles controlled by useSliderMarks hook */
 }
 
-/* Emphasise ONLY the currently selected year (right-most active mark) */
 .rc-slider-mark-text-active:last-of-type {
-  color: #38bdf8 !important; /* Accent colour */
-  font-weight: 600;
+  /* Styles controlled by useSliderMarks hook */
 }
 
 @layer components {
   .time-slider-container {
-    @apply fixed bottom-6 left-6 right-6 z-40;
-    @apply bg-gradient-to-t from-black/90 via-black/80 to-black/60;
-    @apply backdrop-blur-md rounded-2xl;
-    @apply p-8 md:p-10;
-    @apply border border-slate-800/50;
-    @apply shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(14,165,233,0.1)];
+    /* Layout */
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    z-index: 40;
+    
+    /* Design system glass container */
+    backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px;
+    padding: 24px;
+    
+    /* Typography */
+    font-family: Arial, Helvetica, sans-serif;
+    color: #f1f5f9;
+    
+    /* Shadows */
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      0 0 40px rgba(14, 165, 233, 0.1);
   }
 
-  /* Enhanced slider track with glow effect */
+  /* Enhanced slider track - represents historical progress */
   .time-slider .rc-slider-track {
-    @apply bg-gradient-to-r from-sky-600 to-sky-400 h-2;
-    box-shadow: 0 0 12px rgba(14, 165, 233, 0.6), 0 0 24px rgba(14, 165, 233, 0.3);
+    height: 8px;
+    background: linear-gradient(to right, #0ea5e9, #38bdf8);
+    box-shadow: 
+      0 0 12px rgba(14, 165, 233, 0.6),
+      0 0 24px rgba(14, 165, 233, 0.3);
+    border-radius: 4px;
   }
 
+  /* Enhanced rail - represents full timeline */
   .time-slider .rc-slider-rail {
-    @apply bg-slate-600/40 h-2;
+    height: 8px;
+    background: rgba(100, 116, 139, 0.4);
+    border-radius: 4px;
   }
 
-  /* Enhanced handle with better visibility and tactile feel */
+  /* Enhanced handle - clean and functional */
   .time-slider .rc-slider-handle {
-    @apply bg-slate-900 border-[4px] border-sky-400 w-7 h-7 mt-[-10px];
-    @apply shadow-[0_0_20px_rgba(14,165,233,0.8),0_0_40px_rgba(14,165,233,0.4)];
-    @apply transition-all duration-200 ease-out;
+    width: 28px;
+    height: 28px;
+    background: #0a0a0a;
+    border: 4px solid #0ea5e9;
+    border-radius: 50%;
+    margin-top: -10px;
+    box-shadow: 
+      0 0 12px rgba(14, 165, 233, 0.6),
+      0 0 24px rgba(14, 165, 233, 0.3);
+    transition: all 200ms ease-out;
   }
 
   .time-slider .rc-slider-handle:hover {
-    @apply border-sky-300 scale-110;
-    box-shadow: 0 0 30px rgba(14, 165, 233, 1), 0 0 60px rgba(14, 165, 233, 0.6);
+    border-color: #38bdf8;
+    transform: scale(1.1);
+    box-shadow: 
+      0 0 30px rgba(14, 165, 233, 1),
+      0 0 60px rgba(14, 165, 233, 0.6);
   }
 
   .time-slider .rc-slider-handle:focus {
-    @apply outline-none border-sky-300;
-    box-shadow: 0 0 30px rgba(14, 165, 233, 1), 0 0 60px rgba(14, 165, 233, 0.6);
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 
+      0 0 30px rgba(14, 165, 233, 1),
+      0 0 60px rgba(14, 165, 233, 0.6);
   }
 
-  /* Subtle dot styling that doesn't compete with the main interaction */
+  /* Subtle dot styling aligned with design system */
   .time-slider .rc-slider-dot {
-    @apply bg-slate-700 border-2 border-slate-600 opacity-60;
+    background: #475569;
+    border: 2px solid #64748b;
+    opacity: 0.6;
+    transition: all 200ms ease-out;
   }
 
   .time-slider .rc-slider-dot-active {
-    @apply bg-sky-500/60 border-2 border-sky-400/60 opacity-80;
+    background: rgba(14, 165, 233, 0.6);
+    border: 2px solid rgba(56, 189, 248, 0.6);
+    opacity: 0.8;
   }
 
   /* Enhanced responsive design for mobile */

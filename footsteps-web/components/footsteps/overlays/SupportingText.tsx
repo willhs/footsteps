@@ -119,18 +119,13 @@ function SupportingText({
           </div>
         )}
 
-      {/* Development debugging */}
-      {isDevelopment && (
-        <details open className="mt-3 text-xs text-slate-500">
-          <summary className="cursor-pointer">Debug</summary>
-          <div className="mt-2 pt-2 border-t border-slate-700/60 space-y-1">
-            <div>
-              Zoom: {viewState.zoom.toFixed(1)}x • LOD: {lodLevel}
-            </div>
-            <div>Dots drawn: {dotCount.toLocaleString()}</div>
-          </div>
-        </details>
-      )}
+      {/* Technical details */}
+      <div className="mt-2 pt-2 border-t border-slate-700/60 text-xs text-slate-500 space-y-1">
+        <div>
+          Zoom: {viewState.zoom.toFixed(1)}x • LOD: {lodLevel}
+        </div>
+        <div>Dots drawn: {dotCount.toLocaleString()}</div>
+      </div>
     </div>
   );
 }

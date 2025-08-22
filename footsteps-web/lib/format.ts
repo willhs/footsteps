@@ -64,3 +64,74 @@ export function formatYear(year: number): string {
   }
   return `${year} CE`;
 }
+
+// Provide historical context for time periods
+export function getHistoricalContext(year: number): {
+  period: string;
+  description: string;
+} {
+  if (year <= -10000) {
+    return {
+      period: 'Paleolithic',
+      description: 'Hunter-gatherer societies, small nomadic bands',
+    };
+  }
+  if (year <= -3500) {
+    return {
+      period: 'Neolithic',
+      description: 'Agricultural revolution, first permanent settlements',
+    };
+  }
+  if (year <= -1200) {
+    return {
+      period: 'Bronze Age',
+      description: 'Early civilizations, writing systems emerge',
+    };
+  }
+  if (year <= -800) {
+    return {
+      period: 'Iron Age',
+      description: 'Advanced metallurgy, expanding trade networks',
+    };
+  }
+  if (year <= 500) {
+    return {
+      period: 'Classical Antiquity',
+      description: 'Great empires, philosophy, and cultural flowering',
+    };
+  }
+  if (year <= 1000) {
+    return {
+      period: 'Late Antiquity',
+      description: 'Fall of empires, rise of new religions',
+    };
+  }
+  if (year <= 1500) {
+    return {
+      period: 'Medieval Period',
+      description: 'Feudalism, trade expansion, cathedral building',
+    };
+  }
+  if (year <= 1800) {
+    return {
+      period: 'Early Modern',
+      description: 'Age of exploration, Renaissance, scientific revolution',
+    };
+  }
+  if (year <= 1900) {
+    return {
+      period: 'Industrial Age',
+      description: 'Industrial revolution, urbanization, population growth',
+    };
+  }
+  if (year <= 2000) {
+    return {
+      period: 'Modern Era',
+      description: 'World wars, technological revolution, globalization',
+    };
+  }
+  return {
+    period: 'Contemporary',
+    description: 'Digital age, climate change, global connectivity',
+  };
+}

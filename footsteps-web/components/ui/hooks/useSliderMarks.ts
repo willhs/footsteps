@@ -69,11 +69,13 @@ export default function useSliderMarks(currentSliderValue: number) {
     > = {};
     keyYears.forEach((year) => {
       const position = YEAR_SLIDER_MAP[year];
+      const isMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
+      
       marks[position] = {
         label: formatLabel(year, compact),
         style: {
-          color: '#f1f5f9',
-          fontWeight: 400,
+          color: isMilestone ? '#38bdf8' : '#f1f5f9',
+          fontWeight: isMilestone ? 500 : 400,
           fontSize: compact ? '0.7rem' : undefined,
         },
       };
@@ -86,13 +88,15 @@ export default function useSliderMarks(currentSliderValue: number) {
     const position = YEAR_SLIDER_MAP[currentYear];
     const marks = { ...baseMarks };
 
+    // Make current year clearly emphasized (larger, time-blue, subtle glow)
     if (!marks[position]) {
       marks[position] = {
         label: formatLabel(currentYear, compact),
         style: {
-          color: '#38bdf8',
-          fontWeight: 600,
-          fontSize: compact ? '0.7rem' : undefined,
+          color: '#0ea5e9',
+          fontWeight: 700,
+          fontSize: compact ? '0.9rem' : '1.125rem',
+          textShadow: '0 0 20px rgba(14, 165, 233, 0.5)',
         },
       };
     } else {
@@ -100,8 +104,10 @@ export default function useSliderMarks(currentSliderValue: number) {
         ...marks[position],
         style: {
           ...marks[position].style,
-          color: '#38bdf8',
-          fontWeight: 600,
+          color: '#0ea5e9',
+          fontWeight: 700,
+          fontSize: compact ? '0.9rem' : '1.125rem',
+          textShadow: '0 0 20px rgba(14, 165, 233, 0.5)',
         },
       };
     }

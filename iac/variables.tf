@@ -82,4 +82,16 @@ variable "cache_disk_size_gb" {
   default     = 20
 }
 
+variable "log_retention_days" {
+  description = "Number of days to retain application logs"
+  type        = number
+  default     = 30
+}
+
+variable "alert_email" {
+  description = "Email address to receive error alerts"
+  type        = string
+  default     = ""
+}
+
 ## Cache warmer variables removed (deprecated)

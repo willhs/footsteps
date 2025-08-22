@@ -226,6 +226,74 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   member   = "allUsers"
 }
 
+# Centralized logging bucket with retention
+resource "google_logging_project_bucket_config" "app_logs" {
+  project        = var.project_id
+  location       = "global"
+  bucket_id      = "${var.project_id}-app-logs"
+  retention_days = var.log_retention_days
+}
+
+# Route Cloud Run logs to the logging bucket
+resource "google_logging_project_sink" "app_logs_sink" {
+  project             = var.project_id
+  name                = "app-logs-sink"
+  destination         = "logging.googleapis.com/projects/${var.project_id}/locations/global/buckets/${google_logging_project_bucket_config.app_logs.bucket_id}"
+  filter              = "resource.type=\"cloud_run_revision\""
+  unique_writer_identity = true
+}
+
+resource "google_logging_project_bucket_config_iam_member" "app_logs_sink_writer" {
+  project = var.project_id
+  bucket  = google_logging_project_bucket_config.app_logs.bucket_id
+  role    = "roles/logging.bucketWriter"
+  member  = google_logging_project_sink.app_logs_sink.writer_identity
+}
+
+# Logs-based metric for errors
+resource "google_logging_metric" "error_count" {
+  project = var.project_id
+  name    = "app-error-count"
+  filter  = "resource.type=\"cloud_run_revision\" AND severity>=ERROR"
+
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type  = "INT64"
+  }
+}
+
+# Notification channel for alerts
+resource "google_monitoring_notification_channel" "email" {
+  count        = var.alert_email != "" ? 1 : 0
+  display_name = "App Error Alerts"
+  type         = "email"
+  labels = {
+    email_address = var.alert_email
+  }
+}
+
+# Alert policy to notify on error logs
+resource "google_monitoring_alert_policy" "error_alert" {
+  display_name = "App Error Alert"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Error count > 0"
+    condition_threshold {
+      filter          = "metric.type=\"logging.googleapis.com/user/app-error-count\""
+      duration        = "60s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = var.alert_email != "" ? [google_monitoring_notification_channel.email[0].name] : []
+  depends_on            = [google_logging_metric.error_count]
+}
+
 # Optional: Custom domain mapping (commented out)
 # resource "google_cloud_run_domain_mapping" "app_domain" {
 #   location = var.region

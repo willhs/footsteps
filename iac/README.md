@@ -122,13 +122,13 @@ Total:                   ~$1-5/month for typical usage
 
 ### Local Development
 ```bash
-cd ../humans-globe
+cd ../footsteps-web
 pnpm dev  # Uses local MBTiles files automatically from ../data/tiles/humans/
 ```
 
 ### Testing Production Build
 ```bash
-cd ../humans-globe
+cd ../footsteps-web
 docker build -t footsteps-test .
 docker run -p 8080:8080 -e NODE_ENV=production footsteps-test
 ```

@@ -10,7 +10,7 @@ PROJECT_ID="footsteps-earth"
 SERVICE_NAME="footsteps-time-app"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
-APP_DIR="../../humans-globe"
+APP_DIR="../../footsteps-web"
 
 # Parse arguments
 SKIP_BUILD=false

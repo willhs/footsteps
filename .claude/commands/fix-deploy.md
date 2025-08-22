@@ -9,7 +9,7 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
-- Run `pnpm lint` and `npx tsc --noEmit` in humans-globe/ to catch config and type issues
+- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues
 - Check if recent architecture changes made workflow tests obsolete
 - If working with feature branches: check for merge conflicts with main first
 - Verify environment variables match current architecture (API vs GCS direct access)

@@ -42,8 +42,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   }, [is3DMode]);
 
   const [tileLoading, setTileLoading] = useState<boolean>(true);
+  const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
+  const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
   const {
     previousYear,
@@ -55,8 +57,9 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   // Reset metrics when year changes
   useEffect(() => {
     setTileLoading(true);
+    setMetricsLoading(true);
     setFeatureCount(0);
-    setTotalPopulation(0);
+    setYearChangedAt(Date.now());
   }, [year]);
 
   // Background layers - terrain or plain based on toggle
@@ -83,6 +86,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         newLayerHasTileRef,
         callbacks: {
           setTileLoading,
+          setMetricsLoading,
           setTooltipData,
         },
         metrics: {
@@ -97,6 +101,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       isPanning,
       newLayerHasTileRef,
       setTileLoading,
+      setMetricsLoading,
       setFeatureCount,
       setTotalPopulation,
       setTooltipData,
@@ -173,7 +178,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
       {/* Data info overlay */}
       <SupportingText
-        loading={tileLoading}
+        loading={
+          metricsLoading ||
+          (Date.now() - yearChangedAt < 1000 && totalPopulation === 0)
+        }
         dotCount={featureCount}
         totalPopulation={totalPopulation}
         viewState={viewState}

@@ -47,7 +47,7 @@ output "gcloud_upload_command" {
 # Build and deploy command helper
 output "gcloud_build_command" {
   description = "Command to build and deploy the application"
-  value       = "gcloud builds submit --tag ${var.container_image} ../humans-globe && gcloud run deploy ${google_cloud_run_v2_service.app.name} --image ${var.container_image} --region ${var.region}"
+  value       = "gcloud builds submit --tag ${var.container_image} ../footsteps-web && gcloud run deploy ${google_cloud_run_v2_service.app.name} --image ${var.container_image} --region ${var.region}"
 }
 
 # GitHub Actions CI/CD Configuration

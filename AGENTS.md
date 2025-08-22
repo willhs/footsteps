@@ -3,7 +3,7 @@
 Concise, actionable rules for working in this repo. Keep diffs minimal, performance high, and tests green.
 
 ## Project Structure
-- `humans-globe/`: Next.js + TypeScript frontend
+- `footsteps-web/`: Next.js + TypeScript frontend
   - `app/`: routes, API handlers, `globals.css`, layout
   - `components/`: React components (viz, overlays, views, hooks)
   - `lib/`: utilities (e.g., `tilesService.ts`, LOD helpers)
@@ -22,7 +22,7 @@ Concise, actionable rules for working in this repo. Keep diffs minimal, performa
 
 ## Quick Start
 - Frontend dev (port 4444):
-  - `cd humans-globe && pnpm i && pnpm dev`
+  - `cd footsteps-web && pnpm i && pnpm dev`
   - Open `http://localhost:4444`
 - Python env:
   - From repo root: `poetry install`
@@ -30,7 +30,7 @@ Concise, actionable rules for working in this repo. Keep diffs minimal, performa
 
 ## Common Commands
 - Frontend
-  - Install: `cd humans-globe && pnpm i`
+  - Install: `cd footsteps-web && pnpm i`
   - Dev: `pnpm dev` (port 4444)
   - Build/serve: `pnpm build && pnpm start`
   - Lint: `pnpm lint`
@@ -55,7 +55,7 @@ Concise, actionable rules for working in this repo. Keep diffs minimal, performa
    - Output goes to `data/tiles/humans/` (override with `--tiles-dir`)
 3) Serve tiles to the frontend during dev:
    - `export HUMANS_TILES_DIR=$(pwd)/data/tiles/humans`
-   - `cd humans-globe && HUMANS_TILES_DIR=$HUMANS_TILES_DIR pnpm dev`
+   - `cd footsteps-web && HUMANS_TILES_DIR=$HUMANS_TILES_DIR pnpm dev`
   - Tiles API: `/api/tiles/{year}/single/{z}/{x}/{y}.pbf`
 
 Notes
@@ -74,8 +74,8 @@ Notes
 - Add tests for all non-trivial logic; keep tests fast and deterministic
 
 ### Which Tests to Run Based on Changes
-- **Frontend changes** (`humans-globe/`):
-  - `cd humans-globe && pnpm test`
+- **Frontend changes** (`footsteps-web/`):
+  - `cd footsteps-web && pnpm test`
   - `pnpm lint` and `pnpm format`
 - **Python changes** (`footstep-generator/`):
   - `poetry run pytest footstep-generator -q`

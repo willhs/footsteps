@@ -9,9 +9,9 @@ exclude =
     .venv,
     venv,
     footstep-generator/tests,
-    humans-globe,
-    humans-globe/node_modules,
-    humans-globe/.next,
+    footsteps-web,
+    footsteps-web/node_modules,
+    footsteps-web/.next,
     .mypy_cache,
     .pytest_cache,
     .swc

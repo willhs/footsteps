@@ -12,7 +12,7 @@ auto_execution_mode: 1
 # Python
 poetry install --sync
 # Frontend
-cd humans-globe && pnpm install && cd ..
+cd footsteps-web && pnpm install && cd ..
 ```
 
 - __Run Python tests__
@@ -28,7 +28,7 @@ cd ..
 - __Frontend lint, build, test__
 // turbo
 ```bash
-cd humans-globe
+cd footsteps-web
 pnpm lint
 pnpm build
 pnpm test

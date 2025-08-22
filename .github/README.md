@@ -29,7 +29,7 @@ github-actions-ci-cd@footsteps-earth.iam.gserviceaccount.com
 
 ### 2. Verify Setup
 
-1. Make a small change to any file in `humans-globe/`
+1. Make a small change to any file in `footsteps-web/`
 2. Push to main branch
 3. Check the Actions tab in GitHub to see the deployment progress
 
@@ -38,7 +38,7 @@ github-actions-ci-cd@footsteps-earth.iam.gserviceaccount.com
 ### Trigger Conditions
 The workflow runs when:
 - Code is pushed to the `main` branch
-- Changes are made to files in `humans-globe/` directory
+- Changes are made to files in `footsteps-web/` directory
 - GitHub Actions workflow files are modified
 
 ### Build Process
@@ -74,7 +74,7 @@ The workflow runs when:
 For local development, the workflow only affects the main branch. Your local development remains unchanged:
 
 ```bash
-cd humans-globe
+cd footsteps-web
 pnpm install
 pnpm dev  # Runs on http://localhost:4444
 ```

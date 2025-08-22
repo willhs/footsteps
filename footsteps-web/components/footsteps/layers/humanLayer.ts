@@ -140,6 +140,8 @@ export function createHumanTilesLayer(
 // Factory pattern for human layers with metrics
 export interface HumanLayerCallbacks {
   setTileLoading: (loading: boolean) => void;
+  // Optional: allow caller to track when aggregated metrics are ready
+  setMetricsLoading?: (loading: boolean) => void;
   setTooltipData: (
     data: {
       population: number;
@@ -218,6 +220,17 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
               workerManager.calculateMetrics(rawTiles, (metricsResult) => {
                 metrics.setFeatureCount(metricsResult.count);
                 metrics.setTotalPopulation(metricsResult.population);
+                // Signal that metrics are ready only once we have a real new-year tile
+                // or non-zero metrics, to avoid flashing to 0 during year transitions.
+                if (
+                  newLayerHasTileRef.current ||
+                  metricsResult.count > 0 ||
+                  metricsResult.population > 0
+                ) {
+                  try {
+                    callbacks.setMetricsLoading?.(false);
+                  } catch {}
+                }
                 callbacks.setTileLoading(false);
               });
             }

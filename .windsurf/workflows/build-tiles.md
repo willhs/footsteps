@@ -57,9 +57,9 @@ sqlite3 "$TILES_DIR/humans_2020.mbtiles" "select zoom_level, count(*) from tiles
 // turbo
 ```bash
 export HUMANS_TILES_DIR="$TILES_DIR"
-cd humans-globe && pnpm dev -p 4444
+cd footsteps-web && pnpm dev -p 4444
 ```
 
 - __LOD zoom ranges__ (must match generator + frontend)
   - LOD 0: z0–3, LOD 1: z4, LOD 2: z5, LOD 3: z6–12
-  - Source of truth: `footstep-generator/make_tiles.py#LOD_ZOOM_RANGES`, `humans-globe/lib/lod.ts#getLODLevel`
+  - Source of truth: `footstep-generator/make_tiles.py#LOD_ZOOM_RANGES`, `footsteps-web/lib/lod.ts#getLODLevel`

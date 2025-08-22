@@ -41,7 +41,7 @@ cd deep-footsteps
 ./setup.sh
 
 # Start the development server (port 4444)
-cd humans-globe && pnpm dev
+cd footsteps-web && pnpm dev
 ```
 
 #### Manual Setup
@@ -55,7 +55,7 @@ cd deep-footsteps
 poetry install
 
 # Install frontend dependencies
-cd humans-globe
+cd footsteps-web
 pnpm install
 
 # Generate data and tiles
@@ -65,7 +65,7 @@ poetry run python footstep-generator/process_hyde.py    # Compute population-pre
 poetry run python footstep-generator/make_tiles.py      # Build MBTiles (tiles-only)
 
 # Start the development server
-cd humans-globe
+cd footsteps-web
 pnpm dev
 ```
 
@@ -91,7 +91,7 @@ Open `http://localhost:4444` in your browser.
 
 ## 🏗️ Architecture
 
-### Frontend (`/humans-globe/`)
+### Frontend (`/footsteps-web/`)
 - **Next.js 15** - React framework with App Router
 - **DeckGL** - WebGL-powered data visualization
 - **TypeScript** - Type-safe development
@@ -121,7 +121,7 @@ Open `http://localhost:4444` in your browser.
   - MVT requests use `/api/tiles/{year}/single/{z}/{x}/{y}.pbf` and expect layer id `humans`.
 
 * __Environment__
-  - Dev/local: tiles resolved from `HUMANS_TILES_DIR` (default: `../data/tiles/humans` relative to `humans-globe/` runtime).
+  - Dev/local: tiles resolved from `HUMANS_TILES_DIR` (default: `../data/tiles/humans` relative to `footsteps-web/` runtime).
   - Prod/GCS: set `NODE_ENV=production`, `GCP_PROJECT_ID`, `GCS_TILES_BUCKET` to serve from Google Cloud Storage.
   - Tile cache dir (GCS only): `TILE_CACHE_DIR` (default `/tmp/humans-tiles-cache`) for downloaded `.mbtiles` reuse.
 
@@ -134,7 +134,7 @@ Open `http://localhost:4444` in your browser.
 
 ```
 deep-footsteps/
-├── humans-globe/                 # Next.js frontend application
+├── footsteps-web/                # Next.js frontend application
 │   ├── app/                      # App Router pages + API
 │   ├── components/               # React components (viz, overlays, views)
 │   ├── lib/                      # Utilities and hooks
@@ -167,7 +167,7 @@ deep-footsteps/
 - Zoom < 6 → LOD 2 (Local)
 - Zoom ≥ 6 → LOD 3 (Detailed)
 
-Single-layer tiles use non-overlapping zoom windows per LOD so only one LOD is visible at any zoom. Source of truth: `footstep-generator/lod_config.py` → auto-generated into `humans-globe/lib/lod.ts`.
+Single-layer tiles use non-overlapping zoom windows per LOD so only one LOD is visible at any zoom. Source of truth: `footstep-generator/lod_config.py` → auto-generated into `footsteps-web/lib/lod.ts`.
 
 ### Processing Historical Data
 
@@ -221,7 +221,7 @@ poetry run python footstep-generator/make_tiles.py
 
 ### Server Hosting
 ```bash
-cd humans-globe
+cd footsteps-web
 pnpm build
 pnpm start
 ```

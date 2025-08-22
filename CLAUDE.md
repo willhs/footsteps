@@ -43,7 +43,7 @@ Follow principles of the The Visual Display of Quantitative Information by Edwar
 
 ## Architecture
 
-### Frontend (humans-globe/)
+### Frontend (footsteps-web/)
 - **Next.js 15** with App Router for the web application
 - **Deck.gl** for high-performance 3D globe rendering and data visualization layers
 - **TypeScript** for type safety throughout the frontend
@@ -84,7 +84,7 @@ The application implements a four‑tier LOD system for performance at different
 5. **Visualization**: Deck.gl renders dots as ScatterplotLayer with population-based sizing
 
 ## Commands
-- **Development**: `cd humans-globe && pnpm dev` → http://localhost:4444
+- **Development**: `cd footsteps-web && pnpm dev` → http://localhost:4444
 - **Data Processing (hierarchical LODs by default)**: `cd footstep-generator && python process_hyde.py`
 - **Build**: `pnpm build`
 - **Test**: `pnpm test`

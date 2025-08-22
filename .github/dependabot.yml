@@ -2,7 +2,7 @@ version: 2
 updates:
   # Enable version updates for npm (pnpm)
   - package-ecosystem: "npm"
-    directory: "/humans-globe"
+    directory: "/footsteps-web"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -16,7 +16,7 @@ updates:
     
   # Enable version updates for Docker
   - package-ecosystem: "docker"
-    directory: "/humans-globe"
+    directory: "/footsteps-web"
     schedule:
       interval: "weekly"
       day: "monday"

@@ -28,9 +28,10 @@ export default function parseInitialViewState(search = ''): ViewState {
     const lonParam = sp.get('lon') || sp.get('lng');
     const zoomParam = sp.get('zoom') || sp.get('z');
     
-    const lat = latParam !== null ? Number(latParam) : undefined;
-    const lon = lonParam !== null ? Number(lonParam) : undefined;
-    const zoom = zoomParam !== null ? Number(zoomParam) : undefined;
+    // Coerce to numbers, using NaN when absent so Number.isFinite checks work and types stay number
+    const lat = latParam !== null ? Number(latParam) : Number.NaN;
+    const lon = lonParam !== null ? Number(lonParam) : Number.NaN;
+    const zoom = zoomParam !== null ? Number(zoomParam) : Number.NaN;
 
     return {
       longitude: Number.isFinite(lon) ? lon : 0,

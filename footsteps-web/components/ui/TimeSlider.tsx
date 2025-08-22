@@ -22,7 +22,10 @@ interface TimeSliderProps {
 
 export default function TimeSlider({ value, onChange }: TimeSliderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const marks = useSliderMarks(value);
+  const handleSelectMark = useCallback((pos: number) => {
+    onChange(pos);
+  }, [onChange]);
+  const marks = useSliderMarks(value, handleSelectMark);
 
   // rAF-throttled change handler to maintain smooth 60fps scrubbing
   const rafIdRef = useRef<number | null>(null);

@@ -53,6 +53,13 @@ main {
   font-size: 12px !important;
   font-weight: 400 !important;
   transition: all 200ms ease-out;
+  position: absolute; /* ensure pseudo-element anchors correctly */
+  display: inline-block;
+  cursor: pointer;
+  /* Expand clickable area even when label is empty */
+  min-width: 18px;
+  height: 26px;
+  line-height: 14px;
 }
 
 /* Milestone labels (major historical periods) */
@@ -63,6 +70,42 @@ main {
 /* Current year - subtle but clear emphasis */
 .rc-slider-mark-text[style*="color: rgb(14, 165, 233)"] {
   font-weight: 600 !important;
+}
+
+/* Always show a small tick for every mark, even when label text is empty */
+.time-slider .rc-slider-mark-text::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Place tick near the rail (labels sit below the rail by default) */
+  top: -14px;
+  width: 2px;
+  height: 10px;
+  background: #94a3b8; /* slate-400 */
+  opacity: 0.9;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* Stronger tick for milestone labels (e.g., -10k, -9k, 1000) */
+.time-slider .rc-slider-mark-text[style*="color: rgb(56, 189, 248)"]::before {
+  height: 12px;
+  background: #38bdf8;
+  opacity: 0.95;
+}
+
+/* Strongest tick for the current year */
+.time-slider .rc-slider-mark-text[style*="color: rgb(14, 165, 233)"]::before {
+  height: 14px;
+  background: #0ea5e9;
+  opacity: 1;
+}
+
+/* Ensure marks render above rail/track for visibility and clicks */
+.time-slider .rc-slider-mark {
+  z-index: 2;
+  position: relative;
 }
 
 /* Remove old active styles that conflict with new system */

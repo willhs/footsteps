@@ -1,6 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
+import {
+  createElement,
+  useMemo,
+  type CSSProperties,
+  type ReactNode,
+  type MouseEvent as ReactMouseEvent,
+  type TouchEvent as ReactTouchEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { sliderToYear, yearToSlider } from '@/lib/useYear';
 import { TARGET_YEARS } from '@/lib/constants';
 import useWindowWidth from './useWindowWidth';
@@ -9,8 +17,8 @@ import useWindowWidth from './useWindowWidth';
 // If `compact` is true, use a shortened representation to save space on narrow screens
 const formatLabel = (year: number, compact = false) => {
   if (compact) {
-    // Show "10k" for -10_000, "9k" for -9_000, etc. Drop the BC suffix for brevity
-    if (year <= -1000 && year % 1000 === 0) return `${Math.abs(year / 1000)}k`;
+    // Show "10kBC" for -10_000, "9kBC" for -9_000, etc. Keep BC for clarity in compact mode
+    if (year <= -1000 && year % 1000 === 0) return `${Math.abs(year / 1000)}kBC`;
     if (year < 0) return `${Math.abs(year)}BC`; // e.g. -500 -> 500BC (no space)
     if (year >= 1000 && year % 100 === 0) {
       // 1000 -> 1k, 1200 -> 1.2k, 1500 -> 1.5k
@@ -56,35 +64,88 @@ const getResponsiveYears = (width: number): number[] => {
   return selected;
 };
 
-export default function useSliderMarks(currentSliderValue: number) {
+// Build a clickable label ReactNode so clicking a mark jumps to its position
+function makeClickableLabel(
+  year: number,
+  position: number,
+  labelText: string,
+  onSelect?: (position: number) => void,
+): ReactNode {
+  const aria = year < 0 ? `${Math.abs(year)} BC` : `${year}`;
+  return createElement(
+    'span',
+    {
+      role: 'button',
+      tabIndex: 0,
+      ['aria-label']: `Jump to ${aria}`,
+      onMouseDown: (e: ReactMouseEvent) => {
+        e.stopPropagation();
+        onSelect?.(position);
+      },
+      onTouchStart: (e: ReactTouchEvent) => {
+        e.stopPropagation();
+        onSelect?.(position);
+      },
+      onKeyDown: (e: ReactKeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelect?.(position);
+        }
+      },
+      ['data-year']: year,
+    },
+    labelText || '\u00A0',
+  );
+}
+
+export default function useSliderMarks(
+  currentSliderValue: number,
+  onSelect?: (position: number) => void,
+) {
   const width = useWindowWidth();
   const compact = width < 640; // Tailwind's sm breakpoint (640px)
 
   const keyYears = useMemo(() => getResponsiveYears(width), [width]);
 
+  // Build a marks object with a tick for every available year. Labels are applied
+  // only to a responsive subset to avoid overlap; others remain unlabeled.
   const baseMarks = useMemo(() => {
     const marks: Record<
       number,
-      { label: string; style?: React.CSSProperties }
+      { label: ReactNode; style?: CSSProperties }
     > = {};
+
+    // 1) Create an unlabeled tick for all target years
+    YEARS_SORTED.forEach((year) => {
+      const position = YEAR_SLIDER_MAP[year];
+      if (!marks[position]) {
+        marks[position] = {
+          label: makeClickableLabel(year, position, '', onSelect),
+          style: { opacity: 0.85 },
+        };
+      }
+    });
+
+    // 2) Overlay labels for the responsive subset of years
     keyYears.forEach((year) => {
       const position = YEAR_SLIDER_MAP[year];
       const isMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
-      
       marks[position] = {
-        label: formatLabel(year, compact),
+        label: makeClickableLabel(year, position, formatLabel(year, compact), onSelect),
         style: {
           color: isMilestone ? '#38bdf8' : '#f1f5f9',
           fontWeight: isMilestone ? 500 : 400,
           fontSize: compact ? '0.7rem' : undefined,
-          opacity: isMilestone ? 0.95 : (compact ? 0.8 : 0.85),
+          opacity: isMilestone ? 0.95 : compact ? 0.8 : 0.85,
           letterSpacing: compact ? '0.01em' : '0.015em',
           transition: 'all 200ms ease-out',
         },
       };
     });
+
     return marks;
-  }, [keyYears, compact]);
+  }, [keyYears, compact, onSelect]);
 
   return useMemo(() => {
     const currentYear = sliderToYear(currentSliderValue);
@@ -94,7 +155,12 @@ export default function useSliderMarks(currentSliderValue: number) {
     // Make current year clearly emphasized (larger, time-blue, subtle glow)
     if (!marks[position]) {
       marks[position] = {
-        label: formatLabel(currentYear, compact),
+        label: makeClickableLabel(
+          currentYear,
+          position,
+          formatLabel(currentYear, compact),
+          onSelect,
+        ),
         style: {
           color: '#0ea5e9',
           fontWeight: 700,
@@ -108,7 +174,14 @@ export default function useSliderMarks(currentSliderValue: number) {
       };
     } else {
       marks[position] = {
+        // Always ensure the current year has a visible label, even if the base mark was unlabeled
         ...marks[position],
+        label: makeClickableLabel(
+          currentYear,
+          position,
+          formatLabel(currentYear, compact),
+          onSelect,
+        ),
         style: {
           ...marks[position].style,
           color: '#0ea5e9',
@@ -131,7 +204,7 @@ export default function useSliderMarks(currentSliderValue: number) {
 
     neighborYears.forEach((ny) => {
       const npos = YEAR_SLIDER_MAP[ny];
-      if (marks[npos]) {
+      if (marks[npos] && marks[npos].label) {
         marks[npos] = {
           ...marks[npos],
           style: {
@@ -146,5 +219,5 @@ export default function useSliderMarks(currentSliderValue: number) {
     });
 
     return marks;
-  }, [currentSliderValue, baseMarks, compact]);
+  }, [currentSliderValue, baseMarks, compact, onSelect]);
 }

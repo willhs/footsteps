@@ -59,6 +59,33 @@ jobs:
           CI: true
         run: pnpm test --ci --passWithNoTests
 
+      - name: Build application
+        working-directory: ./footsteps-web
+        run: pnpm build
+
+      - name: Archive build output
+        working-directory: ./footsteps-web
+        run: tar -czf nextjs-build.tar.gz .next
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: footsteps-web/nextjs-build.tar.gz
+
+      - name: Build Docker image
+        working-directory: ./footsteps-web
+        run: docker build -t footsteps-web:${{ github.sha }} .
+
+      - name: Save Docker image
+        run: docker save footsteps-web:${{ github.sha }} -o footsteps-web-image.tar
+
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: footsteps-web-image
+          path: footsteps-web-image.tar
+
   python:
     name: Python Tests
     runs-on: ubuntu-latest

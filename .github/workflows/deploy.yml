@@ -31,37 +31,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+
+    - name: Download Docker image artifact
+      uses: actions/download-artifact@v4
       with:
-        node-version: '20'
-        
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 10
-        
-    - name: Get pnpm store directory
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-        
-    - name: Setup pnpm cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('footsteps-web/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-          
-    - name: Install dependencies
-      working-directory: ./footsteps-web
-      run: pnpm install --frozen-lockfile
-      
-    - name: Build application
-      working-directory: ./footsteps-web
-      run: pnpm build
+        name: footsteps-web-image
+        path: .
+
+    - name: Load Docker image
+      run: docker load -i footsteps-web-image.tar
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -90,42 +68,11 @@ jobs:
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker
       
-    - name: Build and push Docker image
-      working-directory: ./footsteps-web
+    - name: Push Docker image to GCR
       run: |
-        # Create a unique tag using git commit SHA
         IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
-        
-        # Build and push using Cloud Build for better caching
-        # Use --async and poll status to avoid log streaming permission issues
-        BUILD_ID=$(gcloud builds submit \
-          --tag "$IMAGE_TAG" \
-          --timeout=10m \
-          --format='value(id)' \
-          --async \
-          .)
-
-        echo "⏳ Submitted Cloud Build: $BUILD_ID"
-        echo "🔎 Waiting for build to complete..."
-        for i in {1..90}; do
-          STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
-          echo "Attempt $i: status=$STATUS"
-          if [ "$STATUS" = "SUCCESS" ]; then
-            echo "✅ Build succeeded"
-            break
-          fi
-          if [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
-            echo "❌ Build failed with status: $STATUS"
-            exit 1
-          fi
-          sleep 10
-        done
-        if [ "$STATUS" != "SUCCESS" ]; then
-          echo "❌ Build did not complete within expected time"
-          exit 1
-        fi
-          
-        # Also tag as latest for consistency
+        docker tag footsteps-web:${{ github.event.workflow_run.head_sha }} "$IMAGE_TAG"
+        docker push "$IMAGE_TAG"
         gcloud container images add-tag --quiet \
           "$IMAGE_TAG" \
           "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest"
@@ -136,8 +83,9 @@ jobs:
       run: |
         # Deploy with zero-downtime deployment and a warmed resident instance
         ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_BUCKET_NAME=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
         gcloud run deploy ${{ env.SERVICE_NAME }} \
-          --image=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }} \
+          --image="$IMAGE_TAG" \
           --region=${{ env.REGION }} \
           --platform=managed \
           --allow-unauthenticated \

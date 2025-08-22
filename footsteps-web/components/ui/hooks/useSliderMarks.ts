@@ -77,6 +77,9 @@ export default function useSliderMarks(currentSliderValue: number) {
           color: isMilestone ? '#38bdf8' : '#f1f5f9',
           fontWeight: isMilestone ? 500 : 400,
           fontSize: compact ? '0.7rem' : undefined,
+          opacity: isMilestone ? 0.95 : (compact ? 0.8 : 0.85),
+          letterSpacing: compact ? '0.01em' : '0.015em',
+          transition: 'all 200ms ease-out',
         },
       };
     });
@@ -96,7 +99,11 @@ export default function useSliderMarks(currentSliderValue: number) {
           color: '#0ea5e9',
           fontWeight: 700,
           fontSize: compact ? '0.9rem' : '1.125rem',
-          textShadow: '0 0 20px rgba(14, 165, 233, 0.5)',
+          textShadow: compact
+            ? '0 0 8px rgba(14, 165, 233, 0.35)'
+            : '0 0 20px rgba(14, 165, 233, 0.5)',
+          opacity: 1,
+          letterSpacing: compact ? '0.005em' : '0.01em',
         },
       };
     } else {
@@ -107,10 +114,36 @@ export default function useSliderMarks(currentSliderValue: number) {
           color: '#0ea5e9',
           fontWeight: 700,
           fontSize: compact ? '0.9rem' : '1.125rem',
-          textShadow: '0 0 20px rgba(14, 165, 233, 0.5)',
+          textShadow: compact
+            ? '0 0 8px rgba(14, 165, 233, 0.35)'
+            : '0 0 20px rgba(14, 165, 233, 0.5)',
+          opacity: 1,
         },
       };
     }
+
+    // Subtle neighbor emphasis for context (previous/next years) if already present
+    const idx = YEARS_SORTED.indexOf(currentYear);
+    const neighborYears = [
+      YEARS_SORTED[idx - 1],
+      YEARS_SORTED[idx + 1],
+    ].filter((y): y is number => typeof y === 'number');
+
+    neighborYears.forEach((ny) => {
+      const npos = YEAR_SLIDER_MAP[ny];
+      if (marks[npos]) {
+        marks[npos] = {
+          ...marks[npos],
+          style: {
+            ...marks[npos].style,
+            color: '#38bdf8',
+            fontWeight: 600,
+            fontSize: compact ? '0.8rem' : '1rem',
+            opacity: 0.95,
+          },
+        };
+      }
+    });
 
     return marks;
   }, [currentSliderValue, baseMarks, compact]);

@@ -44,6 +44,18 @@ function SupportingText({
   );
   const debounceRef = useRef<number | null>(null);
   const zeroGuardRef = useRef<number | null>(null);
+  // Mirror the population behaviour for dots count
+  const [displayDotCount, setDisplayDotCount] = useState<number>(dotCount);
+  const dotsDebounceRef = useRef<number | null>(null);
+  const dotsZeroGuardRef = useRef<number | null>(null);
+
+  // Micro-interactions: brief highlight/dim transitions
+  const [yearFlash, setYearFlash] = useState(false);
+  const [popFlash, setPopFlash] = useState(false);
+  const [dotsFlash, setDotsFlash] = useState(false);
+  const yearFlashTimeout = useRef<number | null>(null);
+  const popFlashTimeout = useRef<number | null>(null);
+  const dotsFlashTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     // Always clear any pending timers before handling the new state
@@ -86,18 +98,98 @@ function SupportingText({
     };
   }, [loading, totalPopulation]);
 
+  // Keep showing the last committed dots value until the new one is ready.
+  useEffect(() => {
+    // Always clear any pending timers before handling the new state
+    if (dotsDebounceRef.current) {
+      window.clearTimeout(dotsDebounceRef.current);
+      dotsDebounceRef.current = null;
+    }
+    if (dotsZeroGuardRef.current) {
+      window.clearTimeout(dotsZeroGuardRef.current);
+      dotsZeroGuardRef.current = null;
+    }
+
+    if (loading) {
+      // Keep showing the last committed value while loading
+      return;
+    }
+
+    // Not loading: decide how to commit the value
+    if (dotCount > 0) {
+      // Commit promptly with a tiny debounce to coalesce rapid updates
+      dotsDebounceRef.current = window.setTimeout(() => {
+        setDisplayDotCount(dotCount);
+      }, 120);
+    } else {
+      // Zero-guard: delay showing 0 briefly to avoid flashing during transitions
+      dotsZeroGuardRef.current = window.setTimeout(() => {
+        setDisplayDotCount(0);
+      }, 500);
+    }
+
+    return () => {
+      if (dotsDebounceRef.current) {
+        window.clearTimeout(dotsDebounceRef.current);
+        dotsDebounceRef.current = null;
+      }
+      if (dotsZeroGuardRef.current) {
+        window.clearTimeout(dotsZeroGuardRef.current);
+        dotsZeroGuardRef.current = null;
+      }
+    };
+  }, [loading, dotCount]);
+
+  // Trigger micro highlight on year change
+  useEffect(() => {
+    if (yearFlashTimeout.current) {
+      window.clearTimeout(yearFlashTimeout.current);
+    }
+    setYearFlash(true);
+    yearFlashTimeout.current = window.setTimeout(() => setYearFlash(false), 180);
+    return () => {
+      if (yearFlashTimeout.current) window.clearTimeout(yearFlashTimeout.current);
+    };
+  }, [year]);
+
+  // Trigger gentle dim/brighten on metric updates
+  useEffect(() => {
+    if (popFlashTimeout.current) window.clearTimeout(popFlashTimeout.current);
+    setPopFlash(true);
+    popFlashTimeout.current = window.setTimeout(() => setPopFlash(false), 120);
+    return () => {
+      if (popFlashTimeout.current) window.clearTimeout(popFlashTimeout.current);
+    };
+  }, [displayPopulation]);
+
+  useEffect(() => {
+    if (dotsFlashTimeout.current) window.clearTimeout(dotsFlashTimeout.current);
+    setDotsFlash(true);
+    dotsFlashTimeout.current = window.setTimeout(() => setDotsFlash(false), 120);
+    return () => {
+      if (dotsFlashTimeout.current) window.clearTimeout(dotsFlashTimeout.current);
+    };
+  }, [displayDotCount]);
+
   return (
     <div
       className="absolute backdrop-blur-md bg-black/40 bg-opacity-50 rounded-md p-3 text-slate-200 font-sans"
       style={{ top: '1rem', left: '1rem', zIndex: 30 }}
     >
       {/* Current year */}
-      <div className="text-xs text-slate-400 mb-1">{formatYear(year)}</div>
+      <div
+        className={`text-xs text-slate-400 mb-1 year-text ${yearFlash ? 'year-flash' : ''}`}
+        aria-live="polite"
+      >
+        {formatYear(year)}
+      </div>
 
       {/* Title and primary metric */}
       <div className="text-sm mb-1">Human presence</div>
       <div className="text-xl font-semibold mb-2">
-        {formatPopulation(displayPopulation)}
+        <span className={`metric-value ${popFlash ? 'metric-flash' : ''}`}>
+          {formatPopulation(displayPopulation)}
+        </span>
       </div>
 
       {/* Current view context */}
@@ -124,7 +216,12 @@ function SupportingText({
         <div>
           Zoom: {viewState.zoom.toFixed(1)}x • LOD: {lodLevel}
         </div>
-        <div>Dots drawn: {dotCount.toLocaleString()}</div>
+        <div>
+          Dots drawn:{' '}
+          <span className={`metric-value ${dotsFlash ? 'metric-flash' : ''}`}>
+            {displayDotCount.toLocaleString()}
+          </span>
+        </div>
       </div>
     </div>
   );

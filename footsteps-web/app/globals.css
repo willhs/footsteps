@@ -75,6 +75,28 @@ main {
 }
 
 @layer components {
+  /* Micro-interactions: subtle, token-aligned */
+  .year-text {
+    transition: color 180ms ease-out;
+  }
+  .year-flash {
+    color: #0ea5e9; /* --color-time */
+  }
+
+  .metric-value {
+    transition: opacity 120ms ease-out;
+  }
+  .metric-flash {
+    opacity: 0.65;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .year-text,
+    .metric-value {
+      transition: none;
+    }
+  }
+
   .time-slider-container {
     /* Layout */
     position: fixed;

@@ -44,10 +44,6 @@ export default function DeckGLView({
     [],
   );
 
-  if (typeof window !== 'undefined') {
-    console.log('DeckGLView viewState:', viewState);
-  }
-
   return (
     <DeckGL
       views={is3D ? globeView : mapView}

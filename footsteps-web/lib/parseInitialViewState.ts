@@ -22,9 +22,15 @@ export interface ViewState {
 export default function parseInitialViewState(search = ''): ViewState {
   try {
     const sp = new URLSearchParams(search);
-    const lat = Number(sp.get('lat'));
-    const lon = Number(sp.get('lon') || sp.get('lng'));
-    const zoom = Number(sp.get('zoom') || sp.get('z'));
+    
+    // Parse parameters only if they exist, otherwise use undefined to trigger defaults
+    const latParam = sp.get('lat');
+    const lonParam = sp.get('lon') || sp.get('lng');
+    const zoomParam = sp.get('zoom') || sp.get('z');
+    
+    const lat = latParam !== null ? Number(latParam) : undefined;
+    const lon = lonParam !== null ? Number(lonParam) : undefined;
+    const zoom = zoomParam !== null ? Number(zoomParam) : undefined;
 
     return {
       longitude: Number.isFinite(lon) ? lon : 0,

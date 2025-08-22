@@ -100,6 +100,7 @@ jobs:
         # Use --async and poll status to avoid log streaming permission issues
         BUILD_ID=$(gcloud builds submit \
           --tag "$IMAGE_TAG" \
+          --tag "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest" \
           --timeout=10m \
           --format='value(id)' \
           --async \
@@ -125,12 +126,7 @@ jobs:
           exit 1
         fi
           
-        # Also tag as latest for consistency
-        gcloud container images add-tag --quiet \
-          "$IMAGE_TAG" \
-          "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest"
-
-    # Cache warmer image build removed (deprecated)
+        # Cache warmer image build removed (deprecated)
           
     - name: Deploy to Cloud Run
       run: |

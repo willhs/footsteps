@@ -43,7 +43,8 @@ FROM base AS runner
 WORKDIR /app
 
 # Install sqlite3 CLI for MBTiles access in production
-RUN apk add --no-cache sqlite
+# curl is required for container health checks
+RUN apk add --no-cache sqlite curl
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -77,6 +78,10 @@ EXPOSE 8080
 
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s \
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application
 CMD ["node", "server.js"]

@@ -41,19 +41,16 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
   return (
     <div className="time-slider-container">
       <div className="w-full space-y-6">
-        {/* Current year display - Hero element with immediate visual impact */}
+        {/* Current year display - Subtle yet prominent */}
         <div className="flex items-center justify-center">
           <div 
-            className={`text-4xl sm:text-5xl md:text-6xl font-bold transition-all duration-200 ${
+            className={`text-xl sm:text-2xl font-semibold transition-all duration-200 ${
               isDragging 
-                ? 'text-sky-300 scale-105 drop-shadow-[0_0_20px_rgba(125,211,252,0.6)]' 
-                : 'text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]'
+                ? 'text-sky-300' 
+                : 'text-sky-400'
             }`}
             style={{ 
-              color: isDragging ? '#7dd3fc' : '#0ea5e9',
-              textShadow: isDragging 
-                ? '0 0 30px rgba(14, 165, 233, 0.8), 0 0 60px rgba(14, 165, 233, 0.4)' 
-                : '0 0 20px rgba(14, 165, 233, 0.5)'
+              color: isDragging ? '#7dd3fc' : '#0ea5e9'
             }}
           >
             {formatYear(currentYear)}

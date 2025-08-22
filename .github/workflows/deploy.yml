@@ -92,34 +92,9 @@ jobs:
         IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
         
         # Build and push using Cloud Build for better caching
-        # Use --async and poll status to avoid log streaming permission issues
-        BUILD_ID=$(gcloud builds submit \
-          --tag "$IMAGE_TAG" \
-          --timeout=10m \
-          --format='value(id)' \
-          --async \
-          .)
+        BUILD_ID=$(gcloud builds submit --tag "$IMAGE_TAG" --timeout=10m --format='value(id)' .)
+        gcloud builds operations wait "$BUILD_ID"
 
-        echo "⏳ Submitted Cloud Build: $BUILD_ID"
-        echo "🔎 Waiting for build to complete..."
-        for i in {1..90}; do
-          STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
-          echo "Attempt $i: status=$STATUS"
-          if [ "$STATUS" = "SUCCESS" ]; then
-            echo "✅ Build succeeded"
-            break
-          fi
-          if [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
-            echo "❌ Build failed with status: $STATUS"
-            exit 1
-          fi
-          sleep 10
-        done
-        if [ "$STATUS" != "SUCCESS" ]; then
-          echo "❌ Build did not complete within expected time"
-          exit 1
-        fi
-          
         # Also tag as latest for consistency
         gcloud container images add-tag --quiet \
           "$IMAGE_TAG" \

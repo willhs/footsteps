@@ -4,21 +4,20 @@ import { yearToSlider, sliderToYear, formatYear, useYear } from './useYear';
 describe('yearToSlider and sliderToYear', () => {
   it('maps known years to slider positions', () => {
     expect(yearToSlider(-10000)).toBe(0);
-    expect(yearToSlider(1500)).toBe(100);
-    expect(yearToSlider(0)).toBeCloseTo(61.3556, 4);
+    expect(yearToSlider(1000)).toBe(100);
+    expect(yearToSlider(0)).toBeCloseTo(69.8678, 4);
   });
 
   it('maps known slider positions to years', () => {
     expect(sliderToYear(0)).toBe(-10000);
-    expect(sliderToYear(100)).toBe(1500);
+    expect(sliderToYear(100)).toBe(1000);
     expect(sliderToYear(yearToSlider(0))).toBe(0);
   });
 
   it('round trips target years', () => {
     const targetYears = [
       -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000, 0,
-      100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400,
-      1500,
+      100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
     ];
 
     for (const year of targetYears) {
@@ -38,7 +37,7 @@ describe('formatYear', () => {
   });
 
   it('formats CE years', () => {
-    expect(formatYear(1500)).toBe('1500 CE');
+    expect(formatYear(1000)).toBe('1000 CE');
   });
 });
 
@@ -57,7 +56,7 @@ describe('useYear hook', () => {
 
     act(() => result.current.updateSlider(100));
     expect(result.current.sliderValue).toBe(100);
-    expect(result.current.year).toBe(1500);
-    expect(result.current.formattedYear).toBe('1500 CE');
+    expect(result.current.year).toBe(1000);
+    expect(result.current.formattedYear).toBe('1000 CE');
   });
 });

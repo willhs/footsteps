@@ -1,7 +1,7 @@
 'use client';
 
 import DeckGL, { type DeckGLProps } from '@deck.gl/react';
-import { _GlobeView as GlobeView, type LayersList } from '@deck.gl/core';
+import { _GlobeView as GlobeView, MapView, type LayersList } from '@deck.gl/core';
 import { ReactNode, useMemo } from 'react';
 
 type BasicViewState = {
@@ -30,6 +30,7 @@ export default function DeckGLView({
   const is3D = mode === '3d';
 
   const globeView = useMemo(() => new GlobeView(), []);
+  const mapView = useMemo(() => new MapView(), []);
 
   const controller2D = useMemo(
     () => ({
@@ -43,9 +44,13 @@ export default function DeckGLView({
     [],
   );
 
+  if (typeof window !== 'undefined') {
+    console.log('DeckGLView viewState:', viewState);
+  }
+
   return (
     <DeckGL
-      views={is3D ? globeView : undefined}
+      views={is3D ? globeView : mapView}
       viewState={viewState}
       onViewStateChange={onViewStateChange}
       controller={is3D ? true : controller2D}

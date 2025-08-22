@@ -21,11 +21,15 @@ type BasicViewState = {
 export default function useGlobeViewState() {
   // Read optional initial state from URL query on first mount for QA/debug convenience
   // Example: ?lat=28.6&lon=77.2&zoom=8
-  const [viewState, setViewState] = useState<ViewState>(() =>
-    parseInitialViewState(
+  const [viewState, setViewState] = useState<ViewState>(() => {
+    const initialState = parseInitialViewState(
       typeof window !== 'undefined' ? window.location.search : '',
-    ),
-  );
+    );
+    if (typeof window !== 'undefined') {
+      console.log('Initial zoom level:', initialState.zoom);
+    }
+    return initialState;
+  });
   const viewStateRef = useRef<ViewState>(viewState);
 
   const [isZooming, triggerZoom] = useDebouncedFlag(800);

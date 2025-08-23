@@ -10,8 +10,9 @@ import { getWorkerManager } from './WorkerManager';
 // Removed crossfade imports
 
 // Allow tuning of tile fade duration via env; default to a subtle crossfade
-const DEFAULT_TILE_FADE_MS =
-  Number(process.env.NEXT_PUBLIC_TILE_FADE_MS) || 200;
+const DEFAULT_TILE_FADE_MS = 1000
+// const DEFAULT_TILE_FADE_MS =
+ // Number(process.env.NEXT_PUBLIC_TILE_FADE_MS) || 200;
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -39,6 +40,8 @@ export function createHumanTilesLayer(
       useBinary?: boolean;
       fadeMs?: number;
       easing?: (t: number) => number;
+      // New: control radius attribute transition duration
+      radiusTransitionMs?: number;
     };
     debugTint?: [number, number, number];
   },
@@ -134,7 +137,10 @@ export function createHumanTilesLayer(
         easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)), // smoothstep
       },
       getPointRadius: {
-        duration: 250,
+        duration:
+          typeof tileOptions.radiusTransitionMs === 'number'
+            ? tileOptions.radiusTransitionMs
+            : 250,
         easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)),
       },
     },
@@ -269,6 +275,8 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           fadeMs: tileFadeMs,
           debounceTime: isZooming || isPanning ? 80 : 20,
           useBinary: true,
+          // Disable radius animation on the newly introduced year layer to avoid initial size pop
+          radiusTransitionMs: isNewYearLayer ? 0 : 250,
         },
         debugTint: undefined,
       },

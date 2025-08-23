@@ -1,20 +1,4 @@
 /** @type {import('next').NextConfig} */
-const securityHeaders = [
-  {
-    key: 'Content-Security-Policy',
-    value:
-      "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'",
-  },
-  {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff',
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'DENY',
-  },
-];
-
 const nextConfig = {
   reactStrictMode: true,
   // Enable standalone output for Docker deployment
@@ -26,14 +10,6 @@ const nextConfig = {
   // Disable TypeScript checking during build for initial deployment
   typescript: {
     ignoreBuildErrors: true,
-  },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: securityHeaders,
-      },
-    ];
   },
   // Removed experimental.esmExternals as recommended by Next.js
   webpack: (config) => {

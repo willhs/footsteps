@@ -47,12 +47,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  const {
-    previousYear,
-    currentOpacity,
-    previousOpacity,
-    newLayerHasTileRef,
-  } = useYearCrossfade(year);
+  const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
+    useYearCrossfade(year);
 
   // Reset metrics when year changes
   useEffect(() => {
@@ -115,7 +111,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         year,
         stableLODLevel,
         currentOpacity,
-        `human-layer-${year}`,
+        'human-layer-current',
         true,
       ),
     [createHumanLayerForYear, year, stableLODLevel, currentOpacity],
@@ -128,7 +124,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             previousYear as number,
             stableLODLevel,
             previousOpacity,
-            `human-layer-${previousYear}`,
+            'human-layer-previous',
             false,
           )
         : null,

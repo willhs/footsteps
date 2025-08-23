@@ -3,7 +3,7 @@ import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
-import { createLayerId, createOnTileLoadHandler } from './tileCache';
+import { createOnTileLoadHandler } from './tileCache';
 import { getFillColor } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
 import { getWorkerManager } from './WorkerManager';
@@ -49,8 +49,8 @@ export function createHumanTilesLayer(
   const tileOptions =
     (extra && 'tileOptions' in extra ? extra.tileOptions : undefined) || {};
 
-  // Generate unique layer ID to prevent deck.gl assertion failures from layer reuse
-  const layerId = createLayerId(year, radiusStrategy, instanceId);
+  // Use a stable layer id so deck.gl can reuse tile cache across year changes
+  const layerId = instanceId || `human-tiles-${radiusStrategy.getName()}`;
   const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({
@@ -61,8 +61,8 @@ export function createHumanTilesLayer(
     // Use best-available refinement to ensure tiles load
     refinementStrategy: 'best-available',
     // Set reasonable defaults for tile loading
-    maxCacheSize: tileOptions.maxCacheSize ?? 100,
-    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 32 * 1024 * 1024, // 32MB
+    maxCacheSize: tileOptions.maxCacheSize ?? 300,
+    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 64 * 1024 * 1024, // 64MB
     debounceTime: tileOptions.debounceTime ?? 0, // No debounce by default
     maxRequests: tileOptions.maxRequests ?? 6,
     zoomOffset: tileOptions.zoomOffset ?? 0,

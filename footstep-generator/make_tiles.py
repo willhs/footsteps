@@ -477,8 +477,9 @@ def main():
 
     print(f"\n✓ Built {built} yearly MBTiles → {args.tiles_dir}")
     print("Next:")
-    print("- Serve tiles via API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf (single-layer)")
-    print("- Frontend: MVTLayer with layer id 'humans'")
+    print("- Serve tiles via frontend API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf")
+    print("- Frontend MVTLayer loads from MBTiles with layer id 'humans'")
+    print("- For production: Upload MBTiles to GCS using iac/scripts/upload-data.sh")
 
     # macOS audible completion notification
     try:

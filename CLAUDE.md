@@ -93,8 +93,8 @@ The application implements a four‑tier LOD system for performance at different
 ### Data Deployment Commands
 - **Full local data deployment**: `cd iac/scripts && ./deploy-data-local.sh`
 - **Deploy data via GitHub Actions**: Go to Actions → "Deploy Data to GCS" → Run workflow
-- **Upload data only**: `cd iac/scripts && ./upload-data.sh`
-- **Preview data upload**: `cd iac/scripts && ./upload-data.sh --dry-run`
+- **Upload MBTiles to GCS**: `cd iac/scripts && ./upload-data.sh`
+- **Preview MBTiles upload**: `cd iac/scripts && ./upload-data.sh --dry-run`
 
 ### Deployment Diagnostics
 - **Debug deployment issues**: `cd iac/scripts && ./debug-deploy.sh`

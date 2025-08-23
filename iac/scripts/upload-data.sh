@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Export MBTiles to static z/x/y .pbf and upload to GCS
+# Upload MBTiles directly to GCS for tile serving
 # Usage: ./upload-data.sh [bucket-name] [--dry-run] [--help]
 
 set -e
@@ -9,32 +9,20 @@ set -e
 PROJECT_ID="footsteps-earth"
 DEFAULT_BUCKET_NAME="footsteps-earth-tiles"
 DATA_DIR="../../data/tiles/humans"
-# Local export directory for static z/x/y .pbf tiles
-ZXY_OUT_DIR="../../data/tiles/humans/zxy"
-# GCS prefix for static tiles
-TILES_PREFIX="tiles/humans"
+# GCS prefix for MBTiles
+TILES_PREFIX="tiles/mbtiles"
 
 # Parse arguments
 BUCKET_NAME="$DEFAULT_BUCKET_NAME"
 DRY_RUN=false
 SHOW_HELP=false
-# Defaults: overwrite is enabled (regenerate locally and replace on GCS)
-OVERWRITE_LOCAL=true
+# Defaults: overwrite remote is enabled
 OVERWRITE_REMOTE=true
-DELETE_LOCAL_AFTER_UPLOAD=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dry-run)
             DRY_RUN=true
-            shift
-            ;;
-        --overwrite-local)
-            OVERWRITE_LOCAL=true
-            shift
-            ;;
-        --no-overwrite-local)
-            OVERWRITE_LOCAL=false
             shift
             ;;
         --overwrite-remote)
@@ -43,14 +31,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-overwrite-remote)
             OVERWRITE_REMOTE=false
-            shift
-            ;;
-        --no-delete-local)
-            DELETE_LOCAL_AFTER_UPLOAD=false
-            shift
-            ;;
-        --keep-local)
-            DELETE_LOCAL_AFTER_UPLOAD=false
             shift
             ;;
         --help|-h)
@@ -71,7 +51,7 @@ done
 
 # Show help if requested
 if [ "$SHOW_HELP" = true ]; then
-    echo "Export MBTiles locally and upload static PBF tiles to GCS"
+    echo "Upload MBTiles directly to GCS for tile serving"
     echo ""
     echo "Usage: $0 [bucket-name] [options]"
     echo ""
@@ -80,31 +60,27 @@ if [ "$SHOW_HELP" = true ]; then
     echo ""
     echo "Options:"
     echo "  --dry-run              Show what would be done without actually uploading"
-    echo "  --overwrite-local      Regenerate local .pbf tiles (default: on)"
-    echo "  --no-overwrite-local   Skip existing local .pbf tiles (resume mode)"
     echo "  --overwrite-remote     Overwrite existing objects on GCS (default: on)"
     echo "  --no-overwrite-remote  Do not overwrite GCS objects (no-clobber)"
-    echo "  --no-delete-local      Keep local exported tiles after upload (default: delete per-year)"
-    echo "  --keep-local           Alias of --no-delete-local"
     echo "  --help, -h             Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                           # Export and upload static tiles to default bucket"
-    echo "  $0 my-bucket                 # Export and upload to custom bucket"
+    echo "  $0                           # Upload MBTiles to default bucket"
+    echo "  $0 my-bucket                 # Upload MBTiles to custom bucket"
     echo "  $0 --dry-run                 # Preview steps only"
     echo ""
     echo "Behavior:"
-    echo "  - Exports each combined MBTiles to static z/x/y .pbf and uploads to gs://$DEFAULT_BUCKET_NAME/$TILES_PREFIX/{year}/single/{z}/{x}/{y}.pbf"
+    echo "  - Uploads each combined MBTiles to gs://$DEFAULT_BUCKET_NAME/$TILES_PREFIX/humans_{year}.mbtiles"
     echo "  - Default upload overwrites existing objects. Use --no-overwrite-remote for no-clobber."
-    echo "  - Sets long Cache-Control and appropriate Content-Type/Encoding for static tiles"
+    echo "  - Sets appropriate Content-Type for MBTiles files"
     exit 0
 fi
 
 # Show configuration
 if [ "$DRY_RUN" = true ]; then
-    echo "🧪 DRY RUN: Previewing static tiles export + upload to: gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "🧪 DRY RUN: Previewing MBTiles upload to: gs://$BUCKET_NAME/$TILES_PREFIX/"
 else
-    echo "🚀 Exporting and uploading static tiles to: gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "🚀 Uploading MBTiles to: gs://$BUCKET_NAME/$TILES_PREFIX/"
 fi
 
 # Check if data directory exists
@@ -157,11 +133,10 @@ fi
 # Count and validate files (exclude LOD-specific files)
 echo "🔢 Scanning for combined MBTiles (excluding LOD-specific)..."
 FILE_COUNT=$(find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | wc -l)
-echo "🧮 Computing combined MBTiles size (fast)..."
+echo "🧮 Computing combined MBTiles size..."
 COMBINED_SIZE=$(find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | xargs du -ch 2>/dev/null | tail -1 | cut -f1 || echo "unknown")
-# Skip total directory size to avoid traversing massive zxy trees
-echo "📦 Found $FILE_COUNT combined MBTiles files to export (MBTiles size: $COMBINED_SIZE)"
-echo "🚀 Optimized export: Excluding LOD-specific files (66% size reduction)"
+echo "📦 Found $FILE_COUNT combined MBTiles files to upload (total size: $COMBINED_SIZE)"
+echo "🚀 Optimized upload: Excluding LOD-specific files (server uses combined files only)"
 
 if [ "$FILE_COUNT" -eq 0 ]; then
     echo "❌ Error: No combined MBTiles files found in $DATA_DIR"
@@ -170,7 +145,7 @@ if [ "$FILE_COUNT" -eq 0 ]; then
 fi
 
 # List files to be processed (only combined yearly files)
-echo "📋 MBTiles to export:"
+echo "📋 MBTiles to upload:"
 find "$DATA_DIR" -maxdepth 1 -name "humans_*.mbtiles" | grep -v "_lod_" | sort | while read -r file; do
     filename=$(basename "$file")
     filesize=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "?")
@@ -194,41 +169,21 @@ fi
 # Dry run: show what would be done
 if [ "$DRY_RUN" = true ]; then
     echo ""
-    echo "🧪 DRY RUN: Would perform the following actions per-year (streaming):"
-    echo "  1. Export humans_{year}.mbtiles → $ZXY_OUT_DIR/{year}/single/{z}/{x}/{y}.pbf"
-    echo "  2. Upload that year's tiles to gs://$BUCKET_NAME/$TILES_PREFIX/{year}/single/... with metadata"
-    echo "  3. Set public read permissions for that year's upload"
-    echo "  4. Probe a sample tile over public HTTP"
-    echo "  5. Delete local {year} tiles (unless --no-delete-local)"
+    echo "🧪 DRY RUN: Would perform the following actions:"
+    echo "  1. Upload humans_{year}.mbtiles to gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "  2. Set appropriate Content-Type for MBTiles files"
+    echo "  3. Test accessibility via GCS public URL"
     echo ""
     echo "✅ Dry run completed - no files were actually uploaded"
     exit 0
 fi
 
-# Export MBTiles to z/x/y .pbf locally
+# Upload MBTiles directly to GCS
 echo ""
-echo "🧱 Streaming export → upload → delete per year to minimize local disk usage..."
-mkdir -p "$ZXY_OUT_DIR"
+echo "🧱 Uploading MBTiles directly to GCS..."
 
-# Detect Python
-if command -v python3 >/dev/null 2>&1; then
-  PYTHON_BIN=python3
-elif command -v python >/dev/null 2>&1; then
-  PYTHON_BIN=python
-else
-  echo "❌ Python not found on PATH"
-  exit 1
-fi
-
-EXPORTED_COUNT=0
 UPLOADED_COUNT=0
-DELETED_COUNT=0
 shopt -s nullglob
-# Build optional overwrite arg for exporter
-OVERWRITE_ARG=""
-if [ "$OVERWRITE_LOCAL" = true ]; then
-    OVERWRITE_ARG="--overwrite"
-fi
 for file in "$DATA_DIR"/humans_*.mbtiles; do
     # Skip LOD-specific files
     [[ "$file" == *_lod_* ]] && continue
@@ -238,75 +193,41 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
         echo "❌ Could not parse year from $file"
         exit 1
     fi
-    YEAR_DIR="$ZXY_OUT_DIR/$year"
-    echo "🛠️  Exporting $filename → $YEAR_DIR ${OVERWRITE_ARG:+(overwrite)}"
-    if "$PYTHON_BIN" ../../footstep-generator/export_mbtiles_to_pbf.py --mbtiles "$file" --out-dir "$ZXY_OUT_DIR" $OVERWRITE_ARG; then
-        EXPORTED_COUNT=$((EXPORTED_COUNT + 1))
-    else
-        echo "❌ Export failed for $file"
-        exit 1
-    fi
-
-    # Prepare a sample tile URL (before deletion) for probing after upload
-    SAMPLE_FILE=$(find "$YEAR_DIR" -type f -name "*.pbf" | head -n 1 || true)
-    SAMPLE_URL=""
-    if [ -n "$SAMPLE_FILE" ]; then
-        REL_PATH="${SAMPLE_FILE#"$ZXY_OUT_DIR/"}"
-        SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$REL_PATH"
-    fi
-
-    # Upload this year's tiles with correct metadata (prefer gcloud for Python 3.12+ compatibility)
-    echo "⬆️  Uploading year $year to gs://$BUCKET_NAME/$TILES_PREFIX/"
+    
+    echo "⬆️  Uploading $filename to gs://$BUCKET_NAME/$TILES_PREFIX/"
     NO_CLOBBER_FLAG=""
     if [ "$OVERWRITE_REMOTE" != true ]; then
         NO_CLOBBER_FLAG="--no-clobber"
     fi
-    if gcloud storage cp -r $NO_CLOBBER_FLAG \
-        --cache-control="public, max-age=31536000, immutable" \
-        --content-type="application/x-protobuf" \
-        --content-encoding="gzip" \
-        "$YEAR_DIR" "gs://$BUCKET_NAME/$TILES_PREFIX/"; then
-        echo "✅ Uploaded year $year with metadata (gcloud${OVERWRITE_REMOTE:+, overwrite})"
+    
+    if gcloud storage cp $NO_CLOBBER_FLAG \
+        --content-type="application/x-sqlite3" \
+        "$file" "gs://$BUCKET_NAME/$TILES_PREFIX/$filename"; then
+        echo "✅ Uploaded $filename"
         UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
     else
-        echo "❌ Upload failed for year $year via gcloud"
+        echo "❌ Upload failed for $filename"
         exit 1
     fi
-
-    # Public access handled via bucket-level IAM; skipping per-object ACL changes
-
-    # Probe a sample static tile to ensure availability
-    if [ -n "$SAMPLE_URL" ]; then
-        echo "🔎 Probing a sample tile for year $year: $SAMPLE_URL"
-        HEADERS=$(curl -sI -H "Accept-Encoding: identity" "$SAMPLE_URL" || true)
-        echo "$HEADERS" | head -n 1
-        if echo "$HEADERS" | grep -q "200 OK"; then
-            echo "✅ Sample tile accessible"
-        else
-            echo "⚠️  Sample tile not accessible yet (may be due to ACL propagation or caching)"
-        fi
-    fi
-
-    # Delete local tiles to free disk space unless asked to keep them
-    if [ "$DELETE_LOCAL_AFTER_UPLOAD" = true ]; then
-        echo "🧹 Deleting local tiles for year $year at $YEAR_DIR"
-        rm -rf "$YEAR_DIR"
-        DELETED_COUNT=$((DELETED_COUNT + 1))
+    
+    # Test accessibility of uploaded file
+    SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$filename"
+    echo "🔎 Testing accessibility: $SAMPLE_URL"
+    HEADERS=$(curl -sI "$SAMPLE_URL" 2>/dev/null || true)
+    if echo "$HEADERS" | head -n 1 | grep -q "200 OK"; then
+        echo "✅ MBTiles file accessible"
     else
-        echo "💾 Keeping local tiles for year $year (per --no-delete-local)"
+        echo "⚠️  MBTiles file not accessible yet (may be due to ACL propagation)"
     fi
 done
 shopt -u nullglob
 
-echo "✅ Streamed export+upload completed: exported $EXPORTED_COUNT, uploaded $UPLOADED_COUNT, deleted local $DELETED_COUNT"
-
-echo ""
-echo "🔐 Per-year ACL and probe executed during streaming; skipping global ACL/probe."
+echo "✅ Upload completed: uploaded $UPLOADED_COUNT MBTiles files"
 
 # Final summary
 echo ""
 echo "🎉 Data upload completed successfully!"
-echo "📦 Exported and uploaded static tiles from $FILE_COUNT MBTiles (local size: $TOTAL_SIZE)"
-echo "🗂️  Synced static tiles to gs://$BUCKET_NAME/$TILES_PREFIX/"
+echo "📦 Uploaded $FILE_COUNT MBTiles files (total size: $COMBINED_SIZE)"
+echo "🗂️  MBTiles uploaded to gs://$BUCKET_NAME/$TILES_PREFIX/"
 echo "🌐 Base URL: https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/"
 echo "🔗 View in console: https://console.cloud.google.com/storage/browser/$BUCKET_NAME"

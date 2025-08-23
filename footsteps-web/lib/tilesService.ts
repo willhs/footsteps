@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
+import { createMBTilesReader, supportsRangeRequests, HTTPRangeMBTilesReader } from './httpRangeMbtiles';
 
 // Initialize Google Cloud Storage client
 let storage: Storage | null = null;
@@ -35,12 +36,19 @@ export interface TileFile {
   isLocal: boolean;
   size?: number;
   mtime?: Date;
+  httpUrl?: string; // HTTP URL for byte-range access
 }
 
 export interface DownloadResult {
   path: string;
   isTemp: boolean;
   cacheStatus: 'hit' | 'refresh';
+}
+
+export interface HTTPTileAccess {
+  reader: HTTPRangeMBTilesReader;
+  url: string;
+  supportsRanges: boolean;
 }
 
 /**
@@ -68,10 +76,28 @@ export async function getTileFilePath(
   const yearlyFilename = `humans_${year}.mbtiles`;
 
   if (process.env.NODE_ENV === 'production') {
-    // Production: Try GCS bucket
+    // Production: Use HTTP byte-range access for direct GCS access
     const bucketName = getTilesBucket();
-
-    // Use combined per-year MBTiles only
+    const httpUrl = `https://storage.googleapis.com/${bucketName}/${yearlyFilename}`;
+    
+    // Check if the file exists and supports range requests
+    try {
+      const supportsRanges = await supportsRangeRequests(httpUrl);
+      if (supportsRanges) {
+        return {
+          exists: true,
+          path: httpUrl,
+          isLocal: false,
+          httpUrl: httpUrl,
+          // We can't easily get size/mtime for HTTP without a HEAD request
+          // but that's okay since we're using byte ranges
+        };
+      }
+    } catch (error) {
+      console.warn(`HTTP range check failed for ${httpUrl}, falling back to GCS SDK:`, error);
+    }
+    
+    // Fallback to GCS SDK approach (download entire file)
     return await checkGCSFile(bucketName, yearlyFilename);
   }
 
@@ -135,6 +161,7 @@ async function checkGCSFile(
       isLocal: false,
       size: parseInt(String(metadata.size ?? '0'), 10),
       mtime: new Date(metadata.updated || metadata.timeCreated || Date.now()),
+      httpUrl: `https://storage.googleapis.com/${bucketName}/${filename}`,
     };
   } catch {
     return {
@@ -142,6 +169,35 @@ async function checkGCSFile(
       path: `gs://${bucketName}/${filename}`,
       isLocal: false,
     };
+  }
+}
+
+/**
+ * Create HTTP tile access for byte-range requests
+ */
+export async function createHTTPTileAccess(
+  tileFile: TileFile,
+): Promise<HTTPTileAccess | null> {
+  if (tileFile.isLocal || !tileFile.httpUrl) {
+    return null;
+  }
+
+  try {
+    const reader = createMBTilesReader(tileFile.httpUrl);
+    if (!reader) {
+      return null;
+    }
+
+    const supportsRanges = await supportsRangeRequests(tileFile.httpUrl);
+    
+    return {
+      reader,
+      url: tileFile.httpUrl,
+      supportsRanges,
+    };
+  } catch (error) {
+    console.error(`Failed to create HTTP tile access for ${tileFile.httpUrl}:`, error);
+    return null;
   }
 }
 

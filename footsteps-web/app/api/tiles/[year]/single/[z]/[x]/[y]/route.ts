@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { getTileFilePath, downloadTileFile, cleanupTempFile } from '@/lib/tilesService';
+import { getTileFilePath, downloadTileFile, cleanupTempFile, createHTTPTileAccess } from '@/lib/tilesService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -99,9 +99,8 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid path parameters' }, { status: 400 });
   }
 
-  // If configured, redirect to GCS-backed tiles to avoid local MBTiles access in production
-  const gcsBucket = process.env.GCS_TILES_BUCKET || process.env.NEXT_PUBLIC_GCS_TILES_BUCKET;
-  const baseUrl = process.env.TILES_BASE_URL || (gcsBucket ? `https://storage.googleapis.com/${gcsBucket}/tiles/humans` : undefined);
+  // If configured, redirect to static PBF tiles (legacy mode)
+  const baseUrl = process.env.TILES_BASE_URL;
   if (baseUrl) {
     const dest = `${baseUrl}/${yr}/single/${zz}/${xx}/${yy}.pbf`;
     const res = NextResponse.redirect(dest, 302);
@@ -115,6 +114,40 @@ export async function GET(
     return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
   }
 
+  // Try HTTP byte-range access first (production mode)
+  if (!tileFile.isLocal && tileFile.httpUrl) {
+    try {
+      const httpAccess = await createHTTPTileAccess(tileFile);
+      if (httpAccess && httpAccess.supportsRanges) {
+        const tmsY = yToTms(zz, yy);
+        const tile = await httpAccess.reader.getTile(zz, xx, tmsY);
+        
+        if (!tile) {
+          return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400' } });
+        }
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/x-protobuf',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Length': String(tile.length),
+          'X-Tile-Zoom': String(zz),
+          'X-Tile-X': String(xx),
+          'X-Tile-Y': String(yy),
+          'X-LOD-Source': 'single-http-range',
+          'X-GCS-Source': 'true',
+          'X-Tile-Cache': 'http-range',
+        };
+        
+        if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
+
+        return new Response(new Uint8Array(tile), { headers });
+      }
+    } catch (error) {
+      console.warn(`HTTP range access failed for ${tileFile.httpUrl}, falling back to download:`, error);
+    }
+  }
+
+  // Fallback to download approach (development or when HTTP ranges fail)
   let filepath: string;
   let isTemp = false;
   let cacheStatus: 'hit' | 'refresh' | undefined;

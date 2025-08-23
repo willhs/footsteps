@@ -1,34 +1,7 @@
 // Color scheme definitions for human representation
 export const COLOR_SCHEMES = {
-  orange: {
-    name: 'Orange (Default)',
-    colors: {
-      highest: [255, 100, 0, 240] as [number, number, number, number],
-      high: [255, 140, 0, 220] as [number, number, number, number], 
-      medium: [255, 180, 0, 200] as [number, number, number, number],
-      low: [255, 200, 100, 180] as [number, number, number, number],
-    },
-  },
-  cyan: {
-    name: 'Cyan (High Contrast)',
-    colors: {
-      highest: [0, 255, 255, 240] as [number, number, number, number],
-      high: [0, 220, 255, 220] as [number, number, number, number],
-      medium: [0, 180, 255, 200] as [number, number, number, number], 
-      low: [100, 200, 255, 180] as [number, number, number, number],
-    },
-  },
-  magenta: {
-    name: 'Magenta (Vivid)',
-    colors: {
-      highest: [255, 0, 128, 240] as [number, number, number, number],
-      high: [255, 50, 150, 220] as [number, number, number, number],
-      medium: [255, 100, 180, 200] as [number, number, number, number],
-      low: [255, 150, 200, 180] as [number, number, number, number],
-    },
-  },
   white: {
-    name: 'White (Classic)',
+    name: 'White',
     colors: {
       highest: [255, 255, 255, 240] as [number, number, number, number],
       high: [240, 240, 240, 220] as [number, number, number, number],
@@ -36,13 +9,31 @@ export const COLOR_SCHEMES = {
       low: [200, 200, 200, 180] as [number, number, number, number],
     },
   },
-  red: {
-    name: 'Red (Bold)',
+  cyan: {
+    name: 'Cyan',
     colors: {
-      highest: [255, 50, 50, 240] as [number, number, number, number],
-      high: [255, 80, 80, 220] as [number, number, number, number],
-      medium: [255, 120, 120, 200] as [number, number, number, number],
-      low: [255, 160, 160, 180] as [number, number, number, number],
+      highest: [0, 255, 255, 240] as [number, number, number, number],
+      high: [0, 220, 255, 220] as [number, number, number, number],
+      medium: [0, 180, 255, 200] as [number, number, number, number], 
+      low: [100, 200, 255, 180] as [number, number, number, number],
+    },
+  },
+  violet: {
+    name: 'Violet',
+    colors: {
+      highest: [138, 43, 226, 240] as [number, number, number, number],
+      high: [148, 70, 230, 220] as [number, number, number, number],
+      medium: [160, 100, 235, 200] as [number, number, number, number],
+      low: [180, 140, 240, 180] as [number, number, number, number],
+    },
+  },
+  black: {
+    name: 'Black',
+    colors: {
+      highest: [0, 0, 0, 240] as [number, number, number, number],
+      high: [40, 40, 40, 220] as [number, number, number, number],
+      medium: [80, 80, 80, 200] as [number, number, number, number],
+      low: [120, 120, 120, 180] as [number, number, number, number],
     },
   },
 } as const;
@@ -53,7 +44,7 @@ export type ColorScheme = keyof typeof COLOR_SCHEMES;
 export function getFillColor(
   feature: unknown,
   debugTint?: [number, number, number],
-  colorScheme: ColorScheme = 'orange',
+  colorScheme: ColorScheme = 'white',
 ): [number, number, number, number] {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,7 +68,7 @@ export function getFillColor(
     }
     return base;
   } catch {
-    const fallback = COLOR_SCHEMES[colorScheme] || COLOR_SCHEMES.orange;
+    const fallback = COLOR_SCHEMES[colorScheme] || COLOR_SCHEMES.white;
     return fallback.colors.low;
   }
 }

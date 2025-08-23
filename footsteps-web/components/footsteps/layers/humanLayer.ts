@@ -193,7 +193,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     callbacks,
     metrics,
     tileFadeMs = DEFAULT_TILE_FADE_MS,
-    colorScheme = 'orange',
+    colorScheme = 'white',
   } = config;
 
   return function createHumanLayerForYear(

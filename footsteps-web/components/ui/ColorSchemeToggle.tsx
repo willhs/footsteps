@@ -14,12 +14,11 @@ export default function ColorSchemeToggle({
   onSchemeChange,
   className,
 }: ColorSchemeToggleProps) {
-  const schemes: ColorScheme[] = ['orange', 'cyan', 'magenta', 'white', 'red'];
+  const schemes: ColorScheme[] = ['white', 'cyan', 'violet', 'black'];
 
   return (
     <div className={className}>
-      <div className="text-xs text-gray-400 mb-2">Human Colors:</div>
-      <div className={`${TOGGLE_CONTAINER_TW} flex-wrap gap-1`} role="group" aria-label="Color scheme">
+      <div className={`${TOGGLE_CONTAINER_TW} gap-0.5`} role="group" aria-label="Color scheme">
         {schemes.map((scheme) => {
           const schemeData = COLOR_SCHEMES[scheme];
           const isActive = colorScheme === scheme;
@@ -35,17 +34,14 @@ export default function ColorSchemeToggle({
               onClick={() => onSchemeChange(scheme)}
               label={schemeData.name}
               title={`${schemeData.name} - Click to use this color scheme for human dots`}
-              activeClassName="ring-2 ring-blue-400 scale-105"
-              className="text-xs px-2 py-1 min-w-0 flex items-center gap-1"
+              activeClassName="ring-1 ring-blue-400"
+              className="p-0.5 min-w-0"
             >
               <div 
-                className="w-3 h-3 rounded-full border border-gray-600"
+                className="w-4 h-4 rounded-full border border-gray-600"
                 style={{ backgroundColor: rgbString }}
                 aria-hidden="true"
               />
-              <span className="hidden sm:inline">
-                {scheme === 'orange' ? 'Def' : scheme.charAt(0).toUpperCase()}
-              </span>
             </ToggleButton>
           );
         })}

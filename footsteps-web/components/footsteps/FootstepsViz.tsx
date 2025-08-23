@@ -26,7 +26,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
   const [showTerrain, setShowTerrain] = useState(false);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>('orange');
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('white');
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();

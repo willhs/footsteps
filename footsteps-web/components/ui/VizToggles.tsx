@@ -54,7 +54,7 @@ export default function VizToggles({
       </div>
 
       {/* Color scheme toggle */}
-      <div className="mt-3">
+      <div className="mt-2">
         <ColorSchemeToggle 
           colorScheme={colorScheme}
           onSchemeChange={onColorSchemeChange}

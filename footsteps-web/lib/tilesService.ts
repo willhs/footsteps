@@ -30,6 +30,10 @@ export function getTilesBucket(): string {
   return bucket;
 }
 
+export function getTilesBucketIfAvailable(): string | null {
+  return process.env.GCS_TILES_BUCKET || null;
+}
+
 export interface TileFile {
   exists: boolean;
   path: string;
@@ -75,9 +79,10 @@ export async function getTileFilePath(
   // Single canonical format: combined per-year MBTiles
   const yearlyFilename = `humans_${year}.mbtiles`;
 
-  if (process.env.NODE_ENV === 'production') {
+  // Check if we should use production mode (GCS bucket available)
+  const bucketName = getTilesBucketIfAvailable();
+  if (process.env.NODE_ENV === 'production' && bucketName) {
     // Production: Use HTTP byte-range access for direct GCS access
-    const bucketName = getTilesBucket();
     const httpUrl = `https://storage.googleapis.com/${bucketName}/${yearlyFilename}`;
     
     // Check if the file exists and supports range requests

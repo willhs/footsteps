@@ -38,6 +38,7 @@ jobs:
         name: footsteps-web-image
         path: .
         run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Load Docker image
       run: docker load -i footsteps-web-image.tar

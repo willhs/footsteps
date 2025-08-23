@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import NetworkIndicator from '../components/ui/NetworkIndicator';
 
 export const metadata: Metadata = {
   title: 'footsteps',
@@ -15,6 +16,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        {/* Global, subtle network activity indicator */}
+        <NetworkIndicator />
       </body>
     </html>
   );

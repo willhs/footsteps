@@ -118,6 +118,45 @@ main {
 }
 
 @layer components {
+  /* Subtle global loading bar (tiles download indicator) */
+  .loading-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px; /* slightly thicker for visibility */
+    z-index: 50; /* above controls to ensure visibility */
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 180ms ease-out, transform 180ms ease-out;
+    background: linear-gradient(90deg, transparent, var(--color-time, #0ea5e9), transparent);
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.2s linear infinite;
+    box-shadow:
+      0 0 8px rgba(14, 165, 233, 0.45),
+      0 0 16px rgba(14, 165, 233, 0.25);
+  }
+
+  .loading-bar-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @keyframes loading-shimmer {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loading-bar { animation: none; }
+  }
+
+  /* Keep it discreet on small screens */
+  @media (max-width: 640px) {
+    .loading-bar { height: 2px; }
+  }
+
   /* Micro-interactions: subtle, token-aligned */
   .year-text {
     transition: color 180ms ease-out;

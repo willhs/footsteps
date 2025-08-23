@@ -6,7 +6,7 @@ import useSliderMarks from './hooks/useSliderMarks';
 
 /**
  * Time navigation component for scrubbing through historical years.
- * 
+ *
  * Follows design philosophy:
  * - Hero interaction: "Dragging should feel like controlling time itself"
  * - Immediate impact: Current year display as the dominant visual element
@@ -22,17 +22,23 @@ interface TimeSliderProps {
 
 export default function TimeSlider({ value, onChange }: TimeSliderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const handleSelectMark = useCallback((pos: number) => {
-    onChange(pos);
-  }, [onChange]);
+  const handleSelectMark = useCallback(
+    (pos: number) => {
+      onChange(pos);
+    },
+    [onChange],
+  );
   const marks = useSliderMarks(value, handleSelectMark);
 
-  // rAF-throttled change handler to maintain smooth 60fps scrubbing
-  const rafIdRef = useRef<number | null>(null);
+  // Debounced change handler to limit updates while dragging
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingValueRef = useRef<number | null>(null);
 
   const flushChange = useCallback(() => {
-    rafIdRef.current = null;
+    if (timeoutIdRef.current != null) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
     if (pendingValueRef.current == null) return;
     onChange(pendingValueRef.current);
     pendingValueRef.current = null;
@@ -43,9 +49,10 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
       const next = Array.isArray(sliderValue) ? sliderValue[0] : sliderValue;
       if (isDragging) {
         pendingValueRef.current = next;
-        if (rafIdRef.current == null) {
-          rafIdRef.current = requestAnimationFrame(flushChange);
+        if (timeoutIdRef.current != null) {
+          clearTimeout(timeoutIdRef.current);
         }
+        timeoutIdRef.current = setTimeout(flushChange, 150);
       } else {
         onChange(next);
       }
@@ -60,13 +67,8 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
   const handleAfterChange = useCallback(() => {
     setIsDragging(false);
     // Ensure final position applies immediately
-    if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
-    rafIdRef.current = null;
-    if (pendingValueRef.current != null) {
-      onChange(pendingValueRef.current);
-      pendingValueRef.current = null;
-    }
-  }, [onChange]);
+    flushChange();
+  }, [flushChange]);
 
   return (
     <div className="time-slider-container">

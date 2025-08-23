@@ -36,7 +36,7 @@ Follow this diagnostic workflow:
 
 4. Done
 
-- Read this document at @.claude/commands/fix-deploy.md
+- Read this document at .claude/commands/fix-deploy.md
 - In the Guest book section below, 
   - If there are more than 10 entries then delete then delete the top one
   - Add an entry to the bottom: write a few sentences about how this document could be improved, taking into account your experience of this task and how this document could have better prepared you for the task

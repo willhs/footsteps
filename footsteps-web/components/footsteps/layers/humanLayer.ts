@@ -9,6 +9,10 @@ import { buildTooltipData, type PickingInfo } from './tooltip';
 import { getWorkerManager } from './WorkerManager';
 // Removed crossfade imports
 
+// Allow tuning of tile fade duration via env; default to a subtle crossfade
+const DEFAULT_TILE_FADE_MS =
+  Number(process.env.NEXT_PUBLIC_TILE_FADE_MS) || 200;
+
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
   year: number,
@@ -166,6 +170,7 @@ export interface HumanLayerFactoryConfig {
   newLayerHasTileRef: MutableRefObject<boolean>;
   callbacks: HumanLayerCallbacks;
   metrics: HumanLayerMetrics;
+  tileFadeMs?: number;
 }
 
 export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
@@ -177,6 +182,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     newLayerHasTileRef,
     callbacks,
     metrics,
+    tileFadeMs = DEFAULT_TILE_FADE_MS,
   } = config;
 
   return function createHumanLayerForYear(
@@ -260,7 +266,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           callbacks.setTileLoading(false);
         },
         tileOptions: {
-          fadeMs: 0, // No crossfade animation
+          fadeMs: tileFadeMs,
           debounceTime: isZooming || isPanning ? 80 : 20,
           useBinary: true,
         },

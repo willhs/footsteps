@@ -4,7 +4,7 @@ import { getTileUrlPattern } from '@/lib/tilesConfig';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
 import { createOnTileLoadHandler } from './tileCache';
-import { getFillColor } from './color';
+import { getFillColor, type ColorScheme } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
 import { getWorkerManager } from './WorkerManager';
 // Removed crossfade imports
@@ -44,6 +44,7 @@ export function createHumanTilesLayer(
       radiusTransitionMs?: number;
     };
     debugTint?: [number, number, number];
+    colorScheme?: ColorScheme;
   },
   opacity: number = 1.0,
   instanceId?: string,
@@ -106,7 +107,7 @@ export function createHumanTilesLayer(
         return 2000;
       }
     },
-    getFillColor: (f: unknown) => getFillColor(f, extra?.debugTint),
+    getFillColor: (f: unknown) => getFillColor(f, extra?.debugTint, extra?.colorScheme),
     updateTriggers: {
       getPointRadius: [
         year,
@@ -118,8 +119,9 @@ export function createHumanTilesLayer(
         year,
         lodLevel,
         (
-          extra as { debugTint?: [number, number, number] } | undefined
+          extra as { debugTint?: [number, number, number]; colorScheme?: ColorScheme } | undefined
         )?.debugTint?.join(','),
+        extra?.colorScheme,
       ],
     },
     opacity: opacity,
@@ -177,6 +179,7 @@ export interface HumanLayerFactoryConfig {
   callbacks: HumanLayerCallbacks;
   metrics: HumanLayerMetrics;
   tileFadeMs?: number;
+  colorScheme?: ColorScheme;
 }
 
 export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
@@ -189,6 +192,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
     callbacks,
     metrics,
     tileFadeMs = DEFAULT_TILE_FADE_MS,
+    colorScheme = 'orange',
   } = config;
 
   return function createHumanLayerForYear(
@@ -279,6 +283,7 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           radiusTransitionMs: isNewYearLayer ? 0 : 250,
         },
         debugTint: undefined,
+        colorScheme,
       },
       layerOpacity,
       instanceId,

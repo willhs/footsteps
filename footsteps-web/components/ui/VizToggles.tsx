@@ -2,12 +2,16 @@
 
 import ToggleButton, { TOGGLE_CONTAINER_TW } from './ToggleButton';
 import TerrainToggle from './TerrainToggle';
+import ColorSchemeToggle from './ColorSchemeToggle';
+import { type ColorScheme } from '../footsteps/layers/color';
 
 interface VizTogglesProps {
   showTerrain: boolean;
   onToggle: (enabled: boolean) => void;
   is3DMode: boolean;
   onModeChange: (is3D: boolean) => void;
+  colorScheme: ColorScheme;
+  onColorSchemeChange: (scheme: ColorScheme) => void;
   className?: string;
 }
 
@@ -16,6 +20,8 @@ export default function VizToggles({
   onToggle,
   is3DMode,
   onModeChange,
+  colorScheme,
+  onColorSchemeChange,
   className,
 }: VizTogglesProps) {
   return (
@@ -45,6 +51,14 @@ export default function VizToggles({
       {/* Terrain / Plain toggle */}
       <div className="mt-2">
         <TerrainToggle showTerrain={showTerrain} onToggle={onToggle} />
+      </div>
+
+      {/* Color scheme toggle */}
+      <div className="mt-3">
+        <ColorSchemeToggle 
+          colorScheme={colorScheme}
+          onSchemeChange={onColorSchemeChange}
+        />
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
+import { type ColorScheme } from '@/components/footsteps/layers/color';
 
 interface FootstepsVizProps {
   year: number;
@@ -25,6 +26,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
   const [showTerrain, setShowTerrain] = useState(false);
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('orange');
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -89,6 +91,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           setFeatureCount,
           setTotalPopulation,
         },
+        colorScheme,
       }),
     [
       is3DMode,
@@ -101,6 +104,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
       setFeatureCount,
       setTotalPopulation,
       setTooltipData,
+      colorScheme,
     ],
   );
 
@@ -204,6 +208,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           onModeChange={setIs3DMode}
           showTerrain={showTerrain}
           onToggle={setShowTerrain}
+          colorScheme={colorScheme}
+          onColorSchemeChange={setColorScheme}
         />
       </div>
 

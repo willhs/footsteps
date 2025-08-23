@@ -2,8 +2,9 @@
 const securityHeaders = [
   {
     key: 'Content-Security-Policy',
-    value:
-      "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'",
+    value: process.env.NODE_ENV === 'development'
+      ? "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ws: wss: https://raw.githubusercontent.com https://unpkg.com; worker-src 'self' blob: https://unpkg.com; object-src 'none';"
+      : "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://raw.githubusercontent.com https://unpkg.com; worker-src 'self' blob: https://unpkg.com",
   },
   {
     key: 'X-Content-Type-Options',

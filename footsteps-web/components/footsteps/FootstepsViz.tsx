@@ -115,10 +115,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         year,
         stableLODLevel,
         currentOpacity,
-        'human-layer-current',
+        `human-layer-current-${colorScheme}`,
         true,
       ),
-    [createHumanLayerForYear, year, stableLODLevel, currentOpacity],
+    [createHumanLayerForYear, year, stableLODLevel, currentOpacity, colorScheme],
   );
 
   const previousYearLayer = useMemo(
@@ -128,11 +128,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             previousYear as number,
             stableLODLevel,
             previousOpacity,
-            'human-layer-previous',
+            `human-layer-previous-${colorScheme}`,
             false,
           )
         : null,
-    [createHumanLayerForYear, previousYear, stableLODLevel, previousOpacity],
+    [createHumanLayerForYear, previousYear, stableLODLevel, previousOpacity, colorScheme],
   );
 
   // Layer ordering: background layers -> settlement points

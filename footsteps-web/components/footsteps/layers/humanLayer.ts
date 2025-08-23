@@ -57,8 +57,9 @@ export function createHumanTilesLayer(
   const tileOptions =
     (extra && 'tileOptions' in extra ? extra.tileOptions : undefined) || {};
 
-  // Use a stable layer id so deck.gl can reuse tile cache across year changes
-  const layerId = instanceId || `human-tiles-${radiusStrategy.getName()}`;
+  // Include colorScheme in layer id to force recreation when colors change
+  const colorSchemeSuffix = extra?.colorScheme || 'orange';
+  const layerId = instanceId || `human-tiles-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
   const zoomRange = { min: 0, max: 12 };
 
   return new MVTLayer({

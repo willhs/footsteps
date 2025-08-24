@@ -86,7 +86,7 @@ export default function NetworkIndicator() {
             scheduleShow();
           }
         } catch {}
-        return origOpen(method, url, ...(rest as [unknown]));
+        return origOpen(method, url, ...rest as [boolean, string?, string?]);
       };
       xhr.addEventListener('loadend', () => {
         if (watched) {
@@ -96,7 +96,6 @@ export default function NetworkIndicator() {
       });
       return xhr;
     }
-    // @ts-expect-error override allowed locally
     window.XMLHttpRequest = PatchedXHR as unknown as typeof XMLHttpRequest;
 
     return () => {

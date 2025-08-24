@@ -3,6 +3,7 @@
 import DeckGL, { type DeckGLProps } from '@deck.gl/react';
 import { _GlobeView as GlobeView, MapView, type LayersList } from '@deck.gl/core';
 import { ReactNode, useMemo, useEffect, useLayoutEffect, useState, useRef } from 'react';
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 type BasicViewState = {
   longitude: number;
@@ -63,7 +64,7 @@ export default function DeckGLView({
         width: Math.floor(rect.width),
         height: Math.floor(rect.height),
       };
-      console.log('[DECK-SIZE] Container size:', newDimensions);
+      if (DEBUG) console.log('[DECK-SIZE] Container size:', newDimensions);
       setDimensions(newDimensions);
     };
 
@@ -80,8 +81,8 @@ export default function DeckGLView({
   }, []);
 
 
-  console.log('[DECK-SIZE] Rendering with dimensions:', dimensions);
-  console.log('[DECK-SIZE] Key for recreation:', `${dimensions.width}x${dimensions.height}`);
+  if (DEBUG) console.log('[DECK-SIZE] Rendering with dimensions:', dimensions);
+  if (DEBUG) console.log('[DECK-SIZE] Key for recreation:', `${dimensions.width}x${dimensions.height}`);
 
   return (
     <div 

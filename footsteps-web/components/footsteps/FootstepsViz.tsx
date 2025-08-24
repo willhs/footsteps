@@ -17,6 +17,8 @@ import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
+const ENABLE_PLAIN_BASEMAP = process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP === '1';
 
 interface FootstepsVizProps {
   year: number;
@@ -25,7 +27,8 @@ interface FootstepsVizProps {
 function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
-  const [showTerrain, setShowTerrain] = useState(false);
+  // Default to terrain unless explicitly enabling the plain basemap via env
+  const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
   const [colorScheme, setColorScheme] = useState<ColorScheme>('white');
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
@@ -62,7 +65,9 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   // Background layers - terrain or plain based on toggle
   const backgroundLayers = useMemo(() => {
-    return showTerrain ? [TERRAIN_LAYER] : [SEA_LAYER, CONTINENTS_LAYER];
+    // Only allow plain layers if explicitly enabled
+    if (!showTerrain && ENABLE_PLAIN_BASEMAP) return [SEA_LAYER, CONTINENTS_LAYER];
+    return [TERRAIN_LAYER];
   }, [showTerrain]);
 
   // Stable LOD level for memoization - only changes at discrete boundaries
@@ -140,7 +145,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     ? ([...backgroundLayers, previousYearLayer, currentYearLayer] as LayersList)
     : ([...backgroundLayers, currentYearLayer] as LayersList);
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && DEBUG) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logLayer = (layer: any, tag: string, tagYear: number | null) => {
@@ -207,7 +212,11 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           is3DMode={is3DMode}
           onModeChange={setIs3DMode}
           showTerrain={showTerrain}
-          onToggle={setShowTerrain}
+          onToggle={(v) => {
+            // If plain basemap is disabled, prevent switching terrain off
+            if (!ENABLE_PLAIN_BASEMAP && !v) return;
+            setShowTerrain(v);
+          }}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />

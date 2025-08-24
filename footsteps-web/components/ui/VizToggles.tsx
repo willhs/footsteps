@@ -25,7 +25,7 @@ export default function VizToggles({
   className,
 }: VizTogglesProps) {
   return (
-    <div className={className}>
+    <div className={`space-y-3 ${className || ''}`}>
       {/* 2D / 3D view toggle */}
       <div className={TOGGLE_CONTAINER_TW} role="group" aria-label="View mode">
         <ToggleButton
@@ -49,17 +49,13 @@ export default function VizToggles({
       </div>
 
       {/* Terrain / Plain toggle */}
-      <div className="mt-2">
-        <TerrainToggle showTerrain={showTerrain} onToggle={onToggle} />
-      </div>
+      <TerrainToggle showTerrain={showTerrain} onToggle={onToggle} />
 
       {/* Color scheme toggle */}
-      <div className="mt-2">
-        <ColorSchemeToggle 
-          colorScheme={colorScheme}
-          onSchemeChange={onColorSchemeChange}
-        />
-      </div>
+      <ColorSchemeToggle 
+        colorScheme={colorScheme}
+        onSchemeChange={onColorSchemeChange}
+      />
     </div>
   );
 }

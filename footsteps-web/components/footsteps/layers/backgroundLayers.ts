@@ -1,5 +1,6 @@
 import { GeoJsonLayer, BitmapLayer } from '@deck.gl/layers';
 import { TileLayer } from '@deck.gl/geo-layers';
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 // Cached background layer instances
 export const SEA_LAYER = new GeoJsonLayer({
@@ -83,12 +84,14 @@ export const TERRAIN_LAYER = new TileLayer({
       !Number.isFinite(boundingBox[1]?.[0]) ||
       !Number.isFinite(boundingBox[1]?.[1])
     ) {
-      /* eslint-disable no-console */
-      console.warn(
-        '[terrain-layer] invalid boundingBox, skipping sub-layer',
-        boundingBox,
-      );
-      /* eslint-enable no-console */
+      if (DEBUG) {
+        /* eslint-disable no-console */
+        console.warn(
+          '[terrain-layer] invalid boundingBox, skipping sub-layer',
+          boundingBox,
+        );
+        /* eslint-enable no-console */
+      }
       return null;
     }
 

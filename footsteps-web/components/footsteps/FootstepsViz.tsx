@@ -24,12 +24,14 @@ interface FootstepsVizProps {
   year: number;
 }
 
+const DEFAULT_COLOURSCHEME = 'cyan';
+
 function FootstepsViz({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
 
   // Default to terrain unless explicitly enabling the plain basemap via env
   const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>('white');
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -65,8 +67,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   // Background layers - terrain or plain based on toggle
   const backgroundLayers = useMemo(() => {
-    // Only allow plain layers if explicitly enabled
-    if (!showTerrain && ENABLE_PLAIN_BASEMAP) return [SEA_LAYER, CONTINENTS_LAYER];
+    if (!showTerrain) return [SEA_LAYER, CONTINENTS_LAYER];
     return [TERRAIN_LAYER];
   }, [showTerrain]);
 
@@ -213,8 +214,6 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           onModeChange={setIs3DMode}
           showTerrain={showTerrain}
           onToggle={(v) => {
-            // If plain basemap is disabled, prevent switching terrain off
-            if (!ENABLE_PLAIN_BASEMAP && !v) return;
             setShowTerrain(v);
           }}
           colorScheme={colorScheme}

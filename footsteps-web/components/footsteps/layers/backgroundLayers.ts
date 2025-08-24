@@ -190,5 +190,55 @@ export function createStaticTerrainLayer() {
 
 // Create plain background layers for better dot visibility
 export function createPlainBackgroundLayers() {
-  return [SEA_LAYER, CONTINENTS_LAYER];
+  const sea = new GeoJsonLayer({
+    id: 'plain-sea',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [-180, -90],
+                [180, -90],
+                [180, 90],
+                [-180, 90],
+                [-180, -90],
+              ],
+            ],
+          },
+        },
+      ],
+    },
+    filled: true,
+    stroked: false,
+    getFillColor: [20, 30, 45, 255],
+    pickable: false,
+    opacity: 1.0,
+    parameters: {
+      depthTest: true,
+      depthMask: true,
+      blend: false,
+    },
+  });
+
+  const continents = new GeoJsonLayer({
+    id: 'plain-continents',
+    data: 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
+    filled: true,
+    stroked: false,
+    getFillColor: [15, 15, 15, 255],
+    pickable: false,
+    opacity: 1.0,
+    parameters: {
+      depthTest: true,
+      depthMask: false,
+      blend: true,
+    },
+  });
+
+  return [sea, continents];
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import ToggleButton, { TOGGLE_CONTAINER_TW } from './ToggleButton';
 import { COLOR_SCHEMES, type ColorScheme } from '../footsteps/layers/color';
 
 interface ColorSchemeToggleProps {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 export interface RenderMetrics {
   loadTime: number;
@@ -31,7 +32,7 @@ export default function useRenderMetrics(dotCount: number, zoom: number) {
       const renderTime = renderEnd - renderStart;
 
       // Only log noticeable frame drops
-      if (renderTime > 16) {
+      if (DEBUG && renderTime > 16) {
         console.log(
           `⚡ Render: ${renderTime.toFixed(1)}ms with ${dotCount} dots at zoom ${zoom.toFixed(
             2

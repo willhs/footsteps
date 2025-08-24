@@ -25,7 +25,7 @@ export default function VizToggles({
   className,
 }: VizTogglesProps) {
   return (
-    <div className={`space-y-3 ${className || ''}`}>
+    <div className={`flex flex-col gap-3 ${className || ''}`}>
       {/* 2D / 3D view toggle */}
       <div className={TOGGLE_CONTAINER_TW} role="group" aria-label="View mode">
         <ToggleButton

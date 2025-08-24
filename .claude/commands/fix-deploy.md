@@ -9,7 +9,7 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
-- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues (TypeScript errors are blocking, lint warnings are not)
+- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues **IMPORTANT: TypeScript compilation errors always block CI; lint warnings don't**
 - Check if recent architecture changes made workflow tests obsolete
 - If working with feature branches: check for merge conflicts with main first
 - Verify environment variables match current architecture (API vs GCS direct access)
@@ -55,4 +55,6 @@ Guest book:
 **Entry 4**: Primary issue was TypeScript compilation errors blocking CI (FootstepsViz null assertion, missing webworker lib, incomplete PickingInfo mocks). Secondary issue was stale Terraform state lock from 2 days ago preventing deployment. Document improvements: (1) add "run type check" to health checks alongside lint, (2) mention terraform state lock resolution (`force-unlock`) as common infrastructure issue, (3) emphasize checking actual app response even if workflow still running—Cloud Run deployment succeeded before workflow completion.
 
 **Entry 5**: CI failing due to TypeScript compilation errors in NetworkIndicator.tsx—specifically XMLHttpRequest.open() type assertion and unused @ts-expect-error directive. Fix was straightforward once identified: proper type assertion for async parameter and removing redundant comment. Document improvements: (1) the health check step successfully caught both the lint and typecheck issues locally, proving its value, (2) the workflow diagnostics workflow was smooth and effective, (3) might be worth emphasizing that TypeScript errors (vs just warnings) are blocking for CI, and (4) the direct app testing after deployment confirmed functionality even before full workflow completion.
+
+**Entry 6**: The primary blocking issue was a simple TypeScript compilation error (`TERRAIN_LAYER` not defined) in `backgroundLayers.ts` that was easily caught by the health check `npx tsc --noEmit`. Once fixed, both CI and deployment workflows succeeded immediately. The health check workflow was extremely effective—git status confirmed no push issues, lint passed with only warnings, and typecheck caught the specific error. Document is working well; the health check steps saved significant debugging time and the workflow diagnostics were straightforward. Only minor improvement: emphasize that TypeScript compilation errors are always CI-blocking (unlike lint warnings).
 

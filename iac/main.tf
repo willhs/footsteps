@@ -143,14 +143,10 @@ resource "google_cloud_run_v2_service" "app" {
         value = var.project_id
       }
 
-      # Tiles redirection config for API
+      # GCS bucket config for API tile serving via byte-range requests
       env {
         name  = "GCS_TILES_BUCKET"
         value = google_storage_bucket.data_bucket.name
-      }
-      env {
-        name  = "TILES_BASE_URL"
-        value = "https://storage.googleapis.com/${google_storage_bucket.data_bucket.name}/tiles/humans"
       }
 
       env {

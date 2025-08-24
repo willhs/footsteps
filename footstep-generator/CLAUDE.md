@@ -13,9 +13,23 @@ The footstep-generator is a Python-based, tiles-only pipeline that converts HYDE
 - **tests/**: Comprehensive test suite for validation
 
 ## Commands
+### Complete Tile Generation Workflow
+```bash
+# Step 1: Compute LOD data from HYDE grids
+python process_hyde.py
+
+# Step 2: Generate MBTiles from computed LOD data
+python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans
+```
+
+### Individual Commands
 - **Compute LOD data (incremental)**: `python process_hyde.py`
 - **Compute LOD data (force)**: `python process_hyde.py --force`
-- **Generate tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --years 1000 1500 1600`
+- **Generate all tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans`
+- **Generate specific years**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --years 1000 1500 1600`
+- **Force rebuild tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --force`
+
+### Testing & Dependencies  
 - **Run basic tests**: `python tests/test_basic.py`
 - **Run full test suite**: `pytest tests/ -v`
 - **Run integration tests**: `python tests/test_integration.py`

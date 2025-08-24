@@ -17,8 +17,8 @@ import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
-const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
-const ENABLE_PLAIN_BASEMAP = process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP === '1';
+const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
+const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
 
 interface FootstepsVizProps {
   year: number;

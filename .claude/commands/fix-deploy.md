@@ -9,7 +9,7 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
-- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues
+- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues (TypeScript errors are blocking, lint warnings are not)
 - Check if recent architecture changes made workflow tests obsolete
 - If working with feature branches: check for merge conflicts with main first
 - Verify environment variables match current architecture (API vs GCS direct access)
@@ -30,7 +30,7 @@ Follow this diagnostic workflow:
 
 - Deploy the app by committing your fix in git and deploying. This will trigger the gh workflows
 - Monitor both GitHub workflow completion AND actual Cloud Run service status (`gcloud run services list`)
-- Test app directly with curl/browser even if workflow still running—deployment often succeeds before workflow completes
+- Test app directly with curl/browser even if workflow still running—deployment often succeeds before workflow completes. Find app URL in deployment logs: `gh run view --log --job=<job-id> | grep "Service deployed at"`
 - If success: go to phase 4
 - If still failing: go back to phase 1
 
@@ -53,4 +53,6 @@ Guest book:
 **Entry 3**: Successfully merged Codex-generated binary tiles branch with minimal issues. Main challenge was merge conflict in tileMetrics.ts requiring manual resolution to preserve both binary implementation and TileMetrics interface. Tests passed, only minor ESLint fix needed. Document could be improved by: (1) adding guidance for feature branch merges vs deployment fixes, (2) recommending test-driven verification of changes before assuming deployment issues, and (3) including merge conflict resolution as a common step when multiple developers/tools modify similar code areas.
 
 **Entry 4**: Primary issue was TypeScript compilation errors blocking CI (FootstepsViz null assertion, missing webworker lib, incomplete PickingInfo mocks). Secondary issue was stale Terraform state lock from 2 days ago preventing deployment. Document improvements: (1) add "run type check" to health checks alongside lint, (2) mention terraform state lock resolution (`force-unlock`) as common infrastructure issue, (3) emphasize checking actual app response even if workflow still running—Cloud Run deployment succeeded before workflow completion.
+
+**Entry 5**: CI failing due to TypeScript compilation errors in NetworkIndicator.tsx—specifically XMLHttpRequest.open() type assertion and unused @ts-expect-error directive. Fix was straightforward once identified: proper type assertion for async parameter and removing redundant comment. Document improvements: (1) the health check step successfully caught both the lint and typecheck issues locally, proving its value, (2) the workflow diagnostics workflow was smooth and effective, (3) might be worth emphasizing that TypeScript errors (vs just warnings) are blocking for CI, and (4) the direct app testing after deployment confirmed functionality even before full workflow completion.
 

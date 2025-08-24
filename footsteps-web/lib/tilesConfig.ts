@@ -23,13 +23,9 @@ export function getTilesBaseUrl(): string {
     return normalizeBase(`https://storage.googleapis.com/${bucket}/tiles/humans`);
   }
 
-  // 3) Default to prod GCS in production builds
-  if (process.env.NODE_ENV === 'production') {
-    // Note: this default aligns with our deploy-data pipeline
-    return 'https://storage.googleapis.com/footsteps-earth-tiles/tiles/humans';
-  }
-
-  // 4) Local dev default: use API route that serves from filesystem
+  // 3) Use API route by default for both production and development
+  // This enables HTTP byte-range requests to GCS in production
+  // and local filesystem access in development
   return '/api/tiles';
 }
 

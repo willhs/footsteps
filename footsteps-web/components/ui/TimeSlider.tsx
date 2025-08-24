@@ -18,9 +18,13 @@ interface TimeSliderProps {
   value: number;
   /** Callback when slider position changes */
   onChange: (value: number) => void;
+  /** Optional callback when dragging starts */
+  onBeforeChange?: () => void;
+  /** Optional callback when dragging ends */
+  onAfterChange?: () => void;
 }
 
-export default function TimeSlider({ value, onChange }: TimeSliderProps) {
+export default function TimeSlider({ value, onChange, onBeforeChange, onAfterChange }: TimeSliderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const handleSelectMark = useCallback((pos: number) => {
     onChange(pos);
@@ -55,7 +59,8 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
 
   const handleBeforeChange = useCallback(() => {
     setIsDragging(true);
-  }, []);
+    onBeforeChange?.();
+  }, [onBeforeChange]);
 
   const handleAfterChange = useCallback(() => {
     setIsDragging(false);
@@ -66,7 +71,8 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
       onChange(pendingValueRef.current);
       pendingValueRef.current = null;
     }
-  }, [onChange]);
+    onAfterChange?.();
+  }, [onChange, onAfterChange]);
 
   return (
     <div className="time-slider-container">

@@ -4,8 +4,12 @@
       "mcp__playwright-local__browser_navigate",
       "mcp__playwright-local__browser_screenshot",
       "mcp__playwright-local__browser_evaluate",
-      "WebFetch(domain:deck.gl)"
+      "WebFetch(domain:deck.gl)",
+      "Bash(pnpm install:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/Users/will/projects/deep-footsteps/fix-terrain-layer-bug"
+    ]
   }
 }

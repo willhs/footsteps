@@ -191,6 +191,6 @@ export function createEarthSphereLayer() {
 
 // Create static terrain layer for land/water visualization
 export function createStaticTerrainLayer() {
-  return TERRAIN_LAYER;
+  return createTerrainLayer();
 }
 

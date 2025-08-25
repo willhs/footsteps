@@ -1,12 +1,14 @@
 # Use official Node.js runtime as the base image
 FROM node:18-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-# Also install sqlite3 CLI for MBTiles fallback access
-RUN apk add --no-cache libc6-compat sqlite
+# Install system packages once
+FROM base AS pkg
+# libc6-compat enables some native npm modules, sqlite provides the CLI for
+# MBTiles fallback access, and curl supports health checks.
+RUN apk add --no-cache libc6-compat sqlite curl
 
+# Install dependencies only when needed
+FROM pkg AS deps
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -19,7 +21,7 @@ RUN \
   fi
 
 # Rebuild the source code only when needed
-FROM base AS builder
+FROM pkg AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -42,9 +44,11 @@ RUN \
 FROM base AS runner
 WORKDIR /app
 
-# Install sqlite3 CLI for MBTiles access in production
-# curl is required for container health checks
-RUN apk add --no-cache sqlite curl
+# Copy runtime binaries from the pkg stage instead of installing again
+COPY --from=pkg /usr/bin/sqlite3 /usr/bin/sqlite3
+COPY --from=pkg /usr/bin/curl /usr/bin/curl
+COPY --from=pkg /usr/lib /usr/lib
+COPY --from=pkg /lib /lib
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

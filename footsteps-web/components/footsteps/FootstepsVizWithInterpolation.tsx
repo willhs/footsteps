@@ -16,32 +16,40 @@ import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
-import { useInterpolation } from '@/components/footsteps/hooks/useInterpolation';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
 import { radiusStrategies } from '@/components/footsteps/layers/radiusStrategies';
 
 const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
-const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
+const ENABLE_PLAIN_BASEMAP =
+  (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
 
 interface FootstepsVizWithInterpolationProps {
   year: number;
   enableInterpolation?: boolean;
-  interpolationThreshold?: number;
+  shouldInterpolate?: boolean;
+  interpolationFromYear?: number;
+  interpolationToYear?: number;
+  interpolationProgress?: number;
 }
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizWithInterpolation({ 
-  year, 
+function FootstepsVizWithInterpolation({
+  year,
   enableInterpolation = true,
-  interpolationThreshold = 50 // Only interpolate for year changes > 50 years
+  shouldInterpolate = false,
+  interpolationFromYear,
+  interpolationToYear,
+  interpolationProgress = 0,
 }: FootstepsVizWithInterpolationProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
+  const [colorScheme, setColorScheme] =
+    useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
-  const { viewState, onViewStateChange, isZooming, isPanning } = useGlobeViewState();
+  const { viewState, onViewStateChange, isZooming, isPanning } =
+    useGlobeViewState();
 
   const [tooltipData, setTooltipData] = useState<{
     population: number;
@@ -51,23 +59,9 @@ function FootstepsVizWithInterpolation({
     clickPosition: { x: number; y: number };
   } | null>(null);
 
-  // Interpolation state management
-  const {
-    isInterpolating,
-    fromYear,
-    toYear,
-    interpolationT,
-    currentDisplayYear,
-    startInterpolation,
-    stopInterpolation,
-  } = useInterpolation(year, {
-    animationDurationMs: 2000,
-    interpolationThreshold,
-  });
-
   // Use year crossfade hook for non-interpolated transitions
   const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
-    useYearCrossfade(enableInterpolation ? currentDisplayYear : year);
+    useYearCrossfade(Math.round(year));
 
   useEffect(() => {
     setViewMode(is3DMode);
@@ -140,42 +134,45 @@ function FootstepsVizWithInterpolation({
   const layers: LayersList = useMemo(() => {
     const baseLayers = [...backgroundLayers];
 
-    if (enableInterpolation && isInterpolating) {
-      // Use interpolation layer during animation
+    if (
+      enableInterpolation &&
+      shouldInterpolate &&
+      interpolationFromYear != null &&
+      interpolationToYear != null
+    ) {
       const interpolationLayer = new InterpolationLayer({
         id: `human-interpolation-${colorScheme}`,
-        fromYear,
-        toYear,
-        t: interpolationT,
+        fromYear: interpolationFromYear,
+        toYear: interpolationToYear,
+        t: interpolationProgress,
         viewState: layerViewState,
-        radiusStrategy: is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive,
+        radiusStrategy: is3DMode
+          ? radiusStrategies.globe3D
+          : radiusStrategies.zoomAdaptive,
         colorScheme,
         opacity: 1.0,
         onTileLoad: () => {
           setTileLoading(false);
         },
         onClick: (info: unknown) => {
-          // Handle click for tooltip
           const clickInfo = info as any;
           if (clickInfo && clickInfo.object) {
-            // Build tooltip data similar to humanLayer.ts
             const data = {
               population: clickInfo.object.properties?.population || 0,
               coordinates: clickInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
+              year,
               clickPosition: { x: clickInfo.x, y: clickInfo.y },
             };
             setTooltipData(data);
           }
         },
         onHover: (info: unknown) => {
-          // Handle hover similar to click
           const hoverInfo = info as any;
           if (hoverInfo && hoverInfo.object) {
             const data = {
               population: hoverInfo.object.properties?.population || 0,
               coordinates: hoverInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
+              year,
               clickPosition: { x: hoverInfo.x, y: hoverInfo.y },
             };
             setTooltipData(data);
@@ -186,17 +183,19 @@ function FootstepsVizWithInterpolation({
       });
 
       return [...baseLayers, interpolationLayer] as LayersList;
-    } else {
-      // Use traditional crossfade approach
-      const currentYearLayer = createHumanLayerForYear(
-        currentDisplayYear,
-        stableLODLevel,
-        currentOpacity,
-        `human-layer-current-${colorScheme}`,
-        true,
-      );
+    }
 
-      const previousYearLayer = previousYear !== null
+    const displayYear = Math.round(year);
+    const currentYearLayer = createHumanLayerForYear(
+      displayYear,
+      stableLODLevel,
+      currentOpacity,
+      `human-layer-current-${colorScheme}`,
+      true,
+    );
+
+    const previousYearLayer =
+      previousYear !== null
         ? createHumanLayerForYear(
             previousYear as number,
             stableLODLevel,
@@ -206,21 +205,20 @@ function FootstepsVizWithInterpolation({
           )
         : null;
 
-      return previousYearLayer
-        ? [...baseLayers, previousYearLayer, currentYearLayer] as LayersList
-        : [...baseLayers, currentYearLayer] as LayersList;
-    }
+    return previousYearLayer
+      ? ([...baseLayers, previousYearLayer, currentYearLayer] as LayersList)
+      : ([...baseLayers, currentYearLayer] as LayersList);
   }, [
     backgroundLayers,
     enableInterpolation,
-    isInterpolating,
-    fromYear,
-    toYear,
-    interpolationT,
+    shouldInterpolate,
+    interpolationFromYear,
+    interpolationToYear,
+    interpolationProgress,
     layerViewState,
     is3DMode,
     colorScheme,
-    currentDisplayYear,
+    year,
     createHumanLayerForYear,
     stableLODLevel,
     currentOpacity,
@@ -233,11 +231,10 @@ function FootstepsVizWithInterpolation({
     try {
       console.log('[INTERPOLATION-VIZ]', {
         year,
-        currentDisplayYear,
-        isInterpolating,
-        fromYear,
-        toYear,
-        interpolationT,
+        shouldInterpolate,
+        interpolationFromYear,
+        interpolationToYear,
+        interpolationProgress,
         enableInterpolation,
         layerCount: layers.length,
       });
@@ -277,7 +274,7 @@ function FootstepsVizWithInterpolation({
         progressiveRenderStatus={undefined}
         viewportBounds={null}
         is3DMode={is3DMode}
-        year={currentDisplayYear} // Show interpolated year
+        year={Math.round(year)} // Show interpolated year
       />
 
       {/* View Mode + Terrain toggles */}
@@ -292,16 +289,18 @@ function FootstepsVizWithInterpolation({
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
-        
+
         {/* Interpolation debug info */}
         {DEBUG && enableInterpolation && (
           <div className="bg-black bg-opacity-50 text-white text-xs p-2 rounded">
-            <div>Interpolating: {isInterpolating ? 'Yes' : 'No'}</div>
-            {isInterpolating && (
+            <div>Interpolating: {shouldInterpolate ? 'Yes' : 'No'}</div>
+            {shouldInterpolate && (
               <>
-                <div>From: {fromYear} → To: {toYear}</div>
-                <div>Progress: {Math.round(interpolationT * 100)}%</div>
-                <div>Display Year: {currentDisplayYear}</div>
+                <div>
+                  From: {interpolationFromYear} → {interpolationToYear}
+                </div>
+                <div>Progress: {Math.round(interpolationProgress * 100)}%</div>
+                <div>Display Year: {Math.round(year)}</div>
               </>
             )}
           </div>

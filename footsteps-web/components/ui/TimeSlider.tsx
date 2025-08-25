@@ -6,7 +6,7 @@ import useSliderMarks from './hooks/useSliderMarks';
 
 /**
  * Time navigation component for scrubbing through historical years.
- * 
+ *
  * Follows design philosophy:
  * - Hero interaction: "Dragging should feel like controlling time itself"
  * - Immediate impact: Current year display as the dominant visual element
@@ -24,11 +24,19 @@ interface TimeSliderProps {
   onAfterChange?: () => void;
 }
 
-export default function TimeSlider({ value, onChange, onBeforeChange, onAfterChange }: TimeSliderProps) {
+export default function TimeSlider({
+  value,
+  onChange,
+  onBeforeChange,
+  onAfterChange,
+}: TimeSliderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const handleSelectMark = useCallback((pos: number) => {
-    onChange(pos);
-  }, [onChange]);
+  const handleSelectMark = useCallback(
+    (pos: number) => {
+      onChange(pos);
+    },
+    [onChange],
+  );
   const marks = useSliderMarks(value, handleSelectMark);
 
   // rAF-throttled change handler to maintain smooth 60fps scrubbing
@@ -82,13 +90,13 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
           <Slider
             min={0}
             max={100}
+            step={0.01}
             value={value}
             onChange={handleSliderChange}
             onBeforeChange={handleBeforeChange}
             onAfterChange={handleAfterChange}
             marks={marks}
-            step={null}
-            dots={true}
+            dots={false}
             included={true}
             className="time-slider w-full"
             aria-label="Time slider"

@@ -19,3 +19,7 @@ timeout_seconds = 300      # 5 minutes
 
 # Storage settings
 bucket_location = "US"  # Multi-region US
+
+# Logging and monitoring
+log_retention_days = 30
+alert_email        = "ops@example.com"

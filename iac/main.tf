@@ -117,6 +117,8 @@ resource "google_cloud_run_v2_service" "app" {
       max_instance_count = var.max_instances
     }
 
+    max_instance_request_concurrency = var.container_concurrency
+
     containers {
       image = var.container_image
 

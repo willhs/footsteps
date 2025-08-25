@@ -10,5 +10,10 @@ export {
   createTerrainLayer,
 } from './backgroundLayers';
 export { createHumanTilesLayer, createHumanLayerFactory } from './humanLayer';
-export type { HumanLayerCallbacks, HumanLayerMetrics, HumanLayerFactoryConfig } from './humanLayer';
+export type {
+  HumanLayerCallbacks,
+  HumanLayerMetrics,
+  HumanLayerFactoryConfig,
+} from './humanLayer';
 export { InterpolationLayer } from './InterpolationLayer';
+export { GpuInterpolationLayer } from './GpuInterpolationLayer';

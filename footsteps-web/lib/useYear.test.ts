@@ -1,5 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
-import { yearToSlider, sliderToYear, formatYear, useYear } from './useYear';
+import {
+  yearToSlider,
+  sliderToYear,
+  formatYear,
+  useYear,
+  getBoundingYears,
+} from './useYear';
 
 describe('yearToSlider and sliderToYear', () => {
   it('maps known years to slider positions', () => {
@@ -24,6 +30,13 @@ describe('yearToSlider and sliderToYear', () => {
       const pos = yearToSlider(year);
       expect(sliderToYear(pos)).toBe(year);
     }
+  });
+});
+
+describe('getBoundingYears', () => {
+  it('returns surrounding known years', () => {
+    expect(getBoundingYears(450)).toEqual({ previous: 400, next: 500 });
+    expect(getBoundingYears(-750)).toEqual({ previous: -1000, next: 0 });
   });
 });
 

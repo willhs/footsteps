@@ -12,6 +12,10 @@ container_image = "gcr.io/footsteps-earth/footsteps-time-app:latest"
 min_instances = 0  # Set to 0 for cost optimization
 max_instances = 100
 
+# Concurrency settings
+# Increase for I/O-bound workloads; lower for CPU-bound tasks
+container_concurrency = 80
+
 # Resource limits
 cpu_limit      = "2000m"  # 2 vCPUs
 memory_limit   = "2Gi"    # 2GB memory

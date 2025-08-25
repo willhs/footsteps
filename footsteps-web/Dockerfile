@@ -1,11 +1,12 @@
 # Use official Node.js runtime as the base image
-FROM node:18-alpine AS base
+FROM node:18 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-# Also install sqlite3 CLI for MBTiles fallback access
-RUN apk add --no-cache libc6-compat sqlite
+# Install sqlite and curl for later stages
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends sqlite3 curl \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -38,40 +39,33 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
+# Prepare runtime directories with correct permissions
+RUN mkdir -p /data/tiles/humans /app/data/tiles/humans /tmp \
+  && chown -R 65532:65532 /data /app/data /tmp
 
-# Install sqlite3 CLI for MBTiles access in production
-# curl is required for container health checks
-RUN apk add --no-cache sqlite curl
+# Production image, copy all the files and run next
+FROM gcr.io/distroless/nodejs18-debian11 AS runner
+WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy sqlite and curl binaries plus required libs
+COPY --from=deps /usr/bin/sqlite3 /usr/bin/sqlite3
+COPY --from=deps /usr/bin/curl /usr/bin/curl
+COPY --from=deps /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=deps /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=deps /etc/ssl/certs/ /etc/ssl/certs/
 
-# Create directories for tiles
-# /data will be mounted from persistent disk in production, local files in development
-RUN mkdir -p /data/tiles/humans && chown -R nextjs:nodejs /data
-RUN mkdir -p /app/data/tiles/humans && chown -R nextjs:nodejs /app/data
-RUN mkdir -p /tmp && chown -R nextjs:nodejs /tmp
+# Copy application files
+COPY --from=builder --chown=65532:65532 /app/public ./public
+COPY --from=builder --chown=65532:65532 /app/.next/standalone ./
+COPY --from=builder --chown=65532:65532 /app/.next/static ./.next/static
+COPY --from=builder --chown=65532:65532 /app/data ./data
+COPY --from=builder --chown=65532:65532 /data /data
+COPY --from=builder --chown=65532:65532 /tmp /tmp
 
-# Copy necessary files
-COPY --from=builder /app/public ./public
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+USER 65532
 
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
@@ -80,8 +74,7 @@ ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s \
-  CMD curl -f http://localhost:8080/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s CMD ["/usr/bin/curl", "-f", "http://localhost:8080/health"] || exit 1
 
 # Run the application
 CMD ["node", "server.js"]

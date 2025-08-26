@@ -114,8 +114,10 @@ export async function GET(
     return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
   }
 
-  // Try HTTP byte-range access first (production mode)
-  if (!tileFile.isLocal && tileFile.httpUrl) {
+  // Try HTTP byte-range access first (production mode) ONLY when explicitly enabled.
+  // This avoids serving potentially truncated gzip payloads from the simple range reader.
+  const enableHttpRange = process.env.ENABLE_HTTP_RANGE === 'true';
+  if (enableHttpRange && !tileFile.isLocal && tileFile.httpUrl) {
     try {
       const httpAccess = await createHTTPTileAccess(tileFile);
       if (httpAccess && httpAccess.supportsRanges) {
@@ -123,7 +125,7 @@ export async function GET(
         const tile = await httpAccess.reader.getTile(zz, xx, tmsY);
         
         if (!tile) {
-          return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400' } });
+          return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400', 'X-HTTP-Range': 'enabled' } });
         }
 
         const headers: Record<string, string> = {
@@ -136,6 +138,7 @@ export async function GET(
           'X-LOD-Source': 'single-http-range',
           'X-GCS-Source': 'true',
           'X-Tile-Cache': 'http-range',
+          'X-HTTP-Range': 'enabled',
         };
         
         if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
@@ -213,7 +216,8 @@ export async function GET(
       'X-Tile-Y': String(yy),
       'X-LOD-Source': 'single',
       'X-GCS-Source': tileFile.isLocal ? 'false' : 'true',
-      'Last-Modified': (tileFile.mtime || stat.mtime).toUTCString()
+      'Last-Modified': (tileFile.mtime || stat.mtime).toUTCString(),
+      'X-HTTP-Range': 'disabled'
     };
     if (cacheStatus) headers['X-Tile-Cache'] = cacheStatus;
     if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';

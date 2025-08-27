@@ -267,7 +267,16 @@ export async function GET(
     }
   }
 
-  // Fallback to download approach (development or when HTTP ranges fail)
+  // If tileset is remote (GCS) and HTTP-range failed, do not download entire MBTiles.
+  // This enforces range-only access in production.
+  if (!tileFile.isLocal && tileFile.httpUrl) {
+    return NextResponse.json(
+      { error: 'Remote MBTiles range access failed' },
+      { status: 503, headers: { 'X-HTTP-Range': httpRangeFallback ? 'failed' : 'skipped' } }
+    );
+  }
+
+  // Fallback to download approach (local development only)
   let filepath: string;
   let isTemp = false;
   let cacheStatus: 'hit' | 'refresh' | undefined;

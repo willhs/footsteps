@@ -89,13 +89,13 @@ export async function getTileFilePath(
     try {
       const supportsRanges = await supportsRangeRequests(httpUrl);
       if (supportsRanges) {
+        // Keep canonical gs:// path for compatibility with GCS SDK fallback,
+        // but expose httpUrl for HTTP range access.
         return {
           exists: true,
-          path: httpUrl,
+          path: `gs://${bucketName}/${yearlyFilename}`,
           isLocal: false,
           httpUrl: httpUrl,
-          // We can't easily get size/mtime for HTTP without a HEAD request
-          // but that's okay since we're using byte ranges
         };
       } else {
         console.warn(`HTTP server does not advertise range support; using GCS SDK for ${httpUrl}`);

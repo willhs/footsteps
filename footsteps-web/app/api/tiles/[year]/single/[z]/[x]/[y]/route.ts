@@ -119,31 +119,19 @@ async function getTileViaHttpVfs(
     let wasmUrl: string;
     const hasDomWorker = typeof (globalThis as unknown as { Worker?: unknown }).Worker !== 'undefined';
     if (!hasDomWorker) {
-      // Node runtime: polyfill Worker and prefer local file path for the worker script.
+      // Node runtime: use web-worker polyfill and point it at a filesystem path.
       try {
         const nodeWorkerMod: any = await import('web-worker');
         (globalThis as any).Worker = nodeWorkerMod.default || nodeWorkerMod;
       } catch (e) {
         console.warn('Failed to load web-worker polyfill in Node:', e);
       }
-      const workerPath = (() => {
-        try {
-          return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js');
-        } catch {
-          return null;
-        }
-      })();
-      // Build a data: URL bootstrap that hides Node's process and loads the real worker via importScripts
-      if (!process.env.SQLJS_WORKER_URL && workerPath) {
-        const workerFileUrl = pathToFileURL(workerPath).toString();
-        const bootstrap = `self.process=undefined;try{delete self.process}catch{};try{delete globalThis.process}catch{};importScripts('${workerFileUrl}');`;
-        const base64 = Buffer.from(bootstrap, 'utf8').toString('base64');
-        workerUrl = `data:application/javascript;base64,${base64}`;
-      } else {
-        workerUrl = String(process.env.SQLJS_WORKER_URL || CDN_WORKER);
-      }
-      // In Node, prefer CDN for wasm to ensure fetch() works inside worker
-      wasmUrl = String(process.env.SQLJS_WASM_URL || CDN_WASM);
+      const bakedWorkerPath = fs.existsSync('/app/sqljs/sqlite.worker.js') ? '/app/sqljs/sqlite.worker.js' : null;
+      const resolvedWorkerPath = bakedWorkerPath || (() => { try { return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js'); } catch { return null; }})();
+      workerUrl = String(process.env.SQLJS_WORKER_URL || resolvedWorkerPath || '');
+      if (!workerUrl) workerUrl = CDN_WORKER; // last resort (likely to fail in Node)
+      // For wasm, prefer baked path or CDN; the worker will fetch it
+      wasmUrl = String(process.env.SQLJS_WASM_URL || (fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : CDN_WASM));
     } else {
       // Browser-like environment: use file URLs if available, fallback to CDN
       // Prefer baked-in worker/wasm paths in the container, fall back to node_modules, then CDN

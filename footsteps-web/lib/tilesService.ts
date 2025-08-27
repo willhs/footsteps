@@ -243,8 +243,9 @@ export async function downloadTileFile(
       if (tileFile.mtime && st.mtime >= tileFile.mtime) {
         return { path: finalPath, isTemp: false, cacheStatus: 'hit' };
       }
-    } catch (error) {
-      console.log(`Cache miss for ${finalPath}:`, error.message || 'file not found');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'file not found';
+      console.log(`Cache miss for ${finalPath}:`, message);
     }
 
     // Download to a temporary path, then move atomically into place

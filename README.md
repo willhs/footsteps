@@ -4,8 +4,6 @@
 
 Shows an instantiation of history from the data available, as accurately as possible.
 
-![Globe of Humans Demo](docs/demo-screenshot.png)
-
 ## 🎯 Vision
 
 A living atlas that shows everyone who ever lived, throughout all of human history. Shows an instantiation of history from the data available, as accurately as possible.

@@ -74,19 +74,7 @@ jobs:
           name: nextjs-build
           path: footsteps-web/nextjs-build.tar.gz
 
-      - name: Build Docker image
-        working-directory: ./footsteps-web
-        run: docker build -t footsteps-web:${{ github.sha }} .
-
-      - name: Save Docker image
-        run: docker save footsteps-web:${{ github.sha }} -o footsteps-web-image.tar
-
-      - name: Upload Docker image
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: footsteps-web-image
-          path: footsteps-web-image.tar
+      # Docker build moved to deployment workflow to avoid artifact storage issues
 
   python:
     name: Python Tests

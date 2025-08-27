@@ -33,16 +33,9 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
 
-    - name: Download Docker image artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: footsteps-web-image
-        path: .
-        run-id: ${{ github.event.workflow_run.id }}
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Load Docker image
-      run: docker load -i footsteps-web-image.tar
+    - name: Build Docker image directly
+      working-directory: ./footsteps-web
+      run: docker build -t footsteps-web:${{ github.event.workflow_run.head_sha }} .
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2

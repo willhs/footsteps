@@ -146,13 +146,18 @@ async function getTileViaHttpVfs(
       wasmUrl = String(process.env.SQLJS_WASM_URL || CDN_WASM);
     } else {
       // Browser-like environment: use file URLs if available, fallback to CDN
+      // Prefer baked-in worker/wasm paths in the container, fall back to node_modules, then CDN
+      const bakedWorker = fs.existsSync('/app/sqljs/sqlite.worker.js') ? pathToFileURL('/app/sqljs/sqlite.worker.js').toString() : null;
+      const bakedWasm = fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : null;
       workerUrl = String(
         process.env.SQLJS_WORKER_URL ||
+          bakedWorker ||
           resolvePathToUrl('sql.js-httpvfs/dist/sqlite.worker.js') ||
           CDN_WORKER,
       );
       wasmUrl = String(
         process.env.SQLJS_WASM_URL ||
+          bakedWasm ||
           resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') ||
           CDN_WASM,
       );

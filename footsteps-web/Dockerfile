@@ -63,6 +63,12 @@ RUN mkdir -p /tmp && chown -R nextjs:nodejs /tmp
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
+ 
+# Bundle sql.js-httpvfs worker and wasm for server-side HTTP range SQLite
+# so the API can use file:// URLs instead of external CDNs (required by Node workers)
+RUN mkdir -p /app/sqljs
+COPY --from=builder /app/node_modules/sql.js-httpvfs/dist/sqlite.worker.js /app/sqljs/sqlite.worker.js
+COPY --from=builder /app/node_modules/sql.js-httpvfs/dist/sql-wasm.wasm /app/sqljs/sql-wasm.wasm
 
 # Set the correct permission for prerender cache
 RUN mkdir .next

@@ -30,22 +30,6 @@ A living atlas that shows everyone who ever lived, throughout all of human histo
 
 ### Installation
 
-#### Automated Setup (Recommended)
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd deep-footsteps
-
-# Run the automated setup script
-./setup.sh
-
-# Start the development server (port 4444)
-cd footsteps-web && pnpm dev
-```
-
-#### Manual Setup
-
 ```bash
 # Clone the repository
 git clone <repository-url>

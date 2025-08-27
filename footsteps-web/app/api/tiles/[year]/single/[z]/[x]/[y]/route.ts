@@ -128,7 +128,8 @@ async function getTileViaHttpVfs(
       }
       const bakedWorkerPath = fs.existsSync('/app/sqljs/sqlite.worker.js') ? '/app/sqljs/sqlite.worker.js' : null;
       const resolvedWorkerPath = bakedWorkerPath || (() => { try { return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js'); } catch { return null; }})();
-      workerUrl = String(process.env.SQLJS_WORKER_URL || resolvedWorkerPath || '');
+      const resolvedWorkerFileUrl = resolvedWorkerPath ? pathToFileURL(resolvedWorkerPath).toString() : '';
+      workerUrl = String(process.env.SQLJS_WORKER_URL || resolvedWorkerFileUrl || '');
       if (!workerUrl) workerUrl = CDN_WORKER; // last resort (likely to fail in Node)
       // For wasm, prefer baked path or CDN; the worker will fetch it
       wasmUrl = String(process.env.SQLJS_WASM_URL || (fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : CDN_WASM));

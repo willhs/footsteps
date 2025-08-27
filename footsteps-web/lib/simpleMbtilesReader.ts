@@ -156,14 +156,21 @@ export function createSimpleMBTilesReader(url: string): SimpleMBTilesReader | nu
  */
 export async function supportsRangeRequests(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, { 
-      method: 'HEAD',
-      headers: { 'Range': 'bytes=0-0' }
-    });
-    
-    return response.status === 206 && 
-           response.headers.get('accept-ranges') === 'bytes';
-  } catch {
+    // First, HEAD without a Range header: many servers (incl. GCS) respond 200 with Accept-Ranges: bytes
+    const head = await fetch(url, { method: 'HEAD' });
+    const acceptRanges = (head.headers.get('accept-ranges') || '').toLowerCase();
+    const hasBytes = acceptRanges.includes('bytes');
+    if (head.ok && hasBytes) return true;
+
+    // Fallback probe: small ranged GET (1 byte) expecting 206 or Content-Range
+    const get = await fetch(url, { headers: { Range: 'bytes=0-0', 'Accept-Encoding': 'identity' } });
+    const contentRange = get.headers.get('content-range');
+    if (get.status === 206 || (contentRange && contentRange.startsWith('bytes '))) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    // Be conservative on error: signal no range support so callers can fall back
     return false;
   }
 }

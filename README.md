@@ -1,21 +1,14 @@
-# 🌍 Globe of Humans
+# 🌍 Footsteps of time
 
 **A living atlas that shows everyone who ever lived, throughout all of human history.**
 
 Shows an instantiation of history from the data available, as accurately as possible.
 
-## 🎯 Vision
-
-A living atlas that shows everyone who ever lived, throughout all of human history. Shows an instantiation of history from the data available, as accurately as possible.
-
 ## ✨ Features
 
-- **🌐 Interactive 3D Globe** - Navigate and explore with full pan/zoom/rotate controls
+- **🌐 Interactive pap / globe** - Navigate and explore with full pan/zoom/rotate controls
 - **⏰ Time Travel** - Non-linear slider covering 100,000 BCE → 2025 CE with historical breakpoints
 - **👥 Settlement Points** - Representative points of human presence (aggregated by LOD)
-- **🔥 Heat-Map** - Population density visualization showing regional concentrations
-- **📊 Real-time Filtering** - Dots appear/disappear based on historical timeline
-- **⚡ Performance** - Efficient rendering of millions of data points
 
 ## 🚀 Quick Start
 

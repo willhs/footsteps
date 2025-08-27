@@ -231,11 +231,10 @@ export async function GET(
     return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
   }
 
-  // Try HTTP byte-range access first (production mode) ONLY when explicitly enabled.
+  // Try HTTP byte-range access first when the tileset is remote (GCS).
   // Uses sql.js-httpvfs to query the remote MBTiles over HTTP range requests.
-  const enableHttpRange = process.env.ENABLE_HTTP_RANGE === 'true';
   let httpRangeFallback = false;
-  if (enableHttpRange && !tileFile.isLocal && tileFile.httpUrl) {
+  if (!tileFile.isLocal && tileFile.httpUrl) {
     try {
       const tmsY = yToTms(zz, yy);
       let tile = await getTileViaHttpVfs(tileFile.httpUrl, zz, xx, tmsY);

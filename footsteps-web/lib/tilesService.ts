@@ -82,26 +82,26 @@ export async function getTileFilePath(
   // Check if we should use production mode (GCS bucket available)
   const bucketName = getTilesBucketIfAvailable();
   if (process.env.NODE_ENV === 'production' && bucketName) {
-    // Only try HTTP range access if explicitly enabled
-    if (process.env.ENABLE_HTTP_RANGE === 'true') {
-      const httpUrl = `https://storage.googleapis.com/${bucketName}/${yearlyFilename}`;
-      
-      // Check if the file exists and supports range requests
-      try {
-        const supportsRanges = await supportsRangeRequests(httpUrl);
-        if (supportsRanges) {
-          return {
-            exists: true,
-            path: httpUrl,
-            isLocal: false,
-            httpUrl: httpUrl,
-            // We can't easily get size/mtime for HTTP without a HEAD request
-            // but that's okay since we're using byte ranges
-          };
-        }
-      } catch (error) {
-        console.warn(`HTTP range check failed for ${httpUrl}, falling back to GCS SDK:`, error);
+    // Always try HTTP range access first in production for remote MBTiles
+    const httpUrl = `https://storage.googleapis.com/${bucketName}/${yearlyFilename}`;
+    
+    // Check if the file exists and supports range requests
+    try {
+      const supportsRanges = await supportsRangeRequests(httpUrl);
+      if (supportsRanges) {
+        return {
+          exists: true,
+          path: httpUrl,
+          isLocal: false,
+          httpUrl: httpUrl,
+          // We can't easily get size/mtime for HTTP without a HEAD request
+          // but that's okay since we're using byte ranges
+        };
+      } else {
+        console.warn(`HTTP server does not advertise range support; using GCS SDK for ${httpUrl}`);
       }
+    } catch (error) {
+      console.warn(`HTTP range check failed for ${httpUrl}, falling back to GCS SDK:`, error);
     }
     
     // Use GCS SDK approach (download entire file) - this is the default

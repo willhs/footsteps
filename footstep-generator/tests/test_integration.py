@@ -138,7 +138,7 @@ def test_integration_workflow():
             print("  ✓ LOD data present and conserves population")
 
         print("✅ Integration workflow test passed!")
-        return True
+        # No return needed for pytest
 
 
 if __name__ == "__main__":

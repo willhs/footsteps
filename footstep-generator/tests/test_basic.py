@@ -130,7 +130,7 @@ def test_basic_functionality():
         print(f"    Zoom {zoom} → {actual_lod.name}")
 
     print("✅ All basic tests passed!")
-    return True
+    # No return needed for pytest
 
 
 if __name__ == "__main__":

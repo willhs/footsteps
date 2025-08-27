@@ -105,6 +105,7 @@ async function main() {
                 bytes = bytes.subarray(0, bodyView.byteLength);
               }
               bodyView.set(bytes);
+              try { console.log('[httpvfs-test][main] sync GET status', res.status, 'hdr', res.headers?.get && (res.headers.get('content-range') || res.headers.get('content-length') || '')); } catch {}
               Atomics.store(meta, 1, res.status|0);
               Atomics.store(meta, 2, bytes.length|0);
               Atomics.store(meta, 0, 1);
@@ -167,9 +168,10 @@ try {
 const __preHeadCache = new Map();
 const __MBTILES_URL = ${JSON.stringify(String(url || ''))};
 const __SYNC_CHANNEL = '__httpvfs_xhr_sync_v1';
+const __DEFAULT_SYNC_BUF = ${Math.max(65536, (Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 4096) * 2)}; // conservative default
 // Minimal XMLHttpRequest polyfill using fetch (supports GET/HEAD, responseType='arraybuffer', setRequestHeader, onreadystatechange/onload/onerror)
 try {
-  if (typeof XMLHttpRequest === 'undefined') {
+  {
     class XHR {
       constructor() {
         this.readyState = 0; // UNSENT
@@ -188,8 +190,8 @@ try {
         this._method = method;
         this._url = url;
         const m = (method || '').toUpperCase();
-        // Force GET to be async; allow HEAD to honor sync (we serve it from cache)
-        this._async = m === 'HEAD' ? (async !== false) : async !== false;
+        // Honor caller's async flag for both HEAD and GET (sql.js-httpvfs uses sync XHR for both)
+        this._async = async !== false;
         try { console.log('[httpvfs-test/bootstrap][XHR] open', m, url, 'async=', this._async); } catch {}
         this.readyState = 1; // OPENED
         this._callReady();
@@ -229,15 +231,35 @@ try {
             try {
               const range = this._headers['Range'] || this._headers['range'] || '';
               let expectedLen = 0;
-              const m = /bytes\s*=\s*(\d+)\s*-\s*(\d+)/i.exec(range);
+              // Case 1: bytes=a-b
+              let m = /bytes\s*=\s*(\d+)\s*-\s*(\d+)/i.exec(range);
               if (m) {
                 const from = parseInt(m[1], 10);
                 const to = parseInt(m[2], 10);
                 if (Number.isFinite(from) && Number.isFinite(to) && to >= from) expectedLen = (to - from + 1) | 0;
+              } else {
+                // Case 2: open-ended bytes=a-
+                m = /bytes\s*=\s*(\d+)\s*-\s*$/i.exec(range);
+                if (m) {
+                  const from = parseInt(m[1], 10);
+                  // Try to compute from HEAD content-length cache
+                  let total = 0;
+                  try {
+                    const cached = __preHeadCache.get(this._url);
+                    const cl = cached && cached.headers && (cached.headers['content-length'] || cached.headers['Content-Length']);
+                    const n = cl ? parseInt(cl, 10) : NaN;
+                    if (Number.isFinite(n) && n > 0) total = n;
+                  } catch {}
+                  if (Number.isFinite(from) && total > 0 && total > from) {
+                    expectedLen = (total - from) | 0;
+                  }
+                }
               }
+              try { console.log('[httpvfs-test/bootstrap][XHR] sync GET range', range, 'expectedLen=', expectedLen); } catch {}
               const HEADER_I32S = 3; // [flag, status, length]
               const headerBytes = HEADER_I32S * 4;
-              const sab = new SharedArrayBuffer(headerBytes + (expectedLen > 0 ? expectedLen : 0));
+              const bodySize = expectedLen > 0 ? expectedLen : __DEFAULT_SYNC_BUF;
+              const sab = new SharedArrayBuffer(headerBytes + bodySize);
               const meta = new Int32Array(sab, 0, HEADER_I32S);
               // flag=0 initially, main thread sets to 1 when done
               const msg = { __httpvfs_xhr_sync: 1, ch: __SYNC_CHANNEL, url: this._url, method: 'GET', headers: this._headers, expectedLen, sab };
@@ -452,21 +474,6 @@ try {
     process.exit(1);
   }
   console.log('[httpvfs-test] worker ready');
-  if (worker && worker.worker) {
-    try {
-      worker.worker.addEventListener?.('error', (e) => {
-        console.error('[httpvfs-test] worker error:', e?.message || e);
-      });
-      worker.worker.addEventListener?.('messageerror', (e) => {
-        console.error('[httpvfs-test] worker messageerror:', e?.data || e);
-      });
-      worker.worker.addEventListener?.('message', (e) => {
-        try {
-          console.log('[httpvfs-test] worker message:', typeof e?.data, (e && e.data && (e.data.type || (''+e.data).slice(0,120))));
-        } catch {}
-      });
-    } catch {}
-  }
   const watchdog = setTimeout(() => {
     console.error('[httpvfs-test] watchdog: timeout waiting for worker/DB response');
     try { worker?.worker?.terminate?.(); } catch {}

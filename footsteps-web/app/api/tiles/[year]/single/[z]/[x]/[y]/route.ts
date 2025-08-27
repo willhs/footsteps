@@ -25,7 +25,8 @@ async function getMBTilesCtor(): Promise<MBTilesCtor | null> {
         } & MBTilesCtor;
         const ctor = (mod as unknown as { default?: MBTilesCtor }).default || (mod as unknown as MBTilesCtor);
         return ctor || null;
-      } catch {
+      } catch (error) {
+        console.warn('Failed to load @mapbox/mbtiles module:', error);
         return null;
       }
     })();
@@ -58,7 +59,8 @@ async function getTileViaSqliteCli(
     const hex = stdout.trim();
     if (!hex) return null;
     return Buffer.from(hex, 'hex');
-  } catch {
+  } catch (error) {
+    console.error(`SQLite CLI failed for tile z${z}/${x}/${tmsY}:`, error);
     return null;
   }
 }
@@ -283,7 +285,8 @@ export async function GET(
     filepath = dl.path;
     isTemp = dl.isTemp;
     cacheStatus = dl.cacheStatus;
-  } catch {
+  } catch (error) {
+    console.error(`Failed to download/access tileset for year ${yr}:`, error);
     return NextResponse.json({ error: 'Failed to access tileset' }, { status: 500 });
   }
 
@@ -317,8 +320,8 @@ export async function GET(
         tile = await new Promise((resolve) => {
           mb.getTile(zz, xx, tmsY, (err: Error | null, data?: Buffer) => resolve(err ? null : (data || null)));
         });
-      } catch {
-        // fall back
+      } catch (error) {
+        console.error('MBTiles getTile failed, falling back to SQLite CLI:', error);
       }
     }
     if (!tile) {

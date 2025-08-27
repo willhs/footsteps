@@ -24,7 +24,7 @@ importers:
         specifier: ^7.7.0
         version: 7.16.0(encoding@0.1.13)
       '@mapbox/mbtiles':
-        specifier: '*'
+        specifier: ^0.12.1
         version: 0.12.1
       '@tailwindcss/postcss':
         specifier: ^4.1.11

@@ -21,7 +21,7 @@
     "@deck.gl/layers": "^9.1.13",
     "@deck.gl/react": "^9.1.13",
     "@google-cloud/storage": "^7.7.0",
-    "@mapbox/mbtiles": "*",
+    "@mapbox/mbtiles": "^0.12.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24.1.0",
     "@types/react": "^18.2.0",

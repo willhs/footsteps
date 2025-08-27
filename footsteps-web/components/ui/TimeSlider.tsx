@@ -3,8 +3,6 @@
 import { useCallback, useRef, useState } from 'react';
 import Slider from 'rc-slider';
 import useSliderMarks from './hooks/useSliderMarks';
-import { sliderToYear } from '@/lib/useYear';
-import { formatYear } from '@/lib/format';
 
 /**
  * Time navigation component for scrubbing through historical years.
@@ -76,24 +74,11 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
     onAfterChange?.();
   }, [onChange, onAfterChange]);
 
-  // Derive and format the current year for the hero display
-  const currentYear = sliderToYear(value);
-
   return (
-    <div className="time-slider-container">
-      <div className="w-full flex flex-col items-center gap-2">
-        {/* Hero current year display */}
-        <div
-          className="text-hero select-none"
-          aria-live="polite"
-          role="status"
-          aria-atomic="true"
-        >
-          {formatYear(currentYear)}
-        </div>
-
+    <div className="time-slider-container absolute left-4 right-4 sm:left-6 sm:right-6 bottom-10 z-10">
+      <div className="w-full">
         {/* Time slider - Hero interaction */}
-        <div className="w-full py-4">
+        <div className="py-6">
           <Slider
             min={0}
             max={100}

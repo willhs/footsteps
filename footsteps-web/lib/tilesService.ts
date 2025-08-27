@@ -168,7 +168,8 @@ async function checkGCSFile(
       mtime: new Date(metadata.updated || metadata.timeCreated || Date.now()),
       httpUrl: `https://storage.googleapis.com/${bucketName}/${filename}`,
     };
-  } catch {
+  } catch (error) {
+    console.error(`Failed to check GCS file gs://${bucketName}/${filename}:`, error);
     return {
       exists: false,
       path: `gs://${bucketName}/${filename}`,
@@ -242,8 +243,8 @@ export async function downloadTileFile(
       if (tileFile.mtime && st.mtime >= tileFile.mtime) {
         return { path: finalPath, isTemp: false, cacheStatus: 'hit' };
       }
-    } catch {
-      // cache miss or unreadable; proceed to download
+    } catch (error) {
+      console.log(`Cache miss for ${finalPath}:`, error.message || 'file not found');
     }
 
     // Download to a temporary path, then move atomically into place

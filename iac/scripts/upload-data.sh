@@ -140,7 +140,7 @@ echo "🚀 Optimized upload: Excluding LOD-specific files (server uses combined 
 
 if [ "$FILE_COUNT" -eq 0 ]; then
     echo "❌ Error: No combined MBTiles files found in $DATA_DIR"
-    echo "💡 Run 'cd footstep-generator && python process_hyde.py && python make_tiles.py' first"
+    echo "💡 Run 'cd footstep-generator && python generate_footstep_tiles.py' first"
     exit 1
 fi
 

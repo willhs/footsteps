@@ -8,7 +8,7 @@ import pathlib
 
 
 def test_find_hyde_files_dynamic():
-    from process_hyde import find_hyde_files
+    from hyde_tile_processor import find_hyde_files
 
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)

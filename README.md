@@ -58,11 +58,9 @@ poetry install
 cd footsteps-web
 pnpm install
 
-# Generate data and tiles
+# Generate tiles (ensure HYDE data is in data/raw/hyde-3.5/)
 cd ..
-poetry run python footstep-generator/fetch_data.py      # Optional: download datasets
-poetry run python footstep-generator/process_hyde.py    # Compute population-preserving LODs
-poetry run python footstep-generator/make_tiles.py      # Build MBTiles (tiles-only)
+python footstep-generator/generate_footstep_tiles.py    # Complete tile generation pipeline
 
 # Start the development server
 cd footsteps-web
@@ -175,12 +173,7 @@ Single-layer tiles use non-overlapping zoom windows per LOD so only one LOD is v
 
 ### Step 1: Download Datasets
 
-First, try the automated download:
-```bash
-poetry run fetch-data
-```
-
-**If automated download fails** (common due to website restrictions), download manually:
+Download data manually:
 
 1. **HYDE 3.5 Population Density**:
    - Visit: https://pbl.nl/en/hyde

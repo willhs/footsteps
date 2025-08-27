@@ -30,11 +30,10 @@ mypy = "^1.8.0"
 pytest = "^8.0.0"
 
 [tool.poetry.scripts]
-fetch-data = "data.scripts.fetch_data:main"
-download-hyde = "data.scripts.download_hyde_bulk:main"
-process-hyde = "data.scripts.process_hyde:main"
+hyde-tile-processor = "data.scripts.hyde_tile_processor:main"
 process-cities = "data.scripts.process_cities:main"
-make-tiles = "data.scripts.make_tiles:main"
+tile-generator = "data.scripts.tile_generator:main"
+generate-footstep-tiles = "data.scripts.generate_footstep_tiles:main"
 verify-tiles = "scripts.verify_tiles_entry:main"
 
 [build-system]

@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Generate vector tiles from processed population and city data.
-Creates .mbtiles files using tippecanoe for efficient web serving.
+Vector Tile Generator - Build MBTiles from hierarchical tile data.
 
-Enhancements:
- - Tiles-only: generates per-year MBTiles directly from in-memory LOD data
-   produced by process_hyde.py (no intermediate artifacts persisted)
- - Produces one MBTiles per year containing all LOD layers with appropriate
-   zoom ranges, without dropping features (population preserving)
+Creates production-ready .mbtiles files using tippecanoe for efficient web serving.
+Processes hierarchical LOD data into optimized vector tiles with population preservation.
+
+NOTE: This module can be run standalone, but for production use the combined
+generate_footstep_tiles.py script which does the full pipeline efficiently
+without duplicate processing.
+
+Features:
+ - Tiles-only pipeline: generates per-year MBTiles directly from in-memory LOD data
+ - Population-preserving: maintains demographic accuracy across zoom levels
+ - Hierarchical output: produces both per-LOD artifacts and combined yearly tiles
 """
 
 import os
@@ -22,7 +27,7 @@ import platform
 from typing import List, Dict, Any, Tuple, Optional
 
 # Import processing functions to compute LODs in-memory
-from process_hyde import find_hyde_files, process_year_with_hierarchical_lods
+from hyde_tile_processor import find_hyde_files, generate_yearly_tile_data
 from verify_tiles import verify_single_layer
 
 def run_command(cmd: List[str], description: str) -> bool:
@@ -336,7 +341,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
         return str(final_path)
 
     # Compute LODs for this year
-    result = process_year_with_hierarchical_lods(asc_file, year, str(tiles_dir_path), force=force)
+    result = generate_yearly_tile_data(asc_file, year, str(tiles_dir_path), force=force)
     lod_tiles: List[str] = []
     tmp_files: List[str] = []
     try:
@@ -388,7 +393,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
                 pass
 
 def main():
-    """Main tile generation routine."""
+    """Main vector tile generation routine."""
     import argparse
 
     print("🗺️ Globe-of-Humans Tile Generator")
@@ -436,7 +441,7 @@ def main():
     # Tiles-only per-year mode
     hyde_map = find_hyde_files(raw_dir)
     if not hyde_map:
-        print("✗ No HYDE ASC files found. Please download data first (see process_hyde.py).")
+        print("✗ No HYDE ASC files found. Please download data first.")
         return
 
     target_years = args.years if args.years else ([args.year] if args.year is not None else sorted(hyde_map.keys()))
@@ -458,7 +463,7 @@ def main():
             built += 1
             if args.single_layer:
                 # Build single-layer variant using all LOD data deterministically
-                result = process_year_with_hierarchical_lods(asc_file, y, args.tiles_dir, force=args.force)
+                result = generate_yearly_tile_data(asc_file, y, args.tiles_dir, force=args.force)
                 # Use LOD windows so exactly one LOD is visible per zoom
                 combined_geojsonl = write_combined_geojsonl_windows(result.lod_data)
                 yearly_out = pathlib.Path(args.tiles_dir) / f"humans_{y}.mbtiles"

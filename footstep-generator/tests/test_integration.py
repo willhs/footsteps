@@ -92,13 +92,13 @@ def test_integration_workflow():
             return gdf
 
         # Import and patch the function
-        from process_hyde import process_year_with_hierarchical_lods
+        from hyde_tile_processor import generate_yearly_tile_data
 
         with patch(
-            "process_hyde.ascii_grid_to_dots", side_effect=mock_ascii_grid_to_dots
+            "hyde_tile_processor.hyde_grid_to_tile_points", side_effect=mock_ascii_grid_to_dots
         ):
             # Test the hierarchical LOD processing
-            result = process_year_with_hierarchical_lods(
+            result = generate_yearly_tile_data(
                 str(asc_file), 1000, str(output_dir), people_per_dot=100
             )
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
         print("🎉 Integration workflow test passed!")
         print("📝 The complete pipeline is ready for production use.")
-        print("📝 Run with real data: python process_hyde.py")
+        print("📝 Run with real data: python generate_footstep_tiles.py")
 
     except Exception as e:
         print(f"❌ Integration test failed: {e}")

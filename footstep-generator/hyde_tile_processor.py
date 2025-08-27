@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-Process HYDE 3.5 population density data into settlement points and hierarchical LODs.
-Parses ASCII grid files (.asc) to population-preserving settlement points and aggregates
-them into multiple levels of detail in-memory (tiles-only pipeline; no NDJSON writes).
-Use make_tiles.py to build MBTiles (MVT) from the returned LOD data.
+HYDE Tile Data Processor - Convert demographic grids to hierarchical tile data.
+
+Processes HYDE 3.5 ASCII population grid files into tile-ready settlement points with 
+hierarchical Levels of Detail (LODs) for efficient web map rendering. All processing 
+is done in-memory for the tiles-only pipeline.
+
+NOTE: This module can be run standalone for testing/validation, but for production 
+tile generation use the combined generate_footstep_tiles.py script.
 """
 
 import argparse
@@ -45,18 +49,7 @@ from typing import Iterable
 # Geodetic calculator for accurate area calculations
 geod = Geod(ellps="WGS84")
 
-"""
-Note: We no longer rely on a hardcoded TARGET_YEARS list for discovery.
-Instead, we scan the raw HYDE directory for any files matching
-  popd_<YEAR>(BC|AD).asc
-and infer the available years dynamically. The previous TARGET_YEARS list is
-kept here as a historical reference only and is not used by the pipeline.
-"""
-TARGET_YEARS: List[int] = []
-
-# Density-aware dot creation is now handled by LODProcessor
-
-# Hierarchical LOD creation is now handled by LODProcessor
+# Core processing functions use dynamic HYDE file discovery
 
 
 def get_memory_usage() -> str:
@@ -73,11 +66,11 @@ def get_memory_usage() -> str:
         return "memory check failed"
 
 
-def ascii_grid_to_dots(
+def hyde_grid_to_tile_points(
     asc_file: str, year: int, people_per_dot: int = 100, lod_processor: Optional[LODProcessor] = None
 ) -> List[dict]:
     """
-    Convert a HYDE ASC file to settlement points for consistent processing.
+    Convert a HYDE ASC file to tile-ready settlement points.
 
     Args:
         asc_file: Path to HYDE ASC file (e.g., popd_1850AD.asc)
@@ -137,7 +130,6 @@ def ascii_grid_to_dots(
             nrows,
         )
 
-        # Add coordinate debugging
         print(
             f"    Coordinate bounds: lon [{lons[0]:.2f}, {lons[-1]:.2f}], lat [{lats[0]:.2f}, {lats[-1]:.2f}]"
         )
@@ -267,7 +259,6 @@ def ascii_grid_to_dots(
             sample_coords = [(d["lon"], d["lat"]) for d in sample]
             print(f"    Sample coordinates: {sample_coords}")
 
-            # Regional distribution debug removed for performance
 
             print(
                 f"    Created {len(dots)} settlement points for year {year} ({total_people:,.0f} people)"
@@ -356,11 +347,11 @@ def find_hyde_files(raw_dir: str) -> Dict[int, str]:
     return hyde_files
 
 
-def process_year_with_hierarchical_lods(
+def generate_yearly_tile_data(
     asc_file: str, year: int, output_dir: str, people_per_dot: int = 100, force: bool = False, lod_processor: Optional[LODProcessor] = None
 ) -> ProcessingResult:
     """
-    Process a single year of HYDE data with hierarchical LOD generation.
+    Generate hierarchical tile data for a single year from HYDE grid data.
 
     Args:
         asc_file: Path to HYDE ASC file
@@ -393,7 +384,7 @@ def process_year_with_hierarchical_lods(
         lod_processor = LODProcessor(config=lod_config, continuity_config=continuity_config)
 
     # First convert ASC to settlements using shared LOD processor
-    points = ascii_grid_to_dots(asc_file, year, people_per_dot_effective, lod_processor)
+    points = hyde_grid_to_tile_points(asc_file, year, people_per_dot_effective, lod_processor)
     # Normalize to list of dicts to support tests that patch this to return a GeoDataFrame
     points_list: List[dict] = []
     try:
@@ -502,71 +493,12 @@ def process_year_with_hierarchical_lods(
     return result
 
 
-def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
-    """
-    Process all HYDE data and create a combined GeoJSON for vector tiles.
 
-    Returns:
-        Path to output GeoJSON file
-    """
-    print("🌍 Processing HYDE data into settlement points...")
-    print("  (Each point represents ~100 people)")
-
-    # Import geopandas lazily to avoid hard dependency when using tiles-only pipeline
-    try:
-        import geopandas as gpd  # type: ignore
-    except Exception as e:
-        raise RuntimeError(
-            "GeoPandas is required only for legacy GeoJSON output. "
-            "Use process_all_hyde_data_with_lods/make_tiles.py for tiles-only pipeline, "
-            "or install geopandas to use this function."
-        ) from e
-
-    hyde_files = find_hyde_files(raw_dir)
-    print(f"Found {len(hyde_files)} HYDE files to process")
-
-    if not hyde_files:
-        raise FileNotFoundError(
-            "No HYDE dataset files found in data/raw/. "
-            "Please run 'poetry run fetch-data' first to download the datasets."
-        )
-
-    all_polygons = []
-
-    for year in sorted(hyde_files.keys()):
-        asc_file = hyde_files[year]
-        try:
-            # Use consistent granular representation for all periods
-            people_per_dot_effective = 10
-            gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
-            if not gdf.empty:
-                all_polygons.append(gdf)
-        except Exception as e:
-            print(f"  Error processing {asc_file}: {e}")
-            continue
-
-    if all_polygons:
-        # Combine all years
-        combined_gdf = gpd.pd.concat(all_polygons, ignore_index=True)
-
-        # Save as GeoJSON (legacy helper output)
-        output_path = pathlib.Path(output_dir) / "hyde_settlements.geojson"
-        combined_gdf.to_file(output_path, driver="GeoJSON")
-
-        print(f"✓ Saved {len(combined_gdf)} settlement points to {output_path}")
-        return str(output_path)
-    else:
-        raise ValueError(
-            "No valid HYDE data could be processed. "
-            "Check that the downloaded files are in the correct format."
-        )
-
-
-def process_all_hyde_data_with_lods(
+def generate_all_tile_data(
     raw_dir: str, output_dir: str, force: bool = False
 ) -> List[Dict[str, Any]]:
     """
-    Process all HYDE data with hierarchical LOD generation.
+    Generate tile data for all HYDE years with hierarchical LODs.
     
     Memory-optimized version that only retains processing statistics,
     not the full LOD data, to prevent memory accumulation.
@@ -580,8 +512,8 @@ def process_all_hyde_data_with_lods(
         List of lightweight processing statistics for each year
     """
     mode = "Reprocessing all" if force else "Processing new"
-    print(f"🌍 {mode} HYDE data with hierarchical LODs...")
-    print("  (Creating multiple resolution levels for performance)")
+    print(f"🌍 {mode} tile data with hierarchical LODs...")
+    print("  (Creating multiple resolution levels for tile performance)")
 
     hyde_files = find_hyde_files(raw_dir)
     print(f"Found {len(hyde_files)} HYDE files for target years")
@@ -589,7 +521,7 @@ def process_all_hyde_data_with_lods(
     if not hyde_files:
         raise FileNotFoundError(
             "No HYDE dataset files found in data/raw/. "
-            "Please run 'poetry run fetch-data' first to download the datasets."
+            "Please ensure HYDE data is available in data/raw/hyde-3.5/."
         )
 
     # Create shared LOD processor for all years to reduce overhead
@@ -615,7 +547,7 @@ def process_all_hyde_data_with_lods(
         asc_file = hyde_files[year]
         try:
             # Process year and get full result using shared LOD processor
-            result = process_year_with_hierarchical_lods(asc_file, year, output_dir, force=force, lod_processor=shared_lod_processor)
+            result = generate_yearly_tile_data(asc_file, year, output_dir, force=force, lod_processor=shared_lod_processor)
             
             # Extract only essential statistics
             year_stats = {
@@ -656,9 +588,9 @@ def process_all_hyde_data_with_lods(
 
 
 def main():
-    """Main processing routine."""
+    """Main tile data generation routine."""
     parser = argparse.ArgumentParser(
-        description="Process HYDE 3.5 population data with hierarchical LOD generation"
+        description="Generate hierarchical tile data from HYDE 3.5 population grids"
     )
     parser.add_argument(
         "--force", 
@@ -707,7 +639,7 @@ def main():
             print(f"\n[{i}/{year_count}] Processing year {year}...")
             asc_file = hyde_files[year]
             try:
-                result = process_year_with_hierarchical_lods(asc_file, year, str(output_dir), force=args.force)
+                result = generate_yearly_tile_data(asc_file, year, str(output_dir), force=args.force)
                 results.append(result)
                 
                 # Handle both LODLevel enum and integer keys
@@ -729,7 +661,7 @@ def main():
         # Process all years
         processing_mode = "force mode" if args.force else "incremental mode (skipping existing)"
         print(f"Using hierarchical LOD processing as default (population-preserving) in {processing_mode}...")
-        results = process_all_hyde_data_with_lods(str(raw_dir), str(output_dir), force=args.force)
+        results = generate_all_tile_data(str(raw_dir), str(output_dir), force=args.force)
 
     # Only show summary for all-year processing
     if args.years is None:
@@ -751,7 +683,7 @@ def main():
             if len(processed_results) > 3:
                 print(f"    ... and {len(processed_results) - 3} more years")
     
-    print("\nNext: Use make_tiles.py to build MBTiles per year")
+    print("\nNext: Use generate_footstep_tiles.py to build complete MBTiles per year")
 
     # macOS audible completion notification
     try:

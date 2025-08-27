@@ -20,7 +20,9 @@ This Python-based pipeline processes historical population density data from the
 
 - **`models.py`**: Pydantic V2 models for data validation and type safety
 - **`lod_processor.py`**: Hierarchical Level-of-Detail system implementation
-- **`process_hyde.py`**: Main processing pipeline for HYDE data conversion
+- **`hyde_tile_processor.py`**: HYDE grid to tile data conversion with LODs
+- **`tile_generator.py`**: Vector tile generation via tippecanoe
+- **`generate_footstep_tiles.py`**: Complete tile generation pipeline (recommended)
 - **`process_cities.py`**: City data processing utilities
 - **`settlement_registry.py`**: Settlement tracking and continuity management
 
@@ -35,16 +37,14 @@ The pipeline implements a four‑tier LOD system for performance at different zo
 
 ## Commands
 
-### Data Processing
+### Tile Generation
 ```bash
-python process_hyde.py
+python generate_footstep_tiles.py
 ```
-*Processes HYDE data with hierarchical LOD system by default for population preservation*
+*Complete tile generation pipeline with hierarchical LOD system for population preservation*
 
-### Download HYDE Data
-```bash
-python download_hyde_bulk.py
-```
+### Data Requirements
+Ensure HYDE 3.5 data files (popd_*.asc) are available in `data/raw/hyde-3.5/`
 
 ## Testing
 

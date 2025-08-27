@@ -54,10 +54,12 @@ const getResponsiveYears = (width: number): number[] => {
   const selected: number[] = [];
   YEARS_SORTED.forEach((year) => {
     const pos = YEAR_SLIDER_MAP[year];
+    const isMajorMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
     const tooClose = selected.some(
       (sel) => Math.abs(pos - YEAR_SLIDER_MAP[sel]) < thresholdPercent,
     );
-    if (!tooClose) {
+    // Always include major milestones (1000, 2000, etc.) regardless of spacing
+    if (!tooClose || isMajorMilestone) {
       selected.push(year);
     }
   });

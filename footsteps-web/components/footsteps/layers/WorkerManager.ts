@@ -1,9 +1,9 @@
 import type { TileMetrics } from './tileMetrics';
-import { aggregateTileMetrics } from './tileMetrics';
+import { aggregateTileMetrics, featuresFromTile } from './tileMetrics';
 
 export interface WorkerRequest {
   id: string;
-  tiles: unknown[];
+  serializedTileData: Array<{ count: number; population: number; }>;
 }
 
 export interface WorkerResponse {
@@ -93,9 +93,24 @@ class TileMetricsWorkerManager {
     const requestId = this.generateRequestId();
     this.pendingRequests.set(requestId, callback);
 
+    // Extract serializable data from tiles to avoid cloning issues with AbortController
+    const serializedTileData = tiles.map(tile => {
+      try {
+        const features = featuresFromTile(tile);
+        const count = features.length;
+        const population = features.reduce((sum, feat) => {
+          return sum + (Number(feat?.properties?.population) || 0);
+        }, 0);
+        return { count, population };
+      } catch (error) {
+        console.warn('[WORKER-MANAGER] Failed to serialize tile data:', error);
+        return { count: 0, population: 0 };
+      }
+    });
+
     const request: WorkerRequest = {
       id: requestId,
-      tiles,
+      serializedTileData,
     };
 
     try {

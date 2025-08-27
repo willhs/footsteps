@@ -3,7 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { getTileFilePath, downloadTileFile, cleanupTempFile, createHTTPTileAccess } from '@/lib/tilesService';
+import { getTileFilePath, downloadTileFile, cleanupTempFile } from '@/lib/tilesService';
+import { gunzipSync } from 'zlib';
+import { pathToFileURL } from 'url';
+import { createRequire } from 'module';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -81,6 +84,118 @@ function isGzip(buf: Buffer): boolean {
   return buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b;
 }
 
+// Fetch a tile via HTTP Range-backed SQLite using sql.js-httpvfs
+// This avoids downloading the entire MBTiles by issuing page-sized range requests.
+async function getTileViaHttpVfs(
+  httpUrl: string,
+  z: number,
+  x: number,
+  tmsY: number,
+): Promise<Buffer | null> {
+  try {
+    // Lazy import to avoid impacting cold start when unused
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = await import('sql.js-httpvfs');
+    const createDbWorker: (...args: any[]) => Promise<any> = (mod as any).createDbWorker || (mod as any).default?.createDbWorker;
+    if (!createDbWorker) {
+      throw new Error('sql.js-httpvfs createDbWorker not available');
+    }
+
+    // Resolve worker/wasm URLs in Node first via local node_modules, then env, then CDN.
+    const CDN_WORKER = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js';
+    const CDN_WASM = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm';
+    const req = createRequire(import.meta.url);
+    const resolvePathToUrl = (specifier: string): string | null => {
+      try {
+        const p = req.resolve(specifier);
+        return pathToFileURL(p).toString();
+      } catch {
+        return null;
+      }
+    };
+    let workerUrl: string;
+    let wasmUrl: string;
+    const hasDomWorker = typeof (globalThis as unknown as { Worker?: unknown }).Worker !== 'undefined';
+    if (!hasDomWorker) {
+      // Node runtime: polyfill Worker and prefer local file path for the worker script.
+      try {
+        const nodeWorkerMod: any = await import('web-worker');
+        (globalThis as any).Worker = nodeWorkerMod.default || nodeWorkerMod;
+      } catch (e) {
+        console.warn('Failed to load web-worker polyfill in Node:', e);
+      }
+      const workerPath = (() => {
+        try {
+          return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js');
+        } catch {
+          return null;
+        }
+      })();
+      // Build a data: URL bootstrap that hides Node's process and loads the real worker via importScripts
+      if (!process.env.SQLJS_WORKER_URL && workerPath) {
+        const workerFileUrl = pathToFileURL(workerPath).toString();
+        const bootstrap = `self.process=undefined;try{delete self.process}catch{};try{delete globalThis.process}catch{};importScripts('${workerFileUrl}');`;
+        const base64 = Buffer.from(bootstrap, 'utf8').toString('base64');
+        workerUrl = `data:application/javascript;base64,${base64}`;
+      } else {
+        workerUrl = String(process.env.SQLJS_WORKER_URL || CDN_WORKER);
+      }
+      // In Node, prefer CDN for wasm to ensure fetch() works inside worker
+      wasmUrl = String(process.env.SQLJS_WASM_URL || CDN_WASM);
+    } else {
+      // Browser-like environment: use file URLs if available, fallback to CDN
+      workerUrl = String(
+        process.env.SQLJS_WORKER_URL ||
+          resolvePathToUrl('sql.js-httpvfs/dist/sqlite.worker.js') ||
+          CDN_WORKER,
+      );
+      wasmUrl = String(
+        process.env.SQLJS_WASM_URL ||
+          resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') ||
+          CDN_WASM,
+      );
+    }
+
+    const config = {
+      from: 'inline',
+      config: {
+        serverMode: 'full',
+        // SQLite default page size is commonly 4096 for our MBTiles
+        requestChunkSize: 4096,
+        url: httpUrl,
+      },
+    } as const;
+
+    const worker = await createDbWorker([config], String(workerUrl), String(wasmUrl));
+
+    try {
+      const sql = 'SELECT hex(tile_data) AS h FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=? LIMIT 1;';
+      const res = await worker.db.exec(sql, [z, x, tmsY]);
+
+      // sql.js-style result: [{ columns: ['h'], values: [[hex]] }]
+      const hex: unknown = Array.isArray(res) && res.length > 0 && res[0] && Array.isArray(res[0].values) && res[0].values[0]
+        ? res[0].values[0][0]
+        : null;
+      if (typeof hex === 'string' && hex.length > 0) {
+        return Buffer.from(hex, 'hex');
+      }
+      return null;
+    } finally {
+      try {
+        // Terminate worker if available to free resources in serverless envs
+        if (worker && worker.worker && typeof worker.worker.terminate === 'function') {
+          worker.worker.terminate();
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch (err) {
+    console.warn('sql.js-httpvfs path failed, will fall back to download+sqlite:', err);
+    return null;
+  }
+}
+
 export async function GET(
   _request: Request,
   context: unknown
@@ -115,19 +230,26 @@ export async function GET(
   }
 
   // Try HTTP byte-range access first (production mode) ONLY when explicitly enabled.
-  // This avoids serving potentially truncated gzip payloads from the simple range reader.
+  // Uses sql.js-httpvfs to query the remote MBTiles over HTTP range requests.
   const enableHttpRange = process.env.ENABLE_HTTP_RANGE === 'true';
+  let httpRangeFallback = false;
   if (enableHttpRange && !tileFile.isLocal && tileFile.httpUrl) {
     try {
-      const httpAccess = await createHTTPTileAccess(tileFile);
-      if (httpAccess && httpAccess.supportsRanges) {
-        const tmsY = yToTms(zz, yy);
-        const tile = await httpAccess.reader.getTile(zz, xx, tmsY);
-        
-        if (!tile) {
-          return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400', 'X-HTTP-Range': 'enabled' } });
+      const tmsY = yToTms(zz, yy);
+      let tile = await getTileViaHttpVfs(tileFile.httpUrl, zz, xx, tmsY);
+      // Gzip integrity check: if compressed, ensure we can inflate fully.
+      if (tile && isGzip(tile)) {
+        try {
+          // We don't use the result; this is purely a validation.
+          gunzipSync(tile);
+        } catch (e) {
+          console.warn('Gzip integrity check failed on HTTP-VFS tile; falling back to download', e);
+          tile = null;
+          httpRangeFallback = true;
         }
+      }
 
+      if (tile) {
         const headers: Record<string, string> = {
           'Content-Type': 'application/x-protobuf',
           'Cache-Control': 'public, max-age=31536000, immutable',
@@ -135,18 +257,19 @@ export async function GET(
           'X-Tile-Zoom': String(zz),
           'X-Tile-X': String(xx),
           'X-Tile-Y': String(yy),
-          'X-LOD-Source': 'single-http-range',
+          'X-LOD-Source': 'single-httpvfs',
           'X-GCS-Source': 'true',
-          'X-Tile-Cache': 'http-range',
-          'X-HTTP-Range': 'enabled',
+          'X-Tile-Cache': 'httpvfs',
+          'X-HTTP-Range': 'httpvfs',
         };
-        
         if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
-
         return new Response(new Uint8Array(tile), { headers });
       }
+      // If sql.js-httpvfs couldn't find the tile, fall through to download path
+      httpRangeFallback = true;
     } catch (error) {
-      console.warn(`HTTP range access failed for ${tileFile.httpUrl}, falling back to download:`, error);
+      console.warn(`HTTP range (sql.js-httpvfs) failed for ${tileFile.httpUrl}, falling back to download:`, error);
+      httpRangeFallback = true;
     }
   }
 
@@ -217,7 +340,7 @@ export async function GET(
       'X-LOD-Source': 'single',
       'X-GCS-Source': tileFile.isLocal ? 'false' : 'true',
       'Last-Modified': (tileFile.mtime || stat.mtime).toUTCString(),
-      'X-HTTP-Range': 'disabled'
+      'X-HTTP-Range': httpRangeFallback ? 'fallback' : 'disabled'
     };
     if (cacheStatus) headers['X-Tile-Cache'] = cacheStatus;
     if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';

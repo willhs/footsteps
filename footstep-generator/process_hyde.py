@@ -177,8 +177,8 @@ def ascii_grid_to_dots(
         polar_mask = (cell_lats <= 75) & (cell_lats >= -70)
         
         # Filter 2: Apply density threshold to filter noise in HYDE data
-        # Use a lower threshold for BCE years to retain sparse populations
-        min_density = 0.001 if year <= 0 else 0.01
+        # Use lower threshold for all years to retain sparse populations
+        min_density = 0.001
         density_mask = cell_densities >= min_density
         
         # Combine all filters
@@ -375,10 +375,8 @@ def process_year_with_hierarchical_lods(
     # Process this year with hierarchical LODs (tiles-only pipeline; no NDJSON outputs)
     print(f"  Processing year {year} with hierarchical LODs...")
 
-    # Choose representative unit size for sparse eras (fewer people per point for ancient periods)
-    people_per_dot_effective = (
-        10 if (year <= 0 and people_per_dot == 100) else people_per_dot
-    )
+    # Use consistent granular representation for all periods
+    people_per_dot_effective = 10 if people_per_dot == 100 else people_per_dot
 
     # Use provided LOD processor or create one with optimal configuration
     if lod_processor is None:
@@ -485,7 +483,7 @@ def process_year_with_hierarchical_lods(
         "original_settlements": len(settlements),
         "total_population": total_population,
         "lod_counts": {
-            level.name: len(lod_settlements)
+            (level.name if hasattr(level, 'name') else f"LOD_{level}"): len(lod_settlements)
             for level, lod_settlements in lod_data.items()
         },
         "processing_time": 0.0,  # Could add timing here
@@ -538,8 +536,8 @@ def process_all_hyde_data(raw_dir: str, output_dir: str) -> str:
     for year in sorted(hyde_files.keys()):
         asc_file = hyde_files[year]
         try:
-            # Use a smaller representative unit for BCE years to retain sparse populations
-            people_per_dot_effective = 10 if year <= 0 else 100
+            # Use consistent granular representation for all periods
+            people_per_dot_effective = 10
             gdf = ascii_grid_to_dots(asc_file, year, people_per_dot_effective)
             if not gdf.empty:
                 all_polygons.append(gdf)
@@ -624,7 +622,7 @@ def process_all_hyde_data_with_lods(
                 "year": result.year,
                 "total_population": result.total_population,
                 "lod_counts": {
-                    level.name: len(settlements) 
+                    (level.name if hasattr(level, 'name') else f"LOD_{level}"): len(settlements) 
                     for level, settlements in result.lod_data.items()
                 },
                 "processing_stats": result.processing_stats
@@ -715,7 +713,10 @@ def main():
                 # Handle both LODLevel enum and integer keys
                 counts = {}
                 for level, setts in result.lod_data.items():
-                    level_name = level.name if hasattr(level, 'name') else f"LOD_{level}"
+                    try:
+                        level_name = level.name if hasattr(level, 'name') else f"LOD_{level}"
+                    except AttributeError:
+                        level_name = f"LOD_{level}"
                     counts[level_name] = len(setts)
                 print(f"✓ Year {year}: {counts} | Population: {result.total_population:,.0f}")
                 

@@ -56,7 +56,7 @@ def load_reba_cities(raw_dir: str) -> pd.DataFrame:
     if not csv_files:
         raise FileNotFoundError(
             "No Reba urban gazetteer CSV files found in data/raw/. "
-            "Please run 'poetry run fetch-data' first to download the datasets."
+            "Please ensure Reba city data is available in data/raw/."
         )
     
     csv_file = csv_files[0]
@@ -230,7 +230,7 @@ def process_cities_to_dots(raw_dir: str, output_dir: str) -> str:
     
     if cities_df.empty:
         raise ValueError(
-            "No city data available. Please run 'poetry run fetch-data' first "
+            "No city data available. Please ensure city data is available first "
             "to download the datasets."
         )
     
@@ -300,7 +300,7 @@ def main():
     geojson_path = process_cities_to_dots(str(raw_dir), str(output_dir))
     
     print(f"\n✓ Settlement points data ready: {geojson_path}")
-    print("\nNext: Run make_tiles.py to generate vector tiles")
+    print("\nNext: Run generate_footstep_tiles.py to generate vector tiles")
 
 if __name__ == "__main__":
     main()

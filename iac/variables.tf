@@ -46,6 +46,12 @@ variable "max_instances" {
   default     = 100
 }
 
+variable "container_concurrency" {
+  description = "Maximum concurrent requests per container instance"
+  type        = number
+  default     = 80
+}
+
 variable "cpu_limit" {
   description = "CPU limit for Cloud Run service"
   type        = string

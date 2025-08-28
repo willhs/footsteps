@@ -42,16 +42,13 @@ Concise, actionable rules for working in this repo. Keep diffs minimal, performa
   - Type-check: `poetry run mypy footstep-generator`
   - Lint: `poetry run flake8 footstep-generator`
   - Format: `poetry run isort footstep-generator && poetry run black footstep-generator`
-  - Run processors:
-    - HYDE → LOD compute: `poetry run python footstep-generator/process_hyde.py [--force]`
-    - Build tiles: `poetry run python footstep-generator/make_tiles.py --years 0 1000 1500 --force`
-    - Download data (if available): `poetry run python footstep-generator/fetch_data.py`
+  - Generate tiles: `python footstep-generator/generate_footstep_tiles.py [--years 0 1000 1500] [--force]`
 
 ## Data + Tiles Workflow
 1) Place HYDE ASCII grids (`popd_*.asc`) under `footstep-generator/data/raw/hyde-3.5/`
-2) Compute LODs and/or build tiles:
-   - All years found: `poetry run python footstep-generator/make_tiles.py`
-   - Specific years: `poetry run python footstep-generator/make_tiles.py --years -1000 0 1500 2020`
+2) Generate tiles:
+   - All years found: `python footstep-generator/generate_footstep_tiles.py`
+   - Specific years: `python footstep-generator/generate_footstep_tiles.py --years -1000 0 1500 2020`
    - Output goes to `data/tiles/humans/` (override with `--tiles-dir`)
 3) Serve tiles to the frontend during dev:
    - `export HUMANS_TILES_DIR=$(pwd)/data/tiles/humans`

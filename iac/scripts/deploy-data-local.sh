@@ -118,8 +118,8 @@ if [ ! -d "$FOOTSTEP_GENERATOR_DIR" ]; then
 fi
 
 # Check Python files exist
-if [ ! -f "$FOOTSTEP_GENERATOR_DIR/process_hyde.py" ] || [ ! -f "$FOOTSTEP_GENERATOR_DIR/make_tiles.py" ]; then
-    echo "❌ Error: Required Python scripts not found in footstep-generator/"
+if [ ! -f "$FOOTSTEP_GENERATOR_DIR/generate_footstep_tiles.py" ]; then
+    echo "❌ Error: Required Python script generate_footstep_tiles.py not found in footstep-generator/"
     exit 1
 fi
 
@@ -154,19 +154,11 @@ if [ "$SKIP_PROCESSING" = false ]; then
     echo "📊 Step 1: Processing HYDE data..."
     cd "$FOOTSTEP_GENERATOR_DIR"
     
-    echo "🔄 Running process_hyde.py..."
-    if python process_hyde.py; then
-        echo "✅ HYDE processing completed"
+    echo "🔄 Running generate_footstep_tiles.py (combined HYDE processing + tile generation)..."
+    if python generate_footstep_tiles.py --raw-dir ../data/raw/hyde-3.5 --tiles-dir ../data/tiles/humans; then
+        echo "✅ Data processing and tile generation completed"
     else
-        echo "❌ HYDE processing failed"
-        exit 1
-    fi
-    
-    echo "🔄 Running make_tiles.py..."
-    if python make_tiles.py --raw-dir ../data/raw/hyde-3.5 --tiles-dir ../data/tiles/humans; then
-        echo "✅ Tile generation completed"
-    else
-        echo "❌ Tile generation failed"
+        echo "❌ Data processing and tile generation failed"
         exit 1
     fi
     

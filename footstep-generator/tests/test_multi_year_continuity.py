@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lod_processor import LODProcessor
-from process_hyde import process_year_with_hierarchical_lods, ascii_grid_to_dots
+from hyde_tile_processor import generate_yearly_tile_data, hyde_grid_to_tile_points
 from models import (
     LODConfiguration, SettlementContinuityConfig, HumanSettlement, 
     Coordinates, ContinuityValidationResult

@@ -9,8 +9,9 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
+- **Check git status first**: Run `git status` and `git push --dry-run` to verify local changes are pushed to remote—workflow file differences between local/remote are a common issue
 - Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues **IMPORTANT: TypeScript compilation errors always block CI; lint warnings don't**
-- Check if recent architecture changes made workflow tests obsolete
+- **Verify workflow files match architecture**: Check if recent architecture changes made workflow files obsolete or if they still reference old approaches (Node.js/pnpm vs Docker artifacts)
 - If working with feature branches: check for merge conflicts with main first
 - Verify environment variables match current architecture (API vs GCS direct access)
 
@@ -18,19 +19,26 @@ Follow this diagnostic workflow:
 
 - Use the github and/or gcloud cli to find the status of the last workflow that ran. Current workflows are 'ci' and 'deploy'.
 - Distinguish between deployment infrastructure issues vs code/branch issues (merge conflicts, linting, test failures)
-- Common infrastructure issues: stale terraform state locks (use `terraform force-unlock [LOCK_ID]`)
+- **Common infrastructure issues**: 
+  - Stale terraform state locks (use `terraform force-unlock [LOCK_ID]`)
+  - ESLint/TypeScript configuration conflicts (especially redundant React rules in TypeScript projects)
+  - Missing test environment setup for modern web APIs (Worker, IntersectionObserver need mocking)
+  - **Transient network/package installation failures** (Poetry timeouts, npm registry issues) - often resolve by retrying
 - If there are any issues, do any investigation needed to understand the problem well enough to come up with a solution to fix it
 
 2. Fix the issue
 
 - Come up with one or more solutions to try
+- **For transient infrastructure failures**: Try retrying with a trivial commit (typo fix, whitespace change) to trigger a new workflow run
+- Create a git worktree in the project root and navigate to it to develop your idea/s
 - Try them until the problem is likely to be solved
+- merge in your worktree and remove it
 
 3. Deploy and evaluate
 
 - Deploy the app by committing your fix in git and deploying. This will trigger the gh workflows
 - Monitor both GitHub workflow completion AND actual Cloud Run service status (`gcloud run services list`)
-- Test app directly with curl/browser even if workflow still running—deployment often succeeds before workflow completes. Find app URL in deployment logs: `gh run view --log --job=<job-id> | grep "Service deployed at"`
+- **Test app directly with curl/browser even if workflow still running**—deployment often succeeds before workflow completes, and app may be working despite workflow failures. Find app URL in deployment logs: `gh run view --log --job=<job-id> | grep "Service deployed at"`
 - If success: go to phase 4
 - If still failing: go back to phase 1
 
@@ -57,4 +65,6 @@ Guest book:
 **Entry 5**: CI failing due to TypeScript compilation errors in NetworkIndicator.tsx—specifically XMLHttpRequest.open() type assertion and unused @ts-expect-error directive. Fix was straightforward once identified: proper type assertion for async parameter and removing redundant comment. Document improvements: (1) the health check step successfully caught both the lint and typecheck issues locally, proving its value, (2) the workflow diagnostics workflow was smooth and effective, (3) might be worth emphasizing that TypeScript errors (vs just warnings) are blocking for CI, and (4) the direct app testing after deployment confirmed functionality even before full workflow completion.
 
 **Entry 6**: The primary blocking issue was a simple TypeScript compilation error (`TERRAIN_LAYER` not defined) in `backgroundLayers.ts` that was easily caught by the health check `npx tsc --noEmit`. Once fixed, both CI and deployment workflows succeeded immediately. The health check workflow was extremely effective—git status confirmed no push issues, lint passed with only warnings, and typecheck caught the specific error. Document is working well; the health check steps saved significant debugging time and the workflow diagnostics were straightforward. Only minor improvement: emphasize that TypeScript compilation errors are always CI-blocking (unlike lint warnings).
+
+**Entry 7**: Issue was a transient Poetry installation timeout in GitHub Actions (urllib URLError connection timeout). Health checks (git status, lint, typecheck) all passed locally, indicating the problem was infrastructure-related, not code-related. Fix was simply retrying by making a trivial commit (typo fix) to trigger a new workflow run—the second attempt succeeded completely. Document improvements: (1) add guidance for handling transient CI infrastructure failures (network timeouts, package installation failures), (2) suggest that retrying with a trivial commit is often effective for transient issues, (3) emphasize testing the app directly even when workflows show failure, as the app was actually working despite the CI failure.
 

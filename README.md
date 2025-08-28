@@ -1,23 +1,14 @@
-# 🌍 Globe of Humans
+# 🌍 Footsteps of time
 
 **A living atlas that shows everyone who ever lived, throughout all of human history.**
 
 Shows an instantiation of history from the data available, as accurately as possible.
 
-![Globe of Humans Demo](docs/demo-screenshot.png)
-
-## 🎯 Vision
-
-A living atlas that shows everyone who ever lived, throughout all of human history. Shows an instantiation of history from the data available, as accurately as possible.
-
 ## ✨ Features
 
-- **🌐 Interactive 3D Globe** - Navigate and explore with full pan/zoom/rotate controls
+- **🌐 Interactive map / globe** - Navigate and explore with full pan/zoom/rotate controls
 - **⏰ Time Travel** - Non-linear slider covering 100,000 BCE → 2025 CE with historical breakpoints
 - **👥 Settlement Points** - Representative points of human presence (aggregated by LOD)
-- **🔥 Heat-Map** - Population density visualization showing regional concentrations
-- **📊 Real-time Filtering** - Dots appear/disappear based on historical timeline
-- **⚡ Performance** - Efficient rendering of millions of data points
 
 ## 🚀 Quick Start
 
@@ -29,22 +20,6 @@ A living atlas that shows everyone who ever lived, throughout all of human histo
 - Poetry (for Python dependency management)
 
 ### Installation
-
-#### Automated Setup (Recommended)
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd deep-footsteps
-
-# Run the automated setup script
-./setup.sh
-
-# Start the development server (port 4444)
-cd footsteps-web && pnpm dev
-```
-
-#### Manual Setup
 
 ```bash
 # Clone the repository
@@ -58,11 +33,9 @@ poetry install
 cd footsteps-web
 pnpm install
 
-# Generate data and tiles
+# Generate tiles (ensure HYDE data is in data/raw/hyde-3.5/)
 cd ..
-poetry run python footstep-generator/fetch_data.py      # Optional: download datasets
-poetry run python footstep-generator/process_hyde.py    # Compute population-preserving LODs
-poetry run python footstep-generator/make_tiles.py      # Build MBTiles (tiles-only)
+python footstep-generator/generate_footstep_tiles.py    # Complete tile generation pipeline
 
 # Start the development server
 cd footsteps-web
@@ -175,12 +148,7 @@ Single-layer tiles use non-overlapping zoom windows per LOD so only one LOD is v
 
 ### Step 1: Download Datasets
 
-First, try the automated download:
-```bash
-poetry run fetch-data
-```
-
-**If automated download fails** (common due to website restrictions), download manually:
+Download data manually:
 
 1. **HYDE 3.5 Population Density**:
    - Visit: https://pbl.nl/en/hyde

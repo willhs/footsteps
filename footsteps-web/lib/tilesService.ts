@@ -82,27 +82,29 @@ export async function getTileFilePath(
   // Check if we should use production mode (GCS bucket available)
   const bucketName = getTilesBucketIfAvailable();
   if (process.env.NODE_ENV === 'production' && bucketName) {
-    // Production: Use HTTP byte-range access for direct GCS access
+    // Always try HTTP range access first in production for remote MBTiles
     const httpUrl = `https://storage.googleapis.com/${bucketName}/${yearlyFilename}`;
     
     // Check if the file exists and supports range requests
     try {
       const supportsRanges = await supportsRangeRequests(httpUrl);
       if (supportsRanges) {
+        // Keep canonical gs:// path for compatibility with GCS SDK fallback,
+        // but expose httpUrl for HTTP range access.
         return {
           exists: true,
-          path: httpUrl,
+          path: `gs://${bucketName}/${yearlyFilename}`,
           isLocal: false,
           httpUrl: httpUrl,
-          // We can't easily get size/mtime for HTTP without a HEAD request
-          // but that's okay since we're using byte ranges
         };
+      } else {
+        console.warn(`HTTP server does not advertise range support; using GCS SDK for ${httpUrl}`);
       }
     } catch (error) {
       console.warn(`HTTP range check failed for ${httpUrl}, falling back to GCS SDK:`, error);
     }
     
-    // Fallback to GCS SDK approach (download entire file)
+    // Use GCS SDK approach (download entire file) - this is the default
     return await checkGCSFile(bucketName, yearlyFilename);
   }
 
@@ -168,7 +170,8 @@ async function checkGCSFile(
       mtime: new Date(metadata.updated || metadata.timeCreated || Date.now()),
       httpUrl: `https://storage.googleapis.com/${bucketName}/${filename}`,
     };
-  } catch {
+  } catch (error) {
+    console.error(`Failed to check GCS file gs://${bucketName}/${filename}:`, error);
     return {
       exists: false,
       path: `gs://${bucketName}/${filename}`,
@@ -242,8 +245,9 @@ export async function downloadTileFile(
       if (tileFile.mtime && st.mtime >= tileFile.mtime) {
         return { path: finalPath, isTemp: false, cacheStatus: 'hit' };
       }
-    } catch {
-      // cache miss or unreadable; proceed to download
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'file not found';
+      console.log(`Cache miss for ${finalPath}:`, message);
     }
 
     // Download to a temporary path, then move atomically into place

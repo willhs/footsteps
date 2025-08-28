@@ -1,12 +1,14 @@
 /**
- * Simple HTTP Range-based MBTiles reader
- * 
- * This implementation uses basic HTTP range requests to read specific parts
- * of a remote SQLite (MBTiles) file without downloading the entire file.
- * 
- * It's a simplified approach focused on the specific use case of reading
- * tiles from MBTiles files.
+ * HTTP Range-based MBTiles reader using sql.js-httpvfs
+ *
+ * This implementation queries remote MBTiles over HTTP byte-range requests
+ * without downloading the entire file.
  */
+
+import fs from 'fs';
+import { pathToFileURL } from 'url';
+import path from 'path';
+import { createRequire } from 'module';
 
 interface TileData {
   data: Buffer;
@@ -23,121 +25,109 @@ function isExpired(entry: TileData): boolean {
 
 export class SimpleMBTilesReader {
   private url: string;
-  private pageSize: number = 4096; // SQLite default page size
 
   constructor(url: string) {
     this.url = url;
   }
 
   /**
-   * Fetch a byte range from the remote MBTiles file
-   */
-  private async fetchRange(start: number, end: number): Promise<Buffer> {
-    const response = await fetch(this.url, {
-      headers: {
-        'Range': `bytes=${start}-${end}`,
-        'Accept-Encoding': 'identity', // Disable compression for byte ranges
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} fetching range ${start}-${end} from ${this.url}`);
-    }
-
-    return Buffer.from(await response.arrayBuffer());
-  }
-
-  /**
-   * Get a tile using a hybrid approach:
-   * 1. Try to fetch a reasonable chunk that likely contains the tile
-   * 2. Use basic pattern matching to find the tile data
+   * Query a single tile via sql.js-httpvfs against the remote MBTiles.
    */
   async getTile(z: number, x: number, tmsY: number): Promise<Buffer | null> {
     const tileKey = `${this.url}:${z}:${x}:${tmsY}`;
     const cached = tile_cache.get(tileKey);
-    
-    if (cached && !isExpired(cached)) {
-      return cached.data;
-    }
+    if (cached && !isExpired(cached)) return cached.data;
 
     try {
-      // This is a simplified approach that downloads chunks and searches for tiles
-      // For a production system, you'd want to implement proper SQLite B-tree parsing
-      
-      // Start by reading a larger chunk (e.g., 1MB) and look for our tile
-      const chunkSize = 1024 * 1024; // 1MB
-      let offset = 0;
-      const maxAttempts = 5; // Don't try forever
-      
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const chunk = await this.fetchRange(offset, offset + chunkSize - 1);
-        const tile = this.searchForTileInChunk(chunk, z, x, tmsY);
-        
-        if (tile) {
-          tile_cache.set(tileKey, {
-            data: tile,
-            timestamp: Date.now(),
-          });
-          return tile;
+      // Lazy import to avoid cold start penalties
+      const mod = await import('sql.js-httpvfs');
+      const createDbWorker: (...args: any[]) => Promise<any> = (mod as any).createDbWorker || (mod as any).default?.createDbWorker;
+      if (!createDbWorker) throw new Error('sql.js-httpvfs createDbWorker not available');
+
+      // Resolve worker/wasm URLs; prefer baked/container paths, then node_modules, else CDN
+      const CDN_WORKER = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js';
+      const CDN_WASM = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm';
+      const req = createRequire(import.meta.url);
+      const resolvePathToUrl = (specifier: string): string | null => {
+        try { return pathToFileURL(req.resolve(specifier)).toString(); } catch { return null; }
+      };
+
+      let workerUrl: string;
+      let wasmUrl: string;
+      const hasDomWorker = typeof (globalThis as unknown as { Worker?: unknown }).Worker !== 'undefined';
+      if (!hasDomWorker) {
+        try {
+          const nodeWorkerMod: any = await import('web-worker');
+          (globalThis as any).Worker = nodeWorkerMod.default || nodeWorkerMod;
+        } catch (e) {
+          // Best-effort; worker creation may still succeed using file URLs
+          console.warn('Failed to load web-worker polyfill in Node:', e);
         }
-        
-        offset += chunkSize;
+        const bakedWorkerPath = fs.existsSync('/app/sqljs/sqlite.worker.js') ? '/app/sqljs/sqlite.worker.js' : null;
+        const resolvedWorkerPath = bakedWorkerPath || (() => { try { return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js'); } catch { return null; } })();
+        workerUrl = String(process.env.SQLJS_WORKER_URL || (resolvedWorkerPath ? pathToFileURL(resolvedWorkerPath).toString() : '') || CDN_WORKER);
+        wasmUrl = String(process.env.SQLJS_WASM_URL || (fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : '') || resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') || CDN_WASM);
+      } else {
+        const bakedWorker = fs.existsSync('/app/sqljs/sqlite.worker.js') ? pathToFileURL('/app/sqljs/sqlite.worker.js').toString() : null;
+        const bakedWasm = fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : null;
+        workerUrl = String(process.env.SQLJS_WORKER_URL || bakedWorker || resolvePathToUrl('sql.js-httpvfs/dist/sqlite.worker.js') || CDN_WORKER);
+        wasmUrl = String(process.env.SQLJS_WASM_URL || bakedWasm || resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') || CDN_WASM);
       }
-      
-      return null;
-    } catch (error) {
-      console.error(`Error fetching tile ${z}/${x}/${tmsY} from ${this.url}:`, error);
+
+      const requestChunkSize = Number(process.env.SQLJS_REQUEST_CHUNK_SIZE || 65536);
+      const config = {
+        from: 'inline',
+        config: { serverMode: 'full', requestChunkSize, url: this.url },
+      } as const;
+
+      const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 5000);
+      const worker = await Promise.race([
+        createDbWorker([config], String(workerUrl), String(wasmUrl)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-worker-timeout')), timeoutMs)),
+      ]);
+      try {
+        const sql = 'SELECT hex(tile_data) AS h FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=? LIMIT 1;';
+        const res = await Promise.race([
+          worker.db.exec(sql, [z, x, tmsY]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-exec-timeout')), timeoutMs)),
+        ]);
+        const hex: unknown = Array.isArray(res) && res.length > 0 && res[0] && Array.isArray(res[0].values) && res[0].values[0]
+          ? res[0].values[0][0]
+          : null;
+        if (typeof hex === 'string' && hex.length > 0) {
+          const buf = Buffer.from(hex, 'hex');
+          tile_cache.set(tileKey, { data: buf, timestamp: Date.now() });
+          return buf;
+        }
+        return null;
+      } finally {
+        try { if (worker && worker.worker && typeof worker.worker.terminate === 'function') worker.worker.terminate(); } catch { /* ignore */ }
+      }
+    } catch (err) {
+      console.warn('sql.js-httpvfs MBTiles reader failed:', err);
       return null;
     }
   }
 
-  /**
-   * Search for tile data within a chunk using pattern matching
-   * This is a simplified approach - a full implementation would parse SQLite properly
-   */
-  private searchForTileInChunk(chunk: Buffer, z: number, x: number, tmsY: number): Buffer | null {
-    // Look for compressed tile data (gzip magic numbers: 1f 8b)
-    // This is a heuristic approach - not guaranteed to work in all cases
-    
-    for (let i = 0; i < chunk.length - 10; i++) {
-      // Look for gzip header
-      if (chunk[i] === 0x1f && chunk[i + 1] === 0x8b) {
-        // Try to find the end of the gzipped data
-        // This is approximate - we look for common patterns
-        for (let j = i + 100; j < Math.min(i + 50000, chunk.length - 8); j++) {
-          // Look for potential end of gzip stream
-          if (chunk[j] === 0x00 && chunk[j + 1] === 0x00) {
-            const potentialTile = chunk.subarray(i, j);
-            if (potentialTile.length > 100 && potentialTile.length < 100000) {
-              // Reasonable tile size - return it
-              return potentialTile;
-            }
-          }
-        }
-      }
-    }
-    
-    return null;
-  }
-
-  /**
-   * Check if the database is accessible
-   */
   async ping(): Promise<boolean> {
     try {
-      // Try to read the first few bytes to check if it's a SQLite file
-      const header = await this.fetchRange(0, 15);
-      return header.toString('utf8', 0, 15) === 'SQLite format 3';
+      // Probe first bytes; if range-supported, we should read SQLite header via HTTP
+      const head = await fetch(this.url, { method: 'HEAD' });
+      if (!head.ok) return false;
+      const acceptRanges = (head.headers.get('accept-ranges') || '').toLowerCase();
+      if (!acceptRanges.includes('bytes')) {
+        // Fallback: small ranged GET probe
+        const get = await fetch(this.url, { headers: { Range: 'bytes=0-0', 'Accept-Encoding': 'identity' } });
+        if (get.status !== 206 && !(get.headers.get('content-range') || '').startsWith('bytes ')) return false;
+      }
+      return true;
     } catch {
       return false;
     }
   }
 
-  /**
-   * Clean up resources
-   */
   close(): void {
-    // Nothing to clean up for this simple implementation
+    // No persistent resources to close
   }
 }
 
@@ -156,14 +146,21 @@ export function createSimpleMBTilesReader(url: string): SimpleMBTilesReader | nu
  */
 export async function supportsRangeRequests(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, { 
-      method: 'HEAD',
-      headers: { 'Range': 'bytes=0-0' }
-    });
-    
-    return response.status === 206 && 
-           response.headers.get('accept-ranges') === 'bytes';
-  } catch {
+    // First, HEAD without a Range header: many servers (incl. GCS) respond 200 with Accept-Ranges: bytes
+    const head = await fetch(url, { method: 'HEAD' });
+    const acceptRanges = (head.headers.get('accept-ranges') || '').toLowerCase();
+    const hasBytes = acceptRanges.includes('bytes');
+    if (head.ok && hasBytes) return true;
+
+    // Fallback probe: small ranged GET (1 byte) expecting 206 or Content-Range
+    const get = await fetch(url, { headers: { Range: 'bytes=0-0', 'Accept-Encoding': 'identity' } });
+    const contentRange = get.headers.get('content-range');
+    if (get.status === 206 || (contentRange && contentRange.startsWith('bytes '))) {
+      return true;
+    }
+    return false;
+  } catch (e) {
+    // Be conservative on error: signal no range support so callers can fall back
     return false;
   }
 }
@@ -182,8 +179,8 @@ export function getCacheStats() {
   let validEntries = 0;
   let expiredEntries = 0;
   let totalSize = 0;
-  
-  for (const [key, entry] of tile_cache) {
+
+  for (const [, entry] of tile_cache) {
     if (isExpired(entry)) {
       expiredEntries++;
     } else {
@@ -191,7 +188,7 @@ export function getCacheStats() {
       totalSize += entry.data.length;
     }
   }
-  
+
   return {
     totalEntries: tile_cache.size,
     validEntries,

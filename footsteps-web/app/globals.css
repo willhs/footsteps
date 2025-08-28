@@ -159,17 +159,20 @@ main {
 
   /* Micro-interactions: subtle, token-aligned */
   .year-text {
-    transition: color 180ms ease-out;
+    transition: color 180ms ease-out, transform 180ms ease-out, opacity 180ms ease-out;
+    will-change: transform, opacity;
   }
   .year-flash {
     color: #0ea5e9; /* --color-time */
+    transform: scale(1.035);
+    opacity: 0.96;
   }
 
   .metric-value {
     transition: opacity 120ms ease-out;
   }
   .metric-flash {
-    opacity: 0.65;
+    opacity: 0.75;
   }
 
   @media (prefers-reduced-motion: reduce) {

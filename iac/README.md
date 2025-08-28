@@ -225,4 +225,4 @@ After successful deployment:
 1. **Custom Domain**: Configure custom domain mapping in Cloud Run
 2. **Monitoring**: Set up Cloud Monitoring alerts  
 3. **CI/CD**: Integrate with GitHub Actions for automated deployments
-4. **Performance**: Monitor and optimize based on actual usage patterns
+4. **Performance**: Monitor and optimize based on actual usage patterns# Deployment trigger - Mon 25 Aug 2025 23:13:04 NZST

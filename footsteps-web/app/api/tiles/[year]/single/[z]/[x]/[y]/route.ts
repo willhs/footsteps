@@ -35,9 +35,102 @@ async function getMBTilesCtor(): Promise<MBTilesCtor | null> {
 }
 
 // eslint-disable-next-line no-var
-declare var global: typeof globalThis & { __mbtilesCache?: Map<string, unknown> };
+declare var global: typeof globalThis & {
+  __mbtilesCache?: Map<string, unknown>;
+  __httpvfsWorkers?: Map<string, { worker: any; lastUsed: number; url: string; ready: boolean; hasIndex?: boolean; pageSize?: number }>;
+};
 const mbtilesCache: Map<string, unknown> = global.__mbtilesCache || new Map();
 global.__mbtilesCache = mbtilesCache;
+
+// Cache sql.js-httpvfs workers by remote URL to keep page cache warm across requests
+const httpvfsWorkers: Map<string, { worker: any; lastUsed: number; url: string; ready: boolean; hasIndex?: boolean; pageSize?: number }> =
+  (global.__httpvfsWorkers = global.__httpvfsWorkers || new Map());
+
+async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any; meta: { hasIndex?: boolean; pageSize?: number } }> {
+  const now = Date.now();
+  const existing = httpvfsWorkers.get(httpUrl);
+  if (existing && existing.ready) {
+    existing.lastUsed = now;
+    return { worker: existing.worker, meta: { hasIndex: existing.hasIndex, pageSize: existing.pageSize } };
+  }
+
+  const mod = await import('sql.js-httpvfs');
+  const createDbWorker: (...args: any[]) => Promise<any> = (mod as any).createDbWorker || (mod as any).default?.createDbWorker;
+  if (!createDbWorker) throw new Error('sql.js-httpvfs createDbWorker not available');
+
+  const CDN_WORKER = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js';
+  const CDN_WASM = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm';
+  const req = createRequire(import.meta.url);
+  const resolvePathToUrl = (specifier: string): string | null => {
+    try { return pathToFileURL(req.resolve(specifier)).toString(); } catch { return null; }
+  };
+
+  let workerUrl: string;
+  let wasmUrl: string;
+  const hasDomWorker = typeof (globalThis as unknown as { Worker?: unknown }).Worker !== 'undefined';
+  if (!hasDomWorker) {
+    try {
+      const nodeWorkerMod: any = await import('web-worker');
+      (globalThis as any).Worker = nodeWorkerMod.default || nodeWorkerMod;
+    } catch (e) {
+      console.warn('Failed to load web-worker polyfill in Node:', e);
+    }
+    const bakedWorkerPath = fs.existsSync('/app/sqljs/sqlite.worker.js') ? '/app/sqljs/sqlite.worker.js' : null;
+    const resolvedWorkerPath = bakedWorkerPath || (() => { try { return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js'); } catch { return null; } })();
+    const resolvedWorkerFileUrl = resolvedWorkerPath ? pathToFileURL(resolvedWorkerPath).toString() : '';
+    workerUrl = String(process.env.SQLJS_WORKER_URL || resolvedWorkerFileUrl || CDN_WORKER);
+    wasmUrl = String(process.env.SQLJS_WASM_URL || (fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm')) || CDN_WASM);
+  } else {
+    const bakedWorker = fs.existsSync('/app/sqljs/sqlite.worker.js') ? pathToFileURL('/app/sqljs/sqlite.worker.js').toString() : null;
+    const bakedWasm = fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : null;
+    workerUrl = String(process.env.SQLJS_WORKER_URL || bakedWorker || resolvePathToUrl('sql.js-httpvfs/dist/sqlite.worker.js') || CDN_WORKER);
+    wasmUrl = String(process.env.SQLJS_WASM_URL || bakedWasm || resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') || CDN_WASM);
+  }
+
+  const requestChunkSize = Number(process.env.SQLJS_REQUEST_CHUNK_SIZE || 262144);
+  const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 15000);
+  const config = { from: 'inline', config: { serverMode: 'full', requestChunkSize, url: httpUrl } } as const;
+
+  const worker: any = await Promise.race([
+    createDbWorker([config], String(workerUrl), String(wasmUrl)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-worker-timeout')), timeoutMs)),
+  ]);
+
+  // Optional diagnostics
+  let hasIndex: boolean | undefined;
+  let pageSize: number | undefined;
+  try {
+    // Modest page cache to cut range roundtrips
+    await worker.db.exec('PRAGMA cache_size=8192;');
+    await worker.db.exec('PRAGMA temp_store=MEMORY;');
+  } catch {/* ignore */}
+  try {
+    const res1 = await worker.db.exec('PRAGMA page_size;');
+    pageSize = Array.isArray(res1) && res1[0]?.values?.[0]?.[0] ? Number(res1[0].values[0][0]) : undefined;
+  } catch {/* ignore */}
+  try {
+    const res2 = await worker.db.exec("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_tiles%';");
+    hasIndex = Array.isArray(res2) && (res2[0]?.values?.length || 0) > 0;
+  } catch {/* ignore */}
+  if (hasIndex === false) {
+    console.warn(`[HTTPVFS] No tiles index detected for ${httpUrl}. Remote queries may be slow.`);
+  }
+
+  httpvfsWorkers.set(httpUrl, { worker, lastUsed: now, url: httpUrl, ready: true, hasIndex, pageSize });
+  return { worker, meta: { hasIndex, pageSize } };
+}
+
+// Cleanup stale workers periodically
+setInterval(() => {
+  const ttl = 5 * 60 * 1000; // 5 minutes
+  const now = Date.now();
+  for (const [url, entry] of httpvfsWorkers) {
+    if (now - entry.lastUsed > ttl) {
+      try { entry.worker?.worker?.terminate?.(); } catch {/* ignore */}
+      httpvfsWorkers.delete(url);
+    }
+  }
+}, 120000).unref?.();
 
 function yToTms(z: number, y: number): number {
   return (1 << z) - 1 - y;
@@ -95,82 +188,11 @@ async function getTileViaHttpVfs(
   tmsY: number,
 ): Promise<Buffer | null> {
   try {
-    // Lazy import to avoid impacting cold start when unused
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = await import('sql.js-httpvfs');
-    const createDbWorker: (...args: any[]) => Promise<any> = (mod as any).createDbWorker || (mod as any).default?.createDbWorker;
-    if (!createDbWorker) {
-      throw new Error('sql.js-httpvfs createDbWorker not available');
-    }
-
-    // Resolve worker/wasm URLs in Node first via local node_modules, then env, then CDN.
-    const CDN_WORKER = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js';
-    const CDN_WASM = 'https://unpkg.com/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm';
-    const req = createRequire(import.meta.url);
-    const resolvePathToUrl = (specifier: string): string | null => {
-      try {
-        const p = req.resolve(specifier);
-        return pathToFileURL(p).toString();
-      } catch {
-        return null;
-      }
-    };
-    let workerUrl: string;
-    let wasmUrl: string;
-    const hasDomWorker = typeof (globalThis as unknown as { Worker?: unknown }).Worker !== 'undefined';
-    if (!hasDomWorker) {
-      // Node runtime: use web-worker polyfill and point it at a filesystem path.
-      try {
-        const nodeWorkerMod: any = await import('web-worker');
-        (globalThis as any).Worker = nodeWorkerMod.default || nodeWorkerMod;
-      } catch (e) {
-        console.warn('Failed to load web-worker polyfill in Node:', e);
-      }
-      const bakedWorkerPath = fs.existsSync('/app/sqljs/sqlite.worker.js') ? '/app/sqljs/sqlite.worker.js' : null;
-      const resolvedWorkerPath = bakedWorkerPath || (() => { try { return req.resolve('sql.js-httpvfs/dist/sqlite.worker.js'); } catch { return null; }})();
-      const resolvedWorkerFileUrl = resolvedWorkerPath ? pathToFileURL(resolvedWorkerPath).toString() : '';
-      workerUrl = String(process.env.SQLJS_WORKER_URL || resolvedWorkerFileUrl || '');
-      if (!workerUrl) workerUrl = CDN_WORKER; // last resort (likely to fail in Node)
-      // For wasm, prefer baked path or CDN; the worker will fetch it
-      wasmUrl = String(process.env.SQLJS_WASM_URL || (fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : CDN_WASM));
-    } else {
-      // Browser-like environment: use file URLs if available, fallback to CDN
-      // Prefer baked-in worker/wasm paths in the container, fall back to node_modules, then CDN
-      const bakedWorker = fs.existsSync('/app/sqljs/sqlite.worker.js') ? pathToFileURL('/app/sqljs/sqlite.worker.js').toString() : null;
-      const bakedWasm = fs.existsSync('/app/sqljs/sql-wasm.wasm') ? pathToFileURL('/app/sqljs/sql-wasm.wasm').toString() : null;
-      workerUrl = String(
-        process.env.SQLJS_WORKER_URL ||
-          bakedWorker ||
-          resolvePathToUrl('sql.js-httpvfs/dist/sqlite.worker.js') ||
-          CDN_WORKER,
-      );
-      wasmUrl = String(
-        process.env.SQLJS_WASM_URL ||
-          bakedWasm ||
-          resolvePathToUrl('sql.js-httpvfs/dist/sql-wasm.wasm') ||
-          CDN_WASM,
-      );
-    }
-
-    const requestChunkSize = Number(process.env.SQLJS_REQUEST_CHUNK_SIZE || 65536);
-    const config = {
-      from: 'inline',
-      config: {
-        serverMode: 'full',
-        // Larger chunk size reduces number of HTTP roundtrips
-        requestChunkSize,
-        url: httpUrl,
-      },
-    } as const;
-
-    const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 5000);
-    const worker = await Promise.race([
-      createDbWorker([config], String(workerUrl), String(wasmUrl)),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-worker-timeout')), timeoutMs)),
-    ]);
+    const { worker } = await getOrCreateHttpVfsWorker(httpUrl);
 
     try {
       const sql = 'SELECT hex(tile_data) AS h FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=? LIMIT 1;';
+      const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 15000);
       const res = await Promise.race([
         worker.db.exec(sql, [z, x, tmsY]),
         new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-exec-timeout')), timeoutMs)),
@@ -185,14 +207,8 @@ async function getTileViaHttpVfs(
       }
       return null;
     } finally {
-      try {
-        // Terminate worker if available to free resources in serverless envs
-        if (worker && worker.worker && typeof worker.worker.terminate === 'function') {
-          worker.worker.terminate();
-        }
-      } catch {
-        /* ignore */
-      }
+      const entry = httpvfsWorkers.get(httpUrl);
+      if (entry) entry.lastUsed = Date.now();
     }
   } catch (err) {
     console.warn('sql.js-httpvfs path failed, will fall back to download+sqlite:', err);

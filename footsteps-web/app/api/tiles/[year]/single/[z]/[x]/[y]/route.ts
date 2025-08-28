@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { getTileFilePath } from '@/lib/tilesService';
+import { getTileFilePath, getTilesBucketIfAvailable } from '@/lib/tilesService';
 import { gunzipSync } from 'zlib';
 import { pathToFileURL } from 'url';
 import { createRequire } from 'module';
@@ -362,8 +362,13 @@ export async function GET(
   }
 
   // Production: PMTiles via HTTP range (no MBTiles fallback)
-  if (!tileFile.isLocal && tileFile.httpUrl) {
-    const pmUrl = tileFile.httpUrl.replace(/\.mbtiles$/i, '.pmtiles');
+  if (!tileFile.isLocal) {
+    // Build PMTiles URL under optional prefix
+    const bucket = getTilesBucketIfAvailable();
+    const prefix = process.env.PMTILES_PREFIX || 'pmtiles';
+    const pmUrl = bucket
+      ? `https://storage.googleapis.com/${bucket}/${prefix}/humans_${yr}.pmtiles`
+      : (tileFile.httpUrl || '').replace(/\.mbtiles$/i, '.pmtiles');
     const tile = await getTileViaHttpPMTiles(pmUrl, zz, xx, yy);
     if (!tile) {
       return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400' } });

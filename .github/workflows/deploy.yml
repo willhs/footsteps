@@ -1,9 +1,14 @@
 name: Deploy to Cloud Run
 
 on:
+  # Keep existing coupling to CI completions
   workflow_run:
     workflows: ["CI"]
     types: [completed]
+  # Also deploy directly on push to main or manual dispatch
+  push:
+    branches: ["main"]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -18,9 +23,16 @@ jobs:
   deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    # Allow when:
+    # - CI completed successfully on main (workflow_run), or
+    # - direct push to main, or
+    # - manual dispatch
     if: >-
-      ${{ github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main' }}
+      ${{ (github.event_name == 'workflow_run' &&
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.head_branch == 'main') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch') }}
     
     permissions:
       contents: read
@@ -28,14 +40,18 @@ jobs:
       actions: read
     
     steps:
-    - name: Checkout code at CI-passed commit
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.workflow_run.head_sha }}
+        # For workflow_run use the CI commit; otherwise use current SHA
+        ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+    - name: Set image SHA
+      run: echo "IMAGE_SHA=${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}" >> $GITHUB_ENV
 
     - name: Build Docker image directly
       working-directory: ./footsteps-web
-      run: docker build -t footsteps-web:${{ github.event.workflow_run.head_sha }} .
+      run: docker build -t footsteps-web:${{ env.IMAGE_SHA }} .
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -76,8 +92,8 @@ jobs:
       
     - name: Push Docker image to GCR
       run: |
-        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
-        docker tag footsteps-web:${{ github.event.workflow_run.head_sha }} "$IMAGE_TAG"
+        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${IMAGE_SHA}"
+        docker tag footsteps-web:${IMAGE_SHA} "$IMAGE_TAG"
         docker push "$IMAGE_TAG"
         gcloud container images add-tag --quiet \
           "$IMAGE_TAG" \
@@ -88,8 +104,8 @@ jobs:
     - name: Deploy to Cloud Run
       run: |
         # Deploy with zero-downtime deployment and a warmed resident instance
-        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_TILES_BUCKET=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans,SQLJS_WORKER_URL=file:///app/sqljs/sqlite.worker.js,SQLJS_WASM_URL=file:///app/sqljs/sql-wasm.wasm,SQLJS_REQUEST_CHUNK_SIZE=262144,SQLJS_HTTPVFS_TIMEOUT_MS=45000"
-        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
+        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_TILES_BUCKET=footsteps-earth-tiles,PMTILES_PREFIX=pmtiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${IMAGE_SHA}"
         gcloud run deploy ${{ env.SERVICE_NAME }} \
           --image="$IMAGE_TAG" \
           --region=${{ env.REGION }} \

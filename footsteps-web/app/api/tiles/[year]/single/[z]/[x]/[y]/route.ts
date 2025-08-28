@@ -152,21 +152,29 @@ async function getTileViaHttpVfs(
       );
     }
 
+    const requestChunkSize = Number(process.env.SQLJS_REQUEST_CHUNK_SIZE || 65536);
     const config = {
       from: 'inline',
       config: {
         serverMode: 'full',
-        // SQLite default page size is commonly 4096 for our MBTiles
-        requestChunkSize: 4096,
+        // Larger chunk size reduces number of HTTP roundtrips
+        requestChunkSize,
         url: httpUrl,
       },
     } as const;
 
-    const worker = await createDbWorker([config], String(workerUrl), String(wasmUrl));
+    const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 5000);
+    const worker = await Promise.race([
+      createDbWorker([config], String(workerUrl), String(wasmUrl)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-worker-timeout')), timeoutMs)),
+    ]);
 
     try {
       const sql = 'SELECT hex(tile_data) AS h FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=? LIMIT 1;';
-      const res = await worker.db.exec(sql, [z, x, tmsY]);
+      const res = await Promise.race([
+        worker.db.exec(sql, [z, x, tmsY]),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-exec-timeout')), timeoutMs)),
+      ]);
 
       // sql.js-style result: [{ columns: ['h'], values: [[hex]] }]
       const hex: unknown = Array.isArray(res) && res.length > 0 && res[0] && Array.isArray(res[0].values) && res[0].values[0]

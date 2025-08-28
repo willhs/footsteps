@@ -5,7 +5,7 @@ import { getTileFilePath, getTilesBucketIfAvailable } from '@/lib/tilesService';
 import { gunzipSync } from 'zlib';
 import { pathToFileURL } from 'url';
 import { createRequire } from 'module';
-import { PMTiles } from 'pmtiles';
+import { PMTiles, SharedPromiseCache } from 'pmtiles';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -201,6 +201,26 @@ class LocalFsRangeSource {
   }
 }
 
+// Global PMTiles pools to share header/dir caches across requests
+// eslint-disable-next-line no-var
+declare var global: typeof globalThis & {
+  __pmtilesPool?: Map<string, { pmt: PMTiles }>;
+  __pmtilesCache?: SharedPromiseCache;
+};
+const pmtilesPool: Map<string, { pmt: PMTiles }> = global.__pmtilesPool || new Map();
+global.__pmtilesPool = pmtilesPool;
+const sharedPMCache: SharedPromiseCache = global.__pmtilesCache || new SharedPromiseCache(1000);
+global.__pmtilesCache = sharedPMCache;
+
+function getOrCreatePMTilesForUrl(url: string, source: { getKey(): string; getBytes: (...args: any[]) => Promise<any> }): PMTiles {
+  const key = url;
+  const existing = pmtilesPool.get(key);
+  if (existing) return existing.pmt;
+  const pmt = new PMTiles(source as unknown as any, sharedPMCache);
+  pmtilesPool.set(key, { pmt });
+  return pmt;
+}
+
 async function getTileViaLocalPMTiles(
   filepath: string,
   z: number,
@@ -209,7 +229,7 @@ async function getTileViaLocalPMTiles(
 ): Promise<Buffer | null> {
   try {
     const src = new LocalFsRangeSource(filepath);
-    const pmt = new PMTiles(src as unknown as any);
+    const pmt = getOrCreatePMTilesForUrl(`file://${filepath}`, src);
     const res = await pmt.getZxy(z, x, yXyz);
     if (!res || !res.data) return null;
     return Buffer.from(res.data);
@@ -242,7 +262,7 @@ class HttpRangeSource {
 async function getTileViaHttpPMTiles(httpUrl: string, z: number, x: number, yXyz: number): Promise<Buffer | null> {
   try {
     const src = new HttpRangeSource(httpUrl);
-    const pmt = new PMTiles(src as unknown as any);
+    const pmt = getOrCreatePMTilesForUrl(httpUrl, src);
     const res = await pmt.getZxy(z, x, yXyz);
     if (!res || !res.data) return null;
     return Buffer.from(res.data);

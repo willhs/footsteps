@@ -6,7 +6,7 @@ Shows an instantiation of history from the data available, as accurately as poss
 
 ## ✨ Features
 
-- **🌐 Interactive pap / globe** - Navigate and explore with full pan/zoom/rotate controls
+- **🌐 Interactive map / globe** - Navigate and explore with full pan/zoom/rotate controls
 - **⏰ Time Travel** - Non-linear slider covering 100,000 BCE → 2025 CE with historical breakpoints
 - **👥 Settlement Points** - Representative points of human presence (aggregated by LOD)
 

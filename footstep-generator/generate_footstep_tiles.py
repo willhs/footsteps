@@ -22,6 +22,7 @@ import subprocess
 import tempfile
 import json
 from typing import Dict, List, Optional
+from pmtiles_utils import ensure_pmtiles_for_year
 
 # Import core processing functions
 from hyde_tile_processor import (
@@ -167,7 +168,7 @@ def main():
     default_raw = str(script_dir.parent / "data" / "raw" / "hyde-3.5")
     default_tiles = str(script_dir.parent / "data" / "tiles" / "humans")
     
-    parser = argparse.ArgumentParser(description="Generate MBTiles from HYDE data (combined pipeline)")
+    parser = argparse.ArgumentParser(description="Generate vector tiles from HYDE data (combined pipeline)")
     parser.add_argument("--raw-dir", default=default_raw, 
                        help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, 
@@ -191,6 +192,10 @@ def main():
                        help="Run post-build verification")
     parser.add_argument("--strict", action="store_true", 
                        help="Fail build on verification errors")
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--pmtiles", dest="pmtiles", action="store_true", help="Also write .pmtiles next to .mbtiles (default)")
+    group2.add_argument("--no-pmtiles", dest="pmtiles", action="store_false", help="Do not write .pmtiles outputs")
+    parser.set_defaults(pmtiles=True)
     
     args = parser.parse_args()
     
@@ -243,6 +248,13 @@ def main():
         
         if result:
             built += 1
+            # Optionally convert to PMTiles without reprocessing
+            if args.single_layer and args.pmtiles:
+                pm = ensure_pmtiles_for_year(args.tiles_dir, year)
+                if pm:
+                    print(f"  ✓ Year {year} PMTiles ready: {pm}")
+                else:
+                    print("  ⚠️  PMTiles conversion failed. Install `pmtiles` CLI or `pip install pmtiles`.")
         else:
             failed += 1
             print(f"  ✗ Failed to build tiles for year {year}")

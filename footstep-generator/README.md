@@ -11,7 +11,7 @@ This Python-based pipeline processes historical population density data from the
 - **Pydantic V2 models** for robust data validation and type safety
 - **Hierarchical LOD system** for performance optimization at different zoom levels
 - **Geodesic cell area calculations** using `pyproj.Geod` (WGS84) for accurate population totals
-- **Tiles-only output**: MBTiles (MVT) generated with tippecanoe from in‑memory LOD data (temporary GeoJSONL only during build)
+- **Tiles output**: MBTiles (MVT) generated with tippecanoe; optional PMTiles written alongside without reprocessing
 - **Comprehensive test suite** ensuring data integrity and performance
 
 ## Architecture
@@ -42,6 +42,11 @@ The pipeline implements a four‑tier LOD system for performance at different zo
 python generate_footstep_tiles.py
 ```
 *Complete tile generation pipeline with hierarchical LOD system for population preservation*
+
+Write `.pmtiles` next to `.mbtiles`:
+```bash
+python generate_footstep_tiles.py --pmtiles   # default enabled; use --no-pmtiles to skip
+```
 
 ### Data Requirements
 Ensure HYDE 3.5 data files (popd_*.asc) are available in `data/raw/hyde-3.5/`
@@ -86,7 +91,7 @@ pytest tests/ -v
 1. **Raw Data**: HYDE 3.5 ASC grid files with population density
 2. **Processing**: Python pipeline converts grids to GeoJSON points with population attributes
 3. **LOD Generation**: Hierarchical aggregation creates multiple detail levels
-4. **Tiles**: Single‑layer MBTiles per year for vector tile serving (MVT)
+4. **Tiles**: Single‑layer MBTiles per year for vector tile serving (MVT). Optional PMTiles produced for HTTP range‑optimized delivery.
 
 ## Target Years
 
@@ -100,4 +105,16 @@ The pipeline processes data for strategic historical periods:
 
 Generated artifacts:
 - `humans_{year}.mbtiles` — Single yearly tileset (layer id `humans`) with per‑feature minzoom windows mapping zoom→LOD
+- `humans_{year}.pmtiles` — PMTiles equivalent for efficient remote reads (created from the MBTiles without full rebuild)
 - Tippecanoe builds tiles from temporary GeoJSONL; no intermediate artifacts are persisted
+
+### Convert existing MBTiles to PMTiles (no HYDE rebuild)
+
+If you already have MBTiles, convert in place:
+
+```bash
+python convert_mbtiles_dir_to_pmtiles.py --tiles-dir ../data/tiles/humans           # convert all years found
+python convert_mbtiles_dir_to_pmtiles.py --tiles-dir ../data/tiles/humans --years -1000 0 1500
+```
+
+Conversion prefers the `pmtiles` CLI if installed (brew install pmtiles), otherwise attempts the Python package `pmtiles` if available.

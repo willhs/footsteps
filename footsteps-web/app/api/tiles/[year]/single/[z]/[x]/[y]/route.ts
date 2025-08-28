@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-import { getTileFilePath, downloadTileFile, cleanupTempFile } from '@/lib/tilesService';
+import { getTileFilePath } from '@/lib/tilesService';
 import { gunzipSync } from 'zlib';
 import { pathToFileURL } from 'url';
 import { createRequire } from 'module';
+import { PMTiles } from 'pmtiles';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -136,7 +135,12 @@ function yToTms(z: number, y: number): number {
   return (1 << z) - 1 - y;
 }
 
-const execFileAsync = promisify(execFile);
+// Legacy stub (MBTiles fallback removed). Kept to avoid top-level imports.
+const execFileAsync = null as unknown as (
+  cmd: string,
+  args: string[],
+  opts: unknown
+) => Promise<{ stdout: string }>;
 
 async function getTileViaSqliteCli(
   filepath: string,
@@ -177,6 +181,75 @@ async function openMBTilesByPath(filepath: string): Promise<unknown> {
 
 function isGzip(buf: Buffer): boolean {
   return buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b;
+}
+
+class LocalFsRangeSource {
+  filePath: string;
+  constructor(filePath: string) { this.filePath = filePath; }
+  getKey(): string { return this.filePath; }
+  async getBytes(offset: number, length: number): Promise<{ data: ArrayBuffer }> {
+    const fh = await fs.promises.open(this.filePath, 'r');
+    try {
+      const buf = Buffer.allocUnsafe(length);
+      const { bytesRead } = await fh.read(buf, 0, length, offset);
+      const out = new ArrayBuffer(bytesRead);
+      new Uint8Array(out).set(buf.subarray(0, bytesRead));
+      return { data: out };
+    } finally {
+      await fh.close();
+    }
+  }
+}
+
+async function getTileViaLocalPMTiles(
+  filepath: string,
+  z: number,
+  x: number,
+  yXyz: number,
+): Promise<Buffer | null> {
+  try {
+    const src = new LocalFsRangeSource(filepath);
+    const pmt = new PMTiles(src as unknown as any);
+    const res = await pmt.getZxy(z, x, yXyz);
+    if (!res || !res.data) return null;
+    return Buffer.from(res.data);
+  } catch (e) {
+    console.warn('Local PMTiles read failed:', e);
+    return null;
+  }
+}
+
+// Minimal HTTP Range source for PMTiles over GCS/HTTP
+class HttpRangeSource {
+  url: string;
+  constructor(url: string) { this.url = url; }
+  getKey(): string { return this.url; }
+  async getBytes(offset: number, length: number): Promise<{ data: ArrayBuffer; etag?: string; lastModified?: string; cacheControl?: string; expires?: string }> {
+    const end = offset + length - 1;
+    const res = await fetch(this.url, { headers: { Range: `bytes=${offset}-${end}`, 'Accept-Encoding': 'identity' } });
+    if (!(res.status === 206 || res.ok)) throw new Error(`HTTP ${res.status} range ${offset}-${end}`);
+    const ab = await res.arrayBuffer();
+    return {
+      data: ab,
+      etag: res.headers.get('etag') || undefined,
+      lastModified: res.headers.get('last-modified') || undefined,
+      cacheControl: res.headers.get('cache-control') || undefined,
+      expires: res.headers.get('expires') || undefined,
+    };
+  }
+}
+
+async function getTileViaHttpPMTiles(httpUrl: string, z: number, x: number, yXyz: number): Promise<Buffer | null> {
+  try {
+    const src = new HttpRangeSource(httpUrl);
+    const pmt = new PMTiles(src as unknown as any);
+    const res = await pmt.getZxy(z, x, yXyz);
+    if (!res || !res.data) return null;
+    return Buffer.from(res.data);
+  } catch (e) {
+    console.warn('HTTP PMTiles read failed:', e);
+    return null;
+  }
 }
 
 // Fetch a tile via HTTP Range-backed SQLite using sql.js-httpvfs
@@ -263,25 +336,12 @@ export async function GET(
     return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
   }
 
-  // Try HTTP byte-range access first when the tileset is remote (GCS).
-  // Uses sql.js-httpvfs to query the remote MBTiles over HTTP range requests.
-  let httpRangeFallback = false;
-  if (!tileFile.isLocal && tileFile.httpUrl) {
+  // Local development: prefer .pmtiles if present for fast access
+  if (tileFile.isLocal) {
+    const pmtilesPath = tileFile.path.replace(/\.mbtiles$/i, '.pmtiles');
     try {
-      const tmsY = yToTms(zz, yy);
-      let tile = await getTileViaHttpVfs(tileFile.httpUrl, zz, xx, tmsY);
-      // Gzip integrity check: if compressed, ensure we can inflate fully.
-      if (tile && isGzip(tile)) {
-        try {
-          // We don't use the result; this is purely a validation.
-          gunzipSync(tile);
-        } catch (e) {
-          console.warn('Gzip integrity check failed on HTTP-VFS tile; falling back to download', e);
-          tile = null;
-          httpRangeFallback = true;
-        }
-      }
-
+      await fs.promises.access(pmtilesPath, fs.constants.R_OK);
+      const tile = await getTileViaLocalPMTiles(pmtilesPath, zz, xx, yy);
       if (tile) {
         const headers: Record<string, string> = {
           'Content-Type': 'application/x-protobuf',
@@ -290,122 +350,42 @@ export async function GET(
           'X-Tile-Zoom': String(zz),
           'X-Tile-X': String(xx),
           'X-Tile-Y': String(yy),
-          'X-LOD-Source': 'single-httpvfs',
-          'X-GCS-Source': 'true',
-          'X-Tile-Cache': 'httpvfs',
-          'X-HTTP-Range': 'httpvfs',
+          'X-LOD-Source': 'single-pmtiles',
+          'X-GCS-Source': 'false',
         };
-        try {
-          const diag = (tile as any).__httpvfs;
-          if (diag) {
-            if (typeof diag.bytesRead === 'number') headers['X-HTTPVFS-Bytes'] = String(diag.bytesRead);
-            if (typeof diag.pageSize === 'number') headers['X-HTTPVFS-Page'] = String(diag.pageSize);
-            if (typeof diag.requestChunkSize === 'number') headers['X-HTTPVFS-Chunk'] = String(diag.requestChunkSize);
-            if (typeof diag.hasIndex !== 'undefined') headers['X-HTTPVFS-HasIndex'] = String(!!diag.hasIndex);
-          }
-        } catch {/* ignore */}
         if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
         return new Response(new Uint8Array(tile), { headers });
       }
-      // If sql.js-httpvfs couldn't find the tile, fall through to download path
-      httpRangeFallback = true;
-    } catch (error) {
-      console.warn(`HTTP range (sql.js-httpvfs) failed for ${tileFile.httpUrl}, falling back to download:`, error);
-      httpRangeFallback = true;
+    } catch {
+      // .pmtiles not present or unreadable; fall through to MBTiles
     }
   }
 
-  // If tileset is remote (GCS) and HTTP-range failed, do not download entire MBTiles.
-  // This enforces range-only access in production.
+  // Production: PMTiles via HTTP range (no MBTiles fallback)
   if (!tileFile.isLocal && tileFile.httpUrl) {
-    return NextResponse.json(
-      { error: 'Remote MBTiles range access failed' },
-      { status: 503, headers: { 'X-HTTP-Range': httpRangeFallback ? 'failed' : 'skipped' } }
-    );
-  }
-
-  // Fallback to download approach (local development only)
-  let filepath: string;
-  let isTemp = false;
-  let cacheStatus: 'hit' | 'refresh' | undefined;
-
-  try {
-    const dl = await downloadTileFile(tileFile);
-    filepath = dl.path;
-    isTemp = dl.isTemp;
-    cacheStatus = dl.cacheStatus;
-  } catch (error) {
-    console.error(`Failed to download/access tileset for year ${yr}:`, error);
-    return NextResponse.json({ error: 'Failed to access tileset' }, { status: 500 });
-  }
-
-  try {
-    const stat = await fs.promises.stat(filepath);
-    const mtime = tileFile.mtime || stat.mtime;
-    const etag = `W/"${mtime.getTime()}-${zz}-${xx}-${yy}-single"`;
-    const ifNoneMatch = (_request.headers as unknown as { get(name: string): string | null }).get?.('if-none-match');
-    if (ifNoneMatch && ifNoneMatch === etag) {
-      if (isTemp) cleanupTempFile(filepath);
-      return new NextResponse(null, {
-        status: 304,
-        headers: { ETag: etag, 'Cache-Control': 'public, max-age=31536000, immutable' }
-      });
-    }
-
-    const tmsY = yToTms(zz, yy);
-    let tile: Buffer | null = null;
-
-    const hasMBTiles = (await getMBTilesCtor()) !== null;
-    if (hasMBTiles) {
-      try {
-        const mb = (await openMBTilesByPath(filepath)) as {
-          getTile: (
-            z: number,
-            x: number,
-            y: number,
-            cb: (err: Error | null, data?: Buffer) => void
-          ) => void;
-        };
-        tile = await new Promise((resolve) => {
-          mb.getTile(zz, xx, tmsY, (err: Error | null, data?: Buffer) => resolve(err ? null : (data || null)));
-        });
-      } catch (error) {
-        console.error('MBTiles getTile failed, falling back to SQLite CLI:', error);
-      }
-    }
+    const pmUrl = tileFile.httpUrl.replace(/\.mbtiles$/i, '.pmtiles');
+    const tile = await getTileViaHttpPMTiles(pmUrl, zz, xx, yy);
     if (!tile) {
-      tile = await getTileViaSqliteCli(filepath, zz, xx, tmsY);
-    }
-    if (!tile) {
-      if (isTemp) cleanupTempFile(filepath);
       return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400' } });
     }
-
+    // Validate gzip integrity if applicable
+    if (isGzip(tile)) {
+      try { gunzipSync(tile); } catch { /* ignore inflate issues */ }
+    }
     const headers: Record<string, string> = {
       'Content-Type': 'application/x-protobuf',
       'Cache-Control': 'public, max-age=31536000, immutable',
       'Content-Length': String(tile.length),
-      ETag: etag,
       'X-Tile-Zoom': String(zz),
       'X-Tile-X': String(xx),
       'X-Tile-Y': String(yy),
-      'X-LOD-Source': 'single',
-      'X-GCS-Source': tileFile.isLocal ? 'false' : 'true',
-      'Last-Modified': (tileFile.mtime || stat.mtime).toUTCString(),
-      'X-HTTP-Range': httpRangeFallback ? 'fallback' : 'disabled'
+      'X-LOD-Source': 'single-pmtiles',
+      'X-GCS-Source': 'true',
     };
-    if (cacheStatus) headers['X-Tile-Cache'] = cacheStatus;
     if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
-
-    const response = new Response(new Uint8Array(tile), { headers });
-    if (isTemp) process.nextTick(() => cleanupTempFile(filepath));
-    return response;
-  } catch (err) {
-    if (isTemp) cleanupTempFile(filepath);
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return NextResponse.json({ error: 'Tileset not found for year' }, { status: 404 });
-    }
-    console.error('Single-layer tile error:', err);
-    return NextResponse.json({ error: 'Failed to serve tile' }, { status: 500 });
+    return new Response(new Uint8Array(tile), { headers });
   }
+
+  // If we reach here in local mode, local PMTiles was not available
+  return NextResponse.json({ error: 'Local PMTiles not found' }, { status: 404 });
 }

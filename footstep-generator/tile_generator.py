@@ -25,6 +25,7 @@ import math
 import hashlib
 import platform
 from typing import List, Dict, Any, Tuple, Optional
+from pmtiles_utils import ensure_pmtiles_for_year
 
 # Import processing functions to compute LODs in-memory
 from hyde_tile_processor import find_hyde_files, generate_yearly_tile_data
@@ -419,7 +420,7 @@ def main():
     default_raw = str(script_dir.parent / "data" / "raw" / "hyde-3.5")
     default_tiles = str(script_dir.parent / "data" / "tiles" / "humans")
 
-    parser = argparse.ArgumentParser(description="Generate MBTiles for Globe-of-Humans (tiles-only)")
+    parser = argparse.ArgumentParser(description="Generate vector tiles for Globe-of-Humans (tiles-only)")
     parser.add_argument("--raw-dir", default=default_raw, help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, help="Output directory for per-year MBTiles")
     parser.add_argument(
@@ -449,6 +450,11 @@ def main():
     )
     parser.set_defaults(single_layer=True)
     parser.add_argument("--verify", action="store_true", help="Run post-build verification (single-layer)")
+    # PMTiles output control
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--pmtiles", dest="pmtiles", action="store_true", help="Also write .pmtiles next to .mbtiles (default)")
+    group2.add_argument("--no-pmtiles", dest="pmtiles", action="store_false", help="Do not write .pmtiles outputs")
+    parser.set_defaults(pmtiles=True)
     parser.add_argument("--strict", action="store_true", help="Fail build on verification regressions")
     args = parser.parse_args()
 
@@ -495,8 +501,18 @@ def main():
                     ok2 = verify_single_layer(str(yearly_out), strict=args.strict)
                     if args.strict and not ok2:
                         raise SystemExit(1)
+                # Optionally produce PMTiles without re-running tippecanoe
+                if ok and args.pmtiles:
+                    print("→ Converting to PMTiles…")
+                    pm = ensure_pmtiles_for_year(args.tiles_dir, y)
+                    if pm:
+                        print(f"  ✓ Year {y} PMTiles ready: {pm}")
+                    else:
+                        print("  ⚠️  PMTiles conversion failed. Install `pmtiles` CLI or `pip install pmtiles`.")
 
     print(f"\n✓ Built {built} yearly MBTiles → {args.tiles_dir}")
+    if args.pmtiles:
+        print("✓ PMTiles written where conversion succeeded (humans_{year}.pmtiles)")
     print("Next:")
     print("- Serve tiles via frontend API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf")
     print("- Frontend MVTLayer loads from MBTiles with layer id 'humans'")

@@ -16,7 +16,7 @@ from typing import List, Dict, Tuple
 from unittest.mock import patch
 import gc
 
-from process_hyde import ascii_grid_to_dots, find_hyde_files
+from hyde_tile_processor import hyde_grid_to_tile_points, find_hyde_files
 from lod_processor import LODProcessor
 from models import SettlementContinuityConfig
 
@@ -201,11 +201,11 @@ class TestVectorizationOptimizations:
             reference_dots = create_reference_ascii_grid_to_dots(asc_file, year, people_per_dot)
             
             # Get vectorized results (disable LOD processor dot creation for fair comparison)
-            with patch('process_hyde.LODProcessor') as mock_lod:
+            with patch('hyde_tile_processor.LODProcessor') as mock_lod:
                 mock_processor = mock_lod.return_value
                 mock_processor.create_density_aware_dots.side_effect = lambda pop, lat, lon, *args, **kwargs: [(lat, lon, pop)] if pop >= people_per_dot / 2 else []
                 
-                vectorized_dots = ascii_grid_to_dots(asc_file, year, people_per_dot)
+                vectorized_dots = hyde_grid_to_tile_points(asc_file, year, people_per_dot)
             
             print(f"    Reference dots: {len(reference_dots)}")
             print(f"    Vectorized dots: {len(vectorized_dots)}")
@@ -239,7 +239,7 @@ class TestVectorizationOptimizations:
             asc_file = create_test_asc_file(temp_path, -1000, size=(30, 30))  # BCE year
             
             # Manually verify filtering works
-            dots = ascii_grid_to_dots(asc_file, -1000, 100)
+            dots = hyde_grid_to_tile_points(asc_file, -1000, 100)
             
             print(f"    Total dots: {len(dots)}")
             
@@ -287,7 +287,7 @@ class TestVectorizationOptimizations:
             
             # Run vectorized processing
             start_time = time.time()
-            dots = ascii_grid_to_dots(asc_file, 1500, 100)
+            dots = hyde_grid_to_tile_points(asc_file, 1500, 100)
             end_time = time.time()
             
             # Measure memory after
@@ -331,7 +331,7 @@ class TestVectorizationOptimizations:
                 asc_file = create_test_asc_file(temp_path, 1800, size=(ncols, nrows))
                 
                 start_time = time.time()
-                dots = ascii_grid_to_dots(asc_file, 1800, 100)
+                dots = hyde_grid_to_tile_points(asc_file, 1800, 100)
                 end_time = time.time()
                 
                 processing_time = end_time - start_time

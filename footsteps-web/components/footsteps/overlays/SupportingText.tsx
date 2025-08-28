@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { formatPopulation, getDetailContext, formatYear } from '@/lib/format';
+import { formatPopulation, formatYear } from '@/lib/format';
 
 interface RenderMetrics {
   loadTime: number;
@@ -178,24 +178,20 @@ function SupportingText({
     >
       {/* Current year */}
       <div
-        className={`text-xs text-slate-400 mb-1 year-text ${yearFlash ? 'year-flash' : ''}`}
+        className={`text-2xl font-normal text-slate-400 mb-1 year-text metric-value ${yearFlash ? 'metric-flash' : ''}`}
         aria-live="polite"
       >
         {formatYear(year)}
       </div>
 
-      {/* Title and primary metric */}
-      <div className="text-sm mb-1">Human presence</div>
+      {/* Title removed per design tweak: keep overlay minimal */}
       <div className="text-xl font-semibold mb-2">
         <span className={`metric-value ${popFlash ? 'metric-flash' : ''}`}>
           {formatPopulation(displayPopulation)}
         </span>
       </div>
 
-      {/* Current view context */}
-      <div className="text-xs text-slate-400 mb-1">
-        {getDetailContext(viewState.zoom)}
-      </div>
+      {/* Current view context removed per request to reduce overlay text */}
 
       {/* Progressive loading feedback */}
       {progressiveRenderStatus &&

@@ -9,8 +9,8 @@ set -e
 PROJECT_ID="footsteps-earth"
 DEFAULT_BUCKET_NAME="footsteps-earth-tiles"
 DATA_DIR="../../data/tiles/humans"
-# GCS prefix for MBTiles
-TILES_PREFIX="tiles/mbtiles"
+# GCS prefix for MBTiles - upload to root for direct API access
+TILES_PREFIX=""
 
 # Parse arguments
 BUCKET_NAME="$DEFAULT_BUCKET_NAME"
@@ -70,7 +70,7 @@ if [ "$SHOW_HELP" = true ]; then
     echo "  $0 --dry-run                 # Preview steps only"
     echo ""
     echo "Behavior:"
-    echo "  - Uploads each combined MBTiles to gs://$DEFAULT_BUCKET_NAME/$TILES_PREFIX/humans_{year}.mbtiles"
+    echo "  - Uploads each combined MBTiles to gs://$DEFAULT_BUCKET_NAME/humans_{year}.mbtiles"
     echo "  - Default upload overwrites existing objects. Use --no-overwrite-remote for no-clobber."
     echo "  - Sets appropriate Content-Type for MBTiles files"
     exit 0
@@ -78,9 +78,9 @@ fi
 
 # Show configuration
 if [ "$DRY_RUN" = true ]; then
-    echo "🧪 DRY RUN: Previewing MBTiles upload to: gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "🧪 DRY RUN: Previewing MBTiles upload to: gs://$BUCKET_NAME/"
 else
-    echo "🚀 Uploading MBTiles to: gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "🚀 Uploading MBTiles to: gs://$BUCKET_NAME/"
 fi
 
 # Check if data directory exists
@@ -140,7 +140,7 @@ echo "🚀 Optimized upload: Excluding LOD-specific files (server uses combined 
 
 if [ "$FILE_COUNT" -eq 0 ]; then
     echo "❌ Error: No combined MBTiles files found in $DATA_DIR"
-    echo "💡 Run 'cd footstep-generator && python process_hyde.py && python make_tiles.py' first"
+    echo "💡 Run 'cd footstep-generator && python generate_footstep_tiles.py' first"
     exit 1
 fi
 
@@ -170,7 +170,7 @@ fi
 if [ "$DRY_RUN" = true ]; then
     echo ""
     echo "🧪 DRY RUN: Would perform the following actions:"
-    echo "  1. Upload humans_{year}.mbtiles to gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "  1. Upload humans_{year}.mbtiles to gs://$BUCKET_NAME/"
     echo "  2. Set appropriate Content-Type for MBTiles files"
     echo "  3. Test accessibility via GCS public URL"
     echo ""
@@ -194,7 +194,7 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
         exit 1
     fi
     
-    echo "⬆️  Uploading $filename to gs://$BUCKET_NAME/$TILES_PREFIX/"
+    echo "⬆️  Uploading $filename to gs://$BUCKET_NAME/"
     NO_CLOBBER_FLAG=""
     if [ "$OVERWRITE_REMOTE" != true ]; then
         NO_CLOBBER_FLAG="--no-clobber"
@@ -202,7 +202,7 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
     
     if gcloud storage cp $NO_CLOBBER_FLAG \
         --content-type="application/x-sqlite3" \
-        "$file" "gs://$BUCKET_NAME/$TILES_PREFIX/$filename"; then
+        "$file" "gs://$BUCKET_NAME/$filename"; then
         echo "✅ Uploaded $filename"
         UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
     else
@@ -211,7 +211,7 @@ for file in "$DATA_DIR"/humans_*.mbtiles; do
     fi
     
     # Test accessibility of uploaded file
-    SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/$filename"
+    SAMPLE_URL="https://storage.googleapis.com/$BUCKET_NAME/$filename"
     echo "🔎 Testing accessibility: $SAMPLE_URL"
     HEADERS=$(curl -sI "$SAMPLE_URL" 2>/dev/null || true)
     if echo "$HEADERS" | head -n 1 | grep -q "200 OK"; then
@@ -228,6 +228,6 @@ echo "✅ Upload completed: uploaded $UPLOADED_COUNT MBTiles files"
 echo ""
 echo "🎉 Data upload completed successfully!"
 echo "📦 Uploaded $FILE_COUNT MBTiles files (total size: $COMBINED_SIZE)"
-echo "🗂️  MBTiles uploaded to gs://$BUCKET_NAME/$TILES_PREFIX/"
-echo "🌐 Base URL: https://storage.googleapis.com/$BUCKET_NAME/$TILES_PREFIX/"
+echo "🗂️  MBTiles uploaded to gs://$BUCKET_NAME/"
+echo "🌐 Base URL: https://storage.googleapis.com/$BUCKET_NAME/"
 echo "🔗 View in console: https://console.cloud.google.com/storage/browser/$BUCKET_NAME"

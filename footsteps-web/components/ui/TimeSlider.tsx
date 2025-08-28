@@ -75,10 +75,10 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
   }, [onChange, onAfterChange]);
 
   return (
-    <div className="time-slider-container">
+    <div className="time-slider-container absolute left-4 right-4 sm:left-6 sm:right-6 bottom-10 z-10">
       <div className="w-full">
         {/* Time slider - Hero interaction */}
-        <div className="px-6 py-6">
+        <div className="py-6">
           <Slider
             min={0}
             max={100}

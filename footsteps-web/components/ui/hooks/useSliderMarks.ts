@@ -54,10 +54,12 @@ const getResponsiveYears = (width: number): number[] => {
   const selected: number[] = [];
   YEARS_SORTED.forEach((year) => {
     const pos = YEAR_SLIDER_MAP[year];
+    const isMajorMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
     const tooClose = selected.some(
       (sel) => Math.abs(pos - YEAR_SLIDER_MAP[sel]) < thresholdPercent,
     );
-    if (!tooClose) {
+    // Always include major milestones (1000, 2000, etc.) regardless of spacing
+    if (!tooClose || isMajorMilestone) {
       selected.push(year);
     }
   });
@@ -127,20 +129,36 @@ export default function useSliderMarks(
       }
     });
 
+    // Helper: decide whether to show a text label for a given year
+    const shouldShowLabel = (year: number) => {
+      // Keep all CE labels as-is
+      if (year >= 0) return true;
+      const abs = Math.abs(year);
+      // Suppress crowded far-left odd-thousand BCE labels (e.g., 9000 BC, 7000 BC),
+      // but keep their ticks. Allow even-thousand labels and anything closer to present.
+      if (abs >= 7000 && abs % 2000 !== 0) return false;
+      return true;
+    };
+
     // 2) Overlay labels for the responsive subset of years
     keyYears.forEach((year) => {
       const position = YEAR_SLIDER_MAP[year];
       const isMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
+      // Only assign a visible label if allowed; otherwise leave the tick unlabeled
       marks[position] = {
-        label: makeClickableLabel(year, position, formatLabel(year, compact), onSelect),
-        style: {
-          color: isMilestone ? '#38bdf8' : '#f1f5f9',
-          fontWeight: isMilestone ? 500 : 400,
-          fontSize: compact ? '0.7rem' : undefined,
-          opacity: isMilestone ? 0.95 : compact ? 0.8 : 0.85,
-          letterSpacing: compact ? '0.01em' : '0.015em',
-          transition: 'all 200ms ease-out',
-        },
+        label: shouldShowLabel(year)
+          ? makeClickableLabel(year, position, formatLabel(year, compact), onSelect)
+          : makeClickableLabel(year, position, '', onSelect),
+        style: shouldShowLabel(year)
+          ? {
+              color: isMilestone ? '#38bdf8' : '#f1f5f9',
+              fontWeight: isMilestone ? 500 : 400,
+              fontSize: compact ? '0.7rem' : undefined,
+              opacity: isMilestone ? 0.95 : compact ? 0.8 : 0.85,
+              letterSpacing: compact ? '0.01em' : '0.015em',
+              transition: 'all 200ms ease-out',
+            }
+          : { opacity: 0.85 },
       };
     });
 

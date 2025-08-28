@@ -85,7 +85,7 @@ The application implements a four‑tier LOD system for performance at different
 
 ## Commands
 - **Development**: `cd footsteps-web && pnpm dev` → http://localhost:4444
-- **Data Processing (hierarchical LODs by default)**: `cd footstep-generator && python process_hyde.py`
+- **Data Processing**: `cd footstep-generator && python generate_footstep_tiles.py`
 - **Build**: `pnpm build`
 - **Test**: `pnpm test`
 - **Lint**: `pnpm lint`
@@ -181,7 +181,7 @@ The project supports two main workflows for deploying newly generated data to pr
 
 ### Data Pipeline Overview
 
-1. **Generate Data**: `cd footstep-generator && python process_hyde.py && python make_tiles.py`
+1. **Generate Data**: `cd footstep-generator && python generate_footstep_tiles.py`
 2. **Upload to GCS**: MBTiles files → `gs://footsteps-earth-tiles/`
 3. **Deploy App**: Cloud Run pulls tiles from GCS bucket via API routes
 4. **Verify**: Check tiles API endpoint and frontend rendering

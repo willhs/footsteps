@@ -29,7 +29,8 @@ def _try_load_landmask(refresh: bool = False) -> Optional[object]:
         from shapely.prepared import prep  # type: ignore
 
         if _CACHE_FILE.exists() and not refresh:
-            return prep(gpd.read_file(_CACHE_FILE).unary_union)
+            gdf = gpd.read_file(_CACHE_FILE)
+            return prep(gdf.union_all())
 
         url = (
             "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
@@ -39,7 +40,8 @@ def _try_load_landmask(refresh: bool = False) -> Optional[object]:
         resp.raise_for_status()
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
         _CACHE_FILE.write_bytes(resp.content)
-        return prep(gpd.read_file(io.BytesIO(resp.content)).unary_union)
+        gdf = gpd.read_file(io.BytesIO(resp.content))
+        return prep(gdf.union_all())
     except Exception:
         # Any failure (network or deps) -> fallback
         return None

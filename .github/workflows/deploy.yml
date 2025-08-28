@@ -88,7 +88,7 @@ jobs:
     - name: Deploy to Cloud Run
       run: |
         # Deploy with zero-downtime deployment and a warmed resident instance
-        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_TILES_BUCKET=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans,SQLJS_WORKER_URL=file:///app/sqljs/sqlite.worker.js,SQLJS_WASM_URL=file:///app/sqljs/sql-wasm.wasm,SQLJS_REQUEST_CHUNK_SIZE=262144,SQLJS_HTTPVFS_TIMEOUT_MS=15000"
+        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_TILES_BUCKET=footsteps-earth-tiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans,SQLJS_WORKER_URL=file:///app/sqljs/sqlite.worker.js,SQLJS_WASM_URL=file:///app/sqljs/sql-wasm.wasm,SQLJS_REQUEST_CHUNK_SIZE=262144,SQLJS_HTTPVFS_TIMEOUT_MS=45000"
         IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}"
         gcloud run deploy ${{ env.SERVICE_NAME }} \
           --image="$IMAGE_TAG" \

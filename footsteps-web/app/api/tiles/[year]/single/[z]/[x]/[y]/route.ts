@@ -46,7 +46,7 @@ global.__mbtilesCache = mbtilesCache;
 const httpvfsWorkers: Map<string, { worker: any; lastUsed: number; url: string; ready: boolean; hasIndex?: boolean; pageSize?: number }> =
   (global.__httpvfsWorkers = global.__httpvfsWorkers || new Map());
 
-async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any; meta: { hasIndex?: boolean; pageSize?: number } }> {
+async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any; meta: { hasIndex?: boolean; pageSize?: number; requestChunkSize: number } }> {
   const now = Date.now();
   const existing = httpvfsWorkers.get(httpUrl);
   if (existing && existing.ready) {
@@ -88,7 +88,7 @@ async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any;
   }
 
   const requestChunkSize = Number(process.env.SQLJS_REQUEST_CHUNK_SIZE || 262144);
-  const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 15000);
+  const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 30000);
   const config = { from: 'inline', config: { serverMode: 'full', requestChunkSize, url: httpUrl } } as const;
 
   const worker: any = await Promise.race([
@@ -117,7 +117,7 @@ async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any;
   }
 
   httpvfsWorkers.set(httpUrl, { worker, lastUsed: now, url: httpUrl, ready: true, hasIndex, pageSize });
-  return { worker, meta: { hasIndex, pageSize } };
+  return { worker, meta: { hasIndex, pageSize, requestChunkSize } };
 }
 
 // Cleanup stale workers periodically
@@ -188,11 +188,11 @@ async function getTileViaHttpVfs(
   tmsY: number,
 ): Promise<Buffer | null> {
   try {
-    const { worker } = await getOrCreateHttpVfsWorker(httpUrl);
+    const { worker, meta } = await getOrCreateHttpVfsWorker(httpUrl);
 
     try {
       const sql = 'SELECT hex(tile_data) AS h FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=? LIMIT 1;';
-      const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 15000);
+      const timeoutMs = Number(process.env.SQLJS_HTTPVFS_TIMEOUT_MS || 30000);
       const res = await Promise.race([
         worker.db.exec(sql, [z, x, tmsY]),
         new Promise((_, reject) => setTimeout(() => reject(new Error('httpvfs-exec-timeout')), timeoutMs)),
@@ -203,7 +203,21 @@ async function getTileViaHttpVfs(
         ? res[0].values[0][0]
         : null;
       if (typeof hex === 'string' && hex.length > 0) {
-        return Buffer.from(hex, 'hex');
+        // Attach lightweight diagnostics for headers via symbol on buffer
+        const out = Buffer.from(hex, 'hex');
+        try {
+          const bytesRead = await Promise.race([
+            worker?.worker?.bytesRead,
+            new Promise((resolve) => setTimeout(() => resolve(undefined), 50)),
+          ]);
+          (out as any).__httpvfs = {
+            bytesRead: typeof bytesRead === 'number' ? bytesRead : undefined,
+            hasIndex: meta?.hasIndex,
+            pageSize: meta?.pageSize,
+            requestChunkSize: meta?.requestChunkSize,
+          };
+        } catch {/* ignore */}
+        return out;
       }
       return null;
     } finally {
@@ -281,6 +295,15 @@ export async function GET(
           'X-Tile-Cache': 'httpvfs',
           'X-HTTP-Range': 'httpvfs',
         };
+        try {
+          const diag = (tile as any).__httpvfs;
+          if (diag) {
+            if (typeof diag.bytesRead === 'number') headers['X-HTTPVFS-Bytes'] = String(diag.bytesRead);
+            if (typeof diag.pageSize === 'number') headers['X-HTTPVFS-Page'] = String(diag.pageSize);
+            if (typeof diag.requestChunkSize === 'number') headers['X-HTTPVFS-Chunk'] = String(diag.requestChunkSize);
+            if (typeof diag.hasIndex !== 'undefined') headers['X-HTTPVFS-HasIndex'] = String(!!diag.hasIndex);
+          }
+        } catch {/* ignore */}
         if (isGzip(tile)) headers['Content-Encoding'] = 'gzip';
         return new Response(new Uint8Array(tile), { headers });
       }

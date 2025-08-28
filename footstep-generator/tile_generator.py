@@ -323,7 +323,23 @@ def generate_single_layer_mbtiles(input_geojsonl: str, out_mbtiles: str) -> bool
         "-l", "humans",
         input_geojsonl,
     ]
-    return run_command(cmd, "Single-layer yearly tiles (humans)")
+    ok = run_command(cmd, "Single-layer yearly tiles (humans)")
+    if not ok:
+        return False
+    # Ensure composite index on tiles to support fast remote lookups via HTTP range
+    try:
+        import subprocess
+        print("  ▸ Ensuring tiles index (zoom_level, tile_column, tile_row)...")
+        sql = (
+            "CREATE INDEX IF NOT EXISTS idx_tiles_zoom_level_tile_column_tile_row "
+            "ON tiles(zoom_level, tile_column, tile_row); "
+            "ANALYZE;"
+        )
+        subprocess.run(["sqlite3", out_mbtiles, sql], check=True)
+        print("  ✓ Tiles index ensured")
+    except Exception as e:
+        print(f"  ⚠️  Could not ensure tiles index: {e}")
+    return True
 
 def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
     """Generate a single MBTiles for a given year by computing LODs and combining them.

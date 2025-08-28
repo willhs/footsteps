@@ -393,10 +393,7 @@ export async function GET(
     if (!tile) {
       return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=86400' } });
     }
-    // Validate gzip integrity if applicable
-    if (isGzip(tile)) {
-      try { gunzipSync(tile); } catch { /* ignore inflate issues */ }
-    }
+    // Do not inflate gzip in prod path; return bytes as-is for performance
     const headers: Record<string, string> = {
       'Content-Type': 'application/x-protobuf',
       'Cache-Control': 'public, max-age=31536000, immutable',

@@ -1,33 +1,40 @@
-# CLAUDE.md - Footstep Generator
+# CLAUDE.md - Footstep Tile Generator
 
-This file provides guidance to Claude Code when working with the data processing pipeline in the footstep-generator directory.
+This file provides guidance to Claude Code when working with the tile generation pipeline in the footstep-generator directory.
 
 ## Overview
-The footstep-generator is a Python-based, tiles-only pipeline that converts HYDE 3.5 demographic grid data into vector tiles (MBTiles with MVT) for the Footsteps of Time project. Processing is performed in-memory; no NDJSON intermediates are written.
+The footstep-generator is a Python-based, tiles-only pipeline that converts HYDE 3.5 demographic grid data into production-ready vector tiles (MBTiles with MVT) for the Footsteps of Time project. All processing is performed in-memory with hierarchical Level-of-Detail (LOD) optimization for efficient web serving.
 
 ## Key Components
 - **models.py**: Pydantic V2 models for data validation and type safety
-- **process_hyde.py**: Reads HYDE ASC grids → produces in-memory settlement points and hierarchical LOD data
+- **hyde_tile_processor.py**: Converts HYDE ASC grids to hierarchical tile data with LODs
+- **tile_generator.py**: Builds production MBTiles via tippecanoe with population preservation
+- **generate_footstep_tiles.py**: Combined CLI for the complete tile generation pipeline
 - **lod_processor.py**: Level-of-Detail system for hierarchical aggregation and validation
-- **make_tiles.py**: Builds per‑LOD MBTiles via tippecanoe and combines into yearly MBTiles
-- **tests/**: Comprehensive test suite for validation
+- **tests/**: Comprehensive test suite for tile generation validation
 
 ## Commands
 ### Complete Tile Generation Workflow
 ```bash
-# Step 1: Compute LOD data from HYDE grids
-python process_hyde.py
-
-# Step 2: Generate MBTiles from computed LOD data
-python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans
+# Single-command tile generation (recommended)
+python generate_footstep_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans
 ```
 
-### Individual Commands
-- **Compute LOD data (incremental)**: `python process_hyde.py`
-- **Compute LOD data (force)**: `python process_hyde.py --force`
-- **Generate all tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans`
-- **Generate specific years**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --years 1000 1500 1600`
-- **Force rebuild tiles**: `python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans --force`
+### Legacy Individual Commands (for testing/debugging)
+```bash
+# Step 1: Generate LOD data from HYDE grids
+python hyde_tile_processor.py
+
+# Step 2: Build MBTiles from LOD data  
+python tile_generator.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans
+```
+
+### Tile Generation Options
+- **Generate all available years**: `python generate_footstep_tiles.py`
+- **Generate specific years**: `python generate_footstep_tiles.py --years 1000 1500 1600`
+- **Force rebuild existing tiles**: `python generate_footstep_tiles.py --force`
+- **Skip single-layer output**: `python generate_footstep_tiles.py --no-single-layer`
+- **Enable verification**: `python generate_footstep_tiles.py --verify --strict`
 
 ### Testing & Dependencies  
 - **Run basic tests**: `python tests/test_basic.py`
@@ -37,12 +44,12 @@ python make_tiles.py --raw-dir data/raw/hyde-3.5 --tiles-dir data/tiles/humans
 
 ## Architecture
 
-### Data Flow
+### Tile Generation Flow
 1. **Input**: HYDE 3.5 ASC grid files with population density data
-2. **Processing**: Convert grids to in-memory settlement points with population attributes
+2. **Grid Processing**: Convert demographic grids to tile-ready settlement points
 3. **LOD Generation**: Create hierarchical aggregation for multiple zoom levels (population-preserving)
-4. **Tile Building**: Write temporary GeoJSONL per LOD and run tippecanoe to build per‑LOD MBTiles
-5. **Output**: Combined yearly MBTiles (and per‑LOD MBTiles if desired)
+4. **Vector Tile Building**: Generate temporary GeoJSONL and run tippecanoe to build MBTiles
+5. **Output**: Production-ready yearly MBTiles optimized for web serving
 
 ### LOD System
 - **LOD 0 – Regional** (zoom < 4): Coarse clusters for world/regional overview
@@ -63,6 +70,12 @@ All data structures use Pydantic V2 for validation:
 - **E2E tests**: Full pipeline testing (requires pytest)
 - **Performance tests**: Memory usage and processing time validation
 
+### What the Tests Validate
+- **Pydantic V2 models**: Data validation, type safety, coordinate bounds checking
+- **Hierarchical LOD system**: Population conservation, spatial aggregation, zoom-level mapping
+- **Tile generation pipeline**: ASC file parsing, settlement point creation, vector tile building
+- **Performance optimizations**: Memory-efficient processing, density-aware placement
+
 ## File Structure
 ```
 data/
@@ -74,11 +87,13 @@ data/
 - Use density-aware placement for sparse eras; preserve totals via hierarchical aggregation
 - Tippecanoe flags: no feature/tile-size limits; per‑LOD layer naming; combine per‑LOD into yearly MBTiles
 - Memory-efficient processing for large datasets; temporary GeoJSONL only
-- **Incremental processing**: `process_hyde.py` computes LODs; `make_tiles.py` skips existing yearly MBTiles unless `--force`
+- **Single-pass processing**: `generate_footstep_tiles.py` does full pipeline without duplicate work
+- **Incremental processing**: Skips existing yearly MBTiles unless `--force` flag is used
 - Use `--force` flag only when you need to rebuild existing tiles
 
 ## Dependencies
 - **pydantic**: Data validation and modeling
 - **numpy**: Numerical processing
 - **pytest**: Testing framework
+- **tippecanoe**: Vector tile generation (external binary)
 - **Standard library**: File I/O, compression, logging

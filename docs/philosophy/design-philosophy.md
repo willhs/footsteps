@@ -41,10 +41,9 @@ We consciously avoid Tufte's "duck" – where aesthetic considerations overpower
 - **Ancient Cyan**: `#38bdf8` - Highlights, selected states, accents
 
 #### Semantic Colors
-- **Loading/Uncertainty**: `#6b7280` - Gray for unknown or loading states
-- **Success/Data**: `#10b981` - Green for successful data loads
-- **Warning/Synthetic**: `#f59e0b` - Amber for uncertain/synthetic data
-- **Error/Missing**: `#ef4444` - Red for errors or missing data
+- **Loading**: `#6b7280` - Gray for loading states
+- **Success**: `#10b981` - Green for successful data loads
+- **Error**: `#ef4444` - Red for errors or missing data
 
 #### Globe Colors
 - **Land Mass**: `rgba(40, 60, 80, 0.14)` - Subtle blue-gray continents

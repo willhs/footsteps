@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Generate vector tiles from processed population and city data.
-Creates .mbtiles files using tippecanoe for efficient web serving.
+Vector Tile Generator - Build MBTiles from hierarchical tile data.
 
-Enhancements:
- - Tiles-only: generates per-year MBTiles directly from in-memory LOD data
-   produced by process_hyde.py (no intermediate artifacts persisted)
- - Produces one MBTiles per year containing all LOD layers with appropriate
-   zoom ranges, without dropping features (population preserving)
+Creates production-ready .mbtiles files using tippecanoe for efficient web serving.
+Processes hierarchical LOD data into optimized vector tiles with population preservation.
+
+NOTE: This module can be run standalone, but for production use the combined
+generate_footstep_tiles.py script which does the full pipeline efficiently
+without duplicate processing.
+
+Features:
+ - Tiles-only pipeline: generates per-year MBTiles directly from in-memory LOD data
+ - Population-preserving: maintains demographic accuracy across zoom levels
+ - Hierarchical output: produces both per-LOD artifacts and combined yearly tiles
 """
 
 import os
@@ -20,9 +25,10 @@ import math
 import hashlib
 import platform
 from typing import List, Dict, Any, Tuple, Optional
+from pmtiles_utils import ensure_pmtiles_for_year
 
 # Import processing functions to compute LODs in-memory
-from process_hyde import find_hyde_files, process_year_with_hierarchical_lods
+from hyde_tile_processor import find_hyde_files, generate_yearly_tile_data
 from verify_tiles import verify_single_layer
 
 def run_command(cmd: List[str], description: str) -> bool:
@@ -318,7 +324,23 @@ def generate_single_layer_mbtiles(input_geojsonl: str, out_mbtiles: str) -> bool
         "-l", "humans",
         input_geojsonl,
     ]
-    return run_command(cmd, "Single-layer yearly tiles (humans)")
+    ok = run_command(cmd, "Single-layer yearly tiles (humans)")
+    if not ok:
+        return False
+    # Ensure composite index on tiles to support fast remote lookups via HTTP range
+    try:
+        import subprocess
+        print("  ▸ Ensuring tiles index (zoom_level, tile_column, tile_row)...")
+        sql = (
+            "CREATE INDEX IF NOT EXISTS idx_tiles_zoom_level_tile_column_tile_row "
+            "ON tiles(zoom_level, tile_column, tile_row); "
+            "ANALYZE;"
+        )
+        subprocess.run(["sqlite3", out_mbtiles, sql], check=True)
+        print("  ✓ Tiles index ensured")
+    except Exception as e:
+        print(f"  ⚠️  Could not ensure tiles index: {e}")
+    return True
 
 def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = False) -> Optional[str]:
     """Generate a single MBTiles for a given year by computing LODs and combining them.
@@ -336,7 +358,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
         return str(final_path)
 
     # Compute LODs for this year
-    result = process_year_with_hierarchical_lods(asc_file, year, str(tiles_dir_path), force=force)
+    result = generate_yearly_tile_data(asc_file, year, str(tiles_dir_path), force=force)
     lod_tiles: List[str] = []
     tmp_files: List[str] = []
     try:
@@ -388,7 +410,7 @@ def generate_year_tiles(asc_file: str, tiles_dir: str, year: int, force: bool = 
                 pass
 
 def main():
-    """Main tile generation routine."""
+    """Main vector tile generation routine."""
     import argparse
 
     print("🗺️ Globe-of-Humans Tile Generator")
@@ -398,7 +420,7 @@ def main():
     default_raw = str(script_dir.parent / "data" / "raw" / "hyde-3.5")
     default_tiles = str(script_dir.parent / "data" / "tiles" / "humans")
 
-    parser = argparse.ArgumentParser(description="Generate MBTiles for Globe-of-Humans (tiles-only)")
+    parser = argparse.ArgumentParser(description="Generate vector tiles for Globe-of-Humans (tiles-only)")
     parser.add_argument("--raw-dir", default=default_raw, help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, help="Output directory for per-year MBTiles")
     parser.add_argument(
@@ -428,6 +450,11 @@ def main():
     )
     parser.set_defaults(single_layer=True)
     parser.add_argument("--verify", action="store_true", help="Run post-build verification (single-layer)")
+    # PMTiles output control
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--pmtiles", dest="pmtiles", action="store_true", help="Also write .pmtiles next to .mbtiles (default)")
+    group2.add_argument("--no-pmtiles", dest="pmtiles", action="store_false", help="Do not write .pmtiles outputs")
+    parser.set_defaults(pmtiles=True)
     parser.add_argument("--strict", action="store_true", help="Fail build on verification regressions")
     args = parser.parse_args()
 
@@ -436,7 +463,7 @@ def main():
     # Tiles-only per-year mode
     hyde_map = find_hyde_files(raw_dir)
     if not hyde_map:
-        print("✗ No HYDE ASC files found. Please download data first (see process_hyde.py).")
+        print("✗ No HYDE ASC files found. Please download data first.")
         return
 
     target_years = args.years if args.years else ([args.year] if args.year is not None else sorted(hyde_map.keys()))
@@ -458,7 +485,7 @@ def main():
             built += 1
             if args.single_layer:
                 # Build single-layer variant using all LOD data deterministically
-                result = process_year_with_hierarchical_lods(asc_file, y, args.tiles_dir, force=args.force)
+                result = generate_yearly_tile_data(asc_file, y, args.tiles_dir, force=args.force)
                 # Use LOD windows so exactly one LOD is visible per zoom
                 combined_geojsonl = write_combined_geojsonl_windows(result.lod_data)
                 yearly_out = pathlib.Path(args.tiles_dir) / f"humans_{y}.mbtiles"
@@ -474,8 +501,18 @@ def main():
                     ok2 = verify_single_layer(str(yearly_out), strict=args.strict)
                     if args.strict and not ok2:
                         raise SystemExit(1)
+                # Optionally produce PMTiles without re-running tippecanoe
+                if ok and args.pmtiles:
+                    print("→ Converting to PMTiles…")
+                    pm = ensure_pmtiles_for_year(args.tiles_dir, y)
+                    if pm:
+                        print(f"  ✓ Year {y} PMTiles ready: {pm}")
+                    else:
+                        print("  ⚠️  PMTiles conversion failed. Install `pmtiles` CLI or `pip install pmtiles`.")
 
     print(f"\n✓ Built {built} yearly MBTiles → {args.tiles_dir}")
+    if args.pmtiles:
+        print("✓ PMTiles written where conversion succeeded (humans_{year}.pmtiles)")
     print("Next:")
     print("- Serve tiles via frontend API route: /api/tiles/{year}/single/{z}/{x}/{y}.pbf")
     print("- Frontend MVTLayer loads from MBTiles with layer id 'humans'")

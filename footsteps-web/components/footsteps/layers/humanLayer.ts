@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
-import { getTileArrayBuffer } from '@/lib/pmtilesClient';
+import { getParsedTile } from '@/lib/pmtilesClient';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
 import { createOnTileLoadHandler } from './tileCache';
@@ -66,11 +66,11 @@ export function createHumanTilesLayer(
   return new MVTLayer({
     id: layerId,
     // Fetch directly from PMTiles via getTileData
-    data: null as unknown as string,
+    data: [] as unknown as string,
     getTileData: async ({ index }) => {
       const { x, y, z } = index as { x: number; y: number; z: number };
-      const ab = await getTileArrayBuffer(year, z, x, y);
-      return ab || null;
+      const parsed = await getParsedTile(year, z, x, y);
+      return parsed || null;
     },
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,

@@ -1,4 +1,6 @@
 import { PMTiles, FetchSource } from 'pmtiles';
+import { parse } from '@loaders.gl/core';
+import { MVTLoader } from '@loaders.gl/mvt';
 
 const pmtilesCache = new Map<number, PMTiles>();
 
@@ -9,7 +11,11 @@ function getBase(): string {
   const host = process.env.NEXT_PUBLIC_CDN_HOST || '';
   if (host) return `https://${host.replace(/\/+$/, '')}`;
   // As a last resort, try the API host (will likely be slower)
-  return '';
+  // Developer-friendly default to your public CDN domain if unset
+  if (typeof window !== 'undefined') {
+    return 'https://pmtiles.willhs.me';
+  }
+  return 'https://pmtiles.willhs.me';
 }
 
 export function getPMTilesUrl(year: number): string {
@@ -39,3 +45,18 @@ export async function getTileArrayBuffer(
   return res.data;
 }
 
+export async function getParsedTile(
+  year: number,
+  z: number,
+  x: number,
+  y: number,
+): Promise<unknown | null> {
+  const ab = await getTileArrayBuffer(year, z, x, y);
+  if (!ab) return null;
+  // Parse vector tile into binary format deck.gl expects
+  const parsed = await parse(ab, MVTLoader, {
+    mvt: { coordinates: 'wgs84', layers: ['humans'] },
+    gis: { format: 'binary' },
+  });
+  return parsed || null;
+}

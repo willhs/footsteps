@@ -1,6 +1,7 @@
 import type { MutableRefObject } from 'react';
 import { MVTLayer } from '@deck.gl/geo-layers';
 import { getTileUrlPattern } from '@/lib/tilesConfig';
+import { getTileArrayBuffer } from '@/lib/pmtilesClient';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
 import { createOnTileLoadHandler } from './tileCache';
@@ -64,7 +65,20 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    data: getTileUrlPattern(year),
+    // Data URL template no longer used when fetching from PMTiles directly.
+    data: null as unknown as string,
+    getTileData: async ({ index }) => {
+      const { x, y, z } = index as { x: number; y: number; z: number };
+      try {
+        const ab = await getTileArrayBuffer(year, z, x, y);
+        // Return null to signal empty tile
+        return ab || null;
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('PMTiles getTileData error', e);
+        return null;
+      }
+    },
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
     // Use best-available refinement to ensure tiles load
@@ -82,7 +96,6 @@ export function createHumanTilesLayer(
     loadOptions: {
       mvt: {
         coordinates: 'wgs84',
-        // Single-layer yearly MBTiles exports features under the 'humans' layer
         layers: ['humans'],
       },
     },

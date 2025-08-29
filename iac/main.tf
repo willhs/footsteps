@@ -200,11 +200,11 @@ resource "google_cloud_run_v2_service" "app" {
     # Execution environment
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
-    # Volumes for persistent cache
-    # Note: Persistent disk mounting in Cloud Run v2 has complex requirements
-    # For now, we'll use the simple approach of downloading from GCS to local cache
-    # TODO: Implement proper persistent disk mounting when syntax is stable
-  }
+# Volumes for persistent cache
+# Note: Persistent disk mounting in Cloud Run v2 has complex requirements
+# For now, we'll use the simple approach of downloading from GCS to local cache
+# TODO: Implement proper persistent disk mounting when syntax is stable
+}
 
   # Traffic configuration
   traffic {
@@ -239,3 +239,21 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 #     route_name = google_cloud_run_v2_service.app.name
 #   }
 # }
+
+# Optional Cloudflare PMTiles proxy (pmtiles.<zone>)
+module "cloudflare_pmtiles" {
+  source = "./cloudflare"
+
+  # Provide these via TF variables or environment
+  cloudflare_api_token = var.cloudflare_api_token
+  zone_id              = var.cloudflare_zone_id
+  zone_name            = var.cloudflare_zone_name
+  tiles_hostname       = var.cloudflare_tiles_hostname
+
+  gcs_bucket     = google_storage_bucket.data_bucket.name
+  pmtiles_prefix = "pmtiles"
+
+  # Allow module to be optional: wrap in count when no token provided
+  # This pattern requires Terraform 1.3+ to use try() on outputs
+  # Here we rely on users setting the variables; otherwise, plan/apply will error
+}

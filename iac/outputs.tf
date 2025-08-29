@@ -96,3 +96,8 @@ output "cache_disk_cost_estimate" {
 }
 
 ## Cache warmer outputs removed (deprecated)
+
+output "pmtiles_cdn_hostname" {
+  description = "Cloudflare PMTiles hostname (if cloudflare module applied)"
+  value       = try(module.cloudflare_pmtiles.pmtiles_hostname, null)
+}

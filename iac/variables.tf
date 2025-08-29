@@ -89,3 +89,29 @@ variable "cache_disk_size_gb" {
 }
 
 ## Cache warmer variables removed (deprecated)
+
+# Cloudflare (optional)
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with DNS + Workers permissions"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID"
+  type        = string
+  default     = null
+}
+
+variable "cloudflare_zone_name" {
+  description = "Cloudflare Zone name (example.com)"
+  type        = string
+  default     = null
+}
+
+variable "cloudflare_tiles_hostname" {
+  description = "Hostname to serve PMTiles via Cloudflare (default pmtiles.<zone_name>)"
+  type        = string
+  default     = ""
+}

@@ -168,7 +168,7 @@ def main():
     default_raw = str(script_dir.parent / "data" / "raw" / "hyde-3.5")
     default_tiles = str(script_dir.parent / "data" / "tiles" / "humans")
     
-    parser = argparse.ArgumentParser(description="Generate vector tiles from HYDE data (combined pipeline)")
+    parser = argparse.ArgumentParser(description="Generate MBTiles from HYDE data")
     parser.add_argument("--raw-dir", default=default_raw, 
                        help="Directory with HYDE ASC files (popd_*.asc)")
     parser.add_argument("--tiles-dir", default=default_tiles, 

@@ -37,6 +37,8 @@ async function getMBTilesCtor(): Promise<MBTilesCtor | null> {
 declare var global: typeof globalThis & {
   __mbtilesCache?: Map<string, unknown>;
   __httpvfsWorkers?: Map<string, { worker: any; lastUsed: number; url: string; ready: boolean; hasIndex?: boolean; pageSize?: number }>;
+  __pmtilesPool?: Map<string, { pmt: PMTiles }>;
+  __pmtilesCache?: SharedPromiseCache;
 };
 const mbtilesCache: Map<string, unknown> = global.__mbtilesCache || new Map();
 global.__mbtilesCache = mbtilesCache;
@@ -50,7 +52,7 @@ async function getOrCreateHttpVfsWorker(httpUrl: string): Promise<{ worker: any;
   const existing = httpvfsWorkers.get(httpUrl);
   if (existing && existing.ready) {
     existing.lastUsed = now;
-    return { worker: existing.worker, meta: { hasIndex: existing.hasIndex, pageSize: existing.pageSize } };
+    return { worker: existing.worker, meta: { hasIndex: existing.hasIndex, pageSize: existing.pageSize, requestChunkSize: 16384 } };
   }
 
   const mod = await import('sql.js-httpvfs');
@@ -202,11 +204,6 @@ class LocalFsRangeSource {
 }
 
 // Global PMTiles pools to share header/dir caches across requests
-// eslint-disable-next-line no-var
-declare var global: typeof globalThis & {
-  __pmtilesPool?: Map<string, { pmt: PMTiles }>;
-  __pmtilesCache?: SharedPromiseCache;
-};
 const pmtilesPool: Map<string, { pmt: PMTiles }> = global.__pmtilesPool || new Map();
 global.__pmtilesPool = pmtilesPool;
 const sharedPMCache: SharedPromiseCache = global.__pmtilesCache || new SharedPromiseCache(1000);

@@ -65,20 +65,8 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    // Data URL template no longer used when fetching from PMTiles directly.
-    data: null as unknown as string,
-    getTileData: async ({ index }) => {
-      const { x, y, z } = index as { x: number; y: number; z: number };
-      try {
-        const ab = await getTileArrayBuffer(year, z, x, y);
-        // Return null to signal empty tile
-        return ab || null;
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('PMTiles getTileData error', e);
-        return null;
-      }
-    },
+    // Use URL pattern for standard MVT layer behavior
+    data: getTileUrlPattern(year),
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
     // Use best-available refinement to ensure tiles load

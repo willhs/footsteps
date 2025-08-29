@@ -1,7 +1,7 @@
 # Copy this file to terraform.tfvars and customize as needed
 
 project_id     = "footsteps-earth"
-region         = "us-central1"
+region         = "australia-southeast1"
 bucket_name    = "footsteps-earth-tiles"
 service_name   = "footsteps-time-app"
 

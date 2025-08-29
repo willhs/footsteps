@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PROJECT_ID: footsteps-earth
-  REGION: us-central1
+  REGION: australia-southeast1
   SERVICE_NAME: footsteps-time-app
 
 jobs:

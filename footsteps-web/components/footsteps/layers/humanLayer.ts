@@ -65,8 +65,13 @@ export function createHumanTilesLayer(
 
   return new MVTLayer({
     id: layerId,
-    // Use URL pattern for standard MVT layer behavior
-    data: getTileUrlPattern(year),
+    // Fetch directly from PMTiles via getTileData
+    data: null as unknown as string,
+    getTileData: async ({ index }) => {
+      const { x, y, z } = index as { x: number; y: number; z: number };
+      const ab = await getTileArrayBuffer(year, z, x, y);
+      return ab || null;
+    },
     minZoom: zoomRange.min,
     maxZoom: zoomRange.max,
     // Use best-available refinement to ensure tiles load

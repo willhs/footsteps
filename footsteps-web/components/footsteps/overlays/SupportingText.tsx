@@ -57,6 +57,31 @@ function SupportingText({
   const popFlashTimeout = useRef<number | null>(null);
   const dotsFlashTimeout = useRef<number | null>(null);
 
+  // PMTiles memory cache stats (cross-layer LRU)
+  type CacheStats = { hits: number; misses: number; tiles: number; bytes: number };
+  const [cacheStats, setCacheStats] = useState<CacheStats>({ hits: 0, misses: 0, tiles: 0, bytes: 0 });
+  const formatBytes = (n: number) => {
+    if (!n || n < 1024) return `${n || 0} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let v = n; let u = -1;
+    do { v /= 1024; u++; } while (v >= 1024 && u < units.length - 1);
+    return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[u]}`;
+  };
+  useEffect(() => {
+    const onStats = (e: Event) => {
+      const detail = (e as CustomEvent).detail as CacheStats;
+      if (detail && typeof detail.hits === 'number') setCacheStats(detail);
+    };
+    globalThis.addEventListener('pmtiles-cache-stats', onStats as EventListener);
+    // Seed with current values if present
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const g: any = globalThis as any;
+      if (g.__pmtilesFeatureStats) setCacheStats(g.__pmtilesFeatureStats as CacheStats);
+    } catch {}
+    return () => globalThis.removeEventListener('pmtiles-cache-stats', onStats as EventListener);
+  }, []);
+
   useEffect(() => {
     // Always clear any pending timers before handling the new state
     if (debounceRef.current) {
@@ -216,6 +241,17 @@ function SupportingText({
           Dots drawn:{' '}
           <span className={`metric-value ${dotsFlash ? 'metric-flash' : ''}`}>
             {displayDotCount.toLocaleString()}
+          </span>
+        </div>
+        <div>
+          Cache:{' '}
+          <span title="Tiles held in memory">{cacheStats.tiles}</span>{' '}tiles •{' '}
+          <span title="Approximate memory used">{formatBytes(cacheStats.bytes)}</span>{' '}•{' '}
+          <span title="Memory cache hits / misses">{cacheStats.hits}/{cacheStats.misses}</span>{' '}
+          <span title="Memory cache hit rate">
+            ({(cacheStats.hits + cacheStats.misses) > 0
+              ? Math.round((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100)
+              : 0}% )
           </span>
         </div>
       </div>

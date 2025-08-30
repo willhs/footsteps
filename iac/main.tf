@@ -240,7 +240,7 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 #   }
 # }
 
-# Optional Cloudflare PMTiles proxy (pmtiles.<zone>)
+## Cloudflare PMTiles proxy (pmtiles.<zone>)
 module "cloudflare_pmtiles" {
   source = "./cloudflare"
 
@@ -249,11 +249,8 @@ module "cloudflare_pmtiles" {
   zone_id              = var.cloudflare_zone_id
   zone_name            = var.cloudflare_zone_name
   tiles_hostname       = var.cloudflare_tiles_hostname
+  account_id           = var.cloudflare_account_id
 
   gcs_bucket     = google_storage_bucket.data_bucket.name
   pmtiles_prefix = "pmtiles"
-
-  # Allow module to be optional: wrap in count when no token provided
-  # This pattern requires Terraform 1.3+ to use try() on outputs
-  # Here we rely on users setting the variables; otherwise, plan/apply will error
 }

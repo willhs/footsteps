@@ -52,11 +52,12 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
   
   getTileData = async (tile: any) => {
     const { x, y, z } = tile.index;
+    const signal: AbortSignal | undefined = tile?.signal;
     const pmt = getPMTiles(this.props.pmtilesUrl);
     
     try {
       // PMTiles handles HTTP caching of range requests automatically
-      const res = await pmt.getZxy(z, x, y);
+      const res = await pmt.getZxy(z, x, y, signal);
       if (!res || !res.data) return null;
       
       // Parse MVT data to GeoJSON features  
@@ -90,7 +91,9 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
         try { console.debug('[PMTilesTileLayer] features', { z, x, y, count: features.length }); } catch {}
       }
       return features;
-    } catch (err) {
+    } catch (err: any) {
+      // Swallow aborts quietly; they are expected when tiles scroll offscreen
+      if (err?.name === 'AbortError' || err?.message === 'AbortError') return null;
       console.warn('[PMTilesTileLayer] Failed to load tile:', { z, x, y, error: err });
       return null;
     }

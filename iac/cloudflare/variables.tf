@@ -20,6 +20,11 @@ variable "tiles_hostname" {
   default     = ""
 }
 
+variable "account_id" {
+  description = "Cloudflare account ID for the zone"
+  type        = string
+}
+
 variable "gcs_bucket" {
   description = "GCS bucket name hosting PMTiles (no gs://, just the name)"
   type        = string

@@ -23,6 +23,16 @@ const nextConfig = {
 
     return config;
   },
+  async rewrites() {
+    const base = process.env.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me';
+    const trimmed = base.replace(/\/+$/, '');
+    return [
+      {
+        source: '/pmtiles/:path*',
+        destination: `${trimmed}/:path*`,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

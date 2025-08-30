@@ -33,7 +33,6 @@ export function createHumanTilesLayer(
       debounceTime?: number;
       maxRequests?: number;
       zoomOffset?: number;
-      useBinary?: boolean;
       fadeMs?: number;
       easing?: (t: number) => number;
       radiusTransitionMs?: number;
@@ -43,10 +42,7 @@ export function createHumanTilesLayer(
   },
   opacity: number = 1.0,
   instanceId?: string,
-  enableDepthTest: boolean = true,
 ) {
-  void enableDepthTest;
-
   const currentZoom = viewState?.zoom || 1;
   const tileOptions = extra?.tileOptions || {};
 
@@ -60,7 +56,7 @@ export function createHumanTilesLayer(
     minZoom: 0,
     maxZoom: 12,
     extent: [-180, -85, 180, 85],
-    refinementStrategy: 'best-available',
+    refinementStrategy: tileOptions.refinementStrategy ?? 'best-available',
     maxCacheSize: tileOptions.maxCacheSize ?? 300,
     maxCacheByteSize: tileOptions.maxCacheByteSize ?? 64 * 1024 * 1024,
     debounceTime: tileOptions.debounceTime ?? 0,
@@ -95,6 +91,13 @@ export function createHumanTilesLayer(
         lodLevel,
         extra?.debugTint?.join(','),
         extra?.colorScheme,
+      ],
+      // Force TileLayer to refetch tile data when the year (and thus PMTiles URL) changes,
+      // even if the layer id remains stable across years for smooth transitions.
+      getTileData: [
+        year,
+        getPMTilesUrl(year),
+        'humans',
       ],
     },
     opacity: opacity,
@@ -255,8 +258,11 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
         },
         tileOptions: {
           fadeMs: tileFadeMs,
-          debounceTime: isZooming || isPanning ? 80 : 20,
-          useBinary: true,
+          // While interacting: avoid parent fetches and raise concurrency to reduce waterfall
+          refinementStrategy: (isZooming || isPanning) ? 'no-overlap' : 'best-available',
+          debounceTime: (isZooming || isPanning) ? 80 : 10,
+          // Limit Deck.gl request scheduler to 6 concurrent fetches to reduce churn
+          maxRequests: 6,
           // Disable radius animation on the newly introduced year layer to avoid initial size pop
           radiusTransitionMs: isNewYearLayer ? 0 : 250,
         },
@@ -265,7 +271,6 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
       },
       layerOpacity,
       instanceId,
-      is3DMode,
     );
   };
 }

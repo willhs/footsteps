@@ -90,6 +90,13 @@ variable "cache_disk_size_gb" {
 
 ## Cache warmer variables removed (deprecated)
 
+# Feature flags
+variable "enable_cloudflare" {
+  description = "Enable Cloudflare PMTiles proxy module (requires Cloudflare variables)"
+  type        = bool
+  default     = false
+}
+
 # Cloudflare (optional)
 variable "cloudflare_api_token" {
   description = "Cloudflare API token with DNS + Workers permissions"
@@ -114,4 +121,10 @@ variable "cloudflare_tiles_hostname" {
   description = "Hostname to serve PMTiles via Cloudflare (default pmtiles.<zone_name>)"
   type        = string
   default     = ""
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare Account ID (required for Workers)"
+  type        = string
+  default     = null
 }

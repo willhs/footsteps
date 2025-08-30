@@ -1,18 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { getTilesBaseUrl } from '@/lib/tilesConfig';
+import { useEffect, useRef, useState } from 'react';
 
 /**
- * Subtle, global network activity indicator for tile downloads.
+ * Subtle, global network activity indicator for PMTiles downloads.
  *
  * Design:
  * - Thin 2px bar at top, animated shimmer, fades in/out gently.
  * - No blocking; respects reduced motion.
- * - Only activates for tile requests (MVT .pbf under configured tiles base).
+ * - Only activates for PMTiles requests.
  */
 export default function NetworkIndicator() {
-  const base = useMemo(() => getTilesBaseUrl(), []);
   const pendingCount = useRef(0);
   const showTimer = useRef<number | null>(null);
   const hideTimer = useRef<number | null>(null);
@@ -22,8 +20,8 @@ export default function NetworkIndicator() {
     const isTileRequest = (input: RequestInfo | URL) => {
       try {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
-        // Match .pbf or the configured tiles base URL
-        return url.includes('.pbf') || url.startsWith(base);
+        // Match PMTiles files
+        return url.includes('.pmtiles');
       } catch {
         return false;
       }
@@ -105,7 +103,7 @@ export default function NetworkIndicator() {
       if (showTimer.current) window.clearTimeout(showTimer.current);
       if (hideTimer.current) window.clearTimeout(hideTimer.current);
     };
-  }, [active, base]);
+  }, [active]);
 
   return (
     <div

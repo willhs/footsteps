@@ -1,59 +1,90 @@
-import { GeoJsonLayer, BitmapLayer } from '@deck.gl/layers';
+import { GeoJsonLayer, BitmapLayer, PolygonLayer } from '@deck.gl/layers';
 import { TileLayer } from '@deck.gl/geo-layers';
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
+const ENABLE_CONTINENTS = (process.env.NEXT_PUBLIC_ENABLE_CONTINENTS || 'false') === 'true';
 
 // Create sea layer factory function
 export function createSeaLayer() {
-  return new GeoJsonLayer({
+  // Use PolygonLayer directly to avoid GeoJSON tesselation edge-cases.
+  const ring: [number, number][] = [
+    [-179, -85],
+    [179, -85],
+    [179, 85],
+    [-179, 85],
+    [-179, -85],
+  ];
+  const data = [{ id: 'sea', polygon: ring }];
+
+  return new PolygonLayer({
     id: 'plain-sea',
-    data: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [-180, -90],
-                [180, -90],
-                [180, 90],
-                [-180, 90],
-                [-180, -90],
-              ],
-            ],
-          },
-        },
-      ],
-    },
+    data,
+    getPolygon: (d: { polygon: [number, number][] }) => d.polygon,
     filled: true,
     stroked: false,
-    getFillColor: [20, 30, 45, 255], // Dark blue for sea
+    getFillColor: [20, 30, 45, 255],
     pickable: false,
     opacity: 1.0,
+    wrapLongitude: true,
     parameters: {
-      depthTest: true,
-      depthMask: true,
-      blend: false,
+      depthTest: false,
+      depthMask: false,
+      blend: true,
+      blendFunc: [770, 771],
     },
   });
+}
+
+function sanitizeGeoJSON(raw: unknown): unknown {
+  try {
+    const gj = raw as { type?: string; features?: any[] };
+    if (!gj || gj.type !== 'FeatureCollection' || !Array.isArray(gj.features)) {
+      return { type: 'FeatureCollection', features: [] };
+    }
+    const clean = gj.features.filter((f) => {
+      try {
+        const geom = f?.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) return false;
+        const coords = geom.coordinates;
+        const validNum = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
+        const inRangeLng = (n: number) => n >= -180 && n <= 180;
+        const inRangeLat = (n: number) => n >= -85 && n <= 85; // avoid poles
+
+        const validateRing = (ring: any[]) =>
+          Array.isArray(ring) &&
+          ring.length >= 4 &&
+          ring.every((p) => Array.isArray(p) && validNum(p[0]) && validNum(p[1]) && inRangeLng(p[0]) && inRangeLat(p[1]));
+
+        if (geom.type === 'Polygon') return validateRing(coords?.[0] || []);
+        if (geom.type === 'MultiPolygon') {
+          return Array.isArray(coords) && coords.some((poly: any[]) => validateRing(poly?.[0] || []));
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    });
+    return { type: 'FeatureCollection', features: clean };
+  } catch {
+    return { type: 'FeatureCollection', features: [] };
+  }
 }
 
 export function createContinentsLayer() {
   return new GeoJsonLayer({
     id: 'plain-continents',
-    // Using a more reliable CDN for world land data
-    data: 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
+    data: '/world-simple.geojson',
+    dataTransform: sanitizeGeoJSON,
     filled: true,
     stroked: false,
-    getFillColor: [15, 15, 15, 255], // Very dark gray/black for continents
+    getFillColor: [15, 15, 15, 255],
     pickable: false,
     opacity: 1.0,
+    wrapLongitude: true,
     parameters: {
-      depthTest: true,
-      depthMask: false, // Don't write to depth buffer so dots render on top
+      depthTest: false,
+      depthMask: false,
       blend: true,
+      blendFunc: [770, 771],
     },
   });
 }
@@ -193,4 +224,3 @@ export function createEarthSphereLayer() {
 export function createStaticTerrainLayer() {
   return createTerrainLayer();
 }
-

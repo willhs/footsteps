@@ -1,19 +1,14 @@
 import type { MutableRefObject } from 'react';
-import { MVTLayer } from '@deck.gl/geo-layers';
-import { getTileUrlPattern } from '@/lib/tilesConfig';
-import { getParsedTile } from '@/lib/pmtilesClient';
+import { getPMTilesUrl } from '@/lib/pmtilesClient';
+import { PMTilesTileLayer } from '@/lib/pmtilesTileLayer';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
 import { createOnTileLoadHandler } from './tileCache';
 import { getFillColor, type ColorScheme } from './color';
 import { buildTooltipData, type PickingInfo } from './tooltip';
-import { getWorkerManager } from './WorkerManager';
-// Removed crossfade imports
 
 // Allow tuning of tile fade duration via env; default to a subtle crossfade
-const DEFAULT_TILE_FADE_MS = 1000
-// const DEFAULT_TILE_FADE_MS =
- // Number(process.env.NEXT_PUBLIC_TILE_FADE_MS) || 200;
+const DEFAULT_TILE_FADE_MS = 1000;
 
 // Create MVT-based human tiles layer
 export function createHumanTilesLayer(
@@ -41,7 +36,6 @@ export function createHumanTilesLayer(
       useBinary?: boolean;
       fadeMs?: number;
       easing?: (t: number) => number;
-      // New: control radius attribute transition duration
       radiusTransitionMs?: number;
     };
     debugTint?: [number, number, number];
@@ -51,60 +45,34 @@ export function createHumanTilesLayer(
   instanceId?: string,
   enableDepthTest: boolean = true,
 ) {
-  // reference to satisfy no-unused-vars when argsIgnorePattern isn't set
   void enableDepthTest;
 
   const currentZoom = viewState?.zoom || 1;
-  const tileOptions =
-    (extra && 'tileOptions' in extra ? extra.tileOptions : undefined) || {};
+  const tileOptions = extra?.tileOptions || {};
 
-  // Include colorScheme in layer id to force recreation when colors change
   const colorSchemeSuffix = extra?.colorScheme || 'orange';
   const layerId = instanceId || `human-tiles-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
-  const zoomRange = { min: 0, max: 12 };
 
-  return new MVTLayer({
+  return new PMTilesTileLayer({
     id: layerId,
-    // Fetch directly from PMTiles via getTileData
-    data: [] as unknown as string,
-    getTileData: async ({ index }) => {
-      const { x, y, z } = index as { x: number; y: number; z: number };
-      const parsed = await getParsedTile(year, z, x, y);
-      return parsed || null;
-    },
-    minZoom: zoomRange.min,
-    maxZoom: zoomRange.max,
-    // Use best-available refinement to ensure tiles load
+    pmtilesUrl: getPMTilesUrl(year),
+    mvtLayers: ['humans'],
+    minZoom: 0,
+    maxZoom: 12,
+    extent: [-180, -85, 180, 85],
     refinementStrategy: 'best-available',
-    // Set reasonable defaults for tile loading
     maxCacheSize: tileOptions.maxCacheSize ?? 300,
-    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 64 * 1024 * 1024, // 64MB
-    debounceTime: tileOptions.debounceTime ?? 0, // No debounce by default
+    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 64 * 1024 * 1024,
+    debounceTime: tileOptions.debounceTime ?? 0,
     maxRequests: tileOptions.maxRequests ?? 6,
-    zoomOffset: tileOptions.zoomOffset ?? 0,
-    autoHighlight: false,
-    // Use binary tiles for performance
-    binary: true,
-    // Simplified load options
-    loadOptions: {
-      mvt: {
-        coordinates: 'wgs84',
-        layers: ['humans'],
-      },
-    },
     pickable: true,
-    // Forward events
     onClick: onClick || (() => {}),
     onHover: onHover || (() => {}),
-    // Ensure deck.gl always receives callable callbacks to avoid TypeErrors
     onTileLoad: createOnTileLoadHandler(extra?.onTileLoad),
-    onViewportLoad:
-      typeof extra?.onViewportLoad === 'function'
-        ? extra?.onViewportLoad
-        : () => {},
-    onTileError:
-      typeof extra?.onTileError === 'function' ? extra?.onTileError : () => {},
-    // Styling forwarded to GeoJsonLayer sublayers
+    onViewportLoad: extra?.onViewportLoad || (() => {}),
+    onTileError: extra?.onTileError || ((err: unknown) => {
+      console.error('[PMTILES-TILE-ERROR]', err);
+    }),
     pointRadiusUnits: 'meters',
     getPointRadius: (f: unknown) => {
       try {
@@ -116,6 +84,8 @@ export function createHumanTilesLayer(
     },
     getFillColor: (f: unknown) => getFillColor(f, extra?.debugTint, extra?.colorScheme),
     updateTriggers: {
+      // CRITICAL: Include year in updateTriggers to force cache invalidation on year change
+      getTileData: [year],
       getPointRadius: [
         year,
         lodLevel,
@@ -125,15 +95,12 @@ export function createHumanTilesLayer(
       getFillColor: [
         year,
         lodLevel,
-        (
-          extra as { debugTint?: [number, number, number]; colorScheme?: ColorScheme } | undefined
-        )?.debugTint?.join(','),
+        extra?.debugTint?.join(','),
         extra?.colorScheme,
       ],
     },
     opacity: opacity,
     parameters: {
-      // Always disable depth test for dots so background layers never occlude them
       depthTest: false,
       depthMask: false,
       blend: true,
@@ -141,20 +108,17 @@ export function createHumanTilesLayer(
     },
     transitions: {
       opacity: {
-        duration:
-          typeof tileOptions.fadeMs === 'number' ? tileOptions.fadeMs : 300,
-        easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)), // smoothstep
+        duration: tileOptions.fadeMs ?? 300,
+        easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)),
       },
       getPointRadius: {
-        duration:
-          typeof tileOptions.radiusTransitionMs === 'number'
-            ? tileOptions.radiusTransitionMs
-            : 250,
+        duration: tileOptions.radiusTransitionMs ?? 250,
         easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)),
       },
     },
   });
 }
+
 
 // Factory pattern for human layers with metrics
 export interface HumanLayerCallbacks {
@@ -239,23 +203,32 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
         onViewportLoad: (rawTiles: unknown[]) => {
           try {
             if (isNewYearLayer) {
-              const workerManager = getWorkerManager();
-              workerManager.calculateMetrics(rawTiles, (metricsResult) => {
-                metrics.setFeatureCount(metricsResult.count);
-                metrics.setTotalPopulation(metricsResult.population);
-                // Signal that metrics are ready only once we have a real new-year tile
-                // or non-zero metrics, to avoid flashing to 0 during year transitions.
-                if (
-                  newLayerHasTileRef.current ||
-                  metricsResult.count > 0 ||
-                  metricsResult.population > 0
-                ) {
-                  try {
-                    callbacks.setMetricsLoading?.(false);
-                  } catch {}
+              // Calculate metrics directly from GeoJSON features instead of using WorkerManager
+              let totalFeatures = 0;
+              let totalPop = 0;
+              
+              for (const tile of rawTiles) {
+                const tileData = (tile as any)?.data;
+                if (Array.isArray(tileData)) {
+                  totalFeatures += tileData.length;
+                  // Sum population from feature properties
+                  for (const feature of tileData) {
+                    const pop = feature?.properties?.population || 0;
+                    totalPop += pop;
+                  }
                 }
-                callbacks.setTileLoading(false);
-              });
+              }
+              
+              metrics.setFeatureCount(totalFeatures);
+              metrics.setTotalPopulation(totalPop);
+              
+              // Signal that metrics are ready
+              if (newLayerHasTileRef.current || totalFeatures > 0 || totalPop > 0) {
+                try {
+                  callbacks.setMetricsLoading?.(false);
+                } catch {}
+              }
+              callbacks.setTileLoading(false);
             }
           } catch (error) {
             console.error(

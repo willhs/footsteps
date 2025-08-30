@@ -3,12 +3,7 @@
 import { useState, useMemo, useEffect, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
-import {
-  createSeaLayer,
-  createContinentsLayer,
-  createTerrainLayer,
-  InterpolationLayer,
-} from '@/components/footsteps/layers';
+import { createSeaLayer, createContinentsLayer, createTerrainLayer } from '@/components/footsteps/layers';
 import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import { type LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
@@ -136,87 +131,30 @@ function FootstepsVizWithInterpolation({
     ],
   );
 
-  // Choose rendering mode: interpolation vs traditional crossfade
+  // Always use traditional crossfade approach (interpolation removed)
   const layers: LayersList = useMemo(() => {
     const baseLayers = [...backgroundLayers];
-
-    if (enableInterpolation && isInterpolating) {
-      // Use interpolation layer during animation
-      const interpolationLayer = new InterpolationLayer({
-        id: `human-interpolation-${colorScheme}`,
-        fromYear,
-        toYear,
-        t: interpolationT,
-        viewState: layerViewState,
-        radiusStrategy: is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive,
-        colorScheme,
-        opacity: 1.0,
-        onTileLoad: () => {
-          setTileLoading(false);
-        },
-        onClick: (info: unknown) => {
-          // Handle click for tooltip
-          const clickInfo = info as any;
-          if (clickInfo && clickInfo.object) {
-            // Build tooltip data similar to humanLayer.ts
-            const data = {
-              population: clickInfo.object.properties?.population || 0,
-              coordinates: clickInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
-              clickPosition: { x: clickInfo.x, y: clickInfo.y },
-            };
-            setTooltipData(data);
-          }
-        },
-        onHover: (info: unknown) => {
-          // Handle hover similar to click
-          const hoverInfo = info as any;
-          if (hoverInfo && hoverInfo.object) {
-            const data = {
-              population: hoverInfo.object.properties?.population || 0,
-              coordinates: hoverInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
-              clickPosition: { x: hoverInfo.x, y: hoverInfo.y },
-            };
-            setTooltipData(data);
-          } else {
-            setTooltipData(null);
-          }
-        },
-      });
-
-      return [...baseLayers, interpolationLayer] as LayersList;
-    } else {
-      // Use traditional crossfade approach
-      const currentYearLayer = createHumanLayerForYear(
-        currentDisplayYear,
-        stableLODLevel,
-        currentOpacity,
-        `human-layer-current-${colorScheme}`,
-        true,
-      );
-
-      const previousYearLayer = previousYear !== null
-        ? createHumanLayerForYear(
-            previousYear as number,
-            stableLODLevel,
-            previousOpacity,
-            `human-layer-previous-${colorScheme}`,
-            false,
-          )
-        : null;
-
-      return previousYearLayer
-        ? [...baseLayers, previousYearLayer, currentYearLayer] as LayersList
-        : [...baseLayers, currentYearLayer] as LayersList;
-    }
+    const currentYearLayer = createHumanLayerForYear(
+      currentDisplayYear,
+      stableLODLevel,
+      currentOpacity,
+      `human-layer-current-${colorScheme}`,
+      true,
+    );
+    const previousYearLayer = previousYear !== null
+      ? createHumanLayerForYear(
+          previousYear as number,
+          stableLODLevel,
+          previousOpacity,
+          `human-layer-previous-${colorScheme}`,
+          false,
+        )
+      : null;
+    return previousYearLayer
+      ? ([...baseLayers, previousYearLayer, currentYearLayer] as LayersList)
+      : ([...baseLayers, currentYearLayer] as LayersList);
   }, [
     backgroundLayers,
-    enableInterpolation,
-    isInterpolating,
-    fromYear,
-    toYear,
-    interpolationT,
     layerViewState,
     is3DMode,
     colorScheme,

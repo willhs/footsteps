@@ -25,3 +25,4 @@ Run steps
 Notes
 - The test intercepts `http://localhost:4444/pmtiles/humans_*.pmtiles` and serves bytes from your local PMTiles; no remote network is needed.
 - If `HUMANS_TILES_DIR` is unset or contains no `humans_*.pmtiles`, the test is skipped.
+# Fix deployment workflow status

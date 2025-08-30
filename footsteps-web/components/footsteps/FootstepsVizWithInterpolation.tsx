@@ -7,7 +7,6 @@ import {
   createSeaLayer,
   createContinentsLayer,
   createTerrainLayer,
-  InterpolationLayer,
 } from '@/components/footsteps/layers';
 import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import { type LayersList } from '@deck.gl/core';
@@ -20,9 +19,11 @@ import { useInterpolation } from '@/components/footsteps/hooks/useInterpolation'
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
 import { radiusStrategies } from '@/components/footsteps/layers/radiusStrategies';
+import { GPUInterpolationLayer } from '@/components/footsteps/layers';
 
 const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
-const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
+const ENABLE_PLAIN_BASEMAP =
+  (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
 
 interface FootstepsVizWithInterpolationProps {
   year: number;
@@ -32,16 +33,51 @@ interface FootstepsVizWithInterpolationProps {
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizWithInterpolation({ 
-  year, 
+// Generate a deterministic canvas representing population density for a given year.
+// In a real implementation this would fetch actual population rasters.
+function createPopulationCanvas(year: number): HTMLCanvasElement {
+  const width = 256;
+  const height = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  const rng = mulberry32(year);
+  const imageData = ctx.createImageData(width, height);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const v = Math.floor(rng() * 255);
+    imageData.data[i] = v;
+    imageData.data[i + 1] = v;
+    imageData.data[i + 2] = v;
+    imageData.data[i + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+// Deterministic pseudo-random generator
+function mulberry32(a: number) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function FootstepsVizWithInterpolation({
+  year,
   enableInterpolation = true,
-  interpolationThreshold = 50 // Only interpolate for year changes > 50 years
+  interpolationThreshold = 50, // Only interpolate for year changes > 50 years
 }: FootstepsVizWithInterpolationProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
+  const [colorScheme, setColorScheme] =
+    useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
-  const { viewState, onViewStateChange, isZooming, isPanning } = useGlobeViewState();
+  const { viewState, onViewStateChange, isZooming, isPanning } =
+    useGlobeViewState();
 
   const [tooltipData, setTooltipData] = useState<{
     population: number;
@@ -64,6 +100,10 @@ function FootstepsVizWithInterpolation({
     animationDurationMs: 2000,
     interpolationThreshold,
   });
+
+  // Placeholder population textures derived from the bounding years
+  const fromImage = useMemo(() => createPopulationCanvas(fromYear), [fromYear]);
+  const toImage = useMemo(() => createPopulationCanvas(toYear), [toYear]);
 
   // Use year crossfade hook for non-interpolated transitions
   const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
@@ -141,51 +181,15 @@ function FootstepsVizWithInterpolation({
     const baseLayers = [...backgroundLayers];
 
     if (enableInterpolation && isInterpolating) {
-      // Use interpolation layer during animation
-      const interpolationLayer = new InterpolationLayer({
+      const gpuLayer = new GPUInterpolationLayer({
         id: `human-interpolation-${colorScheme}`,
-        fromYear,
-        toYear,
-        t: interpolationT,
-        viewState: layerViewState,
-        radiusStrategy: is3DMode ? radiusStrategies.globe3D : radiusStrategies.zoomAdaptive,
-        colorScheme,
-        opacity: 1.0,
-        onTileLoad: () => {
-          setTileLoading(false);
-        },
-        onClick: (info: unknown) => {
-          // Handle click for tooltip
-          const clickInfo = info as any;
-          if (clickInfo && clickInfo.object) {
-            // Build tooltip data similar to humanLayer.ts
-            const data = {
-              population: clickInfo.object.properties?.population || 0,
-              coordinates: clickInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
-              clickPosition: { x: clickInfo.x, y: clickInfo.y },
-            };
-            setTooltipData(data);
-          }
-        },
-        onHover: (info: unknown) => {
-          // Handle hover similar to click
-          const hoverInfo = info as any;
-          if (hoverInfo && hoverInfo.object) {
-            const data = {
-              population: hoverInfo.object.properties?.population || 0,
-              coordinates: hoverInfo.object.geometry?.coordinates || [0, 0],
-              year: currentDisplayYear,
-              clickPosition: { x: hoverInfo.x, y: hoverInfo.y },
-            };
-            setTooltipData(data);
-          } else {
-            setTooltipData(null);
-          }
-        },
+        fromImage,
+        toImage,
+        progress: interpolationT,
+        bounds: [-180, -90, 180, 90],
       });
 
-      return [...baseLayers, interpolationLayer] as LayersList;
+      return [...baseLayers, gpuLayer] as LayersList;
     } else {
       // Use traditional crossfade approach
       const currentYearLayer = createHumanLayerForYear(
@@ -196,19 +200,20 @@ function FootstepsVizWithInterpolation({
         true,
       );
 
-      const previousYearLayer = previousYear !== null
-        ? createHumanLayerForYear(
-            previousYear as number,
-            stableLODLevel,
-            previousOpacity,
-            `human-layer-previous-${colorScheme}`,
-            false,
-          )
-        : null;
+      const previousYearLayer =
+        previousYear !== null
+          ? createHumanLayerForYear(
+              previousYear as number,
+              stableLODLevel,
+              previousOpacity,
+              `human-layer-previous-${colorScheme}`,
+              false,
+            )
+          : null;
 
       return previousYearLayer
-        ? [...baseLayers, previousYearLayer, currentYearLayer] as LayersList
-        : [...baseLayers, currentYearLayer] as LayersList;
+        ? ([...baseLayers, previousYearLayer, currentYearLayer] as LayersList)
+        : ([...baseLayers, currentYearLayer] as LayersList);
     }
   }, [
     backgroundLayers,
@@ -226,6 +231,8 @@ function FootstepsVizWithInterpolation({
     currentOpacity,
     previousYear,
     previousOpacity,
+    fromImage,
+    toImage,
   ]);
 
   // Debug logging
@@ -292,14 +299,16 @@ function FootstepsVizWithInterpolation({
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
-        
+
         {/* Interpolation debug info */}
         {DEBUG && enableInterpolation && (
           <div className="bg-black bg-opacity-50 text-white text-xs p-2 rounded">
             <div>Interpolating: {isInterpolating ? 'Yes' : 'No'}</div>
             {isInterpolating && (
               <>
-                <div>From: {fromYear} → To: {toYear}</div>
+                <div>
+                  From: {fromYear} → To: {toYear}
+                </div>
                 <div>Progress: {Math.round(interpolationT * 100)}%</div>
                 <div>Display Year: {currentDisplayYear}</div>
               </>

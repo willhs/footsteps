@@ -72,25 +72,34 @@ function getYearFromScaledPosition(position: number): number {
   return Math.round(year);
 }
 
-// Convert slider position (0-100) to year (snaps to available target years)
+// Convert slider position (0-100) to year (continuous)
 export function sliderToYear(position: number): number {
   const clamped = Math.min(Math.max(position, 0), 100);
   // Map slider 0-100 back to raw position
   const rawPos = (clamped / 100) * RAW_MAX_POSITION;
-  const theoreticalYear = getYearFromScaledPosition(rawPos);
+  const year = getYearFromScaledPosition(rawPos);
+  return year === 0 ? 0 : year;
+}
 
-  // Snap to nearest target year
-  let closestYear = TARGET_YEARS[0];
-  let minDistance = Math.abs(theoreticalYear - closestYear);
+// Get bounding known years around an arbitrary year
+export function getBoundingYears(year: number): {
+  previous: number;
+  next: number;
+} {
+  const sorted = [...TARGET_YEARS].sort((a, b) => a - b);
+  let previous = sorted[0];
+  let next = sorted[sorted.length - 1];
 
-  for (const targetYear of TARGET_YEARS) {
-    const distance = Math.abs(theoreticalYear - targetYear);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestYear = targetYear;
+  for (let i = 0; i < sorted.length; i++) {
+    const y = sorted[i];
+    if (y <= year) previous = y;
+    if (y >= year) {
+      next = y;
+      break;
     }
   }
-  return closestYear;
+
+  return { previous, next };
 }
 
 // Custom hook for year state management

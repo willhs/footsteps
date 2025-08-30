@@ -18,7 +18,8 @@ import useWindowWidth from './useWindowWidth';
 const formatLabel = (year: number, compact = false) => {
   if (compact) {
     // Show "10kBC" for -10_000, "9kBC" for -9_000, etc. Keep BC for clarity in compact mode
-    if (year <= -1000 && year % 1000 === 0) return `${Math.abs(year / 1000)}kBC`;
+    if (year <= -1000 && year % 1000 === 0)
+      return `${Math.abs(year / 1000)}kBC`;
     if (year < 0) return `${Math.abs(year)}BC`; // e.g. -500 -> 500BC (no space)
     if (year >= 1000 && year % 100 === 0) {
       // 1000 -> 1k, 1200 -> 1.2k, 1500 -> 1.5k
@@ -113,10 +114,8 @@ export default function useSliderMarks(
   // Build a marks object with a tick for every available year. Labels are applied
   // only to a responsive subset to avoid overlap; others remain unlabeled.
   const baseMarks = useMemo(() => {
-    const marks: Record<
-      number,
-      { label: ReactNode; style?: CSSProperties }
-    > = {};
+    const marks: Record<number, { label: ReactNode; style?: CSSProperties }> =
+      {};
 
     // 1) Create an unlabeled tick for all target years
     YEARS_SORTED.forEach((year) => {
@@ -166,8 +165,8 @@ export default function useSliderMarks(
   }, [keyYears, compact, onSelect]);
 
   return useMemo(() => {
-    const currentYear = sliderToYear(currentSliderValue);
-    const position = YEAR_SLIDER_MAP[currentYear];
+    const currentYear = Math.round(sliderToYear(currentSliderValue));
+    const position = YEAR_SLIDER_MAP[currentYear] ?? yearToSlider(currentYear);
     const marks = { ...baseMarks };
 
     // Make current year clearly emphasized (larger, time-blue, subtle glow)
@@ -215,10 +214,9 @@ export default function useSliderMarks(
 
     // Subtle neighbor emphasis for context (previous/next years) if already present
     const idx = YEARS_SORTED.indexOf(currentYear);
-    const neighborYears = [
-      YEARS_SORTED[idx - 1],
-      YEARS_SORTED[idx + 1],
-    ].filter((y): y is number => typeof y === 'number');
+    const neighborYears = [YEARS_SORTED[idx - 1], YEARS_SORTED[idx + 1]].filter(
+      (y): y is number => typeof y === 'number',
+    );
 
     neighborYears.forEach((ny) => {
       const npos = YEAR_SLIDER_MAP[ny];

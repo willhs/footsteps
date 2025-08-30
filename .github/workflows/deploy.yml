@@ -83,6 +83,12 @@ jobs:
       working-directory: ./iac
       env:
         TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+        # Cloudflare provider + module variables via repo secrets
+        TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        TF_VAR_cloudflare_zone_name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+        TF_VAR_cloudflare_tiles_hostname: ${{ secrets.CLOUDFLARE_TILES_HOSTNAME }}
+        TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       run: |
         terraform init
         terraform apply -auto-approve

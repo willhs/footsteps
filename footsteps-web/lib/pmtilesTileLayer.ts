@@ -21,6 +21,20 @@ const DEFAULT_MAX_BYTES = Number(process.env.NEXT_PUBLIC_PM_LRU_BYTES || 128 * 1
 const sharedFeatureCache: FeatureCacheStore = g.__pmtilesFeatureCache || { map: new Map(), bytes: 0 };
 g.__pmtilesFeatureCache = sharedFeatureCache;
 
+// Lightweight stats for subtle UI
+type FeatureCacheStats = { hits: number; misses: number; tiles: number; bytes: number };
+const sharedStats: FeatureCacheStats = g.__pmtilesFeatureStats || { hits: 0, misses: 0, tiles: 0, bytes: 0 };
+g.__pmtilesFeatureStats = sharedStats;
+
+function dispatchStats() {
+  try {
+    sharedStats.tiles = sharedFeatureCache.map.size;
+    sharedStats.bytes = sharedFeatureCache.bytes;
+    const ev = new CustomEvent('pmtiles-cache-stats', { detail: { ...sharedStats } });
+    globalThis.dispatchEvent?.(ev);
+  } catch {}
+}
+
 function fcGet(key: string): any[] | null {
   const entry = sharedFeatureCache.map.get(key);
   if (!entry) return null;
@@ -52,6 +66,7 @@ function fcSet(key: string, features: any[], approxBytes: number, maxTiles = DEF
     if (old) sharedFeatureCache.bytes -= old.bytes;
     sharedFeatureCache.map.delete(oldestKey);
   }
+  dispatchStats();
 }
 
 interface PMTilesTileLayerProps {
@@ -106,11 +121,15 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
     const cacheKey = `${this.props.pmtilesUrl}|${layerName}|${z}|${x}|${y}`;
     const cached = fcGet(cacheKey);
     if (cached) {
+      sharedStats.hits += 1;
+      dispatchStats();
       if ((process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true') {
         try { console.debug('[PMTilesTileLayer] cache HIT', { z, x, y }); } catch {}
       }
       return cached;
     }
+    sharedStats.misses += 1;
+    dispatchStats();
     
     try {
       // PMTiles handles HTTP caching of range requests automatically

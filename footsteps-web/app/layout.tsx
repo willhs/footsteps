@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import NetworkIndicator from '../components/ui/NetworkIndicator';
 import ServiceWorkerRegistrar from '../components/ui/ServiceWorkerRegistrar';
+import TileCacheIndicator from '../components/ui/TileCacheIndicator';
 
 export const metadata: Metadata = {
   title: 'footsteps',
@@ -25,6 +26,8 @@ export default function RootLayout({
         {children}
         {/* Global, subtle network activity indicator */}
         <NetworkIndicator />
+        {/* Subtle cache indicator (memory/LRU) */}
+        <TileCacheIndicator />
         {/* Register Service Worker for persistent tile block caching */}
         <ServiceWorkerRegistrar />
       </body>

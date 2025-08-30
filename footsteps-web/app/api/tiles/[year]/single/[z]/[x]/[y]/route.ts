@@ -40,14 +40,14 @@ export async function GET(_req: Request, ctx: Params) {
     }
 
     const url = getPMTilesUrl(year);
-    const pmt = new PMTiles(new FetchSource(url, { cache: 'force-cache' } as RequestInit), sharedPMCache);
+    const pmt = new PMTiles(new FetchSource(url), sharedPMCache);
 
     const tile = await pmt.getZxy(z, x, y);
     if (!tile || !tile.data) {
       return NextResponse.json({ error: 'Tile not found' }, { status: 404 });
     }
 
-    const bytes = tile.data instanceof ArrayBuffer ? new Uint8Array(tile.data) : new Uint8Array(await tile.data.arrayBuffer?.() || tile.data);
+    const bytes = tile.data instanceof ArrayBuffer ? new Uint8Array(tile.data) : new Uint8Array(await (tile.data as Blob).arrayBuffer() || tile.data);
 
     const headers = new Headers();
     headers.set('Content-Type', 'application/x-protobuf');

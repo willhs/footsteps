@@ -58,7 +58,7 @@ export function createHumanTilesLayer(
     mvtLayers: ['humans'],
     minZoom: 0,
     maxZoom: 12,
-    extent: [-180, -85, 180, 85],
+    extent: [-180, -85, 180, 85] as [number, number, number, number],
     refinementStrategy: tileOptions.refinementStrategy ?? 'best-available',
     // Increase deck.gl in-layer tile cache to reduce churn
     maxCacheSize: tileOptions.maxCacheSize ?? 1000,

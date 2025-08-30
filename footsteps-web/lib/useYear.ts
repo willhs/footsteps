@@ -72,6 +72,24 @@ function getYearFromScaledPosition(position: number): number {
   return Math.round(year);
 }
 
+// Non-snapping version returning fractional year for interpolation
+export function sliderToYearContinuous(position: number): number {
+  const clamped = Math.min(Math.max(position, 0), 100);
+  const minYear = MIN_YEAR;
+  const maxYear = MAX_YEAR;
+  const maxYearsAgo = maxYear - minYear;
+  const compressionFactor = COMPRESSION_FACTOR;
+  const positionRatio = clamped / 100;
+  const rawPos = positionRatio * RAW_MAX_POSITION;
+  const logPositionRatio = rawPos / RAW_MAX_POSITION;
+  const logMaxYearsAgo = Math.log(maxYearsAgo + compressionFactor);
+  const logYearsAgo = (1 - logPositionRatio) * logMaxYearsAgo;
+  let yearsAgo = Math.exp(logYearsAgo) - compressionFactor;
+  if (yearsAgo < 0) yearsAgo = 0;
+  const year = maxYear - yearsAgo;
+  return year;
+}
+
 // Convert slider position (0-100) to year (snaps to available target years)
 export function sliderToYear(position: number): number {
   const clamped = Math.min(Math.max(position, 0), 100);

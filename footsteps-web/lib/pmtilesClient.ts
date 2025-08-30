@@ -1,5 +1,5 @@
 function getBase(): string {
-  const host = process.env.NEXT_PUBLIC_CDN_HOST || '';
+  const host = process.env.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me';
   if (!host) {
     throw new Error('NEXT_PUBLIC_CDN_HOST must be set (no fallbacks)');
   }

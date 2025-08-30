@@ -98,6 +98,6 @@ output "cache_disk_cost_estimate" {
 ## Cache warmer outputs removed (deprecated)
 
 output "pmtiles_cdn_hostname" {
-  description = "Cloudflare PMTiles hostname (disabled - add credentials to enable)"
-  value       = null
+  description = "Cloudflare PMTiles hostname (temporary cleanup - will be disabled)"
+  value       = try(module.cloudflare_pmtiles.pmtiles_hostname, null)
 }

@@ -240,18 +240,17 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 #   }
 # }
 
-## Cloudflare PMTiles proxy (pmtiles.<zone>) - Optional
-# TODO: Add Cloudflare credentials to enable CDN
-# module "cloudflare_pmtiles" {
-#   source = "./cloudflare"
-# 
-#   # Provide these via TF variables or environment
-#   cloudflare_api_token = var.cloudflare_api_token
-#   zone_id              = var.cloudflare_zone_id
-#   zone_name            = var.cloudflare_zone_name
-#   tiles_hostname       = var.cloudflare_tiles_hostname
-#   account_id           = var.cloudflare_account_id
-# 
-#   gcs_bucket     = google_storage_bucket.data_bucket.name
-#   pmtiles_prefix = "pmtiles"
-# }
+## Cloudflare PMTiles proxy (pmtiles.<zone>) - Temporary cleanup of orphaned resources
+module "cloudflare_pmtiles" {
+  source = "./cloudflare"
+
+  # Dummy values to allow terraform to destroy orphaned resources
+  cloudflare_api_token = "dummy" # Will be overridden by TF_VAR if set
+  zone_id              = var.cloudflare_zone_id != null ? var.cloudflare_zone_id : "dummy"
+  zone_name            = var.cloudflare_zone_name != null ? var.cloudflare_zone_name : "dummy"
+  tiles_hostname       = var.cloudflare_tiles_hostname != "" ? var.cloudflare_tiles_hostname : ""
+  account_id           = var.cloudflare_account_id != null ? var.cloudflare_account_id : "dummy"
+
+  gcs_bucket     = google_storage_bucket.data_bucket.name
+  pmtiles_prefix = "pmtiles"
+}

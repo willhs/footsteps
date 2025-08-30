@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "cloudflare" {
-  api_token = var.cloudflare_api_token
-}
-
 locals {
   tiles_host = var.tiles_hostname != "" ? var.tiles_hostname : "pmtiles.${var.zone_name}"
 }

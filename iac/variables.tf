@@ -76,17 +76,7 @@ variable "bucket_location" {
   default     = "US"
 }
 
-variable "enable_persistent_cache" {
-  description = "Enable persistent disk for tile caching (recommended for production)"
-  type        = bool
-  default     = true
-}
-
-variable "cache_disk_size_gb" {
-  description = "Size of persistent disk for tile cache in GB"
-  type        = number
-  default     = 20
-}
+## Persistent cache variables removed
 
 ## Cache warmer variables removed (deprecated)
 

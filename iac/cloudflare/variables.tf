@@ -1,8 +1,3 @@
-variable "cloudflare_api_token" {
-  description = "API token with permission to manage Workers, DNS records, and routes for the zone"
-  type        = string
-  sensitive   = true
-}
 
 variable "zone_id" {
   description = "Cloudflare Zone ID for your domain"
@@ -35,4 +30,3 @@ variable "pmtiles_prefix" {
   type        = string
   default     = "pmtiles"
 }
-

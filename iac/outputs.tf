@@ -74,30 +74,9 @@ output "github_secrets_setup" {
   EOT
 }
 
-# Persistent disk cache outputs
-output "persistent_cache_enabled" {
-  description = "Whether persistent disk cache is enabled"
-  value       = var.enable_persistent_cache
-}
-
-output "cache_disk_name" {
-  description = "Name of the persistent disk for tile cache"
-  value       = var.enable_persistent_cache ? google_compute_disk.tile_cache_disk[0].name : null
-}
-
-output "cache_disk_size" {
-  description = "Size of the persistent disk cache in GB"
-  value       = var.enable_persistent_cache ? "${var.cache_disk_size_gb}GB" : "N/A"
-}
-
-output "cache_disk_cost_estimate" {
-  description = "Estimated monthly cost for persistent disk cache (USD)"
-  value       = var.enable_persistent_cache ? "$${var.cache_disk_size_gb * 0.040}" : "$0"
-}
-
 ## Cache warmer outputs removed (deprecated)
 
 output "pmtiles_cdn_hostname" {
-  description = "Cloudflare PMTiles hostname (temporary cleanup - will be disabled)"
-  value       = try(module.cloudflare_pmtiles.pmtiles_hostname, null)
+  description = "Cloudflare PMTiles hostname (if enabled)"
+  value       = var.enable_cloudflare ? module.cloudflare_pmtiles[0].pmtiles_hostname : null
 }

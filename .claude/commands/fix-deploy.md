@@ -9,22 +9,23 @@ Follow this diagnostic workflow:
 
 0. Quick health check (saves time):
 
-- **Check git status first**: Run `git status` and `git push --dry-run` to verify local changes are pushed to remote—workflow file differences between local/remote are a common issue
-- Run `pnpm lint` and `npx tsc --noEmit` in footsteps-web/ to catch config and type issues **IMPORTANT: TypeScript compilation errors always block CI; lint warnings don't**
-- Run `terraform fmt -check -recursive` in project root to catch terraform formatting issues before commit
+- **Test app first**: `curl -I <app-url>` to verify if it's working—many "deployment failures" are just CI issues with functional apps. This saves significant investigation time.
+- **Check git sync**: Run `git status` and `git push --dry-run` to verify local changes are pushed to remote—workflow file differences between local/remote are a common issue
+- **Run lint & type check**: `pnpm lint` and `npx tsc --noEmit` to catch config issues **IMPORTANT: TypeScript compilation errors always block CI; lint warnings don't**
+- **Check terraform formatting**: `terraform fmt -check -recursive` in project root to catch formatting issues before commit
 - **Verify workflow files match architecture**: Check if recent architecture changes made workflow files obsolete or if they still reference old approaches (Node.js/pnpm vs Docker artifacts)
 - If working with feature branches: check for merge conflicts with main first
-- Verify environment variables match current architecture (API vs GCS direct access)
 
 1. Confirm and identify the issue:
 
 - Use the github and/or gcloud cli to find the status of the last workflow that ran. Current workflows are 'ci' and 'deploy'.
 - Distinguish between deployment infrastructure issues vs code/branch issues (merge conflicts, linting, test failures)
 - **Common infrastructure issues**: 
-  - Stale terraform state locks (use `terraform force-unlock [LOCK_ID]`)
-  - ESLint/TypeScript configuration conflicts (especially redundant React rules in TypeScript projects)
-  - Missing test environment setup for modern web APIs (Worker, IntersectionObserver need mocking)
+  - **Terraform resource conflicts**: Region/zone changes requiring resource replacement (delete old resources with `gcloud compute disks delete` etc.)
+  - **Stale terraform state locks** (use `terraform force-unlock [LOCK_ID]`)
+  - **Optional service failures**: Cloudflare/CDN configuration issues with dummy tokens - app often works despite CI failure
   - **Transient network/package installation failures** (Poetry timeouts, npm registry issues) - often resolve by retrying
+  - ESLint/TypeScript configuration conflicts (especially redundant React rules in TypeScript projects)
 - If there are any issues, do any investigation needed to understand the problem well enough to come up with a solution to fix it
 
 2. Fix the issue
@@ -38,10 +39,12 @@ Follow this diagnostic workflow:
 3. Deploy and evaluate
 
 - Deploy the app by committing your fix in git and deploying. This will trigger the gh workflows
+- **Test app directly first**: `curl -I <app-url>` even if workflow shows failure—deployment often succeeds despite CI failures from optional services
 - Monitor both GitHub workflow completion AND actual Cloud Run service status (`gcloud run services list`)
-- **Test app directly with curl/browser even if workflow still running**—deployment often succeeds before workflow completes, and app may be working despite workflow failures. Find app URL in deployment logs: `gh run view --log --job=<job-id> | grep "Service deployed at"`
+- **Distinguish failure types**: Core deployment failures (app returns 5xx/unreachable) vs CI failures (terraform/Cloudflare issues with working app)
+- If app works but CI fails: deployment succeeded, CI issue is likely non-blocking optional service configuration
 - If success: go to phase 4
-- If still failing: go back to phase 1
+- If core deployment failing: go back to phase 1
 
 4. Done
 
@@ -70,4 +73,8 @@ Guest book:
 **Entry 7**: Issue was a transient Poetry installation timeout in GitHub Actions (urllib URLError connection timeout). Health checks (git status, lint, typecheck) all passed locally, indicating the problem was infrastructure-related, not code-related. Fix was simply retrying by making a trivial commit (typo fix) to trigger a new workflow run—the second attempt succeeded completely. Document improvements: (1) add guidance for handling transient CI infrastructure failures (network timeouts, package installation failures), (2) suggest that retrying with a trivial commit is often effective for transient issues, (3) emphasize testing the app directly even when workflows show failure, as the app was actually working despite the CI failure.
 
 **Entry 8**: The "terraform fmt check failed" issue was quickly resolved following the diagnostic workflow. Health checks (git status, lint, typecheck) confirmed no local code issues. GitHub CLI easily identified the CI failure in terraform formatting. The fix was straightforward: `terraform fmt iac/cloudflare/main.tf` corrected spacing alignment, and CI immediately passed after commit. Document improvements: (1) mention that `terraform fmt -check -recursive` can be run locally as part of health checks to catch formatting issues before commit, (2) note that terraform formatting failures are typically simple alignment fixes, not complex logic errors, and (3) clarify that CI success is the key metric for terraform fmt issues, even if subsequent deployment steps have unrelated problems.
+
+**Entry 9**: The issue was terraform failing due to Cloudflare API token set to "dummy" instead of a real token, but the app was actually working fine (HTTP 200) despite the CI failure. Health checks quickly confirmed no local issues - git sync clean, lint/typecheck passed. GitHub CLI identified the terraform error immediately. No fix was needed since the deployment succeeded and the app is functional. Document improvements: (1) strongly emphasize testing the actual app URL first in health checks - saves significant investigation time when CI fails but app works, (2) note that terraform failures in CI don't always indicate deployment problems, especially for optional services like Cloudflare, and (3) distinguish between blocking deployment failures vs. non-critical CI step failures.
+
+**Entry 10**: Primary issue was terraform trying to change compute disk region from us-central1-a to australia-southeast1-a, requiring disk replacement. App was working fine (HTTP 200) throughout. Health checks were very effective - immediately confirmed app functionality and no local code issues. Fixed by deleting the old disk (`gcloud compute disks delete`) to allow terraform to recreate in new region. Final deployment still failed due to Cloudflare "dummy" API token validation, but app remained functional. Document improvements: (1) add guidance for handling terraform region/zone changes that require resource replacement, (2) include `gcloud compute` commands for managing conflicting GCP resources, (3) emphasize that working app + terraform failures often means optional service configuration issues, not core deployment problems.
 

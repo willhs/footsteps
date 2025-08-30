@@ -81,25 +81,6 @@ resource "google_storage_bucket_iam_member" "app_bucket_writer" {
   member = "serviceAccount:${google_service_account.app_service_account.email}"
 }
 
-# Persistent disk for tile caching (optional)
-resource "google_compute_disk" "tile_cache_disk" {
-  count = var.enable_persistent_cache ? 1 : 0
-
-  name = "${var.service_name}-tile-cache"
-  type = "pd-standard" # Standard persistent disk (most cost-effective)
-  zone = "${var.region}-a"
-  size = var.cache_disk_size_gb
-
-  # Labels for organization
-  labels = {
-    environment = "production"
-    purpose     = "tile-cache"
-    service     = var.service_name
-  }
-
-  depends_on = [google_project_service.required_apis]
-}
-
 ## Cache warmer job removed (deprecated)
 
 # Cloud Run service
@@ -190,8 +171,7 @@ resource "google_cloud_run_v2_service" "app" {
         failure_threshold     = 3
       }
 
-      # Note: Volume mounts disabled temporarily due to Cloud Run v2 syntax complexity
-      # Will implement persistent disk mounting in future iteration
+      # Note: Serving tiles via GCS and local ephemeral cache only
     }
 
     # Request timeout
@@ -200,10 +180,7 @@ resource "google_cloud_run_v2_service" "app" {
     # Execution environment
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
-    # Volumes for persistent cache
-    # Note: Persistent disk mounting in Cloud Run v2 has complex requirements
-    # For now, we'll use the simple approach of downloading from GCS to local cache
-    # TODO: Implement proper persistent disk mounting when syntax is stable
+    # Persistent disks are not used; cache remains ephemeral inside the container
   }
 
   # Traffic configuration
@@ -240,16 +217,15 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 #   }
 # }
 
-## Cloudflare PMTiles proxy (pmtiles.<zone>) - Temporary cleanup of orphaned resources
+## Cloudflare PMTiles proxy (pmtiles.<zone>) — optional
 module "cloudflare_pmtiles" {
   source = "./cloudflare"
+  count  = var.enable_cloudflare ? 1 : 0
 
-  # Dummy values to allow terraform to destroy orphaned resources
-  cloudflare_api_token = "dummy" # Will be overridden by TF_VAR if set
-  zone_id              = var.cloudflare_zone_id != null ? var.cloudflare_zone_id : "dummy"
-  zone_name            = var.cloudflare_zone_name != null ? var.cloudflare_zone_name : "dummy"
-  tiles_hostname       = var.cloudflare_tiles_hostname != "" ? var.cloudflare_tiles_hostname : ""
-  account_id           = var.cloudflare_account_id != null ? var.cloudflare_account_id : "dummy"
+  zone_id        = var.cloudflare_zone_id
+  zone_name      = var.cloudflare_zone_name
+  tiles_hostname = var.cloudflare_tiles_hostname
+  account_id     = var.cloudflare_account_id
 
   gcs_bucket     = google_storage_bucket.data_bucket.name
   pmtiles_prefix = "pmtiles"

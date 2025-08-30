@@ -240,17 +240,18 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 #   }
 # }
 
-## Cloudflare PMTiles proxy (pmtiles.<zone>)
-module "cloudflare_pmtiles" {
-  source = "./cloudflare"
-
-  # Provide these via TF variables or environment
-  cloudflare_api_token = var.cloudflare_api_token
-  zone_id              = var.cloudflare_zone_id
-  zone_name            = var.cloudflare_zone_name
-  tiles_hostname       = var.cloudflare_tiles_hostname
-  account_id           = var.cloudflare_account_id
-
-  gcs_bucket     = google_storage_bucket.data_bucket.name
-  pmtiles_prefix = "pmtiles"
-}
+## Cloudflare PMTiles proxy (pmtiles.<zone>) - Optional
+# TODO: Add Cloudflare credentials to enable CDN
+# module "cloudflare_pmtiles" {
+#   source = "./cloudflare"
+# 
+#   # Provide these via TF variables or environment
+#   cloudflare_api_token = var.cloudflare_api_token
+#   zone_id              = var.cloudflare_zone_id
+#   zone_name            = var.cloudflare_zone_name
+#   tiles_hostname       = var.cloudflare_tiles_hostname
+#   account_id           = var.cloudflare_account_id
+# 
+#   gcs_bucket     = google_storage_bucket.data_bucket.name
+#   pmtiles_prefix = "pmtiles"
+# }

@@ -48,9 +48,9 @@ resource "cloudflare_dns_record" "tiles_host" {
 }
 
 resource "cloudflare_workers_route" "pmtiles_route" {
-  zone_id     = var.zone_id
-  pattern     = "${local.tiles_host}/*"
-  script      = cloudflare_workers_script.pmtiles_proxy.script_name
+  zone_id = var.zone_id
+  pattern = "${local.tiles_host}/*"
+  script  = cloudflare_workers_script.pmtiles_proxy.script_name
 }
 
 output "pmtiles_hostname" {

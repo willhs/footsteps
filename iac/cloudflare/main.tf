@@ -35,7 +35,7 @@ resource "cloudflare_dns_record" "tiles_host" {
   zone_id = var.zone_id
   name    = local.tiles_host
   type    = "A"
-  value   = "192.0.2.1"   # dummy per Cloudflare docs
+  value   = "192.0.2.1" # dummy per Cloudflare docs
   proxied = true
   ttl     = 1
 }

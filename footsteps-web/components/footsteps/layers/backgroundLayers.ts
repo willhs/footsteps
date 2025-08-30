@@ -34,11 +34,14 @@ export function createSeaLayer() {
   });
 }
 
-function sanitizeGeoJSON(raw: unknown): unknown {
+function sanitizeGeoJSON<LayerDataT = unknown>(
+  raw: unknown,
+  _previousData?: LayerDataT,
+): LayerDataT {
   try {
     const gj = raw as { type?: string; features?: any[] };
     if (!gj || gj.type !== 'FeatureCollection' || !Array.isArray(gj.features)) {
-      return { type: 'FeatureCollection', features: [] };
+      return { type: 'FeatureCollection', features: [] } as unknown as LayerDataT;
     }
     const clean = gj.features.filter((f) => {
       try {
@@ -63,9 +66,9 @@ function sanitizeGeoJSON(raw: unknown): unknown {
         return false;
       }
     });
-    return { type: 'FeatureCollection', features: clean };
+    return { type: 'FeatureCollection', features: clean } as unknown as LayerDataT;
   } catch {
-    return { type: 'FeatureCollection', features: [] };
+    return { type: 'FeatureCollection', features: [] } as unknown as LayerDataT;
   }
 }
 

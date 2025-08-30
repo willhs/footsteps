@@ -200,11 +200,11 @@ resource "google_cloud_run_v2_service" "app" {
     # Execution environment
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
-# Volumes for persistent cache
-# Note: Persistent disk mounting in Cloud Run v2 has complex requirements
-# For now, we'll use the simple approach of downloading from GCS to local cache
-# TODO: Implement proper persistent disk mounting when syntax is stable
-}
+    # Volumes for persistent cache
+    # Note: Persistent disk mounting in Cloud Run v2 has complex requirements
+    # For now, we'll use the simple approach of downloading from GCS to local cache
+    # TODO: Implement proper persistent disk mounting when syntax is stable
+  }
 
   # Traffic configuration
   traffic {

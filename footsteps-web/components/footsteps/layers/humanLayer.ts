@@ -1,6 +1,8 @@
 import type { MutableRefObject } from 'react';
 import { getPMTilesUrl } from '@/lib/pmtilesClient';
 import { PMTilesTileLayer } from '@/lib/pmtilesTileLayer';
+import { MVTLayer } from '@deck.gl/geo-layers';
+import { extractFeaturesFromBinaryTile } from '@/lib/binaryTileUtils';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
 import { createOnTileLoadHandler } from './tileCache';
@@ -49,16 +51,18 @@ export function createHumanTilesLayer(
   const colorSchemeSuffix = extra?.colorScheme || 'orange';
   const layerId = instanceId || `human-tiles-${year}-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
 
-  return new PMTilesTileLayer({
+  const useApiTiles = (process.env.NEXT_PUBLIC_TILE_SOURCE || 'pmtiles') === 'api';
+
+  const commonProps = {
     id: layerId,
-    pmtilesUrl: getPMTilesUrl(year),
     mvtLayers: ['humans'],
     minZoom: 0,
     maxZoom: 12,
     extent: [-180, -85, 180, 85],
     refinementStrategy: tileOptions.refinementStrategy ?? 'best-available',
-    maxCacheSize: tileOptions.maxCacheSize ?? 300,
-    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 64 * 1024 * 1024,
+    // Increase deck.gl in-layer tile cache to reduce churn
+    maxCacheSize: tileOptions.maxCacheSize ?? 1000,
+    maxCacheByteSize: tileOptions.maxCacheByteSize ?? 128 * 1024 * 1024,
     debounceTime: tileOptions.debounceTime ?? 0,
     maxRequests: tileOptions.maxRequests ?? 6,
     pickable: true,
@@ -69,7 +73,7 @@ export function createHumanTilesLayer(
     onTileError: extra?.onTileError || ((err: unknown) => {
       console.error('[PMTILES-TILE-ERROR]', err);
     }),
-    pointRadiusUnits: 'meters',
+    pointRadiusUnits: 'meters' as const,
     getPointRadius: (f: unknown) => {
       try {
         return getPointRadius(f, currentZoom, radiusStrategy);
@@ -92,8 +96,6 @@ export function createHumanTilesLayer(
         extra?.debugTint?.join(','),
         extra?.colorScheme,
       ],
-      // Force TileLayer to refetch tile data when the year (and thus PMTiles URL) changes,
-      // even if the layer id remains stable across years for smooth transitions.
       getTileData: [
         year,
         getPMTilesUrl(year),
@@ -117,6 +119,26 @@ export function createHumanTilesLayer(
         easing: tileOptions.easing || ((t: number) => t * t * (3.0 - 2.0 * t)),
       },
     },
+  };
+
+  if (useApiTiles) {
+    // Use server-side API tiles with stable 200 responses; browser disk cache is very reliable here.
+    const template = `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`;
+    return new MVTLayer({
+      ...commonProps,
+      id: `${layerId}-api`,
+      data: template,
+      binary: true,
+      loadOptions: {
+        fetch: { cache: 'force-cache' },
+      },
+      pointType: 'circle',
+    } as any);
+  }
+
+  return new PMTilesTileLayer({
+    ...commonProps,
+    pmtilesUrl: getPMTilesUrl(year),
   });
 }
 
@@ -212,11 +234,17 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
                 const tileData = (tile as any)?.data;
                 if (Array.isArray(tileData)) {
                   totalFeatures += tileData.length;
-                  // Sum population from feature properties
                   for (const feature of tileData) {
                     const pop = feature?.properties?.population || 0;
                     totalPop += pop;
                   }
+                  continue;
+                }
+                // Fallback for MVTLayer(binary: true) tiles
+                const feats = extractFeaturesFromBinaryTile(tile);
+                if (feats.length) {
+                  totalFeatures += feats.length;
+                  for (const f of feats) totalPop += f.properties?.population || 0;
                 }
               }
               

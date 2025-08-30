@@ -24,8 +24,14 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
-    const base = process.env.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me';
-    const trimmed = base.replace(/\/+$/, '');
+    // Use absolute origin for rewrite destination. If NEXT_PUBLIC_CDN_HOST is
+    // a relative path in dev (e.g. '/pmtiles'), fall back to default origin.
+    const envBase = process.env.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me';
+    const isAbsolute = /^https?:\/\//i.test(envBase);
+    const origin = (process.env.PMTILES_ORIGIN && /^https?:\/\//i.test(process.env.PMTILES_ORIGIN))
+      ? process.env.PMTILES_ORIGIN
+      : (isAbsolute ? envBase : 'https://pmtiles.willhs.me');
+    const trimmed = origin.replace(/\/+$/, '');
     return [
       {
         source: '/pmtiles/:path*',

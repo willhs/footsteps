@@ -12,6 +12,48 @@ const g: any = (globalThis as unknown) as any;
 const sharedPMCache: SharedPromiseCache = g.__pmtilesCache || new SharedPromiseCache(2000);
 g.__pmtilesCache = sharedPMCache;
 
+// Cross-layer in-memory feature cache (LRU) to avoid re-fetching/parsing
+type FeatureCacheEntry = { key: string; features: any[]; bytes: number };
+type FeatureCacheStore = { map: Map<string, FeatureCacheEntry>; bytes: number };
+const DEFAULT_MAX_TILES = Number(process.env.NEXT_PUBLIC_PM_LRU_TILES || 1500);
+const DEFAULT_MAX_BYTES = Number(process.env.NEXT_PUBLIC_PM_LRU_BYTES || 128 * 1024 * 1024); // 128 MiB
+// Persist across HMR
+const sharedFeatureCache: FeatureCacheStore = g.__pmtilesFeatureCache || { map: new Map(), bytes: 0 };
+g.__pmtilesFeatureCache = sharedFeatureCache;
+
+function fcGet(key: string): any[] | null {
+  const entry = sharedFeatureCache.map.get(key);
+  if (!entry) return null;
+  // LRU: refresh recency
+  sharedFeatureCache.map.delete(key);
+  sharedFeatureCache.map.set(key, entry);
+  return entry.features;
+}
+
+function fcSet(key: string, features: any[], approxBytes: number, maxTiles = DEFAULT_MAX_TILES, maxBytes = DEFAULT_MAX_BYTES): void {
+  if (!features || features.length === 0) return;
+  const existing = sharedFeatureCache.map.get(key);
+  if (existing) {
+    // Update bytes and entry
+    sharedFeatureCache.bytes -= existing.bytes;
+    sharedFeatureCache.map.delete(key);
+  }
+  // Conservative byte estimate: prefer encoded tile bytes; fallback to per-feature guess
+  const bytes = Math.max(approxBytes || 0, features.length * 200);
+  const entry: FeatureCacheEntry = { key, features, bytes };
+  sharedFeatureCache.map.set(key, entry);
+  sharedFeatureCache.bytes += bytes;
+
+  // Evict least-recently used while over limits
+  while (sharedFeatureCache.map.size > maxTiles || sharedFeatureCache.bytes > maxBytes) {
+    const oldestKey = sharedFeatureCache.map.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    const old = sharedFeatureCache.map.get(oldestKey);
+    if (old) sharedFeatureCache.bytes -= old.bytes;
+    sharedFeatureCache.map.delete(oldestKey);
+  }
+}
+
 interface PMTilesTileLayerProps {
   id: string;
   pmtilesUrl: string;
@@ -41,8 +83,14 @@ function getPMTiles(url: string): PMTiles {
   const existing = pmtilesCache.get(url);
   if (existing) return existing;
   
-  // PMTiles + FetchSource handles HTTP caching automatically; SharedPromiseCache coalesces
-  const pmt = new PMTiles(new FetchSource(url), sharedPMCache);
+  // Prefer browser HTTP cache for range requests; avoid revalidation churn
+  // by using RequestInit.cache = 'force-cache'.
+  // Note: FetchSource(url, init) accepts standard RequestInit in pmtiles@3.x
+  const fetchInit: RequestInit = {
+    // Force use of HTTP cache if present, do not revalidate
+    cache: 'force-cache',
+  };
+  const pmt = new PMTiles(new FetchSource(url, fetchInit as any), sharedPMCache);
   pmtilesCache.set(url, pmt);
   return pmt;
 }
@@ -54,6 +102,15 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
     const { x, y, z } = tile.index;
     const signal: AbortSignal | undefined = tile?.signal;
     const pmt = getPMTiles(this.props.pmtilesUrl);
+    const layerName = this.props.mvtLayers?.[0] || 'humans';
+    const cacheKey = `${this.props.pmtilesUrl}|${layerName}|${z}|${x}|${y}`;
+    const cached = fcGet(cacheKey);
+    if (cached) {
+      if ((process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true') {
+        try { console.debug('[PMTilesTileLayer] cache HIT', { z, x, y }); } catch {}
+      }
+      return cached;
+    }
     
     try {
       // PMTiles handles HTTP caching of range requests automatically
@@ -71,7 +128,6 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
       });
       
       // Extract features from parsed MVT data (robust to different shapes)
-      const layerName = this.props.mvtLayers?.[0] || 'humans';
       let features: any[] = [];
       if (Array.isArray(parsed)) {
         features = parsed as any[];
@@ -90,6 +146,17 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
       if ((process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true') {
         try { console.debug('[PMTilesTileLayer] features', { z, x, y, count: features.length }); } catch {}
       }
+      // Approximate encoded size from the PMTiles tile bytes if available
+      let approxBytes = 0;
+      try {
+        const d: any = res?.data;
+        if (d && typeof d === 'object') {
+          if (typeof d.byteLength === 'number') approxBytes = Number(d.byteLength);
+          // loaders.gl may pass a {buffer,value} wrapper
+          else if (typeof (d as any)?.buffer?.byteLength === 'number') approxBytes = Number((d as any).buffer.byteLength);
+        }
+      } catch {}
+      fcSet(cacheKey, features, approxBytes);
       return features;
     } catch (err: any) {
       // Swallow aborts quietly; they are expected when tiles scroll offscreen

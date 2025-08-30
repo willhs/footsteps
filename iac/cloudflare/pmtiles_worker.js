@@ -41,11 +41,14 @@ export default {
 
     // Handle CORS preflight
     if (method === 'OPTIONS') {
+      const reqHeaders = request.headers.get('Access-Control-Request-Headers') || request.headers.get('access-control-request-headers') || '';
+      const allowHeaders = reqHeaders || 'Range,Content-Type,Accept,Origin,Referer,User-Agent,If-None-Match,If-Modified-Since';
       const h = new Headers();
       h.set('Access-Control-Allow-Origin', '*');
       h.set('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-      h.set('Access-Control-Allow-Headers', 'Range,Content-Type,Accept,Origin,Referer,User-Agent,If-None-Match,If-Modified-Since');
+      h.set('Access-Control-Allow-Headers', allowHeaders);
       h.set('Access-Control-Max-Age', '86400');
+      h.set('Vary', 'Access-Control-Request-Headers');
       return new Response(null, { status: 204, headers: h });
     }
 
@@ -333,4 +336,3 @@ export default {
     return new Response(result, { status: 206, headers: outHeaders });
   },
 };
-

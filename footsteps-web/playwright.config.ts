@@ -26,6 +26,8 @@ export default defineConfig({
       NEXT_PUBLIC_PMTILES_BASE: process.env.NEXT_PUBLIC_PMTILES_BASE || 'http://localhost:4545/pmtiles',
       HUMANS_TILES_DIR: process.env.HUMANS_TILES_DIR || '',
       NEXT_PUBLIC_DISABLE_BASEMAP: 'true',
+      // Ensure SW stays disabled during tests to allow browser disk cache
+      NEXT_PUBLIC_SW_ENABLE: 'false',
     },
   },
 });

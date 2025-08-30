@@ -51,7 +51,7 @@ export function createHumanTilesLayer(
   const tileOptions = extra?.tileOptions || {};
 
   const colorSchemeSuffix = extra?.colorScheme || 'orange';
-  const layerId = instanceId || `human-tiles-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
+  const layerId = instanceId || `human-tiles-${year}-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
 
   return new PMTilesTileLayer({
     id: layerId,
@@ -84,8 +84,6 @@ export function createHumanTilesLayer(
     },
     getFillColor: (f: unknown) => getFillColor(f, extra?.debugTint, extra?.colorScheme),
     updateTriggers: {
-      // CRITICAL: Include year in updateTriggers to force cache invalidation on year change
-      getTileData: [year],
       getPointRadius: [
         year,
         lodLevel,

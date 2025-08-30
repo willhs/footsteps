@@ -69,9 +69,27 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
         }
       });
       
-      // Extract features from parsed MVT data
+      // Extract features from parsed MVT data (robust to different shapes)
       const layerName = this.props.mvtLayers?.[0] || 'humans';
-      return (parsed as any)?.[layerName]?.features || [];
+      let features: any[] = [];
+      if (Array.isArray(parsed)) {
+        features = parsed as any[];
+      } else if (parsed && typeof parsed === 'object') {
+        const obj: any = parsed;
+        if (obj?.type === 'FeatureCollection' && Array.isArray(obj.features)) {
+          features = obj.features;
+        } else if (obj[layerName]?.type === 'FeatureCollection' && Array.isArray(obj[layerName]?.features)) {
+          features = obj[layerName].features;
+        } else if (Array.isArray(obj[layerName])) {
+          features = obj[layerName] as any[];
+        } else if (Array.isArray(obj.features)) {
+          features = obj.features as any[];
+        }
+      }
+      if ((process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true') {
+        try { console.debug('[PMTilesTileLayer] features', { z, x, y, count: features.length }); } catch {}
+      }
+      return features;
     } catch (err) {
       console.warn('[PMTilesTileLayer] Failed to load tile:', { z, x, y, error: err });
       return null;

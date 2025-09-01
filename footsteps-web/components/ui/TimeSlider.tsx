@@ -21,10 +21,10 @@ interface TimeSliderProps {
   /** Optional callback when dragging starts */
   onBeforeChange?: () => void;
   /** Optional callback when dragging ends */
-  onAfterChange?: () => void;
+  onChangeComplete?: () => void;
 }
 
-export default function TimeSlider({ value, onChange, onBeforeChange, onAfterChange }: TimeSliderProps) {
+export default function TimeSlider({ value, onChange, onBeforeChange, onChangeComplete }: TimeSliderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const handleSelectMark = useCallback((pos: number) => {
     onChange(pos);
@@ -62,7 +62,7 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
     onBeforeChange?.();
   }, [onBeforeChange]);
 
-  const handleAfterChange = useCallback(() => {
+  const handleChangeComplete = useCallback(() => {
     setIsDragging(false);
     // Ensure final position applies immediately
     if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
@@ -71,8 +71,8 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
       onChange(pendingValueRef.current);
       pendingValueRef.current = null;
     }
-    onAfterChange?.();
-  }, [onChange, onAfterChange]);
+    onChangeComplete?.();
+  }, [onChange, onChangeComplete]);
 
   return (
     <div className="time-slider-container absolute left-4 right-4 sm:left-6 sm:right-6 bottom-10 z-10">
@@ -85,7 +85,7 @@ export default function TimeSlider({ value, onChange, onBeforeChange, onAfterCha
             value={value}
             onChange={handleSliderChange}
             onBeforeChange={handleBeforeChange}
-            onAfterChange={handleAfterChange}
+            onChangeComplete={handleChangeComplete}
             marks={marks}
             step={null}
             dots={true}

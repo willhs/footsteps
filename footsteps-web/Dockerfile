@@ -1,14 +1,5 @@
-# Use official Node.js runtime as the base image
-FROM node:18-alpine AS base
-
-# Install system packages once
-FROM base AS pkg
-# libc6-compat enables some native npm modules, sqlite provides the CLI for
-# MBTiles fallback access, and curl supports health checks.
-RUN apk add --no-cache libc6-compat sqlite curl
-
-# Install dependencies only when needed
-FROM pkg AS deps
+# Build stage using Node.js to install dependencies and compile the app
+FROM node:18 AS deps
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -16,14 +7,12 @@ COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile; \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Rebuild the source code only when needed
-FROM pkg AS builder
+FROM deps AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set environment variables for build
@@ -43,44 +32,32 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
+# Remove dev dependencies to keep runtime lean
+RUN \
+  if [ -f yarn.lock ]; then yarn workspaces focus --all --production; \
+  elif [ -f package-lock.json ]; then npm prune --omit=dev; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm prune --prod; \
+  fi
 
-# Copy runtime binaries from the pkg stage instead of installing again
-COPY --from=pkg /usr/bin/sqlite3 /usr/bin/sqlite3
-COPY --from=pkg /usr/bin/curl /usr/bin/curl
-COPY --from=pkg /usr/lib /usr/lib
-COPY --from=pkg /lib /lib
+# Prepare required directories for runtime
+RUN mkdir -p /data/tiles/humans /app/data/tiles/humans /tmp
+
+# Production image using a minimal distroless base
+FROM gcr.io/distroless/nodejs18 AS runner
+WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy application files
+COPY --from=builder --chown=nonroot:nonroot /app/public ./public
+COPY --from=builder --chown=nonroot:nonroot /app/.next/standalone ./
+COPY --from=builder --chown=nonroot:nonroot /app/.next/static ./.next/static
+COPY --from=builder --chown=nonroot:nonroot /data /data
+COPY --from=builder --chown=nonroot:nonroot /app/data /app/data
+COPY --from=builder --chown=nonroot:nonroot /tmp /tmp
 
-# Create directories for tiles
-# /data will be mounted from persistent disk in production, local files in development
-RUN mkdir -p /data/tiles/humans && chown -R nextjs:nodejs /data
-RUN mkdir -p /app/data/tiles/humans && chown -R nextjs:nodejs /app/data
-RUN mkdir -p /tmp && chown -R nextjs:nodejs /tmp
-
-# Copy necessary files
-COPY --from=builder /app/public ./public
- 
-# sql.js-httpvfs dependencies removed - app now uses PMTiles client-side
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+USER nonroot
 
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
@@ -88,9 +65,9 @@ EXPOSE 8080
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s \
-  CMD curl -f http://localhost:8080/health || exit 1
+# Health check using Node since distroless lacks curl
+HEALTHCHECK --interval=30s --timeout=5s CMD ["/nodejs/bin/node","-e","require('http').get('http://localhost:8080/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
 
 # Run the application
-CMD ["node", "server.js"]
+CMD ["server.js"]
+

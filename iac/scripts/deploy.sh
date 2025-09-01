@@ -8,7 +8,7 @@ set -e
 # Configuration
 PROJECT_ID="footsteps-earth"
 SERVICE_NAME="footsteps-time-app"
-REGION="australia-southeast1"
+REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 APP_DIR="../../footsteps-web"
 

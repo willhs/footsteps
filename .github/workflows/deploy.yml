@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PROJECT_ID: footsteps-earth
-  REGION: australia-southeast1
+  REGION: us-central1
   SERVICE_NAME: footsteps-time-app
 
 jobs:
@@ -92,29 +92,41 @@ jobs:
       run: |
         terraform init
         terraform apply -auto-approve
+    
+    - name: Export Terraform outputs to env
+      working-directory: ./iac
+      run: |
+        echo "REGION=$(terraform output -raw region)" >> $GITHUB_ENV
+        # Keep existing PROJECT_ID/SERVICE_NAME defaults; override if outputs exist
+        if terraform output -json | jq -re '.project_id.value' >/dev/null 2>&1; then
+          echo "PROJECT_ID=$(terraform output -raw project_id)" >> $GITHUB_ENV
+        fi
+        if terraform output -json | jq -re '.cloud_run_service_name.value' >/dev/null 2>&1; then
+          echo "SERVICE_NAME=$(terraform output -raw cloud_run_service_name)" >> $GITHUB_ENV
+        fi
         
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker
       
     - name: Push Docker image to GCR
       run: |
-        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${IMAGE_SHA}"
+        IMAGE_TAG="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_SHA}"
         docker tag footsteps-web:${IMAGE_SHA} "$IMAGE_TAG"
         docker push "$IMAGE_TAG"
         gcloud container images add-tag --quiet \
           "$IMAGE_TAG" \
-          "gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest"
+          "gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest"
 
     # Cache warmer image build removed (deprecated)
           
     - name: Deploy to Cloud Run
       run: |
         # Deploy with zero-downtime deployment and a warmed resident instance
-        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCS_TILES_BUCKET=footsteps-earth-tiles,PMTILES_PREFIX=pmtiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
-        IMAGE_TAG="gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${IMAGE_SHA}"
-        gcloud run deploy ${{ env.SERVICE_NAME }} \
+        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_TILES_BUCKET=footsteps-earth-tiles,PMTILES_PREFIX=pmtiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+        IMAGE_TAG="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_SHA}"
+        gcloud run deploy ${SERVICE_NAME} \
           --image="$IMAGE_TAG" \
-          --region=${{ env.REGION }} \
+          --region="$REGION" \
           --platform=managed \
           --allow-unauthenticated \
           --memory=2Gi \
@@ -127,8 +139,8 @@ jobs:
     - name: Get service URL
       id: deploy
       run: |
-        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-          --region=${{ env.REGION }} \
+        SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
+          --region="$REGION" \
           --format='value(status.url)')
         echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
         echo "✅ Service deployed at: $SERVICE_URL"
@@ -161,9 +173,9 @@ jobs:
     - name: Deployment summary
       run: |
         echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Service**: ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Region**: ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY  
-        echo "- **Image**: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.event.workflow_run.head_sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Service**: ${SERVICE_NAME}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Region**: ${REGION}" >> $GITHUB_STEP_SUMMARY  
+        echo "- **Image**: gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${{ github.event.workflow_run.head_sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- **URL**: ${{ steps.deploy.outputs.SERVICE_URL }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Commit**: ${{ github.event.workflow_run.head_sha }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ✅ Healthy" >> $GITHUB_STEP_SUMMARY

@@ -1,7 +1,6 @@
 import type { MutableRefObject } from 'react';
 import { getPMTilesUrl } from '@/lib/pmtilesClient';
 import { PMTilesTileLayer } from '@/lib/pmtilesTileLayer';
-import { MVTLayer } from '@deck.gl/geo-layers';
 import { extractFeaturesFromBinaryTile } from '@/lib/binaryTileUtils';
 import { radiusStrategies, type RadiusStrategy } from './radiusStrategies';
 import { getPointRadius } from './radius';
@@ -51,7 +50,7 @@ export function createHumanTilesLayer(
   const colorSchemeSuffix = extra?.colorScheme || 'orange';
   const layerId = instanceId || `human-tiles-${year}-${radiusStrategy.getName()}-${colorSchemeSuffix}`;
 
-  const useApiTiles = (process.env.NEXT_PUBLIC_TILE_SOURCE || 'pmtiles') === 'api';
+  // PMTiles is the only frontend tile source. No API/MVT fallback.
 
   const commonProps = {
     id: layerId,
@@ -120,21 +119,6 @@ export function createHumanTilesLayer(
       },
     },
   };
-
-  if (useApiTiles) {
-    // Use server-side API tiles with stable 200 responses; browser disk cache is very reliable here.
-    const template = `/api/tiles/${year}/single/{z}/{x}/{y}.pbf`;
-    return new MVTLayer({
-      ...commonProps,
-      id: `${layerId}-api`,
-      data: template,
-      binary: true,
-      loadOptions: {
-        fetch: { cache: 'force-cache' },
-      },
-      pointType: 'circle',
-    } as any);
-  }
 
   return new PMTilesTileLayer({
     ...commonProps,

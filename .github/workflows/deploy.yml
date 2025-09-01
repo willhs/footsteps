@@ -51,7 +51,13 @@ jobs:
 
     - name: Build Docker image directly
       working-directory: ./footsteps-web
-      run: docker build -t footsteps-web:${{ env.IMAGE_SHA }} .
+      env:
+        CDN_HOST: https://storage.googleapis.com/footsteps-earth-tiles/pmtiles
+      run: |
+        docker build \
+          --build-arg NEXT_PUBLIC_CDN_HOST=${CDN_HOST} \
+          --build-arg PMTILES_ORIGIN=${CDN_HOST} \
+          -t footsteps-web:${{ env.IMAGE_SHA }} .
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2

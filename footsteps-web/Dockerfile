@@ -29,6 +29,11 @@ COPY . .
 # Set environment variables for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Allow overriding CDN/PMTiles origin at build time for client bundles
+ARG NEXT_PUBLIC_CDN_HOST
+ARG PMTILES_ORIGIN
+ENV NEXT_PUBLIC_CDN_HOST=${NEXT_PUBLIC_CDN_HOST}
+ENV PMTILES_ORIGIN=${PMTILES_ORIGIN}
 
 # Build the application
 RUN \

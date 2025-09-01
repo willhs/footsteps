@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import NetworkIndicator from '../components/ui/NetworkIndicator';
-import ServiceWorkerRegistrar from '../components/ui/ServiceWorkerRegistrar';
+import NetworkIndicator from '@/components/ui/NetworkIndicator';
+import ServiceWorkerRegistrar from '@/components/ui/ServiceWorkerRegistrar';
 
 export const metadata: Metadata = {
   title: 'footsteps',

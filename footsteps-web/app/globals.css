@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @source "./**/*.{js,ts,jsx,tsx,mdx}";
-@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "@/components/**/*.{js,ts,jsx,tsx,mdx}";
 @import 'rc-slider/assets/index.css';
 
 :root {

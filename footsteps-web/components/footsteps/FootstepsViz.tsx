@@ -17,8 +17,10 @@ import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
-const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
-const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
+import { isDebugEnabled, isPlainBasemapEnabled, isProduction } from '@/lib/env';
+
+const DEBUG = isDebugEnabled();
+const ENABLE_PLAIN_BASEMAP = isPlainBasemapEnabled();
 
 interface FootstepsVizProps {
   year: number;
@@ -31,7 +33,8 @@ function FootstepsViz({ year }: FootstepsVizProps) {
 
   // Default to terrain unless explicitly enabling the plain basemap via env
   const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
+  const [colorScheme, setColorScheme] =
+    useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -124,7 +127,13 @@ function FootstepsViz({ year }: FootstepsVizProps) {
         `human-layer-current-${colorScheme}`,
         true,
       ),
-    [createHumanLayerForYear, year, stableLODLevel, currentOpacity, colorScheme],
+    [
+      createHumanLayerForYear,
+      year,
+      stableLODLevel,
+      currentOpacity,
+      colorScheme,
+    ],
   );
 
   const previousYearLayer = useMemo(
@@ -138,7 +147,13 @@ function FootstepsViz({ year }: FootstepsVizProps) {
             false,
           )
         : null,
-    [createHumanLayerForYear, previousYear, stableLODLevel, previousOpacity, colorScheme],
+    [
+      createHumanLayerForYear,
+      previousYear,
+      stableLODLevel,
+      previousOpacity,
+      colorScheme,
+    ],
   );
 
   // Layer ordering: background layers -> settlement points
@@ -146,7 +161,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     ? ([...backgroundLayers, previousYearLayer, currentYearLayer] as LayersList)
     : ([...backgroundLayers, currentYearLayer] as LayersList);
 
-  if (process.env.NODE_ENV !== 'production' && DEBUG) {
+  if (!isProduction() && DEBUG) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logLayer = (layer: any, tag: string, tagYear: number | null) => {

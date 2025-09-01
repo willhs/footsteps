@@ -3,14 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getTooltipPosition, formatCoordinates } from './tooltipUtils';
 import { getPopulationScale } from '@/lib/format';
-
-interface TooltipData {
-  population: number;
-  coordinates: [number, number];
-  year: number;
-  settlementType?: string;
-  clickPosition: { x: number; y: number };
-}
+import type { TooltipData } from './TooltipOverlay';
 
 interface PopulationTooltipProps {
   data: TooltipData | null;

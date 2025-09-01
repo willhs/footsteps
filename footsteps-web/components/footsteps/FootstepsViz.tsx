@@ -1,24 +1,18 @@
 'use client';
 
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
-import { getLODLevel } from '@/lib/lod';
-import {
-  createSeaLayer,
-  createContinentsLayer,
-  createTerrainLayer,
-} from '@/components/footsteps/layers';
-import { createHumanLayerFactory } from '@/components/footsteps/layers';
-import { type LayersList } from '@deck.gl/core';
+import type { LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
-import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
-import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import VizToggles from '@/components/ui/VizToggles';
-import { type ColorScheme } from '@/components/footsteps/layers/color';
+import type { ColorScheme } from '@/components/footsteps/layers/color';
+import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
+import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
+import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
+
 const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
-const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
 
 interface FootstepsVizProps {
   year: number;
@@ -26,27 +20,14 @@ interface FootstepsVizProps {
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsViz({ year }: FootstepsVizProps) {
-  const [is3DMode, setIs3DMode] = useState(() => getViewMode());
+function FootstepsVizInner({ year }: FootstepsVizProps) {
+  const setTooltipData = useTooltipOverlay();
 
-  // Default to terrain unless explicitly enabling the plain basemap via env
-  const [showTerrain, setShowTerrain] = useState(() => !ENABLE_PLAIN_BASEMAP);
+  const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
-
-  const [tooltipData, setTooltipData] = useState<{
-    population: number;
-    coordinates: [number, number];
-    year: number;
-    settlementType?: string;
-    clickPosition: { x: number; y: number };
-  } | null>(null);
-
-  useEffect(() => {
-    setViewMode(is3DMode);
-  }, [is3DMode]);
 
   const [tileLoading, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -54,8 +35,25 @@ function FootstepsViz({ year }: FootstepsVizProps) {
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
-    useYearCrossfade(year);
+  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers();
+
+  const { layers: humanLayers, stableLODLevel } = useHumanLayers({
+    year,
+    is3DMode,
+    viewState,
+    isZooming,
+    isPanning,
+    colorScheme,
+    setTileLoading,
+    setMetricsLoading,
+    setFeatureCount,
+    setTotalPopulation,
+    setTooltipData,
+  });
+
+  useEffect(() => {
+    setViewMode(is3DMode);
+  }, [is3DMode]);
 
   // Reset metrics when year changes
   useEffect(() => {
@@ -65,86 +63,7 @@ function FootstepsViz({ year }: FootstepsVizProps) {
     setYearChangedAt(Date.now());
   }, [year]);
 
-  // Background layers - terrain or plain based on toggle
-  const backgroundLayers = useMemo(() => {
-    if (!showTerrain) return [createSeaLayer(), createContinentsLayer()];
-    return [createTerrainLayer()];
-  }, [showTerrain]);
-
-  // Stable LOD level for memoization - only changes at discrete boundaries
-  const roundedZoom = Math.floor(viewState.zoom);
-  const stableLODLevel = useMemo(() => {
-    return getLODLevel(roundedZoom);
-  }, [roundedZoom]);
-
-  // Simplified: use viewState directly since LOD system provides stability
-  const layerViewState = viewState;
-
-  const createHumanLayerForYear = useMemo(
-    () =>
-      createHumanLayerFactory({
-        is3DMode,
-        layerViewState,
-        isZooming,
-        isPanning,
-        newLayerHasTileRef,
-        callbacks: {
-          setTileLoading,
-          setMetricsLoading,
-          setTooltipData,
-        },
-        metrics: {
-          setFeatureCount,
-          setTotalPopulation,
-        },
-        colorScheme,
-      }),
-    [
-      is3DMode,
-      layerViewState,
-      isZooming,
-      isPanning,
-      newLayerHasTileRef,
-      setTileLoading,
-      setMetricsLoading,
-      setFeatureCount,
-      setTotalPopulation,
-      setTooltipData,
-      colorScheme,
-    ],
-  );
-
-  // Create human tiles layer for current year
-  const currentYearLayer = useMemo(
-    () =>
-      createHumanLayerForYear(
-        year,
-        stableLODLevel,
-        currentOpacity,
-        `human-layer-current-${colorScheme}`,
-        true,
-      ),
-    [createHumanLayerForYear, year, stableLODLevel, currentOpacity, colorScheme],
-  );
-
-  const previousYearLayer = useMemo(
-    () =>
-      previousYear !== null
-        ? createHumanLayerForYear(
-            previousYear as number,
-            stableLODLevel,
-            previousOpacity,
-            `human-layer-previous-${colorScheme}`,
-            false,
-          )
-        : null,
-    [createHumanLayerForYear, previousYear, stableLODLevel, previousOpacity, colorScheme],
-  );
-
-  // Layer ordering: background layers -> settlement points
-  const layers: LayersList = previousYearLayer
-    ? ([...backgroundLayers, previousYearLayer, currentYearLayer] as LayersList)
-    : ([...backgroundLayers, currentYearLayer] as LayersList);
+  const layers: LayersList = [...backgroundLayers, ...humanLayers];
 
   if (process.env.NODE_ENV !== 'production' && DEBUG) {
     try {
@@ -165,9 +84,10 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           is3DMode,
         });
       };
-      logLayer(currentYearLayer, 'current', year);
-      if (previousYearLayer && previousYear !== null)
-        logLayer(previousYearLayer, 'previous', previousYear);
+      humanLayers.forEach((layer, idx) =>
+        logLayer(layer, idx === humanLayers.length - 1 ? 'current' : 'previous',
+          idx === humanLayers.length - 1 ? year : null),
+      );
     } catch {
       // ignore logging errors in dev
     }
@@ -213,21 +133,22 @@ function FootstepsViz({ year }: FootstepsVizProps) {
           is3DMode={is3DMode}
           onModeChange={setIs3DMode}
           showTerrain={showTerrain}
-          onToggle={(v) => {
-            setShowTerrain(v);
-          }}
+          onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
       </div>
-
-      {/* Population Tooltip */}
-      <PopulationTooltip
-        data={tooltipData}
-        onClose={() => setTooltipData(null)}
-      />
     </div>
   );
 }
 
+function FootstepsViz(props: FootstepsVizProps) {
+  return (
+    <TooltipOverlay>
+      <FootstepsVizInner {...props} />
+    </TooltipOverlay>
+  );
+}
+
 export default memo(FootstepsViz);
+

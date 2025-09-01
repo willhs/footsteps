@@ -8,11 +8,13 @@ See also: docs/philosophy/design-philosophy.md
 
 ## Principles (build by these)
 
-- Data-first: Show people over polish. Remove decoration that doesn’t explain the data.
-- Time-first: The time slider is the hero control; everything supports it.
-- Anti-duck: UI should disappear; the story (human presence) should remain.
-- Fast-by-default: Maintain 60fps on modern laptops and phones.
-- Accessible: Keyboard usable, visible focus, sufficient contrast.
+- **Data-driven minimalism**: Every pixel serves historical communication (Tufte's "data ink"). Remove decoration that doesn't explain human presence.
+- **Time-first**: Dragging should feel like controlling time itself; the slider is the hero interaction.
+- **Anti-duck principle**: Interface becomes invisible; users see humanity spreading, not UI elements.
+- **Immediate impact**: First 3 seconds should convey the scale of human expansion across deep time.
+- **Performance-first**: Maintain 60fps on target hardware (MacBook M3, iPhone 12+).
+- **Progressive disclosure**: Show what's ready, load the rest; zoom reveals more detail.
+- **Historical empathy**: Each dot represents real people living their lives.
 
 ---
 
@@ -28,10 +30,10 @@ Colors
   --background: #0a0a0a;     /* Space/time backdrop */
   --foreground: #ededed;     /* Default text */
 
-  /* Brand semantics */
-  --color-time: #0ea5e9;     /* Active year, primary accents */
-  --color-accent: #38bdf8;   /* Highlights, selected */
-  --color-human: #f97316;    /* Settlement dots */
+  /* Semantic colors */
+  --color-time: #0ea5e9;     /* Time slider, active states, current year */
+  --color-accent: #38bdf8;   /* Highlights, selected, secondary time elements */
+  --color-human: #f97316;    /* Population dots (warmth = life) */
 
   /* States */
   --color-muted: #94a3b8;    /* Labels, tertiary text */
@@ -50,7 +52,6 @@ Type & spacing
 ```css
 :root {
   --font-stack: Arial, Helvetica, sans-serif;
-  --text-mega: 24px;   /* hero year */
   --text-lg: 18px;     /* headings */
   --text-md: 14px;     /* body */
   --text-sm: 12px;     /* secondary */
@@ -106,7 +107,6 @@ Text hierarchy
 
 ```css
 @layer components {
-  .text-hero { font-size: var(--text-mega); font-weight: 600; color: var(--color-time); }
   .text-body { font-size: var(--text-md); font-weight: 400; color: var(--foreground); }
   .text-dim  { font-size: var(--text-sm); font-weight: 400; color: var(--color-muted); }
 }
@@ -145,11 +145,13 @@ Implementation aligns with existing styles in `globals.css` (`.time-slider-conta
 
 ## Performance (non‑negotiables)
 
-- 60fps target: keep handlers light; avoid allocations in render.
-- Animations: only `transform`/`opacity`; avoid layout thrash.
-- Deck.gl: keep layer props stable; memoize accessors; batch updates.
-- Z-order: don’t trigger repaints by moving the slider layer frequently.
-- Assets: no web fonts; tiny SVGs over PNGs for UI glyphs.
+- **60fps target**: Maintain smooth interaction on MacBook M3 and iPhone 12+; throttle updates using `requestAnimationFrame`.
+- **Layer optimization**: Memoize expensive layer creation; use stable references to prevent deck.gl recreation.
+- **LOD system**: Automatic Level-of-Detail based on zoom (4 tiers: Regional→Subregional→Local→Detailed).
+- **Progressive rendering**: Hard limit of 35k dots for target hardware; use viewport culling.
+- **Cache-first data**: Map-based request deduplication; aggressive HTTP caching with ETag support.
+- **Minimal assets**: Arial font stack only; no custom fonts to avoid loading delays.
+- **GPU-optimized animations**: Only `transform`/`opacity`; avoid layout thrash.
 
 ---
 
@@ -168,7 +170,6 @@ Implementation aligns with existing styles in `globals.css` (`.time-slider-conta
 Do
 
 - Use `glass-panel` for overlays and the slider container.
-- Use `text-hero` for the current year; `text-body` for other copy.
 - Keep tooltips concise: name, year, population; defer detail to overlays.
 - Gate complexity behind zoom/hover; keep default view clean.
 

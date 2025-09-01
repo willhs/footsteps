@@ -1,8 +1,26 @@
 # Copy this file to terraform.tfvars and customize as needed
 
 project_id     = "footsteps-earth"
-region         = "australia-southeast1"
+region         = "us-central1"
 bucket_name    = "footsteps-earth-tiles"
+
+# App domain mapping (optional)
+# Set enable_custom_domain = true and provide your domain to let
+# Cloud Run provision a managed certificate and host routing.
+enable_custom_domain = true
+app_domain_name      = "footsteps.willhs.me"
+
+# Optional runtime env vars for tiles
+# Removed from Terraform; configure via Cloud Run env or deploy pipeline
+
+# Cloudflare PMTiles proxy (optional). Enable to serve PMTiles via
+# pmtiles.<zone_name> (or tiles_hostname below) backed by GCS.
+# enable_cloudflare      = true
+# cloudflare_zone_id     = "<your_zone_id>"
+# cloudflare_zone_name   = "willhs.me"
+# cloudflare_account_id  = "<your_account_id>"
+# cloudflare_api_token   = "<token_with_dns_and_workers_perms>"
+# cloudflare_tiles_hostname = "pmtiles.willhs.me"
 service_name   = "footsteps-time-app"
 
 # Container image (update after building)

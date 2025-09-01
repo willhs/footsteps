@@ -118,3 +118,19 @@ variable "cloudflare_account_id" {
   type        = string
   default     = null
 }
+
+# Custom domain mapping for Cloud Run (optional)
+variable "enable_custom_domain" {
+  description = "Create a Cloud Run custom domain mapping for the app"
+  type        = bool
+  default     = true
+}
+
+variable "app_domain_name" {
+  description = "Fully-qualified domain name for the app (e.g., footsteps.willhs.me)"
+  type        = string
+  default     = null
+}
+
+# Optional runtime env overrides
+// Note: runtime env overrides removed; configure app env via deploy pipeline instead

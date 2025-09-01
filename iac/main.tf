@@ -142,6 +142,8 @@ resource "google_cloud_run_v2_service" "app" {
         value = "/data/tiles/humans"
       }
 
+      # Optional environment variables removed from IaC; set via deploy pipeline if needed
+
       # ENABLE_HTTP_RANGE no longer needed; HTTP range access is always attempted for remote MBTiles
 
       # Ports configuration
@@ -203,19 +205,29 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   member   = "allUsers"
 }
 
-# Optional: Custom domain mapping (commented out)
-# resource "google_cloud_run_domain_mapping" "app_domain" {
-#   location = var.region
-#   name     = "your-custom-domain.com"
-# 
-#   metadata {
-#     namespace = var.project_id
-#   }
-# 
-#   spec {
-#     route_name = google_cloud_run_v2_service.app.name
-#   }
-# }
+# Optional: Custom domain mapping (managed certificate + host routing)
+resource "google_cloud_run_domain_mapping" "app_domain" {
+  count    = var.enable_custom_domain && var.app_domain_name != null ? 1 : 0
+  location = var.region
+  name     = var.app_domain_name
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.app.name
+  }
+
+  depends_on = [
+    google_cloud_run_v2_service.app
+  ]
+}
+
+output "app_domain_dns_records" {
+  description = "DNS records required for the Cloud Run custom domain mapping"
+  value       = try(google_cloud_run_domain_mapping.app_domain[0].status[0].resource_records, null)
+}
 
 ## Cloudflare PMTiles proxy (pmtiles.<zone>) — optional
 module "cloudflare_pmtiles" {
@@ -229,4 +241,25 @@ module "cloudflare_pmtiles" {
 
   gcs_bucket     = google_storage_bucket.data_bucket.name
   pmtiles_prefix = "pmtiles"
+}
+
+# Cloudflare DNS records for the app custom domain (A/AAAA from Cloud Run mapping)
+locals {
+  app_domain_records = var.enable_custom_domain && var.app_domain_name != null ? try([
+    for r in google_cloud_run_domain_mapping.app_domain[0].status[0].resource_records : r
+    if contains(["A", "AAAA"], r.type)
+  ], []) : []
+}
+
+resource "cloudflare_dns_record" "app_domain" {
+  for_each = length(local.app_domain_records) > 0 && var.cloudflare_zone_id != null ? {
+    for idx, r in local.app_domain_records : "${r.type}-${idx}" => r
+  } : {}
+
+  zone_id = var.cloudflare_zone_id
+  name    = var.app_domain_name
+  type    = each.value.type
+  content = each.value.rrdata
+  proxied = false
+  ttl     = 300
 }

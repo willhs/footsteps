@@ -1,0 +1,44 @@
+# Footsteps of Time Claude context
+
+## Project Overview
+A living atlas that lets anyone scrub through 100,000 BCE → today and watch humanity spread, cluster, and explode into cities on a single, elegant globe.
+
+
+## Vision
+Make the vast sweep of human presence instantly graspable by turning dry demographic tables into a visceral, time-lapse journey.
+
+## Principles
+Balance simple + elegant with telling a rich story about human history.
+
+Tell a new story about human history, emphasise something based on modern data if possible, probably around the positions and perhaps other behaviour of humans that can be recorded or estimated through history.
+
+
+Follow principles of the The Visual Display of Quantitative Information by Edward Tufte such as "data ink" where we only use ink or in this case pixels to show data, a "duck" which where the aesthetic overpowers telling a real story, and "chartjunk" which is any decoration that doesn't serve the purpose of communicating data.
+
+## Core Experience
+1. Land on a globe showing faint clusters at -100k
+2. Drag the slider forward or back or click to scrub through time to see human presence grow and shrink, cities bloom and shrink, and clusters form and dissolve.
+
+## MVP Tech Stack (v0.1)
+- **Frontend**: Next.js + Deck.gl heat shader, RC-Slider control, basic tooltip
+- **Backend**: Static file hosting; mbtiles served locally during dev
+- **Data**: HYDE grids (every 1k yr to 1 CE, 100 yr 1-1800, 10 yr 1800-2020) + Reba cities
+
+## Key Features
+- Interactive globe + non-linear time slider (ideally 100k BCE → 2025 CE)
+
+## Target Audience
+- Regular people who may be interested in history or anthropology
+- History & data-viz enthusiasts
+- High-school & university educators
+
+## Differentiators
+- Focus on showing the spread of humans, not just civilisation or cities
+- Full 100k year span (vs mostly last 12k years)
+- Perhaps: Fog-of-history layer showing data gaps
+
+## Commands
+- Build: `npm run build` (if available)
+- Dev: `npm run dev` (if available)
+- Test: `npm test` (if available)
+- Lint: `npm run lint` (if available)

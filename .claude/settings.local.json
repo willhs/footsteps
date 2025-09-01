@@ -41,7 +41,9 @@
       "Bash(gcloud builds:*)",
       "Bash(gcloud logging read:*)",
       "Bash(gh run view:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(npx playwright:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

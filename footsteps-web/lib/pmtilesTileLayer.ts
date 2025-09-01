@@ -160,6 +160,13 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
           features = obj[layerName] as any[];
         } else if (Array.isArray(obj.features)) {
           features = obj.features as any[];
+        } else {
+          // Handle numbered object keys (e.g., {0: feature, 1: feature, ...})
+          const keys = Object.keys(obj);
+          const isNumberedFeatures = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
+          if (isNumberedFeatures) {
+            features = keys.map(k => obj[k]);
+          }
         }
       }
       if ((process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true') {

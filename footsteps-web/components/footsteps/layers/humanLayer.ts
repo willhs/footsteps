@@ -122,6 +122,7 @@ export function createHumanTilesLayer(
 
   return new PMTilesTileLayer({
     ...commonProps,
+    data: [],
     pmtilesUrl: getPMTilesUrl(year),
   });
 }

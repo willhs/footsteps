@@ -112,7 +112,8 @@ function getPMTiles(url: string): PMTiles {
 
 export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
   static layerName = 'PMTilesTileLayer';
-  
+  static defaultProps = { ...TileLayer.defaultProps, data: [] };
+
   getTileData = async (tile: any) => {
     const { x, y, z } = tile.index;
     const signal: AbortSignal | undefined = tile?.signal;

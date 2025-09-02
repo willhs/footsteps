@@ -155,10 +155,10 @@ resource "google_cloud_run_v2_service" "app" {
           length(var.pmtiles_origin) > 0
           ? var.pmtiles_origin
           : (
-              var.enable_cloudflare
-              ? "https://${module.cloudflare_pmtiles[0].pmtiles_hostname}"
-              : "https://pmtiles.willhs.me"
-            )
+            var.enable_cloudflare
+            ? "https://${module.cloudflare_pmtiles[0].pmtiles_hostname}"
+            : "https://pmtiles.willhs.me"
+          )
         )
       }
 

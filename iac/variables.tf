@@ -133,4 +133,22 @@ variable "app_domain_name" {
 }
 
 # Optional runtime env overrides
-// Note: runtime env overrides removed; configure app env via deploy pipeline instead
+// Client/CDN routing
+variable "next_public_cdn_host" {
+  description = "Client-visible PMTiles base. Use '/pmtiles' to enforce same-origin proxy."
+  type        = string
+  default     = "/pmtiles"
+}
+
+variable "pmtiles_origin" {
+  description = "Absolute origin for PMTiles proxy target (e.g., https://pmtiles.willhs.me). If empty and Cloudflare is enabled, derives from pmtiles_cdn_hostname."
+  type        = string
+  default     = ""
+}
+
+# Manage Cloudflare DNS for app domain (A/AAAA records from Cloud Run mapping)
+variable "manage_app_domain_dns" {
+  description = "If true, Terraform will create Cloudflare DNS records for the app domain based on Cloud Run mapping outputs. Leave false if records are managed manually."
+  type        = bool
+  default     = false
+}

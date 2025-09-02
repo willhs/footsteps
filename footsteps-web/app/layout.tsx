@@ -13,13 +13,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cdn = (process.env.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me').replace(/\/$/, '');
+  // Preconnect to the tiles CDN. If NEXT_PUBLIC_CDN_HOST is absolute, use it; otherwise
+  // default to the public CDN domain. Avoid relying on a server-side proxy in prod.
+  const host = (process.env.NEXT_PUBLIC_CDN_HOST || '').replace(/\/$/, '');
+  const preconnectOrigin = /^https?:\/\//i.test(host) ? host : 'https://pmtiles.willhs.me';
   return (
     <html lang="en">
       <head>
         {/* Reduce connection setup latency for tiles CDN */}
-        <link rel="preconnect" href={cdn} crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href={cdn} />
+        <link rel="preconnect" href={preconnectOrigin} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={preconnectOrigin} />
       </head>
       <body>
         {children}

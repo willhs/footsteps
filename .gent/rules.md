@@ -121,6 +121,45 @@ All tests are located in `footstep-generator/tests/` directory:
 ### Manual testing on the front-end
 Use your playwright tool. The app should be running at e.g. port 4444. Ask the user for help if needed
 
+## GitHub Workflows
+
+### 1. CI Workflow (Automated Quality Checks)
+
+**Trigger**: Automatic on every push and pull request
+
+**What it does**:
+- **Frontend**: Lint, type check, test, and build Next.js app in `footsteps-web/`
+- **Python**: Run test suite in `footstep-generator/` using Poetry and pytest
+- **Terraform**: Validate and format check all infrastructure code in `iac/`
+- **Tiles Availability**: Probe GCS for sample tile data (main branch only)
+
+**Key Features**:
+- Runs on all branches and PRs for comprehensive validation
+- Caches dependencies (pnpm, Poetry, Terraform) for faster builds
+- Archives build artifacts for potential use by deploy workflow
+- Must pass before deployment can proceed
+
+### 2. Deploy Workflow (Application Deployment)
+
+**Trigger**: Automatic after successful CI on main branch, or manual dispatch
+
+**What it does**:
+1. **Build**: Creates Docker image of Next.js app with production environment variables
+2. **Infrastructure**: Applies Terraform configuration for Cloud Run, GCS, Cloudflare
+3. **Deploy**: Pushes image to Google Container Registry and deploys to Cloud Run
+4. **Verify**: Performs health checks and provides deployment summary
+
+**Key Features**:
+- Zero-downtime deployments with health checks
+- Automatic scaling (0-100 instances) based on traffic
+- Integrates with Cloudflare CDN for tile serving
+- Comprehensive deployment summary with URLs and status
+
+**Manual Triggers**:
+- Push to main branch (after CI passes)
+- Manual dispatch via GitHub Actions UI
+- Workflow dispatch from other workflows
+
 ## Data Deployment Workflows
 
 The project supports two main workflows for deploying newly generated data to production:

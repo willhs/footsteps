@@ -80,3 +80,8 @@ output "pmtiles_cdn_hostname" {
   description = "Cloudflare PMTiles hostname (if enabled)"
   value       = var.enable_cloudflare ? module.cloudflare_pmtiles[0].pmtiles_hostname : null
 }
+
+output "pmtiles_origin_effective" {
+  description = "Effective PMTiles absolute origin used by the app proxy"
+  value       = length(var.pmtiles_origin) > 0 ? var.pmtiles_origin : (var.enable_cloudflare ? "https://${module.cloudflare_pmtiles[0].pmtiles_hostname}" : "https://pmtiles.willhs.me")
+}

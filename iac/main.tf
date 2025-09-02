@@ -142,7 +142,25 @@ resource "google_cloud_run_v2_service" "app" {
         value = "/data/tiles/humans"
       }
 
-      # Optional environment variables removed from IaC; set via deploy pipeline if needed
+      # Frontend/client and proxy routing for PMTiles
+      # Use same-origin base to avoid CORS preflights; proxy target is the CDN
+      env {
+        name  = "NEXT_PUBLIC_CDN_HOST"
+        value = var.next_public_cdn_host
+      }
+
+      env {
+        name = "PMTILES_ORIGIN"
+        value = (
+          length(var.pmtiles_origin) > 0
+          ? var.pmtiles_origin
+          : (
+              var.enable_cloudflare
+              ? "https://${module.cloudflare_pmtiles[0].pmtiles_hostname}"
+              : "https://pmtiles.willhs.me"
+            )
+        )
+      }
 
       # ENABLE_HTTP_RANGE no longer needed; HTTP range access is always attempted for remote MBTiles
 
@@ -245,16 +263,20 @@ module "cloudflare_pmtiles" {
 
 # Cloudflare DNS records for the app custom domain (A/AAAA from Cloud Run mapping)
 locals {
+  # Raw records list (for outputs)
   app_domain_records = var.enable_custom_domain && var.app_domain_name != null ? try([
     for r in google_cloud_run_domain_mapping.app_domain[0].status[0].resource_records : r
     if contains(["A", "AAAA"], r.type)
   ], []) : []
+
+  # Safe for_each map that avoids referencing unknowns unless explicitly enabled
+  app_domain_for_each = var.manage_app_domain_dns && var.enable_custom_domain && var.app_domain_name != null && var.cloudflare_zone_id != null ? (
+    { for idx, r in try(google_cloud_run_domain_mapping.app_domain[0].status[0].resource_records, []) : "${r.type}-${idx}" => r if contains(["A", "AAAA"], r.type) }
+  ) : {}
 }
 
 resource "cloudflare_dns_record" "app_domain" {
-  for_each = length(local.app_domain_records) > 0 && var.cloudflare_zone_id != null ? {
-    for idx, r in local.app_domain_records : "${r.type}-${idx}" => r
-  } : {}
+  for_each = local.app_domain_for_each
 
   zone_id = var.cloudflare_zone_id
   name    = var.app_domain_name

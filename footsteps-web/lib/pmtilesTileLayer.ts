@@ -137,12 +137,14 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
       const res = await pmt.getZxy(z, x, y, signal);
       if (!res || !res.data) return null;
       
-      // Parse MVT data to GeoJSON features  
+      // Parse MVT data to GeoJSON features. Do NOT hard-filter by layer name.
+      // Some historical tiles may use a different layer id than 'humans'.
+      // We parse all layers and extract features robustly below.
       const parsed = await parse(res.data, MVTLoader, {
         mvt: {
           coordinates: 'wgs84',
           tileIndex: { x, y, z },
-          layers: this.props.mvtLayers || ['humans'],
+          // layers: undefined => include all layers
           shape: 'geojson'
         }
       });
@@ -153,20 +155,36 @@ export class PMTilesTileLayer extends TileLayer<any, PMTilesTileLayerProps> {
         features = parsed as any[];
       } else if (parsed && typeof parsed === 'object') {
         const obj: any = parsed;
+        // Common shapes returned by loaders.gl
         if (obj?.type === 'FeatureCollection' && Array.isArray(obj.features)) {
           features = obj.features;
+        } else if (Array.isArray(obj.features)) {
+          features = obj.features as any[];
         } else if (obj[layerName]?.type === 'FeatureCollection' && Array.isArray(obj[layerName]?.features)) {
           features = obj[layerName].features;
         } else if (Array.isArray(obj[layerName])) {
           features = obj[layerName] as any[];
-        } else if (Array.isArray(obj.features)) {
-          features = obj.features as any[];
         } else {
-          // Handle numbered object keys (e.g., {0: feature, 1: feature, ...})
-          const keys = Object.keys(obj);
-          const isNumberedFeatures = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
-          if (isNumberedFeatures) {
-            features = keys.map(k => obj[k]);
+          // Aggregate features from any layer-shaped values
+          const all: any[] = [];
+          for (const key of Object.keys(obj)) {
+            const v: any = obj[key];
+            if (!v) continue;
+            if (Array.isArray(v)) {
+              // array of features or empty
+              for (const f of v) {
+                if (f && typeof f === 'object' && (f.type === 'Feature' || f.geometry)) all.push(f);
+              }
+            } else if (v.type === 'FeatureCollection' && Array.isArray(v.features)) {
+              all.push(...v.features);
+            }
+          }
+          if (all.length) features = all;
+          else {
+            // Handle numbered object keys (e.g., {0: feature, 1: feature, ...})
+            const keys = Object.keys(obj);
+            const isNumbered = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
+            if (isNumbered) features = keys.map(k => obj[k]);
           }
         }
       }

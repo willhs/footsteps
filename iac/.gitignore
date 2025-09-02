@@ -6,6 +6,7 @@
 .terraform/
 .terraform.lock.hcl
 terraform.tfplan
+tfplan
 crash.log
 
 # IDE files

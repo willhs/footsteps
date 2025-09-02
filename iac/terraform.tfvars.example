@@ -10,8 +10,13 @@ bucket_name    = "footsteps-earth-tiles"
 enable_custom_domain = true
 app_domain_name      = "footsteps.willhs.me"
 
-# Optional runtime env vars for tiles
-# Removed from Terraform; configure via Cloud Run env or deploy pipeline
+# PMTiles routing config
+# Use same-origin base to avoid preflight; Cloud Run proxies to CDN
+next_public_cdn_host = "/pmtiles"
+
+# Absolute CDN origin for the proxy target
+# If enable_cloudflare=true, this is auto-derived from the Cloudflare module unless set here
+# pmtiles_origin = "https://pmtiles.willhs.me"
 
 # Cloudflare PMTiles proxy (optional). Enable to serve PMTiles via
 # pmtiles.<zone_name> (or tiles_hostname below) backed by GCS.

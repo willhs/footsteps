@@ -51,13 +51,9 @@ jobs:
 
     - name: Build Docker image directly
       working-directory: ./footsteps-web
-      env:
-        CDN_HOST: https://storage.googleapis.com/footsteps-earth-tiles/pmtiles
       run: |
-        docker build \
-          --build-arg NEXT_PUBLIC_CDN_HOST=${CDN_HOST} \
-          --build-arg PMTILES_ORIGIN=${CDN_HOST} \
-          -t footsteps-web:${{ env.IMAGE_SHA }} .
+        # No CDN host injected at build time; app defaults to https://pmtiles.willhs.me in prod.
+        docker build -t footsteps-web:${{ env.IMAGE_SHA }} .
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -128,7 +124,7 @@ jobs:
     - name: Deploy to Cloud Run
       run: |
         # Deploy with zero-downtime deployment and a warmed resident instance
-        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_TILES_BUCKET=footsteps-earth-tiles,PMTILES_PREFIX=pmtiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans"
+        ENV_VARS="NODE_ENV=production,GCP_PROJECT_ID=${PROJECT_ID},GCS_TILES_BUCKET=footsteps-earth-tiles,PMTILES_PREFIX=pmtiles,HUMANS_TILES_DIR=/data/tiles/humans,TILE_CACHE_DIR=/data/tiles/humans,NEXT_PUBLIC_CDN_HOST=/pmtiles,PMTILES_ORIGIN=https://pmtiles.willhs.me"
         IMAGE_TAG="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_SHA}"
         gcloud run deploy ${SERVICE_NAME} \
           --image="$IMAGE_TAG" \
@@ -140,7 +136,7 @@ jobs:
           --min-instances=0 \
           --max-instances=100 \
           --timeout=300 \
-          --set-env-vars="$ENV_VARS"
+          --update-env-vars="$ENV_VARS"
           
     - name: Get service URL
       id: deploy

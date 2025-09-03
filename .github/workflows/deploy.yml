@@ -52,8 +52,16 @@ jobs:
     - name: Build Docker image directly
       working-directory: ./footsteps-web
       run: |
-        # No CDN host injected at build time; app defaults to https://pmtiles.willhs.me in prod.
-        docker build -t footsteps-web:${{ env.IMAGE_SHA }} .
+        # Build with client-side env baked into bundle. For production we
+        # want direct CDN + RK enabled so Chrome doesn't serialize range
+        # requests. If you prefer to rely on CDN cache keys ignoring `rk`,
+        # keep RK on. Otherwise, set NEXT_PUBLIC_PM_ADD_RK=false here.
+        docker build \
+          --build-arg NEXT_PUBLIC_CDN_HOST="https://pmtiles.willhs.me" \
+          --build-arg NEXT_PUBLIC_PMTILES_DIRECT="true" \
+          --build-arg NEXT_PUBLIC_PM_ADD_RK="true" \
+          --build-arg NEXT_PUBLIC_PM_FETCH_CACHE="default" \
+          -t footsteps-web:${{ env.IMAGE_SHA }} .
       
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2

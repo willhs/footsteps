@@ -29,9 +29,16 @@ COPY . .
 # Set environment variables for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Allow optional override of CDN at build time for client bundles (dev/preview only)
+# Allow optional overrides of client-visible envs at build time so they are
+# compiled into the client bundle. These only affect NEXT_PUBLIC_* usage.
 ARG NEXT_PUBLIC_CDN_HOST
+ARG NEXT_PUBLIC_PMTILES_DIRECT
+ARG NEXT_PUBLIC_PM_ADD_RK
+ARG NEXT_PUBLIC_PM_FETCH_CACHE
 ENV NEXT_PUBLIC_CDN_HOST=${NEXT_PUBLIC_CDN_HOST}
+ENV NEXT_PUBLIC_PMTILES_DIRECT=${NEXT_PUBLIC_PMTILES_DIRECT}
+ENV NEXT_PUBLIC_PM_ADD_RK=${NEXT_PUBLIC_PM_ADD_RK}
+ENV NEXT_PUBLIC_PM_FETCH_CACHE=${NEXT_PUBLIC_PM_FETCH_CACHE}
 
 # Build the application
 RUN \

@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:

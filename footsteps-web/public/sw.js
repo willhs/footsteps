@@ -6,7 +6,7 @@
 // - No caching, no block/assembly logic
 // - Pass-through responses with minimal debug headers
 
-const MAX_CONCURRENCY = 6; // align with deck.gl maxRequests
+const MAX_CONCURRENCY = 6; // default alignment with deck.gl
 
 // FIFO for preemption (oldest first)
 const active = [];

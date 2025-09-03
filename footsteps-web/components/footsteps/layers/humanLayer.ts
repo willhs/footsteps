@@ -63,7 +63,7 @@ export function createHumanTilesLayer(
     maxCacheSize: tileOptions.maxCacheSize ?? 1000,
     maxCacheByteSize: tileOptions.maxCacheByteSize ?? 128 * 1024 * 1024,
     debounceTime: tileOptions.debounceTime ?? 0,
-    maxRequests: tileOptions.maxRequests ?? 6,
+    maxRequests: tileOptions.maxRequests ?? 12,
     pickable: true,
     onClick: onClick || (() => {}),
     onHover: onHover || (() => {}),
@@ -274,8 +274,8 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
           // While interacting: avoid parent fetches and raise concurrency to reduce waterfall
           refinementStrategy: (isZooming || isPanning) ? 'no-overlap' : 'best-available',
           debounceTime: (isZooming || isPanning) ? 80 : 10,
-          // Limit Deck.gl request scheduler to 6 concurrent fetches to reduce churn
-          maxRequests: 6,
+          // Limit Deck.gl request scheduler to 12 concurrent fetches to reduce churn
+          maxRequests: 12,
           // Disable radius animation on the newly introduced year layer to avoid initial size pop
           radiusTransitionMs: isNewYearLayer ? 0 : 250,
         },

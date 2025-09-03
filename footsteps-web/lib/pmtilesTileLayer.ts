@@ -1,6 +1,7 @@
 import { TileLayer } from '@deck.gl/geo-layers';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { PMTiles, FetchSource, SharedPromiseCache } from 'pmtiles';
+import { QueryParamRangeSource } from './QueryParamRangeSource';
 import { parse } from '@loaders.gl/core';
 import { MVTLoader } from '@loaders.gl/mvt';
 
@@ -97,15 +98,21 @@ interface PMTilesTileLayerProps {
 function getPMTiles(url: string): PMTiles {
   const existing = pmtilesCache.get(url);
   if (existing) return existing;
-  
-  // Prefer browser HTTP cache for range requests; avoid revalidation churn
-  // by using RequestInit.cache = 'force-cache'.
-  // Note: FetchSource(url, init) accepts standard RequestInit in pmtiles@3.x
-  const fetchInit: RequestInit = {
-    // Force use of HTTP cache if present, do not revalidate
-    cache: 'force-cache',
-  };
-  const pmt = new PMTiles(new FetchSource(url, fetchInit as any), sharedPMCache);
+
+  // Choose source implementation.
+  // - Default: FetchSource (library default behavior)
+  // - If NEXT_PUBLIC_PM_ADD_RK=true and URL is relative/same-origin, use
+  //   QueryParamRangeSource to defeat Chrome cache-entry locking during dev.
+  const addRk = (process.env.NEXT_PUBLIC_PM_ADD_RK || 'false') === 'true';
+  const isAbsolute = /^https?:\/\//i.test(url);
+  let source: any;
+  if (addRk) {
+    source = new QueryParamRangeSource(url);
+  } else {
+    source = new FetchSource(url);
+  }
+
+  const pmt = new PMTiles(source, sharedPMCache);
   pmtilesCache.set(url, pmt);
   return pmt;
 }

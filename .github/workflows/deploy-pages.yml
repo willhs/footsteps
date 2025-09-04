@@ -49,6 +49,29 @@ jobs:
         working-directory: ./footsteps-web
         run: pnpm build
 
+      - name: Ensure Cloudflare Pages project exists
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          set -euo pipefail
+          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects"
+          echo "Checking for Pages project '${CF_PROJECT}'..."
+          RESP=$(curl -fsS -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_BASE" || true)
+          EXISTS=$(printf '%s' "$RESP" | jq -r --arg NAME "$CF_PROJECT" '.result | map(select(.name==$NAME)) | length')
+          if [ "${EXISTS:-0}" = "0" ]; then
+            echo "Creating Pages project '${CF_PROJECT}' (direct_upload)..."
+            CREATE_PAYLOAD=$(jq -n --arg name "$CF_PROJECT" '{name: $name, production_branch: "main", source: { type: "direct_upload" }}')
+            curl -fsS -X POST "$API_BASE" \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              --data "$CREATE_PAYLOAD" > /dev/null
+            echo "Created."
+          else
+            echo "Project exists."
+          fi
+
       - name: Publish to Cloudflare Pages (preview for PRs)
         id: pages
         uses: cloudflare/pages-action@v1

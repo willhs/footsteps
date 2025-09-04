@@ -50,6 +50,7 @@ jobs:
         run: pnpm build
 
       - name: Publish to Cloudflare Pages (preview for PRs)
+        id: pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -58,6 +59,24 @@ jobs:
           directory: footsteps-web/out
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
+
+      - name: Deployment URL
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          echo "## 🌐 Pages Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "Action output URL: ${{ steps.pages.outputs.url || steps.pages.outputs.deployment-url || 'n/a' }}" >> $GITHUB_STEP_SUMMARY
+          # Fallback to Cloudflare API to fetch the latest deployment URL
+          if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+            API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+            RESP=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_URL" || true)
+            DEP_URL=$(printf '%s' "$RESP" | jq -r '.result[0].url // empty')
+            DEP_ENV=$(printf '%s' "$RESP" | jq -r '.result[0].environment // empty')
+            if [ -n "$DEP_URL" ]; then echo "API URL: $DEP_URL" >> $GITHUB_STEP_SUMMARY; fi
+            if [ -n "$DEP_ENV" ]; then echo "Environment: $DEP_ENV" >> $GITHUB_STEP_SUMMARY; fi
+          fi
 
       - name: Summary
         run: |

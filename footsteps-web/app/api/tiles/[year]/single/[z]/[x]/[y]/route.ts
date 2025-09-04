@@ -4,10 +4,9 @@ import { PMTiles, FetchSource, SharedPromiseCache } from 'pmtiles';
 type Params = { params: { year: string; z: string; x: string; y: string } };
 
 // Share PMTiles header/dir promises across requests
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const g: any = globalThis as any;
-const sharedPMCache: SharedPromiseCache = g.__pmtilesApiCache || new SharedPromiseCache(2000);
-g.__pmtilesApiCache = sharedPMCache;
+const sharedPMCache: SharedPromiseCache =
+  globalThis.__pmtilesApiCache ?? new SharedPromiseCache(2000);
+globalThis.__pmtilesApiCache = sharedPMCache;
 
 function getCDNOrigin(): string {
   // Prefer explicit server-side origin for PMTiles; fall back to public var if absolute.

@@ -58,6 +58,7 @@ main {
   transition: all 200ms ease-out;
   position: absolute; /* ensure pseudo-element anchors correctly */
   display: inline-block;
+  white-space: nowrap; /* avoid multi-line squish on narrow screens */
   cursor: pointer;
   /* Expand clickable area even when label is empty */
   min-width: 18px;

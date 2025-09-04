@@ -46,24 +46,37 @@ const YEAR_SLIDER_MAP = YEARS_SORTED.reduce<Record<number, number>>(
 );
 
 // Determine which years to label based on available slider width and logarithmic scale
-// Ensures a minimum pixel spacing between labels to avoid overlap on medium screens
-const MIN_LABEL_SPACING_PX = 70;
+// Packs as many labels as possible without overlap, prioritising milestones first.
+function getMinLabelSpacingPx(width: number): number {
+  // Slightly larger spacing on very small screens to avoid crowding
+  if (width <= 480) return 84;
+  if (width <= 640) return 72;
+  return 70;
+}
 
-const getResponsiveYears = (width: number): number[] => {
-  const thresholdPercent = (MIN_LABEL_SPACING_PX / width) * 100;
+export const getResponsiveYears = (width: number): number[] => {
+  const thresholdPercent = (getMinLabelSpacingPx(width) / width) * 100;
+
+  const isMilestone = (year: number) => Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
+  const positions = YEARS_SORTED.map((y) => ({ year: y, pos: YEAR_SLIDER_MAP[y] }));
+
   const selected: number[] = [];
-  YEARS_SORTED.forEach((year) => {
-    const pos = YEAR_SLIDER_MAP[year];
-    const isMajorMilestone = Math.abs(year) >= 1000 && Math.abs(year) % 1000 === 0;
-    const tooClose = selected.some(
-      (sel) => Math.abs(pos - YEAR_SLIDER_MAP[sel]) < thresholdPercent,
-    );
-    // Always include major milestones (1000, 2000, etc.) regardless of spacing
-    if (!tooClose || isMajorMilestone) {
-      selected.push(year);
-    }
+  const tooCloseToSelected = (pos: number) =>
+    selected.some((sel) => Math.abs(pos - YEAR_SLIDER_MAP[sel]) < thresholdPercent);
+
+  // Pass 1: add milestones greedily if they fit spacing
+  positions.forEach(({ year, pos }) => {
+    if (!isMilestone(year)) return;
+    if (!tooCloseToSelected(pos)) selected.push(year);
   });
-  return selected;
+
+  // Pass 2: fill remaining slots with non-milestones where spacing allows
+  positions.forEach(({ year, pos }) => {
+    if (isMilestone(year)) return;
+    if (!tooCloseToSelected(pos)) selected.push(year);
+  });
+
+  return selected.sort((a, b) => a - b);
 };
 
 // Build a clickable label ReactNode so clicking a mark jumps to its position

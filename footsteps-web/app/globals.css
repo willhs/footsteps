@@ -25,7 +25,10 @@ html,
 body,
 #__next,
 main {
+  /* Fallback for older browsers */
   height: 100vh;
+  /* Use dynamic viewport height to avoid iOS/Android UI chrome overlap */
+  height: 100dvh;
   width: 100vw;
 }
 
@@ -192,7 +195,8 @@ main {
   .time-slider-container {
     /* Layout */
     position: fixed;
-    bottom: 24px;
+    /* Keep clear of mobile safe area (home indicator) */
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     left: 24px;
     right: 24px;
     z-index: 40;
@@ -278,13 +282,18 @@ main {
   /* Enhanced responsive design for mobile */
   @media (max-width: 640px) {
     .time-slider-container {
-      @apply bottom-4 left-4 right-4 p-6;
+      /* Keep safe-area-friendly bottom; only adjust horizontal padding and overall padding */
+      left: 16px;
+      right: 16px;
+      padding: 24px;
     }
   }
 
   @media (max-width: 480px) {
     .time-slider-container {
-      @apply bottom-3 left-3 right-3 p-5;
+      left: 12px;
+      right: 12px;
+      padding: 20px;
     }
   }
 }

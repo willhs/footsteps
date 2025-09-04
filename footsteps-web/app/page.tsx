@@ -9,7 +9,7 @@ export default function Home() {
   const { year, sliderValue, updateSlider } = useYear(-1000); // Start at 1000 BC (we know this data exists)
   
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black">
+    <main className="relative w-full h-full overflow-hidden bg-black">
       <ErrorBoundary>
         {/* Globe visualization - now with React 18 compatibility */}
         <FootstepsViz year={year} />

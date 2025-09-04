@@ -27,4 +27,4 @@ Follow-ups
 
 Change Log
 - 2025-09-04: Initial task doc created for static export migration.
-
+- 2025-09-04: Removed legacy Cloud Run deploy workflow (.github/workflows/deploy.yml).

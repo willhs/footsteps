@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
+  // Static export for CDN hosting
+  output: 'export',
   // Disable ESLint during build for initial deployment
   eslint: {
     ignoreDuringBuilds: true,
@@ -23,12 +23,7 @@ const nextConfig = {
 
     return config;
   },
-  async rewrites() {
-    // No rewrites: /pmtiles/* is handled by an App Route (app/pmtiles/[...path])
-    // which proxies to PMTILES_ORIGIN and preserves Range semantics.
-    // In local dev, files in public/pmtiles still serve directly.
-    return [];
-  },
+  // No rewrites needed in static export mode
 };
 
 module.exports = nextConfig;

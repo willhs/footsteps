@@ -140,6 +140,43 @@ jobs:
             echo "Domain attach requested. DNS may need to be verified if the token lacks Zone:DNS Edit."
           fi
 
+      - name: Ensure DNS CNAME to Pages (prod only)
+        if: github.ref_name == 'main'
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_NAME: willhs.me
+          CF_RECORD_NAME: footsteps.willhs.me
+          CF_RECORD_TARGET: footsteps.pages.dev
+        run: |
+          set -euo pipefail
+          ZONES=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/zones?name=${CF_ZONE_NAME}")
+          ZONE_ID=$(printf '%s' "$ZONES" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then
+            echo "Could not resolve zone id for ${CF_ZONE_NAME}" >&2
+            exit 1
+          fi
+          echo "Zone: ${CF_ZONE_NAME} -> ${ZONE_ID}"
+          REC_LIST=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${CF_RECORD_NAME}&per_page=100")
+          OK_COUNT=$(printf '%s' "$REC_LIST" | jq -r --arg T "$CF_RECORD_TARGET" '.result | map(select(.type=="CNAME" and .content==$T and .proxied==true)) | length')
+          if [ "$OK_COUNT" != "0" ]; then
+            echo "DNS CNAME already correct."
+            exit 0
+          fi
+          # Delete any existing records (A/AAAA/CNAME/etc) for this name
+          IDS=$(printf '%s' "$REC_LIST" | jq -r '.result[].id // empty')
+          for id in $IDS; do
+            echo "Deleting old record ${id}"
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${id}" \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" | jq . || true
+          done
+          # Create desired proxied CNAME
+          WANT=$(jq -n --arg type CNAME --arg name "$CF_RECORD_NAME" --arg content "$CF_RECORD_TARGET" '{type:$type,name:$name,content:$content,ttl:1,proxied:true}')
+          echo "Creating CNAME ${CF_RECORD_NAME} -> ${CF_RECORD_TARGET} (proxied)"
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$WANT" | jq . || true
+
       - name: Summary
         run: |
           echo "## 📦 Static Export" >> $GITHUB_STEP_SUMMARY

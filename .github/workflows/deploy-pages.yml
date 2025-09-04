@@ -49,32 +49,21 @@ jobs:
         working-directory: ./footsteps-web
         run: pnpm build
 
-      - name: Ensure Cloudflare Pages project (wrangler)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create ${{ vars.CLOUDFLARE_PAGES_PROJECT }} --production-branch main
-        continue-on-error: true
-
-      - name: Verify Cloudflare Pages project
+      - name: Ensure Pages project exists
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
         run: |
           set -euo pipefail
-          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
-          echo "Verifying Pages project '${CF_PROJECT}' exists..."
-          RESP=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_BASE")
-          OK=$(printf '%s' "$RESP" | jq -r '.success // false')
-          if [ "$OK" != "true" ]; then
-            echo "Could not verify project via API:" >&2
-            echo "$RESP" | jq . >&2 || echo "$RESP" >&2
-            # Do not fail here; publish step will surface issues
-          else
-            echo "Verified."
+          API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
+          OK=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API" | jq -r '.success // false') || OK=false
+          if [ "$OK" = "true" ]; then
+            echo "Pages project exists: ${CF_PROJECT}"
+            exit 0
           fi
+          echo "Creating Pages project: ${CF_PROJECT}"
+          npx -y wrangler@3 pages project create "$CF_PROJECT" --production-branch main
 
       - name: Publish to Cloudflare Pages (wrangler deploy)
         id: deploy
@@ -88,26 +77,22 @@ jobs:
             --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
             --branch ${{ github.ref_name }}
 
-      - name: Deployment URL
+      - name: Deployment summary
         if: always()
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
         run: |
-          echo "## 🌐 Pages Deployment" >> $GITHUB_STEP_SUMMARY
+          API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+          URL=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_URL" | jq -r '.result[0].url // empty')
+          ENV=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_URL" | jq -r '.result[0].environment // empty')
+          echo "## 🌐 Pages" >> $GITHUB_STEP_SUMMARY
           echo "Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          # Fallback to Cloudflare API to fetch the latest deployment URL
-          if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-            API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
-            RESP=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_URL" || true)
-            DEP_URL=$(printf '%s' "$RESP" | jq -r '.result[0].url // empty')
-            DEP_ENV=$(printf '%s' "$RESP" | jq -r '.result[0].environment // empty')
-            if [ -n "$DEP_URL" ]; then echo "API URL: $DEP_URL" >> $GITHUB_STEP_SUMMARY; fi
-            if [ -n "$DEP_ENV" ]; then echo "Environment: $DEP_ENV" >> $GITHUB_STEP_SUMMARY; fi
-          fi
+          if [ -n "$URL" ]; then echo "URL: $URL" >> $GITHUB_STEP_SUMMARY; fi
+          if [ -n "$ENV" ]; then echo "Environment: $ENV" >> $GITHUB_STEP_SUMMARY; fi
 
-      - name: Attach custom domain (API, prod only)
+      - name: Attach custom domain (prod only)
         if: github.ref_name == 'main'
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -117,28 +102,41 @@ jobs:
         run: |
           set -euo pipefail
           BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/domains"
-          echo "Ensuring custom domain '${CF_DOMAIN}' is attached to project '${CF_PROJECT}'..."
           # Check existing domains
           LIST=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$BASE")
           EXISTS=$(printf '%s' "$LIST" | jq -r --arg D "$CF_DOMAIN" '.result | map(select(.name==$D)) | length')
           if [ "${EXISTS:-0}" != "0" ]; then
-            echo "Domain already attached."
             exit 0
           fi
           # Attach domain
           PAYLOAD=$(jq -n --arg name "$CF_DOMAIN" '{name: $name}')
-          RESP=$(curl -s -w "\n%{http_code}\n" -X POST "$BASE" \
+          curl -s -X POST "$BASE" \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -H 'Content-Type: application/json' \
-            --data "$PAYLOAD")
-          BODY=$(printf '%s' "$RESP" | head -n -1)
-          CODE=$(printf '%s' "$RESP" | tail -n 1)
-          echo "$BODY" | jq . || echo "$BODY"
-          if [ "$CODE" != "200" ]; then
-            echo "Attach domain API returned HTTP $CODE (non-fatal)." >&2
-          else
-            echo "Domain attach requested. DNS may need to be verified if the token lacks Zone:DNS Edit."
-          fi
+            --data "$PAYLOAD" >/dev/null || true
+
+      - name: Ensure DNS CNAME (prod only)
+        if: github.ref_name == 'main'
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_NAME: willhs.me
+          CF_RECORD_NAME: footsteps.willhs.me
+          CF_RECORD_TARGET: footsteps.pages.dev
+        run: |
+          set -euo pipefail
+          ZONE_ID=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/zones?name=${CF_ZONE_NAME}" | jq -r '.result[0].id // empty')
+          [ -n "$ZONE_ID" ] || { echo "zone not found" >&2; exit 1; }
+          REC_LIST=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${CF_RECORD_NAME}&per_page=100")
+          OK=$(printf '%s' "$REC_LIST" | jq -r --arg T "$CF_RECORD_TARGET" '.result | map(select(.type=="CNAME" and .content==$T and .proxied==true)) | length')
+          if [ "$OK" != "0" ]; then exit 0; fi
+          for id in $(printf '%s' "$REC_LIST" | jq -r '.result[].id // empty'); do
+            curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${id}" -H "Authorization: Bearer ${CF_API_TOKEN}" >/dev/null || true
+          done
+          WANT=$(jq -n --arg type CNAME --arg name "$CF_RECORD_NAME" --arg content "$CF_RECORD_TARGET" '{type:$type,name:$name,content:$content,ttl:1,proxied:true}')
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$WANT" >/dev/null || true
 
       - name: Ensure DNS CNAME to Pages (prod only)
         if: github.ref_name == 'main'

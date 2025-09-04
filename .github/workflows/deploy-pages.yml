@@ -76,16 +76,17 @@ jobs:
             echo "Verified."
           fi
 
-      - name: Publish to Cloudflare Pages (preview for PRs)
-        id: pages
-        uses: cloudflare/pages-action@v1
+      - name: Publish to Cloudflare Pages (wrangler deploy)
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
-          directory: footsteps-web/out
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-        # If this step fails, the job should fail
+          # Use branch name to create preview; 'main' hits production
+          command: >-
+            pages deploy footsteps-web/out
+            --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+            --branch ${{ github.ref_name }}
 
       - name: Deployment URL
         if: always()
@@ -95,7 +96,7 @@ jobs:
           CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
         run: |
           echo "## 🌐 Pages Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "Action output URL: ${{ steps.pages.outputs.url || steps.pages.outputs.deployment-url || 'n/a' }}" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           # Fallback to Cloudflare API to fetch the latest deployment URL
           if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
             API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"

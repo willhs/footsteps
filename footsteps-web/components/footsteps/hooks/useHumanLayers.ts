@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { getLODLevel } from '@/lib/lod';
 import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
@@ -38,10 +38,49 @@ export default function useHumanLayers({
   const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
     useYearCrossfade(year);
 
-  const roundedZoom = Math.floor(viewState.zoom);
-  const stableLODLevel = useMemo(() => getLODLevel(roundedZoom), [roundedZoom]);
+  // Hysteresis thresholds between LOD levels (keep in sync with lib/lod.ts)
+  const LOD_THRESHOLDS = [2, 4, 6];
+
+  const [stableLODLevel, setStableLODLevel] = useState(() =>
+    getLODLevel(viewState.zoom),
+  );
+  const [previousLODLevel, setPreviousLODLevel] = useState<number | null>(null);
+  const [currentLODOpacity, setCurrentLODOpacity] = useState(1);
+  const [previousLODOpacity, setPreviousLODOpacity] = useState(0);
+  const lodFadeMs = 300;
 
   const layerViewState = viewState;
+
+  useEffect(() => {
+    const target = getLODLevel(viewState.zoom);
+    if (target === stableLODLevel) return;
+
+    const boundaryIndex = target > stableLODLevel ? stableLODLevel : target;
+    const boundary = LOD_THRESHOLDS[boundaryIndex];
+    const threshold = target > stableLODLevel ? boundary + 0.5 : boundary - 0.5;
+    const zoom = viewState.zoom;
+
+    const crossed =
+      target > stableLODLevel ? zoom >= threshold : zoom <= threshold;
+
+    if (!crossed) return;
+
+    setPreviousLODLevel(stableLODLevel);
+    setStableLODLevel(target);
+    setCurrentLODOpacity(0);
+    setPreviousLODOpacity(1);
+    // Allow new layer to prefetch tiles before becoming fully opaque
+    requestAnimationFrame(() => {
+      setCurrentLODOpacity(1);
+      setPreviousLODOpacity(0);
+    });
+
+    const timeout = setTimeout(() => {
+      setPreviousLODLevel(null);
+    }, lodFadeMs);
+
+    return () => clearTimeout(timeout);
+  }, [viewState.zoom, stableLODLevel]);
 
   const createHumanLayerForYear = useMemo(
     () =>
@@ -82,11 +121,18 @@ export default function useHumanLayers({
       createHumanLayerForYear(
         year,
         stableLODLevel,
-        currentOpacity,
+        currentOpacity * currentLODOpacity,
         `human-layer-current-${colorScheme}`,
         true,
       ),
-    [createHumanLayerForYear, year, stableLODLevel, currentOpacity, colorScheme],
+    [
+      createHumanLayerForYear,
+      year,
+      stableLODLevel,
+      currentOpacity,
+      currentLODOpacity,
+      colorScheme,
+    ],
   );
 
   const previousYearLayer = useMemo(
@@ -95,7 +141,7 @@ export default function useHumanLayers({
         ? createHumanLayerForYear(
             previousYear as number,
             stableLODLevel,
-            previousOpacity,
+            previousOpacity * currentLODOpacity,
             `human-layer-previous-${colorScheme}`,
             false,
           )
@@ -105,13 +151,37 @@ export default function useHumanLayers({
       previousYear,
       stableLODLevel,
       previousOpacity,
+      currentLODOpacity,
       colorScheme,
     ],
   );
 
-  const layers: LayersList = previousYearLayer
-    ? ([previousYearLayer, currentYearLayer] as LayersList)
-    : ([currentYearLayer] as LayersList);
+  const previousLODLayer = useMemo(
+    () =>
+      previousLODLevel !== null
+        ? createHumanLayerForYear(
+            year,
+            previousLODLevel,
+            currentOpacity * previousLODOpacity,
+            `human-layer-previous-lod-${colorScheme}`,
+            false,
+          )
+        : null,
+    [
+      createHumanLayerForYear,
+      year,
+      previousLODLevel,
+      currentOpacity,
+      previousLODOpacity,
+      colorScheme,
+    ],
+  );
+
+  const layers: LayersList = [
+    ...((previousYearLayer ? [previousYearLayer] : []) as LayersList),
+    ...((previousLODLayer ? [previousLODLayer] : []) as LayersList),
+    currentYearLayer,
+  ];
 
   return { layers, stableLODLevel } as const;
 }

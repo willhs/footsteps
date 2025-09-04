@@ -107,17 +107,38 @@ jobs:
             if [ -n "$DEP_ENV" ]; then echo "Environment: $DEP_ENV" >> $GITHUB_STEP_SUMMARY; fi
           fi
 
-      - name: Attach custom domain (prod only)
+      - name: Attach custom domain (API, prod only)
         if: github.ref_name == 'main'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          command: >-
-            pages project domain add
-            ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
-            footsteps.willhs.me
-        continue-on-error: true
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          CF_DOMAIN: footsteps.willhs.me
+        run: |
+          set -euo pipefail
+          BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/domains"
+          echo "Ensuring custom domain '${CF_DOMAIN}' is attached to project '${CF_PROJECT}'..."
+          # Check existing domains
+          LIST=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$BASE")
+          EXISTS=$(printf '%s' "$LIST" | jq -r --arg D "$CF_DOMAIN" '.result | map(select(.name==$D)) | length')
+          if [ "${EXISTS:-0}" != "0" ]; then
+            echo "Domain already attached."
+            exit 0
+          fi
+          # Attach domain
+          PAYLOAD=$(jq -n --arg name "$CF_DOMAIN" '{name: $name}')
+          RESP=$(curl -s -w "\n%{http_code}\n" -X POST "$BASE" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$PAYLOAD")
+          BODY=$(printf '%s' "$RESP" | head -n -1)
+          CODE=$(printf '%s' "$RESP" | tail -n 1)
+          echo "$BODY" | jq . || echo "$BODY"
+          if [ "$CODE" != "200" ]; then
+            echo "Attach domain API returned HTTP $CODE (non-fatal)." >&2
+          else
+            echo "Domain attach requested. DNS may need to be verified if the token lacks Zone:DNS Edit."
+          fi
 
       - name: Summary
         run: |

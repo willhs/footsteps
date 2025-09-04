@@ -1,8 +1,19 @@
 'use client';
 
 import DeckGL, { type DeckGLProps } from '@deck.gl/react';
-import { _GlobeView as GlobeView, MapView, type LayersList } from '@deck.gl/core';
-import { ReactNode, useMemo, useEffect, useLayoutEffect, useState, useRef } from 'react';
+import {
+  _GlobeView as GlobeView,
+  MapView,
+  type LayersList,
+} from '@deck.gl/core';
+import {
+  ReactNode,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+} from 'react';
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 type BasicViewState = {
@@ -32,21 +43,29 @@ export default function DeckGLView({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
-  const globeView = useMemo(() => new GlobeView({
-    width: dimensions.width,
-    height: dimensions.height
-  }), [dimensions.width, dimensions.height]);
-  const mapView = useMemo(() => new MapView({
-    width: dimensions.width,
-    height: dimensions.height
-  }), [dimensions.width, dimensions.height]);
+  const globeView = useMemo(
+    () =>
+      new GlobeView({
+        width: dimensions.width,
+        height: dimensions.height,
+      }),
+    [dimensions.width, dimensions.height],
+  );
+  const mapView = useMemo(
+    () =>
+      new MapView({
+        width: dimensions.width,
+        height: dimensions.height,
+      }),
+    [dimensions.width, dimensions.height],
+  );
 
   const controller2D = useMemo(
     () => ({
-      dragPan: true,
+      dragPan: { inertia: 300 },
+      scrollZoom: { speed: 0.02, smooth: true },
       dragRotate: true,
-      scrollZoom: true,
-      touchZoom: true,
+      touchZoom: { smooth: true },
       touchRotate: true,
       keyboard: false,
     }),
@@ -80,12 +99,15 @@ export default function DeckGLView({
     };
   }, []);
 
-
   if (DEBUG) console.log('[DECK-SIZE] Rendering with dimensions:', dimensions);
-  if (DEBUG) console.log('[DECK-SIZE] Key for recreation:', `${dimensions.width}x${dimensions.height}`);
+  if (DEBUG)
+    console.log(
+      '[DECK-SIZE] Key for recreation:',
+      `${dimensions.width}x${dimensions.height}`,
+    );
 
   return (
-    <div 
+    <div
       ref={containerRef}
       style={{
         width: '100%',
@@ -98,16 +120,16 @@ export default function DeckGLView({
         views={is3D ? globeView : mapView}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
-        controller={is3D ? true : controller2D}
+        controller={controller2D}
         layers={layers}
         getCursor={() => 'crosshair'}
         width={dimensions.width}
         height={dimensions.height}
-        style={{ 
+        style={{
           position: 'absolute',
           top: '0px',
           left: '0px',
-          background: is3D ? '#000010' : '#000810' 
+          background: is3D ? '#000010' : '#000810',
         }}
       >
         <div

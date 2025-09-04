@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "**" ]
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -47,7 +49,7 @@ jobs:
         working-directory: ./footsteps-web
         run: pnpm build
 
-      - name: Publish to Cloudflare Pages
+      - name: Publish to Cloudflare Pages (preview for PRs)
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -62,4 +64,3 @@ jobs:
           echo "## 📦 Static Export" >> $GITHUB_STEP_SUMMARY
           echo "- NEXT_PUBLIC_CDN_HOST: $NEXT_PUBLIC_CDN_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- Output: footsteps-web/out (Next.js export)" >> $GITHUB_STEP_SUMMARY
-

@@ -4,6 +4,10 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
 
+/
+  # Prevent HTML shell from being cached long-term
+  Cache-Control: public, max-age=0, must-revalidate
+
 /_next/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -16,3 +20,10 @@
 /*.css
   Cache-Control: public, max-age=31536000, immutable
 
+/sw.js
+  # Allow rapid SW updates; don't cache aggressively
+  Cache-Control: no-cache
+
+/world-simple.geojson
+  # Static, but not hashed; give it a modest TTL
+  Cache-Control: public, max-age=86400

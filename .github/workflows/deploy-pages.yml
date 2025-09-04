@@ -1,0 +1,65 @@
+name: Deploy Static Site (Cloudflare Pages)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    name: Build and Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      # Build-time env for static export
+      NEXT_PUBLIC_PMTILES_DIRECT: "true"
+      # Point the app directly at the tiles CDN/Worker; override per env
+      NEXT_PUBLIC_CDN_HOST: ${{ secrets.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me' }}
+      # Optional fetch knobs (see lib/pmtilesTileLayer.ts)
+      NEXT_PUBLIC_PM_ADD_RK: "true"
+      NEXT_PUBLIC_PM_FETCH_CACHE: "default"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install deps
+        working-directory: ./footsteps-web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (static export)
+        working-directory: ./footsteps-web
+        run: pnpm build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PAGES_PROJECT }}
+          directory: footsteps-web/out
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "## 📦 Static Export" >> $GITHUB_STEP_SUMMARY
+          echo "- NEXT_PUBLIC_CDN_HOST: $NEXT_PUBLIC_CDN_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "- Output: footsteps-web/out (Next.js export)" >> $GITHUB_STEP_SUMMARY
+

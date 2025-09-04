@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { PMTiles, FetchSource, SharedPromiseCache } from 'pmtiles';
-
-type Params = { params: { year: string; z: string; x: string; y: string } };
 
 // Share PMTiles header/dir promises across requests
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,12 +27,13 @@ function parseParamInt(v: string, min: number, max: number): number | null {
   return Math.floor(n);
 }
 
-export async function GET(_req: Request, ctx: Params) {
+export async function GET(req: NextRequest) {
   try {
-    const year = Number(ctx.params.year);
-    const z = parseParamInt(ctx.params.z, 0, 22);
-    const x = parseParamInt(ctx.params.x, 0, 1 << 28);
-    const y = parseParamInt(ctx.params.y, 0, 1 << 28);
+    const [, , , yearStr, , zStr, xStr, yStr] = req.nextUrl.pathname.split('/');
+    const year = Number(yearStr);
+    const z = parseParamInt(zStr, 0, 22);
+    const x = parseParamInt(xStr, 0, 1 << 28);
+    const y = parseParamInt(yStr, 0, 1 << 28);
     if (!Number.isFinite(year) || z === null || x === null || y === null) {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }

@@ -1,0 +1,114 @@
+name: Deploy Static Site (Cloudflare Pages)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "**" ]
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    name: Build and Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      # Build-time env for static export
+      NEXT_PUBLIC_PMTILES_DIRECT: "true"
+      # Point the app directly at the tiles CDN/Worker; override per env
+      NEXT_PUBLIC_CDN_HOST: ${{ secrets.NEXT_PUBLIC_CDN_HOST || 'https://pmtiles.willhs.me' }}
+      # Optional fetch knobs (see lib/pmtilesTileLayer.ts)
+      NEXT_PUBLIC_PM_ADD_RK: "true"
+      NEXT_PUBLIC_PM_FETCH_CACHE: "default"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install deps
+        working-directory: ./footsteps-web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (static export)
+        working-directory: ./footsteps-web
+        run: pnpm build
+
+      - name: Ensure Cloudflare Pages project (wrangler)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create ${{ vars.CLOUDFLARE_PAGES_PROJECT }} --production-branch main
+        continue-on-error: true
+
+      - name: Verify Cloudflare Pages project
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          set -euo pipefail
+          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
+          echo "Verifying Pages project '${CF_PROJECT}' exists..."
+          RESP=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_BASE")
+          OK=$(printf '%s' "$RESP" | jq -r '.success // false')
+          if [ "$OK" != "true" ]; then
+            echo "Could not verify project via API:" >&2
+            echo "$RESP" | jq . >&2 || echo "$RESP" >&2
+            # Do not fail here; publish step will surface issues
+          else
+            echo "Verified."
+          fi
+
+      - name: Publish to Cloudflare Pages (wrangler deploy)
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          # Use branch name to create preview; 'main' hits production
+          command: >-
+            pages deploy footsteps-web/out
+            --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+            --branch ${{ github.ref_name }}
+
+      - name: Deployment URL
+        if: always()
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          echo "## 🌐 Pages Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          # Fallback to Cloudflare API to fetch the latest deployment URL
+          if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+            API_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+            RESP=$(curl -s -H "Authorization: Bearer ${CF_API_TOKEN}" "$API_URL" || true)
+            DEP_URL=$(printf '%s' "$RESP" | jq -r '.result[0].url // empty')
+            DEP_ENV=$(printf '%s' "$RESP" | jq -r '.result[0].environment // empty')
+            if [ -n "$DEP_URL" ]; then echo "API URL: $DEP_URL" >> $GITHUB_STEP_SUMMARY; fi
+            if [ -n "$DEP_ENV" ]; then echo "Environment: $DEP_ENV" >> $GITHUB_STEP_SUMMARY; fi
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 📦 Static Export" >> $GITHUB_STEP_SUMMARY
+          echo "- NEXT_PUBLIC_CDN_HOST: $NEXT_PUBLIC_CDN_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "- Output: footsteps-web/out (Next.js export)" >> $GITHUB_STEP_SUMMARY

@@ -58,9 +58,10 @@ jobs:
           projectName: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
           directory: footsteps-web/out
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+        # If this step fails, the job should fail
 
       - name: Deployment URL
+        if: always()
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

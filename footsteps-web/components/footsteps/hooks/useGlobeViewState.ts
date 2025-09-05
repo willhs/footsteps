@@ -38,10 +38,15 @@ export default function useGlobeViewState() {
 
   const onViewStateChange = useCallback(
     ({ viewState: newViewState }: { viewState: BasicViewState }) => {
+      const zoom = Math.max(0.5, Math.min(20, newViewState.zoom));
+      
+      // Limit horizontal scrolling when zoomed out to prevent globe from sliding off-screen
+      const maxLongitude = zoom < 2 ? Math.max(10, zoom * 90) : 180;
+      
       const normalized: ViewState = {
-        longitude: newViewState.longitude,
-        latitude: newViewState.latitude,
-        zoom: newViewState.zoom,
+        longitude: Math.max(-maxLongitude, Math.min(maxLongitude, newViewState.longitude)),
+        latitude: Math.max(-85, Math.min(85, newViewState.latitude)),
+        zoom,
         pitch: newViewState.pitch ?? 0,
         bearing: newViewState.bearing ?? 0,
       };

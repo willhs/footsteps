@@ -60,7 +60,7 @@ export default function DeckGLView({
     [dimensions.width, dimensions.height],
   );
 
-  const controller2D = useMemo(
+  const controller = useMemo(
     () => ({
       dragPan: { inertia: 300 },
       scrollZoom: { speed: 0.02, smooth: true },
@@ -120,7 +120,7 @@ export default function DeckGLView({
         views={is3D ? globeView : mapView}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
-        controller={controller2D}
+        controller={controller}
         layers={layers}
         getCursor={() => 'crosshair'}
         width={dimensions.width}

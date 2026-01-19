@@ -1,5 +1,6 @@
 import { GeoJsonLayer, BitmapLayer, PolygonLayer } from '@deck.gl/layers';
 import { TileLayer } from '@deck.gl/geo-layers';
+import { COORDINATE_SYSTEM } from '@deck.gl/core';
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 const ENABLE_CONTINENTS = (process.env.NEXT_PUBLIC_ENABLE_CONTINENTS || 'false') === 'true';
 
@@ -25,6 +26,7 @@ export function createSeaLayer() {
     pickable: false,
     opacity: 1.0,
     wrapLongitude: true,
+    coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     parameters: {
       depthTest: false,
       depthMask: false,
@@ -83,6 +85,7 @@ export function createContinentsLayer() {
     pickable: false,
     opacity: 1.0,
     wrapLongitude: true,
+    coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     parameters: {
       depthTest: false,
       depthMask: false,
@@ -144,6 +147,7 @@ export function createTerrainLayer() {
           boundingBox[1][0],
           boundingBox[1][1],
         ],
+        coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
         // Small optimisation: disable updates once image is set
         updateTriggers: {
           image: props.data,
@@ -172,6 +176,7 @@ export function createBasemapLayer(data: unknown, basemapError: boolean) {
     getFillColor: basemapError ? [60, 80, 100, 120] : [40, 60, 80, 140], // Increased alpha for better coverage
     pickable: false,
     opacity: 1.0,
+    coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     parameters: {
       depthTest: true, // Enable depth testing for proper layering
       depthMask: false, // Don't write to depth buffer
@@ -215,6 +220,7 @@ export function createEarthSphereLayer() {
     getFillColor: [20, 30, 50, 255], // Solid dark blue for earth base
     pickable: false,
     opacity: 1.0, // Fully opaque to prevent seeing through
+    coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     parameters: {
       depthTest: true, // Enable depth testing for proper 3D rendering
       depthMask: true, // Write to depth buffer

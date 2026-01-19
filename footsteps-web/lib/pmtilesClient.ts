@@ -11,7 +11,17 @@ function getBase(): string {
   return '/pmtiles';
 }
 
+function join(base: string, file: string): string {
+  if (!base.endsWith('/')) return `${base}/${file}`;
+  return `${base}${file}`;
+}
+
 export function getPMTilesUrl(year: number): string {
   const base = getBase();
-  return `${base}/humans_${year}.pmtiles`;
+  return join(base, `humans_${year}.pmtiles`);
+}
+
+export function getAnthromePMTilesUrl(year: number): string {
+  const base = getBase();
+  return join(base, `anthromes_${year}.pmtiles`);
 }

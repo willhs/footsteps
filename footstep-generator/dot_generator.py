@@ -5,6 +5,7 @@ Encapsulates density-aware dot creation while preserving existing behavior.
 """
 from typing import List, Optional
 
+import math
 import numpy as np
 from landmask import is_land
 from models import SettlementContinuityConfig
@@ -116,34 +117,61 @@ class DotGenerator:
                     1, min(20, int(cell_population / people_per_dot))
                 )
             elif settlement_type == "town":
-                # Towns at detailed level: balanced density
-                effective_people_per_dot = max(people_per_dot * 2, 50)
+                # Towns at detailed level: scale dot count with density
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=5,
+                )
                 num_dots = max(
                     1,
-                    min(25, int(cell_population / effective_people_per_dot)),
+                    min(
+                        25,
+                        int(
+                            math.ceil(
+                                cell_population / effective_people_per_dot
+                            )
+                        ),
+                    ),
                 )
             else:  # city
-                # Cities at detailed level: rich structure without
-                # overwhelming the budget
-                effective_people_per_dot = max(people_per_dot * 4, 100)
+                # Cities at detailed level: aggressively compress dense clusters
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=20,
+                )
                 num_dots = max(
                     1,
-                    min(75, int(cell_population / effective_people_per_dot)),
+                    min(
+                        75,
+                        int(
+                            math.ceil(
+                                cell_population / effective_people_per_dot
+                            )
+                        ),
+                    ),
                 )
         else:  # LOD 0-2 - use original aggregated logic to avoid clutter
             if settlement_type == "rural":
                 num_dots = max(1, int(cell_population / people_per_dot))
             elif settlement_type == "town":
                 # Towns at coarse LOD: Fewer dots to reduce clutter
-                # 5× more people per dot
-                effective_people_per_dot = people_per_dot * 5
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=5,
+                )
                 num_dots = max(
                     1, min(5, int(cell_population / effective_people_per_dot))
                 )
             else:  # city
                 # Cities at coarse LOD: Very few dots to avoid overwhelming the view
-                # 20× more people per dot
-                effective_people_per_dot = people_per_dot * 20
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=20,
+                )
                 num_dots = max(
                     1, min(3, int(cell_population / effective_people_per_dot))
                 )
@@ -206,10 +234,22 @@ class DotGenerator:
                     dots.append((dot_lat, dot_lon, population_per_dot))
 
             elif settlement_type == "town":
-                # Towns at detailed level: balanced density
-                effective_people_per_dot = max(people_per_dot * 2, 50)
+                # Towns at detailed level: scale dot count with density
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=5,
+                )
                 num_dots = max(
-                    1, min(25, int(cell_population / effective_people_per_dot))
+                    1,
+                    min(
+                        25,
+                        int(
+                            math.ceil(
+                                cell_population / effective_people_per_dot
+                            )
+                        ),
+                    ),
                 )
                 population_per_dot = cell_population / num_dots
 
@@ -244,11 +284,22 @@ class DotGenerator:
                         dot_idx += 1
 
             else:  # city at detailed level
-                # Cities at detailed level: rich structure
-                # without overwhelming the budget
-                effective_people_per_dot = max(people_per_dot * 4, 100)
+                # Cities at detailed level: aggressively compress dense clusters
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=20,
+                )
                 num_dots = max(
-                    1, min(75, int(cell_population / effective_people_per_dot))
+                    1,
+                    min(
+                        75,
+                        int(
+                            math.ceil(
+                                cell_population / effective_people_per_dot
+                            )
+                        ),
+                    ),
                 )
                 population_per_dot = cell_population / num_dots
 
@@ -309,8 +360,11 @@ class DotGenerator:
 
             elif settlement_type == "town":
                 # Towns at coarse LOD: Fewer dots to reduce clutter
-                # 5× more people per dot
-                effective_people_per_dot = people_per_dot * 5
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=5,
+                )
                 num_dots = max(
                     1, min(5, int(cell_population / effective_people_per_dot))
                 )
@@ -348,8 +402,11 @@ class DotGenerator:
 
             else:  # city at coarse LOD
                 # Cities at coarse LOD: Very few dots to avoid overwhelming the view
-                # 20× more people per dot
-                effective_people_per_dot = people_per_dot * 20
+                effective_people_per_dot = self._scaled_people_per_dot(
+                    cell_population,
+                    people_per_dot,
+                    base_multiplier=20,
+                )
                 num_dots = max(
                     1, min(3, int(cell_population / effective_people_per_dot))
                 )
@@ -383,3 +440,16 @@ class DotGenerator:
                     dots.append((dot_lat, dot_lon, population_per_dot))
 
         return dots
+
+    @staticmethod
+    def _scaled_people_per_dot(
+        cell_population: float,
+        base_people_per_dot: int,
+        base_multiplier: int,
+    ) -> float:
+        """Increase people-per-dot using a sqrt ramp for dense cells."""
+        baseline = max(1.0, base_people_per_dot * base_multiplier)
+        if cell_population <= baseline:
+            return baseline
+        density_ratio = cell_population / baseline
+        return baseline * math.sqrt(density_ratio)

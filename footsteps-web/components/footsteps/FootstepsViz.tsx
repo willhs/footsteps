@@ -11,6 +11,7 @@ import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
+import useAnthromeLayer from '@/components/footsteps/hooks/useAnthromeLayer';
 
 const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
 
@@ -25,6 +26,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
+  const [showAnthromes, setShowAnthromes] = useState<boolean>(false);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -51,6 +53,8 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setTooltipData,
   });
 
+  const anthromeLayer = useAnthromeLayer({ year, visible: showAnthromes });
+
   useEffect(() => {
     setViewMode(is3DMode);
   }, [is3DMode]);
@@ -63,35 +67,9 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setYearChangedAt(Date.now());
   }, [year]);
 
-  const layers: LayersList = [...backgroundLayers, ...humanLayers];
-
-  if (process.env.NODE_ENV !== 'production' && DEBUG) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const logLayer = (layer: any, tag: string, tagYear: number | null) => {
-        const props = layer?.props || {};
-        const transitions = props?.transitions || {};
-        const opacityTransition = transitions?.opacity || {};
-        // eslint-disable-next-line no-console
-        console.log('[LAYER-VIS]', {
-          tag,
-          year: tagYear,
-          id: props?.id ?? layer?.id,
-          opacity: props?.opacity,
-          visible: props?.visible,
-          pickable: props?.pickable,
-          fadeMs: opacityTransition?.duration,
-          is3DMode,
-        });
-      };
-      humanLayers.forEach((layer, idx) =>
-        logLayer(layer, idx === humanLayers.length - 1 ? 'current' : 'previous',
-          idx === humanLayers.length - 1 ? year : null),
-      );
-    } catch {
-      // ignore logging errors in dev
-    }
-  }
+  const layers: LayersList = anthromeLayer
+    ? ([...backgroundLayers, anthromeLayer, ...humanLayers] as LayersList)
+    : ([...backgroundLayers, ...humanLayers] as LayersList);
 
   return (
     <div className="relative w-full h-full">
@@ -136,6 +114,8 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
           onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
+          showAnthromes={showAnthromes}
+          onToggleAnthromes={setShowAnthromes}
         />
       </div>
     </div>
@@ -151,4 +131,3 @@ function FootstepsViz(props: FootstepsVizProps) {
 }
 
 export default memo(FootstepsViz);
-

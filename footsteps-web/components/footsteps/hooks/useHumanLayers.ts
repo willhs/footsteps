@@ -1,6 +1,4 @@
 'use client';
-
-import { useMemo } from 'react';
 import { getLODLevel } from '@/lib/lod';
 import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
@@ -39,75 +37,46 @@ export default function useHumanLayers({
     useYearCrossfade(year);
 
   const roundedZoom = Math.floor(viewState.zoom);
-  const stableLODLevel = useMemo(() => getLODLevel(roundedZoom), [roundedZoom]);
+  const stableLODLevel = getLODLevel(roundedZoom);
 
   const layerViewState = viewState;
 
-  const createHumanLayerForYear = useMemo(
-    () =>
-      createHumanLayerFactory({
-        is3DMode,
-        layerViewState,
-        isZooming,
-        isPanning,
-        newLayerHasTileRef,
-        callbacks: {
-          setTileLoading,
-          setMetricsLoading,
-          setTooltipData,
-        },
-        metrics: {
-          setFeatureCount,
-          setTotalPopulation,
-        },
-        colorScheme,
-      }),
-    [
-      is3DMode,
-      layerViewState,
-      isZooming,
-      isPanning,
-      newLayerHasTileRef,
+  const createHumanLayerForYear = createHumanLayerFactory({
+    is3DMode,
+    layerViewState,
+    isZooming,
+    isPanning,
+    newLayerHasTileRef,
+    callbacks: {
       setTileLoading,
       setMetricsLoading,
       setTooltipData,
+    },
+    metrics: {
       setFeatureCount,
       setTotalPopulation,
-      colorScheme,
-    ],
+    },
+    colorScheme,
+  });
+
+  const currentYearLayer = createHumanLayerForYear(
+    year,
+    stableLODLevel,
+    currentOpacity,
+    `human-layer-current-${colorScheme}`,
+    true,
   );
 
-  const currentYearLayer = useMemo(
-    () =>
-      createHumanLayerForYear(
-        year,
-        stableLODLevel,
-        currentOpacity,
-        `human-layer-current-${colorScheme}`,
-        true,
-      ),
-    [createHumanLayerForYear, year, stableLODLevel, currentOpacity, colorScheme],
-  );
-
-  const previousYearLayer = useMemo(
-    () =>
-      previousYear !== null
-        ? createHumanLayerForYear(
-            previousYear as number,
-            stableLODLevel,
-            previousOpacity,
-            `human-layer-previous-${colorScheme}`,
-            false,
-          )
-        : null,
-    [
-      createHumanLayerForYear,
-      previousYear,
-      stableLODLevel,
-      previousOpacity,
-      colorScheme,
-    ],
-  );
+  const previousYearLayer =
+    previousYear !== null
+      ? createHumanLayerForYear(
+          previousYear as number,
+          stableLODLevel,
+          previousOpacity,
+          `human-layer-previous-${colorScheme}`,
+          false,
+        )
+      : null;
 
   const layers: LayersList = previousYearLayer
     ? ([previousYearLayer, currentYearLayer] as LayersList)
@@ -115,4 +84,3 @@ export default function useHumanLayers({
 
   return { layers, stableLODLevel } as const;
 }
-

@@ -375,8 +375,8 @@ def generate_yearly_tile_data(
         # Fixed grid size mapping: REGIONAL should have the largest grid (most coarse)
         lod_config = LODConfiguration(
             global_grid_size=1.0,  # REGIONAL LOD - coarse overview (this is where we want randomization!)
-            regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail  
-            local_grid_size=0.1,   # LOCAL LOD - fine detail
+            regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail
+            local_grid_size=0.2,   # LOCAL LOD - fine detail with reduced point density
             min_population_threshold=0.0,  # DISABLED - preserve all population
         )
         # Enable settlement continuity for hierarchical LOD processing
@@ -528,8 +528,8 @@ def generate_all_tile_data(
     # For batch processing, disable continuity to prevent memory accumulation in settlement registry
     lod_config = LODConfiguration(
         global_grid_size=1.0,  # REGIONAL LOD - coarse overview (this is where we want randomization!)
-        regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail  
-        local_grid_size=0.1,   # LOCAL LOD - fine detail
+        regional_grid_size=0.5,  # SUBREGIONAL LOD - medium detail
+        local_grid_size=0.2,   # LOCAL LOD - fine detail with reduced point density
         min_population_threshold=0.0,  # DISABLED - preserve all population
     )
     continuity_config = SettlementContinuityConfig(enable_continuity=False)  # Disable for batch processing

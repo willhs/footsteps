@@ -3,6 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { formatPopulation, formatYear } from '@/lib/format';
 
+const LOD_SUMMARY: Record<number, string> = {
+  0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
+  1: 'LOD 1 · Subregional clusters (~0.5° ≈ 55 km)',
+  2: 'LOD 2 · Local clusters (~0.2° ≈ 22 km)',
+  3: 'LOD 3 · Detailed settlements (original dots)',
+};
+
 interface RenderMetrics {
   loadTime: number;
   processTime: number;
@@ -235,7 +242,7 @@ function SupportingText({
       {/* Technical details */}
       <div className="mt-2 pt-2 border-t border-slate-700/60 text-xs text-slate-500 space-y-1">
         <div>
-          Zoom: {viewState.zoom.toFixed(1)}x • LOD: {lodLevel}
+          Zoom: {viewState.zoom.toFixed(1)}x • {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}
         </div>
         <div>
           Dots drawn:{' '}

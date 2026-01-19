@@ -81,9 +81,9 @@ class LODProcessor:
         # Define grid sizes for each LOD level
         # Map the 3 available config fields to 4 LOD levels
         grid_configs = {
-            LODLevel.REGIONAL: self.config.global_grid_size,     # Coarsest: 1.0°
-            LODLevel.SUBREGIONAL: self.config.regional_grid_size, # Medium: 0.25°  
-            LODLevel.LOCAL: self.config.local_grid_size          # Finest: 0.05°
+            LODLevel.REGIONAL: self.config.global_grid_size,     # Coarsest grid
+            LODLevel.SUBREGIONAL: self.config.regional_grid_size, # Medium grid
+            LODLevel.LOCAL: self.config.local_grid_size          # Finest aggregated grid
         }
 
         # Convert settlement data to NumPy arrays for vector operations

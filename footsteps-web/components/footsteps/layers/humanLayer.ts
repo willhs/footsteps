@@ -216,20 +216,46 @@ export function createHumanLayerFactory(config: HumanLayerFactoryConfig) {
               let totalPop = 0;
               
               for (const tile of rawTiles) {
-                const tileData = (tile as any)?.data;
-                if (Array.isArray(tileData)) {
+                const tileAny = tile as {
+                  data?: Array<{
+                    population?: number;
+                    feature?: { properties?: { population?: number } };
+                  }>;
+                  userData?: { featureCount?: number; totalPopulation?: number };
+                };
+
+                const metricsHint = tileAny?.userData;
+                if (
+                  metricsHint &&
+                  typeof metricsHint.featureCount === 'number' &&
+                  typeof metricsHint.totalPopulation === 'number'
+                ) {
+                  totalFeatures += metricsHint.featureCount;
+                  totalPop += metricsHint.totalPopulation;
+                  continue;
+                }
+
+                const tileData = tileAny?.data;
+                if (Array.isArray(tileData) && tileData.length) {
                   totalFeatures += tileData.length;
-                  for (const feature of tileData) {
-                    const pop = feature?.properties?.population || 0;
-                    totalPop += pop;
+                  for (const entry of tileData) {
+                    const popValue =
+                      typeof entry?.population === 'number'
+                        ? entry.population
+                        : Number(entry?.feature?.properties?.population || 0);
+                    if (Number.isFinite(popValue)) totalPop += popValue;
                   }
                   continue;
                 }
+
                 // Fallback for MVTLayer(binary: true) tiles
                 const feats = extractFeaturesFromBinaryTile(tile);
                 if (feats.length) {
                   totalFeatures += feats.length;
-                  for (const f of feats) totalPop += f.properties?.population || 0;
+                  for (const f of feats) {
+                    const popValue = Number(f?.properties?.population || 0);
+                    if (Number.isFinite(popValue)) totalPop += popValue;
+                  }
                 }
               }
               

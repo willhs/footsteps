@@ -38,4 +38,30 @@ describe('buildTooltipData', () => {
     };
     expect(buildTooltipData(info, 1500)).toBeNull();
   });
+
+  it('extracts population from nested feature objects', () => {
+    const info: PickingInfo = {
+      object: {
+        feature: {
+          properties: { population: '456.7' },
+          geometry: { coordinates: [3, 4] },
+        },
+      },
+      coordinate: undefined,
+      x: 30,
+      y: 40,
+      color: null,
+      layer: null,
+      index: 0,
+      picked: true,
+      pixelRatio: 1,
+    } as unknown as PickingInfo;
+
+    expect(buildTooltipData(info, 900)).toEqual({
+      population: 456.7,
+      coordinates: [3, 4],
+      year: 900,
+      clickPosition: { x: 30, y: 40 },
+    });
+  });
 });

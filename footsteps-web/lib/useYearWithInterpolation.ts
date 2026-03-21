@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TARGET_YEARS } from './constants';
 import { formatYear, yearToSlider, sliderToYear } from './useYear';
 
 export { formatYear };

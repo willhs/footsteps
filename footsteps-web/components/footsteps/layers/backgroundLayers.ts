@@ -2,7 +2,6 @@ import { GeoJsonLayer, BitmapLayer, PolygonLayer } from '@deck.gl/layers';
 import { TileLayer } from '@deck.gl/geo-layers';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
-const ENABLE_CONTINENTS = (process.env.NEXT_PUBLIC_ENABLE_CONTINENTS || 'false') === 'true';
 
 // Create sea layer factory function
 export function createSeaLayer() {

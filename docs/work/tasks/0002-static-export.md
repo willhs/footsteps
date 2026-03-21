@@ -1,5 +1,6 @@
 ---
 title: Migrate footsteps-web to static export
+status: done
 created: 2025-09-04
 updated: 2025-09-04
 ---

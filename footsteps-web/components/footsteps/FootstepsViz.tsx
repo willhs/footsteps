@@ -11,9 +11,6 @@ import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
-import useAnthromeLayer from '@/components/footsteps/hooks/useAnthromeLayer';
-
-const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
 
 interface FootstepsVizProps {
   year: number;
@@ -26,12 +23,11 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
-  const [showAnthromes, setShowAnthromes] = useState<boolean>(false);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
 
-  const [tileLoading, setTileLoading] = useState<boolean>(true);
+  const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
@@ -53,8 +49,6 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setTooltipData,
   });
 
-  const anthromeLayer = useAnthromeLayer({ year, visible: showAnthromes });
-
   useEffect(() => {
     setViewMode(is3DMode);
   }, [is3DMode]);
@@ -67,9 +61,10 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setYearChangedAt(Date.now());
   }, [year]);
 
-  const layers: LayersList = anthromeLayer
-    ? ([...backgroundLayers, anthromeLayer, ...humanLayers] as LayersList)
-    : ([...backgroundLayers, ...humanLayers] as LayersList);
+  const layers: LayersList = [
+    ...backgroundLayers,
+    ...humanLayers,
+  ] as LayersList;
 
   return (
     <div className="relative w-full h-full">
@@ -114,8 +109,6 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
           onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
-          showAnthromes={showAnthromes}
-          onToggleAnthromes={setShowAnthromes}
         />
       </div>
     </div>

@@ -14,7 +14,6 @@ import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import { useInterpolation } from '@/components/footsteps/hooks/useInterpolation';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
-import { radiusStrategies } from '@/components/footsteps/layers/radiusStrategies';
 
 const DEBUG = (process.env.NEXT_PUBLIC_DEBUG_LOGS || 'false') === 'true';
 const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
@@ -53,8 +52,6 @@ function FootstepsVizWithInterpolation({
     toYear,
     interpolationT,
     currentDisplayYear,
-    startInterpolation,
-    stopInterpolation,
   } = useInterpolation(year, {
     animationDurationMs: 2000,
     interpolationThreshold,
@@ -68,7 +65,7 @@ function FootstepsVizWithInterpolation({
     setViewMode(is3DMode);
   }, [is3DMode]);
 
-  const [tileLoading, setTileLoading] = useState<boolean>(true);
+  const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
   const [featureCount, setFeatureCount] = useState<number>(0);
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
@@ -155,8 +152,6 @@ function FootstepsVizWithInterpolation({
       : ([...baseLayers, currentYearLayer] as LayersList);
   }, [
     backgroundLayers,
-    layerViewState,
-    is3DMode,
     colorScheme,
     currentDisplayYear,
     createHumanLayerForYear,

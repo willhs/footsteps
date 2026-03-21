@@ -96,7 +96,7 @@ function normalizePopulation(raw: unknown): number {
 
   // Handle typed arrays passed from deck.gl binary picking info
   if (ArrayBuffer.isView(raw)) {
-    const view = raw as ArrayLike<number>;
+    const view = raw as unknown as ArrayLike<number>;
     const first = view.length > 0 ? Number(view[0]) : 0;
     return Number.isFinite(first) ? first : 0;
   }

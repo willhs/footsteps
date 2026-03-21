@@ -3,14 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   // Static export for CDN hosting
   output: 'export',
-  // Disable ESLint during build for initial deployment
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Disable TypeScript checking during build for initial deployment
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // Removed experimental.esmExternals as recommended by Next.js
   webpack: (config) => {
     // Handle deck.gl dependencies

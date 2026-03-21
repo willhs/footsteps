@@ -20,8 +20,3 @@ export function getPMTilesUrl(year: number): string {
   const base = getBase();
   return join(base, `humans_${year}.pmtiles`);
 }
-
-export function getAnthromePMTilesUrl(year: number): string {
-  const base = getBase();
-  return join(base, `anthromes_${year}.pmtiles`);
-}

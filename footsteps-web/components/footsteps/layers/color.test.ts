@@ -1,4 +1,4 @@
-import { getFillColor, COLOR_SCHEMES } from './color';
+import { getFillColor } from './color';
 
 describe('getFillColor', () => {
   it('returns white color based on population by default', () => {

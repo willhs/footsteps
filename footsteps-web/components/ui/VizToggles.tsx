@@ -12,8 +12,6 @@ interface VizTogglesProps {
   onModeChange: (is3D: boolean) => void;
   colorScheme: ColorScheme;
   onColorSchemeChange: (scheme: ColorScheme) => void;
-  showAnthromes: boolean;
-  onToggleAnthromes: (show: boolean) => void;
   className?: string;
 }
 
@@ -24,8 +22,6 @@ export default function VizToggles({
   onModeChange,
   colorScheme,
   onColorSchemeChange,
-  showAnthromes,
-  onToggleAnthromes,
   className,
 }: VizTogglesProps) {
   return (
@@ -61,20 +57,6 @@ export default function VizToggles({
         onSchemeChange={onColorSchemeChange}
       />
 
-      {/* Anthrome overlay toggle */}
-      <button
-        type="button"
-        aria-label="Toggle human biome overlay"
-        aria-pressed={showAnthromes}
-        onClick={() => onToggleAnthromes(!showAnthromes)}
-        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-gray-600/40 bg-gray-700/70 text-xl transition-colors duration-200 shadow-lg ${
-          showAnthromes
-            ? 'bg-emerald-500 text-white ring-1 ring-emerald-300/70'
-            : 'text-gray-200 hover:bg-gray-600/60 hover:text-white'
-        }`}
-      >
-        🌱
-      </button>
     </div>
   );
 }

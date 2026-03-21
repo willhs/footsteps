@@ -10,7 +10,6 @@ import {
   ReactNode,
   useMemo,
   useEffect,
-  useLayoutEffect,
   useState,
   useRef,
 } from 'react';
@@ -62,10 +61,11 @@ export default function DeckGLView({
 
   const controller = useMemo(
     () => ({
-      dragPan: { inertia: 300 },
+      dragPan: true,
+      inertia: 300,
       scrollZoom: { speed: 0.02, smooth: true },
       dragRotate: true,
-      touchZoom: { smooth: true },
+      touchZoom: true,
       touchRotate: true,
       keyboard: false,
     }),

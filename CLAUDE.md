@@ -1,1 +1,0 @@
-/Users/will/projects/deep-footsteps/.gent/rules.md

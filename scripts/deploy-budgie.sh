@@ -13,7 +13,9 @@ TILES_DIR="${TILES_DIR:-$ROOT/data/tiles/humans}"
 
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
-rsync -az --delete "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+# Grid mode: one ~3 MB PNG per year (footstep-generator/grid_image.py)
+rsync -az --delete "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
 if [[ -z "${SKIP_TILES:-}" ]]; then
   rsync -az --info=progress2 --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
 fi

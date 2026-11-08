@@ -11,6 +11,13 @@ import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
+import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
+
+type RenderMode = 'dots' | 'grid';
+function initialRenderMode(): RenderMode {
+  if (typeof window === 'undefined') return 'dots';
+  return new URLSearchParams(window.location.search).get('mode') === 'grid' ? 'grid' : 'dots';
+}
 
 interface FootstepsVizProps {
   year: number;
@@ -23,6 +30,8 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
+
+  const [renderMode, setRenderMode] = useState<RenderMode>(initialRenderMode);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -49,6 +58,21 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setTooltipData,
   });
 
+  const gridLayers = useGridLayer({
+    year,
+    enabled: renderMode === 'grid',
+    setFeatureCount,
+    setTotalPopulation,
+    setMetricsLoading,
+  });
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (renderMode === 'grid') url.searchParams.set('mode', 'grid');
+    else url.searchParams.delete('mode');
+    window.history.replaceState(null, '', url);
+  }, [renderMode]);
+
   useEffect(() => {
     setViewMode(is3DMode);
   }, [is3DMode]);
@@ -63,7 +87,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const layers: LayersList = [
     ...backgroundLayers,
-    ...humanLayers,
+    ...(renderMode === 'grid' ? gridLayers : humanLayers),
   ] as LayersList;
 
   return (
@@ -110,6 +134,15 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
+        {/* Prototype: compare pre-built dot tiles with the raw HYDE grid */}
+        <button
+          type="button"
+          onClick={() => setRenderMode((m) => (m === 'dots' ? 'grid' : 'dots'))}
+          className="rounded bg-black/60 px-2 py-1 text-xs text-white/80 hover:text-white"
+          title="Dots: pre-built dot tiles. Grid: one dot per HYDE cell, from a ~3 MB image."
+        >
+          {renderMode === 'dots' ? 'Dots' : 'Grid'}
+        </button>
       </div>
     </div>
   );

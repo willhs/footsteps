@@ -14,12 +14,13 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 
 type RenderMode = 'dots' | 'grid' | 'units';
-const RENDER_MODES: RenderMode[] = ['dots', 'grid', 'units'];
+const RENDER_MODES: RenderMode[] = ['units', 'grid', 'dots'];
 const RENDER_MODE_LABEL: Record<RenderMode, string> = { dots: 'Dots', grid: 'Grid', units: 'Units' };
+const DEFAULT_RENDER_MODE: RenderMode = 'units';
 function initialRenderMode(): RenderMode {
-  if (typeof window === 'undefined') return 'dots';
+  if (typeof window === 'undefined') return DEFAULT_RENDER_MODE;
   const m = new URLSearchParams(window.location.search).get('mode');
-  return RENDER_MODES.includes(m as RenderMode) ? (m as RenderMode) : 'dots';
+  return RENDER_MODES.includes(m as RenderMode) ? (m as RenderMode) : DEFAULT_RENDER_MODE;
 }
 
 interface FootstepsVizProps {
@@ -73,7 +74,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (renderMode !== 'dots') url.searchParams.set('mode', renderMode);
+    if (renderMode !== DEFAULT_RENDER_MODE) url.searchParams.set('mode', renderMode);
     else url.searchParams.delete('mode');
     window.history.replaceState(null, '', url);
   }, [renderMode]);

@@ -16,4 +16,8 @@ for y in $YEARS; do
   magic=$(curl -sS -r 0-6 -H 'Accept-Encoding: identity' "$BASE/pmtiles/humans_${y}.pmtiles" | head -c 7)
   if [[ "$magic" == "PMTiles" ]]; then echo "ok   $y"; else echo "FAIL $y (got: ${magic:-nothing})"; fail=1; fi
 done
+for y in $YEARS; do
+  magic=$(curl -sS -r 0-3 "$BASE/grid/humans_${y}.png" | head -c 4 | tail -c 3)
+  if [[ "$magic" == "PNG" ]]; then echo "ok   grid $y"; else echo "FAIL grid $y"; fail=1; fi
+done
 exit $fail

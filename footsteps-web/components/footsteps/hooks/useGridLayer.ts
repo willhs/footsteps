@@ -90,7 +90,7 @@ export default function useGridLayer({
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
-}): LayersList {
+}) {
   const [grid, setGrid] = useState<{ year: number; data: GridData } | null>(null);
 
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function useGridLayer({
   // once cells are a few pixels apart (zoom ~5+).
   const zoomBucket = zoom < 3 ? 0 : zoom < 5 ? 1 : 2;
 
-  return useMemo(() => {
+  const layers = useMemo(() => {
     if (!enabled || !grid) return [];
     const { data } = grid;
     if (units) return unitLayers(grid.year, units, zoomBucket);
@@ -160,6 +160,7 @@ export default function useGridLayer({
       }),
     ] as LayersList;
   }, [enabled, grid, units, zoomBucket]);
+  return { layers, grid: enabled && grid?.year === year ? grid.data : null };
 }
 
 // Bands and villages are fixed-size marks (a group is a group, however many
@@ -194,7 +195,7 @@ function unitLayers(year: number, u: Units, zb: number): LayersList {
       radiusMinPixels: UNIT_MIN_PX[zb],
       updateTriggers: { getFillColor: zb },
       stroked: false,
-      pickable: false,
+      pickable: true,
       // Additive: overlapping marks brighten like night lights instead of
       // stacking into a flat fill.
       parameters: {

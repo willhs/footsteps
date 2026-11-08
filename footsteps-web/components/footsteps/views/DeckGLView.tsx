@@ -21,6 +21,7 @@ interface DeckGLViewProps {
   viewState: BasicViewState;
   onViewStateChange: DeckGLProps['onViewStateChange'];
   layers: LayersList;
+  onClick?: DeckGLProps['onClick'];
   children?: ReactNode;
 }
 
@@ -29,6 +30,7 @@ export default function DeckGLView({
   viewState,
   onViewStateChange,
   layers,
+  onClick,
   children,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
@@ -82,6 +84,7 @@ export default function DeckGLView({
         onViewStateChange={onViewStateChange}
         controller={controller}
         layers={layers}
+        onClick={onClick}
         getCursor={() => 'crosshair'}
         width="100%"
         height="100%"

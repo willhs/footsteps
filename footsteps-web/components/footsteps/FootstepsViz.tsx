@@ -12,6 +12,8 @@ import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overla
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
+import GroundingPanel from './overlays/GroundingPanel';
+import { groundingFacts } from './layers/grounding';
 import { nearestDotTileYear } from '@/lib/constants';
 
 type RenderMode = 'dots' | 'grid' | 'units';
@@ -63,7 +65,8 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setTooltipData,
   });
 
-  const gridLayers = useGridLayer({
+  const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
+  const { layers: gridLayers, grid } = useGridLayer({
     year,
     enabled: renderMode !== 'dots',
     style: renderMode === 'units' ? 'units' : 'grid',
@@ -104,7 +107,19 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         layers={layers}
+        onClick={(info) => {
+          if (renderMode !== 'units' || !info.coordinate) return;
+          const [lon, lat] = info.coordinate;
+          if (Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90) setSelectedPlace([lon, lat]);
+        }}
       />
+
+      {renderMode === 'units' && selectedPlace && (
+        <GroundingPanel
+          facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
+          onClose={() => setSelectedPlace(null)}
+        />
+      )}
 
       {/* Data info overlay */}
       <SupportingText

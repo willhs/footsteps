@@ -1,19 +1,12 @@
 'use client';
 
-import DeckGL, { type DeckGLProps } from '@deck.gl/react';
+import DeckGL, { type DeckGLProps, type DeckGLRef } from '@deck.gl/react';
 import {
   _GlobeView as GlobeView,
   MapView,
   type LayersList,
 } from '@deck.gl/core';
-import {
-  ReactNode,
-  useMemo,
-  useEffect,
-  useState,
-  useRef,
-} from 'react';
-const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
+import { ReactNode, useCallback, useMemo, useRef } from 'react';
 
 type BasicViewState = {
   longitude: number;
@@ -39,25 +32,26 @@ export default function DeckGLView({
   children,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  // Let deck.gl size its own canvas from the container (it handles DPR and
+  // resizes). Passing fixed view sizes and remounting on resize left the
+  // drawing buffer stuck at the 600x300 browser default.
+  // luma.gl 9.1 bug: CanvasContext.update() records the new size before
+  // resize(), and the first resize() no-ops because the GL context isn't
+  // ready yet, so the drawing buffer stays at the 300x150 default (600x300
+  // at 2x DPR) until the window next resizes. Force one resize once loaded.
+  const deckRef = useRef<DeckGLRef>(null);
+  const handleLoad = useCallback(() => {
+    const ctx = (
+      deckRef.current?.deck as unknown as {
+        device?: { canvasContext?: { resize: () => void } };
+      }
+    )?.device?.canvasContext;
+    ctx?.resize();
+    deckRef.current?.deck?.redraw('initial resize');
+  }, []);
 
-  const globeView = useMemo(
-    () =>
-      new GlobeView({
-        width: dimensions.width,
-        height: dimensions.height,
-      }),
-    [dimensions.width, dimensions.height],
-  );
-  const mapView = useMemo(
-    () =>
-      new MapView({
-        width: dimensions.width,
-        height: dimensions.height,
-      }),
-    [dimensions.width, dimensions.height],
-  );
+  const globeView = useMemo(() => new GlobeView(), []);
+  const mapView = useMemo(() => new MapView(), []);
 
   const controller = useMemo(
     () => ({
@@ -72,43 +66,8 @@ export default function DeckGLView({
     [],
   );
 
-  // Use ResizeObserver to track container size
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const updateDimensions = () => {
-      const rect = container.getBoundingClientRect();
-      const newDimensions = {
-        width: Math.floor(rect.width),
-        height: Math.floor(rect.height),
-      };
-      if (DEBUG) console.log('[DECK-SIZE] Container size:', newDimensions);
-      setDimensions(newDimensions);
-    };
-
-    // Initial size
-    updateDimensions();
-
-    // Use ResizeObserver for more reliable size tracking
-    const resizeObserver = new ResizeObserver(updateDimensions);
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  if (DEBUG) console.log('[DECK-SIZE] Rendering with dimensions:', dimensions);
-  if (DEBUG)
-    console.log(
-      '[DECK-SIZE] Key for recreation:',
-      `${dimensions.width}x${dimensions.height}`,
-    );
-
   return (
     <div
-      ref={containerRef}
       style={{
         width: '100%',
         height: '100%',
@@ -116,15 +75,16 @@ export default function DeckGLView({
       }}
     >
       <DeckGL
-        key={`${dimensions.width}x${dimensions.height}`}
+        ref={deckRef}
+        onLoad={handleLoad}
         views={is3D ? globeView : mapView}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         controller={controller}
         layers={layers}
         getCursor={() => 'crosshair'}
-        width={dimensions.width}
-        height={dimensions.height}
+        width="100%"
+        height="100%"
         style={{
           position: 'absolute',
           top: '0px',

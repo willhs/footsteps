@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-export",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server@14.1.1", "footsteps-web/out", "-p", "4455", "-c-1", "--silent"],
+      "port": 4455
+    }
+  ]
+}

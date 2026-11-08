@@ -6,13 +6,15 @@
 set -euo pipefail
 BASE="${1:-https://footsteps.willhs.me}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-YEARS=$(grep -oE -- '-?[0-9]+' <(sed -n '/TARGET_YEARS = \[/,/\];/p' "$ROOT/footsteps-web/lib/constants.ts" | grep -v '//'))
+years_of() { sed -n "/$1 = \\[/,/\\];/p" "$ROOT/footsteps-web/lib/constants.ts" | grep -v '//' | grep -oE -- '-?[0-9]+'; }
+DOT_YEARS=$(years_of DOT_TILE_YEARS)
+YEARS=$(years_of TARGET_YEARS)
 
 curl -fsS "$BASE/" | grep -q '<html' || { echo "FAIL app: $BASE/ is not HTML"; exit 1; }
 echo "ok   app"
 
 fail=0
-for y in $YEARS; do
+for y in $DOT_YEARS; do
   magic=$(curl -sS -r 0-6 -H 'Accept-Encoding: identity' "$BASE/pmtiles/humans_${y}.pmtiles" | head -c 7)
   if [[ "$magic" == "PMTiles" ]]; then echo "ok   $y"; else echo "FAIL $y (got: ${magic:-nothing})"; fail=1; fi
 done

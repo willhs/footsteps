@@ -1,12 +1,19 @@
-// All years in the raw data (build with footstep-generator; ~10 min each).
-export const ALL_HYDE_YEARS = [
+// Slider years: every year in the raw HYDE data. Units and Grid modes draw
+// each from a ~3 MB PNG (footstep-generator/grid_image.py).
+export const TARGET_YEARS = [
   -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
   0, 100, 200, 300, 400, 500, 600, 700, 800, 900,
   1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900,
 ];
 
-// Years with tiles built and deployed. Add years here as their tiles ship.
-export const TARGET_YEARS = [
+// Years with pre-built dot tiles (Dots mode; ~10-40 min and ~0.7 GB each).
+// Dots mode shows the nearest of these for any slider year.
+export const DOT_TILE_YEARS = [
   -10000, -5000, -1000, 0, 500, 1000, 1500, 1800, 1900,
 ];
 
+export function nearestDotTileYear(year: number): number {
+  return DOT_TILE_YEARS.reduce((best, y) =>
+    Math.abs(y - year) < Math.abs(best - year) ? y : best,
+  );
+}

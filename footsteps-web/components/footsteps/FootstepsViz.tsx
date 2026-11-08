@@ -12,6 +12,7 @@ import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overla
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
+import { nearestDotTileYear } from '@/lib/constants';
 
 type RenderMode = 'dots' | 'grid' | 'units';
 const RENDER_MODES: RenderMode[] = ['units', 'grid', 'dots'];
@@ -49,7 +50,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers();
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
-    year,
+    year: nearestDotTileYear(year),
     is3DMode,
     viewState,
     isZooming,

@@ -2,11 +2,23 @@
 # Build the static app and push it (and any new tiles) to budgie.
 #   scripts/deploy-budgie.sh            # app + tiles
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
+#   GRID_ONLY=1 scripts/deploy-budgie.sh # publish generated PNGs without rebuilding app
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="${REMOTE:-will@budgie}"
 DEST="${DEST:-projects/deep-footsteps/deploy/budgie}"
 TILES_DIR="${TILES_DIR:-$ROOT/data/tiles/humans}"
+
+# Data-only publishing preserves other years and the existing population grids.
+sync_grid() {
+  ssh "$REMOTE" "mkdir -p $DEST/app/grid"
+  rsync -az --include='humans_*.png' --include='landuse_*.png' --exclude='*' \
+    "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
+}
+if [[ -n "${GRID_ONLY:-}" ]]; then
+  sync_grid
+  exit 0
+fi
 
 # Tiles are same-origin (/pmtiles), served by Caddy next to the app.
 (cd "$ROOT/footsteps-web" && NEXT_PUBLIC_CDN_HOST= NEXT_PUBLIC_PMTILES_DIRECT=false pnpm build)
@@ -15,7 +27,7 @@ ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
 # Grid mode: one ~3 MB PNG per year (footstep-generator/grid_image.py)
-rsync -az --delete "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
+sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then
   rsync -az --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
 fi

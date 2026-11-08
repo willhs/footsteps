@@ -19,7 +19,10 @@ for y in $DOT_YEARS; do
   if [[ "$magic" == "PMTiles" ]]; then echo "ok   $y"; else echo "FAIL $y (got: ${magic:-nothing})"; fail=1; fi
 done
 for y in $YEARS; do
-  magic=$(curl -sS -r 0-3 "$BASE/grid/humans_${y}.png" | head -c 4 | tail -c 3)
-  if [[ "$magic" == "PNG" ]]; then echo "ok   grid $y"; else echo "FAIL grid $y"; fail=1; fi
+  for kind in humans landuse; do
+    # Read the whole response: head can cause curl SIGPIPE when Range is ignored.
+    magic=$(curl -fsS -r 0-7 -H 'Accept-Encoding: identity' "$BASE/grid/${kind}_${y}.png" | od -An -tx1 | tr -d ' \n') || magic=""
+    if [[ "$magic" == 89504e470d0a1a0a* ]]; then echo "ok   grid $kind $y"; else echo "FAIL grid $kind $y"; fail=1; fi
+  done
 done
 exit $fail

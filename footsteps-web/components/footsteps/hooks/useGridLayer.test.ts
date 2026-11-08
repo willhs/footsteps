@@ -135,7 +135,8 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
   );
   await flush();
   await flush();
-  const layer = () => result.current[0] as { props: Record<string, unknown> };
+  const layers = () => result.current.layers as unknown[];
+  const layer = () => layers()[0] as { props: Record<string, unknown> };
   act(() => (layer().props.onReady as () => void)());
   await waitFor(() => expect(layer().props.opacity).toBe(1));
   expect(layer().props.id).toBe('units-0');
@@ -150,20 +151,20 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
     await Promise.resolve();
   });
   expect(
-    result.current.map(
+    layers().map(
       (l) => (l as { props: { visible: boolean } }).props.visible,
     ),
   ).toEqual([true, false]);
   expect(layer().props.opacity).toBe(1);
   act(() =>
     (
-      result.current[1] as unknown as { props: { onReady: () => void } }
+      layers()[1] as unknown as { props: { onReady: () => void } }
     ).props.onReady(),
   );
   act(() => jest.advanceTimersByTime(150));
-  expect(result.current).toHaveLength(2);
+  expect(layers()).toHaveLength(2);
   expect(layer().props.data).toBe(initialData);
-  const opacities = result.current.map((l) =>
+  const opacities = layers().map((l) =>
     Math.pow((l as { props: { opacity: number } }).props.opacity, 1 / 2.2),
   );
   expect(opacities[1]).toBeCloseTo(0.5, 1);

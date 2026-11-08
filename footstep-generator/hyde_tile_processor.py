@@ -66,6 +66,10 @@ def get_memory_usage() -> str:
         return "memory check failed"
 
 
+# total_people / people_per_dot is capped at this (see dot budget below).
+MAX_BASE_DOT_PEOPLE_UNITS = 33_000_000
+
+
 def hyde_grid_to_tile_points(
     asc_file: str, year: int, people_per_dot: int = 100, lod_processor: Optional[LODProcessor] = None
 ) -> List[dict]:
@@ -214,6 +218,14 @@ def hyde_grid_to_tile_points(
         
         total_people = np.sum(cell_populations)
         print(f"    Total population calculated: {total_people:,.0f} people")
+
+        # Dot budget: crowded years get bigger dots, not more of them. Keeps
+        # memory (~4.5 GB) and tile size about flat; 1000 CE (330M people at
+        # 10 per dot) is the reference that built fine.
+        budget_ppd = int(np.ceil(total_people / MAX_BASE_DOT_PEOPLE_UNITS))
+        if budget_ppd > people_per_dot:
+            print(f"    Dot budget: {people_per_dot} -> {budget_ppd} people per dot")
+            people_per_dot = budget_ppd
 
         # Initialize dot array manager with estimated capacity
         from array_manager import estimate_dot_capacity, DotArrayManager

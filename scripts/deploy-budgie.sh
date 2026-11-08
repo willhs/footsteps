@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Build the static app and push it (and any new tiles) to budgie.
+#   scripts/deploy-budgie.sh            # app + tiles
+#   SKIP_TILES=1 scripts/deploy-budgie.sh
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REMOTE="${REMOTE:-will@budgie}"
+DEST="${DEST:-projects/deep-footsteps/deploy/budgie}"
+TILES_DIR="${TILES_DIR:-$ROOT/data/tiles/humans}"
+
+# Tiles are same-origin (/pmtiles), served by Caddy next to the app.
+(cd "$ROOT/footsteps-web" && NEXT_PUBLIC_CDN_HOST= NEXT_PUBLIC_PMTILES_DIRECT=false pnpm build)
+
+ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
+rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
+rsync -az --delete "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+if [[ -z "${SKIP_TILES:-}" ]]; then
+  rsync -az --info=progress2 --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
+fi
+ssh "$REMOTE" "cd $DEST && docker compose up -d && docker compose restart web >/dev/null && curl -fsS http://127.0.0.1:5090/healthz"
+echo
+echo "Deployed. Local check: ssh $REMOTE curl -sI http://127.0.0.1:5090/"

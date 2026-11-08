@@ -1,0 +1,13 @@
+# Lives at ~/projects/deep-footsteps/deploy/budgie on budgie.
+# App files: ./app (rsynced static export). Tiles: ./pmtiles (rsynced, not in git).
+services:
+  web:
+    image: caddy:2.8-alpine
+    container_name: footsteps-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5090:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./app:/srv/app:ro
+      - ./pmtiles:/srv/pmtiles:ro

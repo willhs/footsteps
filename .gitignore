@@ -32,3 +32,7 @@ data/
 footstep-generator/data/
 
 worktrees/
+
+# budgie deploy payload (rsynced, not tracked)
+deploy/budgie/app/
+deploy/budgie/pmtiles/

@@ -1,11 +1,9 @@
 name: Deploy Static Site (Cloudflare Pages)
 
+# Manual only: footsteps.willhs.me is served from budgie (scripts/deploy-budgie.sh).
+# Running this on main would re-point the domain's DNS back at Pages.
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "**" ]
 
 concurrency:
   group: pages-${{ github.ref }}

@@ -13,10 +13,13 @@ import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayer
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 
-type RenderMode = 'dots' | 'grid';
+type RenderMode = 'dots' | 'grid' | 'units';
+const RENDER_MODES: RenderMode[] = ['dots', 'grid', 'units'];
+const RENDER_MODE_LABEL: Record<RenderMode, string> = { dots: 'Dots', grid: 'Grid', units: 'Units' };
 function initialRenderMode(): RenderMode {
   if (typeof window === 'undefined') return 'dots';
-  return new URLSearchParams(window.location.search).get('mode') === 'grid' ? 'grid' : 'dots';
+  const m = new URLSearchParams(window.location.search).get('mode');
+  return RENDER_MODES.includes(m as RenderMode) ? (m as RenderMode) : 'dots';
 }
 
 interface FootstepsVizProps {
@@ -60,7 +63,9 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const gridLayers = useGridLayer({
     year,
-    enabled: renderMode === 'grid',
+    enabled: renderMode !== 'dots',
+    style: renderMode === 'units' ? 'units' : 'grid',
+    zoom: viewState.zoom,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -68,7 +73,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (renderMode === 'grid') url.searchParams.set('mode', 'grid');
+    if (renderMode !== 'dots') url.searchParams.set('mode', renderMode);
     else url.searchParams.delete('mode');
     window.history.replaceState(null, '', url);
   }, [renderMode]);
@@ -87,7 +92,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
 
   const layers: LayersList = [
     ...backgroundLayers,
-    ...(renderMode === 'grid' ? gridLayers : humanLayers),
+    ...(renderMode === 'dots' ? humanLayers : gridLayers),
   ] as LayersList;
 
   return (
@@ -124,6 +129,17 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         year={year}
       />
 
+      {renderMode === 'units' && (
+        <div className="pointer-events-none absolute bottom-20 left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
+          <span className="text-[#ffbe6e]">●</span> band (~30 people){' '}
+          <span className="text-[#ffe1a0]">●</span> village (~300){' '}
+          <span className="text-cyan-300">●</span> town/city density
+          <br />
+          Head counts per ~10 km cell are HYDE estimates. Where bands and villages
+          sit inside a cell is illustrative, not known.
+        </div>
+      )}
+
       {/* View Mode + Terrain toggles */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <VizToggles
@@ -137,11 +153,13 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         {/* Prototype: compare pre-built dot tiles with the raw HYDE grid */}
         <button
           type="button"
-          onClick={() => setRenderMode((m) => (m === 'dots' ? 'grid' : 'dots'))}
+          onClick={() =>
+            setRenderMode((m) => RENDER_MODES[(RENDER_MODES.indexOf(m) + 1) % RENDER_MODES.length])
+          }
           className="rounded bg-black/60 px-2 py-1 text-xs text-white/80 hover:text-white"
-          title="Dots: pre-built dot tiles. Grid: one dot per HYDE cell, from a ~3 MB image."
+          title="Dots: pre-built dot tiles. Grid: one dot per HYDE cell. Units: bands, villages and city glow by density."
         >
-          {renderMode === 'dots' ? 'Dots' : 'Grid'}
+          {RENDER_MODE_LABEL[renderMode]}
         </button>
       </div>
     </div>

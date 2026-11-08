@@ -1,148 +1,51 @@
-# CLAUDE.md
+# Footsteps web frontend
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Next.js 15 App Router + React + TypeScript + deck.gl + Tailwind. The app is a
+static export (`next.config.js`, `output: 'export'`), served by Caddy on budgie.
+Read the root README and `.gent/rules.md` for data acquisition and deployment.
 
-# Footsteps of Time - Web Frontend
+## Rendering and data
 
-## Project Overview
-A living atlas that lets anyone scrub through 100,000 BCE → today and watch humanity spread, cluster, and explode into cities on a single, elegant globe.
-
-## Vision
-Make the vast sweep of human presence instantly graspable by turning dry demographic tables into a visceral, time-lapse journey.
-
-## Core Experience
-1. Land on a globe showing faint clusters at -100k
-2. Drag the slider forward or back or click to scrub through time to see human presence grow and shrink, cities bloom and shrink, and clusters form and dissolve.
-
-## Frontend Architecture (This Repository)
-
-### Tech Stack
-- **Next.js 15** with App Router for the web application
-- **Deck.gl 9.1+** for high-performance 3D globe rendering and data visualization layers
-- **TypeScript** for type safety throughout the frontend
-- **Tailwind CSS** for styling with efficient utility classes
-- **RC-Slider** for time navigation controls
-
-### Key Components
-
-#### FootstepsViz.tsx (Main Visualization Component)
-The core component managing the 3D globe visualization, data loading, and user interactions:
-- **ViewState Management**: Controls globe position, zoom, and orientation
-- **Data Loading & Caching**: Implements smart caching with Map-based storage to prevent duplicate API requests
-- **LOD Integration**: Automatically requests appropriate Level-of-Detail based on zoom level
-- **Performance Optimization**: Memoized layers, throttled zoom updates, progressive rendering limits
-
-#### components/footsteps/ (Feature Modules)
-- **layers/layers.ts**: Layer creation utilities
-  - `createBasemapLayer()`: World geography rendering
-  - `createHumanTilesLayer()`: Population dots via deck.gl `MVTLayer` (vector tiles)
-- **views/**, **overlays/**, **hooks/**: Feature-scoped UI and logic (see `FootstepsViz.tsx` as root)
-
-#### TimeSlider.tsx
-Time navigation component for scrubbing through history with non-linear scaling optimized for the historical span.
-
-#### app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts (Tile API)
-Serves Mapbox Vector Tiles (MVT) points from yearly MBTiles:
-- **Single Layer**: `humans_{year}.mbtiles` with one layer id `humans`; per‑feature minzoom windows map zoom→LOD (0: z0–3, 1: z4, 2: z5, 3: z6+)
-- **MBTiles Access**: Uses `@mapbox/mbtiles` if available; falls back to `sqlite3` CLI
-- **Configurable Path**: `HUMANS_TILES_DIR` env var (default `../data/tiles/humans`)
-- **Caching**: Strong ETag + long‑lived immutable cache headers
-
-##### Tile Caching (GCS → local)
-- GCS tiles are cached to a stable local path for reuse across requests.
-- Env `TILE_CACHE_DIR` controls the cache root (default: `/tmp/humans-tiles-cache`).
-- Cached files are not deleted per-request; only ephemeral `.download` temps are cleaned up.
-- Response header `X-Tile-Cache` indicates `hit` or `refresh`.
-
-### Performance Architecture
-
-#### LOD (Level of Detail) System
-LOD is handled in the tiles via per‑feature minzoom windows so that at each zoom only one LOD is visible and populations are conserved:
-- **LOD 0 – Regional** (z0–3)
-- **LOD 1 – Subregional** (z4)
-- **LOD 2 – Local** (z5)
-- **LOD 3 – Detailed** (z6–12)
-
-#### Frontend Performance Optimizations
-- **Memoized Layers**: Prevents layer recreation on every render using `useMemo()`
-- **Throttled Zoom**: Reduces layer updates during zoom gestures (0.25 precision throttling)
-- **Progressive Rendering**: Hard limit of 35,000 dots for MacBook M3 performance
-- **Smart Caching**: Map-based cache prevents duplicate API requests
-- **Debounced Data Loading**: Extended delays during zoom to prevent API flooding
-- **Viewport Culling**: Server-side spatial filtering reduces data transfer
-
-#### Key Performance Patterns
-```typescript
-// Memoized layers to prevent recreation
-const terrainLayer = useMemo(() => createStaticTerrainLayer(), []);
-
-// Throttled zoom for layer dependencies
-const throttledZoom = useMemo(() => {
-  return Math.floor(viewState.zoom * 4) / 4; // 0.25 precision throttling
-}, [viewState.zoom]);
-
-// Debounced data loading during rapid zoom
-const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const delay = isZooming ? 500 : 150; // Longer delays during zoom
-```
-
-### Data Flow
-1. **User Interaction**: User changes time slider or zooms/pans globe
-2. **Tile Requests**: deck.gl `MVTLayer` fetches `/api/tiles/{year}/single/{z}/{x}/{y}.pbf`
-3. **Decoding + Styling**: `MVTLayer` decodes the `humans` layer and styles by population and radius strategy
-4. **GPU Rendering**: Deck.gl renders dots on the globe
-5. **Caching**: HTTP caching handled per tile; deck.gl manages tile cache
-
-### Relationship to Data Processing Pipeline
-This frontend consumes tiles produced by the Python pipeline in `../footstep-generator/`:
-- **Input Data**: HYDE 3.5 grids, etc.
-- **Tiling**: `make_tiles.py` generates per‑LOD tiles and writes a single‑layer yearly MBTiles with LOD windows
-- **Output**: `data/tiles/humans/humans_{year}.mbtiles` (single layer `humans`)
-- **Serving**: Next.js Tile API serves MVT from MBTiles; `HUMANS_TILES_DIR` can override tiles directory
+- `components/footsteps/FootstepsViz.tsx`: globe composition and mode selection.
+- Units (default) and Grid load `/grid/humans_{year}.png` through
+  `components/footsteps/hooks/useGridLayer.ts`. Fetch/decode promises are cached
+  per year. `components/footsteps/layers/units.ts` builds bands, villages, and glow;
+  in-cell positions are invented and deterministic, not settlement observations.
+- PNGs are produced by `../footstep-generator/grid_image.py` from local HYDE 3.5
+  grids. Keep the log encoding and `MAX_PEOPLE` constant aligned with the decoder.
+- Dots uses PMTiles and HTTP Range requests to `/pmtiles/humans_{year}.pmtiles`
+  in the budgie build. `lib/constants.ts` defines the 30 slider years
+  (10,000 BCE–1900 CE) and nine built Dots years; Dots snaps to the nearest one.
+- `components/ui/TimeSlider.tsx`: time navigation. Derive year assumptions from
+  constants rather than hardcoding counts in tests.
 
 ## Commands
-- **Development**: `pnpm dev` → http://localhost:4444
-- **Build**: `pnpm build`
-- **Lint**: `pnpm lint`
-- **Type Check**: `pnpm build` (includes type checking)
 
-## Development Guidelines
+Run inside `footsteps-web/`:
 
-### Component Architecture
-- Keep globe visualization logic in `FootstepsViz.tsx`
-- Use `components/globe/` for modular, reusable globe features
-- Prefer composition over inheritance for layer management
-- Memoize expensive calculations and layer creations
+```bash
+pnpm install
+pnpm dev                 # port 4444
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test -- --runInBand
+pnpm build               # writes out/
+pnpm e2e                 # Playwright; see playwright.config.ts
+```
 
-### Performance Considerations
-- Always use `useMemo()` for expensive calculations that depend on stable inputs
-- Debounce data loading during rapid view state changes
-- Implement progressive rendering limits based on hardware capabilities
-- Pre-compute values server-side when possible for GPU optimization
+For local data, copy `../data/tiles/grid/humans_*.png` into `public/grid/`, and
+existing `../data/tiles/humans/humans_*.pmtiles` into `public/pmtiles/` for Dots.
+Missing files prevent population rendering. Serve `out/` with a static server for
+production checks; `pnpm start` is not the static-export serving workflow.
 
-### Data Loading Patterns
-- Use Map-based caching to prevent duplicate API requests
-- Generate stable cache keys to avoid unnecessary invalidation
-- Handle loading states gracefully with error boundaries
-- Implement zoom gesture detection to optimize cache behavior
+## Change guidance
 
-### Testing
-- Use `pnpm test` for basic functionality tests
-- Test performance with large datasets (35k+ dots)
-- Verify LOD transitions work smoothly across zoom levels
-- Test caching behavior during rapid user interactions
+Keep view/layer/hook logic in its existing feature modules. Memoize expensive
+population transforms and layer construction. Do not add runtime server routes
+for data already served as static assets. PNGs encode numeric values: preserve
+their pixel bytes. Verify mode switching, slider scrubbing, population totals,
+and zoom behaviour in the browser when changing rendering or data loading.
 
-## Key Files
-- **Main Component**: `components/footsteps/FootstepsViz.tsx`
-- **Tile API**: `app/api/tiles/[year]/single/[z]/[x]/[y]/route.ts`
-- **Layer Logic**: `components/footsteps/layers/layers.ts`
-- **Time Controls**: `components/ui/TimeSlider.tsx`
-
-## Data Processing Context
-The frontend serves as the visualization layer for a larger historical demographics project. Raw HYDE 3.5 data is processed by a Python pipeline that:
-- Converts ASCII grid files to MVT point features
-- Implements hierarchical Level-of-Detail aggregation
-- Validates data using Pydantic V2 models
-- Outputs MBTiles files containing Mapbox Vector Tiles (MVT) for web consumption
-
-For data processing tasks, see the `../footstep-generator/` directory and its own documentation.
+From the repository root, `scripts/deploy-budgie.sh` builds with same-origin data
+URLs and syncs app/grid/PMTiles to budgie. `SKIP_TILES=1` skips PMTiles only.
+`scripts/smoke.sh [base-url]` checks HTML and data signatures, not rendered pixels.

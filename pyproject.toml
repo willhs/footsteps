@@ -4,9 +4,7 @@ version = "0.1.0"
 description = "Data processing pipeline for Globe of Humans visualization"
 authors = ["Deep Footsteps Team"]
 readme = "README.md"
-packages = [
-    { include = "data" }
-]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -28,13 +26,6 @@ isort = "^5.13.0"
 flake8 = "^7.0.0"
 mypy = "^1.8.0"
 pytest = "^8.0.0"
-
-[tool.poetry.scripts]
-hyde-tile-processor = "data.scripts.hyde_tile_processor:main"
-process-cities = "data.scripts.process_cities:main"
-tile-generator = "data.scripts.tile_generator:main"
-generate-footstep-tiles = "data.scripts.generate_footstep_tiles:main"
-verify-tiles = "scripts.verify_tiles_entry:main"
 
 [build-system]
 requires = ["poetry-core"]

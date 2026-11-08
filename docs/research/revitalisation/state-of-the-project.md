@@ -1,12 +1,23 @@
 ---
 title: State of the project — and what revitalising it takes
-status: current
+status: superseded
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-11-09
 owner: agent
 ---
 
 # Footsteps of Time — State of the Project
+
+> **Superseded (2026-11-09).** This is the original outage investigation, not the
+> current operating guide. The app now exports statically to Caddy on budgie
+> (`deploy/budgie`, `scripts/deploy-budgie.sh`), with signature checks in
+> `scripts/smoke.sh`. Units is the default; Units/Grid use per-year HYDE PNGs,
+> while Dots uses PMTiles. The slider now covers 30 years through 1900 CE.
+> Raw HYDE 3.5 is held on the NAS at `/volume2/deep-footsteps`, with local input
+> at `data/raw/hyde-3.5/`; direct download has encountered an Anubis check.
+> README and agent guidance have been refreshed and broken Poetry entry points
+> removed. See [README](../../../README.md) for current setup. This note does
+> not certify that every original remediation below has been completed.
 
 **Verdict: the product is dark.** `https://footsteps.willhs.me` renders a blank screen. Not a degraded
 experience — literally nothing: no population dots, no basemap, `0 people`. It has almost certainly been

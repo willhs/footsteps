@@ -8,16 +8,16 @@ covers 10,000 BCE–1900 CE (30 years); 100,000 BCE–present is aspirational.
 
 - `footsteps-web/`: Next.js 15 static export (`out/`), TypeScript, React, deck.gl,
   Tailwind. No application server in production.
-- Units is the default mode; Grid uses the same per-year population PNGs.
+- Units is the default mode; Grid uses the same per-year population images.
   Dots uses static PMTiles archives and snaps to the nearest built year.
-- `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~3 MB
-  PNG per year in `data/tiles/grid/`. Browser decoding is in
+- `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
+  lossless WebP per year in `data/tiles/grid/`. Browser decoding is in
   `footsteps-web/components/footsteps/hooks/useGridLayer.ts`.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.
 - `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health.
-  `scripts/smoke.sh [base-url]`: HTML and PNG/PMTiles signatures for configured years.
+  `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures for configured years.
 
 ## Data and development
 
@@ -36,7 +36,7 @@ poetry install
 poetry run python footstep-generator/grid_image.py -10000 0 1900
 pnpm --dir footsteps-web install
 mkdir -p footsteps-web/public/grid
-cp data/tiles/grid/humans_*.png footsteps-web/public/grid/
+cp data/tiles/grid/humans_*.webp footsteps-web/public/grid/
 pnpm --dir footsteps-web dev
 ```
 
@@ -58,7 +58,7 @@ Run checks appropriate to changed files before committing:
   Server health alone does not prove population data is present or the globe renders.
 
 For visual changes, use browser checks with real data across Units, Grid, and Dots.
-Keep PNG encoding/decoding constants in sync. Units positions within cells are
+Keep WebP encoding/decoding constants (`LEVELS`, `MAX_PEOPLE`) in sync. Units positions within cells are
 invented, stable representations, not measured settlement locations.
 
 ## Documentation and configuration

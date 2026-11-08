@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createSeaLayer, createContinentsLayer, createTerrainLayer } from '@/components/footsteps/layers';
+import { createSeaLayer, createContinentsLayer, createTerrainLayer } from '@/components/footsteps/layers/backgroundLayers';
 
 const ENABLE_PLAIN_BASEMAP = (process.env.NEXT_PUBLIC_ENABLE_PLAIN_BASEMAP || 'true') === 'true';
 const ENABLE_CONTINENTS = (process.env.NEXT_PUBLIC_ENABLE_CONTINENTS || 'true') === 'true';

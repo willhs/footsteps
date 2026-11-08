@@ -4,10 +4,10 @@ import path from 'path';
 test('Units clicks read the loaded image, including empty cells, without fetching facts', async ({ page }) => {
   test.setTimeout(120_000);
   let gridRequests = 0;
-  await page.route('**/grid/humans_*.png', async route => {
+  await page.route('**/grid/humans_*.webp', async route => {
     gridRequests++;
-    if (route.request().url().includes('humans_-1000.png')) {
-      await route.fulfill({ path: path.join(__dirname, 'fixtures/humans_-1000.png'), contentType: 'image/png' });
+    if (route.request().url().includes('humans_-1000.webp')) {
+      await route.fulfill({ path: path.join(__dirname, 'fixtures/humans_-1000.webp'), contentType: 'image/webp' });
     } else await route.abort();
   });
   await page.goto('/?mode=units&lat=0.5&lon=0.5&zoom=6', { waitUntil: 'domcontentloaded' });
@@ -19,8 +19,8 @@ test('Units clicks read the loaded image, including empty cells, without fetchin
   const box = (await canvas.boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const panel = page.getByRole('region', { name: 'What we know here' });
-  await expect(panel).toContainText('≈ 1,000');
-  await expect(panel).toContainText('≈ 9,000');
+  await expect(panel).toContainText('≈ 997');
+  await expect(panel).toContainText('≈ 8,973');
   await expect(panel).toContainText('village');
   await expect(panel).toContainText('sparse evidence');
   const requestsBefore = gridRequests;

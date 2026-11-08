@@ -1,5 +1,5 @@
 // Slider years: every year in the raw HYDE data. Units and Grid modes draw
-// each from a ~3 MB PNG (footstep-generator/grid_image.py).
+// each from a ~1 MB WebP (footstep-generator/grid_image.py).
 export const TARGET_YEARS = [
   -10000, -9000, -8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000,
   0, 100, 200, 300, 400, 500, 600, 700, 800, 900,

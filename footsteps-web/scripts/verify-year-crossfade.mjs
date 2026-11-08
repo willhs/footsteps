@@ -1,4 +1,4 @@
-// Run against a local app serving all 30 real /grid/humans_<year>.png files:
+// Run against a local app serving all 30 real /grid/humans_<year>.webp files:
 // CROSSFADE_EVIDENCE=/absolute/evidence node scripts/verify-year-crossfade.mjs
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -306,7 +306,7 @@ try {
       const nativeFetch = self.fetch.bind(self);
       self.__delayedFetch = false;
       self.fetch = async (...args) => {
-        if (String(args[0]).includes('/humans_-10000.png')) {
+        if (String(args[0]).includes('/humans_-10000.webp')) {
           self.__delayedFetch = true;
           await new Promise((resolve) => setTimeout(resolve, 1500));
         }
@@ -336,7 +336,7 @@ try {
     const layers = window.__visibleUnits();
     return layers.length === 1 && layers[0].id === 'units--10000';
   });
-  console.log('Previous snapshot remains visible through a delayed PNG fetch');
+  console.log('Previous snapshot remains visible through a delayed image fetch');
   assert.deepEqual(errors, [], 'Browser runtime or WebGL errors');
   report.modeSwitching = true;
   report.delayedFetchRetention = true;

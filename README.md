@@ -12,7 +12,7 @@ it to deep prehistory and the present remains a goal, not available data.
 - **Grid**: one mark per populated HYDE cell, sized by population.
 - **Dots**: prebuilt PMTiles; snaps to the nearest of nine available tile years.
 
-Units and Grid share one approximately 3 MB PNG per year. HYDE 3.5 density grids
+Units and Grid share one lossless WebP per year (about 1 MB; the first view of Units costs roughly 1.5 MB, down from 3.4 MB). HYDE 3.5 density grids
 are the active source; the app does not currently use the Reba city dataset.
 
 ## Local development
@@ -31,7 +31,7 @@ console commands. For Units and Grid, generate the needed years:
 ```bash
 poetry run python footstep-generator/grid_image.py -10000 0 1900
 mkdir -p footsteps-web/public/grid
-cp data/tiles/grid/humans_*.png footsteps-web/public/grid/
+cp data/tiles/grid/humans_*.webp footsteps-web/public/grid/
 pnpm --dir footsteps-web dev
 ```
 
@@ -44,7 +44,7 @@ listed separately in `DOT_TILE_YEARS`. Generated files are not committed.
 ### Cross-fade between years
 
 Units (the default) and Grid blend decoded years over 300 ms. The previous
-snapshot stays visible while the next PNG loads. Rapid scrubbing finishes the
+snapshot stays visible while the next image loads. Rapid scrubbing finishes the
 active blend, then takes the latest decoded year, keeping at most two datasets
 on the GPU. Seeded bands that persist stay in place and retain their brightness.
 The nearest earlier and later years are fetched, decoded and prepared in a Web
@@ -60,7 +60,7 @@ The shader interpolates each mark's colour and radius; persistent bands are draw
 once at full brightness, while only gained or lost marks fade. Compact unit
 endpoints stay in the worker's four-year cache; the UI caches five decoded grids.
 
-To verify transitions with the real data, serve all 30 generated PNGs from
+To verify transitions with the real data, serve all 30 generated images from
 `footsteps-web/public/grid/` (for example, symlink it to `data/tiles/grid/`). With
 the app running on port 4444, run from `footsteps-web/`:
 
@@ -86,10 +86,11 @@ rather than assuming automated acquisition works. The NAS location and download
 block are operational context, not verified by a local checkout.
 
 `footstep-generator/grid_image.py` converts density to people per cell using
-latitude-dependent cell areas, then encodes population logarithmically into the
-PNG's red/green channels. Output: `data/tiles/grid/humans_{year}.png`. These are
-data images: do not resize, recolour, or optimise them with a lossy image tool.
-The browser decodes them in `useGridLayer.ts`; encoding constants must match.
+latitude-dependent cell areas, then encodes population logarithmically (1023 levels, within ±0.76% per cell) into the
+WebP's red/green channels. Output: `data/tiles/grid/humans_{year}.webp`. These are
+data images: do not resize, recolour, or re-encode them with a lossy image tool.
+The browser decodes them in `gridData.ts`; encoding constants must match.
+`python3 footstep-generator/grid_image.py --verify YEAR…` checks them against the ASCs.
 The older dot-generation scripts remain in `footstep-generator/`; they are not
 needed to generate Units/Grid images.
 
@@ -98,7 +99,7 @@ needed to generate Units/Grid images.
 - `footsteps-web/`: Next.js 15 App Router, React, TypeScript, deck.gl, Tailwind CSS.
   `next.config.js` uses `output: 'export'`; `pnpm build` writes `out/`.
 - `components/footsteps/FootstepsViz.tsx`: view selection and globe composition.
-- `components/footsteps/hooks/useGridLayer.ts`: fetch/decode/cache of `/grid/humans_{year}.png`.
+- `components/footsteps/hooks/useGridLayer.ts`: fetch/decode/cache of `/grid/humans_{year}.webp`.
 - `components/footsteps/layers/units.ts`: deterministic band/village/glow construction.
 - `footstep-generator/`: Python processing and tests.
 - `deploy/budgie/`: Caddy configuration and Docker Compose for static hosting.

@@ -83,7 +83,7 @@ beforeAll(() => {
       return {
         drawImage() {},
         getImageData: () => ({
-          data: new Uint8ClampedArray([60, 0, 0, 255, 80, 0, 0, 255]),
+          data: new Uint8ClampedArray([0, 242, 0, 255, 1, 63, 0, 255]),
         }),
       };
     }
@@ -142,7 +142,7 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
   expect(layer().props.id).toBe('units-0');
   expect(layer().props.opacity).toBe(1);
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(
-    expect.arrayContaining(['/grid/humans_-1000.png', '/grid/humans_100.png']),
+    expect.arrayContaining(['/grid/humans_-1000.webp', '/grid/humans_100.webp']),
   );
   const initialData = layer().props.data;
   jest.useFakeTimers();

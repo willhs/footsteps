@@ -1,6 +1,9 @@
 import { buildUnits, type Units } from '../layers/units';
 
-const MAX_PEOPLE = 5_000_000; // must match grid_image.py
+// Both must match grid_image.py: level 0 is "no people", level q > 0 is
+// expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
+const MAX_PEOPLE = 5_000_000;
+const LEVELS = 1023;
 const LOG_MAX = Math.log1p(MAX_PEOPLE);
 export const UNIT_MIN_PX = [0.35, 0.6, 1.4];
 export const BAND_ALPHA = [60, 110, 200];
@@ -33,7 +36,7 @@ export type YearGrid = {
 export type DecodedYearGrid = YearGrid & { units: Units };
 
 export function gridUrl(year: number) {
-  return `/grid/humans_${year}.png`;
+  return `/grid/humans_${year}.webp`;
 }
 
 function points(
@@ -104,7 +107,7 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
       const offset = (row * w + col) * 4;
       const value = (px[offset] << 8) | px[offset + 1];
       if (!value) continue;
-      const population = Math.expm1((value / 65535) * LOG_MAX);
+      const population = Math.expm1((value / LEVELS) * LOG_MAX);
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;

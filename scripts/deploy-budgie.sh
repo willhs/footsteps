@@ -12,8 +12,10 @@ TILES_DIR="${TILES_DIR:-$ROOT/data/tiles/humans}"
 # Data-only publishing preserves other years and the existing population grids.
 sync_grid() {
   ssh "$REMOTE" "mkdir -p $DEST/app/grid"
-  rsync -az --include='humans_*.png' --include='landuse_*.png' --exclude='*' \
+  rsync -az --include='humans_*.webp' --include='landuse_*.png' --exclude='*' \
     "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
+  # Population images used to be PNGs; drop the superseded ones.
+  ssh "$REMOTE" "rm -f $DEST/app/grid/humans_*.png"
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid
@@ -26,7 +28,7 @@ fi
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
-# Grid mode: one ~3 MB PNG per year (footstep-generator/grid_image.py)
+# Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then
   rsync -az --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"

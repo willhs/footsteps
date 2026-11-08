@@ -7,12 +7,12 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
 ## Rendering and data
 
 - `components/footsteps/FootstepsViz.tsx`: globe composition and mode selection.
-- Units (default) and Grid load `/grid/humans_{year}.png` through
+- Units (default) and Grid load `/grid/humans_{year}.webp` through
   `components/footsteps/hooks/useGridLayer.ts`. Fetch/decode promises are cached
   per year. `components/footsteps/layers/units.ts` builds bands, villages, and glow;
   in-cell positions are invented and deterministic, not settlement observations.
-- PNGs are produced by `../footstep-generator/grid_image.py` from local HYDE 3.5
-  grids. Keep the log encoding and `MAX_PEOPLE` constant aligned with the decoder.
+- The WebPs are produced by `../footstep-generator/grid_image.py` from local HYDE 3.5
+  grids. Keep the log encoding, `LEVELS` and `MAX_PEOPLE` aligned with `gridData.ts`.
 - Dots uses PMTiles and HTTP Range requests to `/pmtiles/humans_{year}.pmtiles`
   in the budgie build. `lib/constants.ts` defines the 30 slider years
   (10,000 BCE–1900 CE) and nine built Dots years; Dots snaps to the nearest one.
@@ -33,7 +33,7 @@ pnpm build               # writes out/
 pnpm e2e                 # Playwright; see playwright.config.ts
 ```
 
-For local data, copy `../data/tiles/grid/humans_*.png` into `public/grid/`, and
+For local data, copy `../data/tiles/grid/humans_*.webp` into `public/grid/`, and
 existing `../data/tiles/humans/humans_*.pmtiles` into `public/pmtiles/` for Dots.
 Missing files prevent population rendering. Serve `out/` with a static server for
 production checks; `pnpm start` is not the static-export serving workflow.
@@ -42,8 +42,8 @@ production checks; `pnpm start` is not the static-export serving workflow.
 
 Keep view/layer/hook logic in its existing feature modules. Memoize expensive
 population transforms and layer construction. Do not add runtime server routes
-for data already served as static assets. PNGs encode numeric values: preserve
-their pixel bytes. Verify mode switching, slider scrubbing, population totals,
+for data already served as static assets. The images encode numeric values: preserve
+their pixels (lossless only). Verify mode switching, slider scrubbing, population totals,
 and zoom behaviour in the browser when changing rendering or data loading.
 
 From the repository root, `scripts/deploy-budgie.sh` builds with same-origin data

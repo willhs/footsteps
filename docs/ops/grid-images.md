@@ -7,16 +7,25 @@ purpose: "Define population and land-use grid PNG encodings and publication chec
 # Grid images
 
 `footstep-generator/grid_image.py` reads ASCs from `data/raw/hyde-3.5/`
-and writes PNGs to `data/tiles/grid/`. Both directories are gitignored.
+and writes images to `data/tiles/grid/`. Both directories are gitignored.
 Each image is 4320 × 2160, one pixel per 5 arc-minute HYDE cell, north to
-south and west to east, starting at 90N / 180W. There is no alpha channel.
-Use decoded bytes directly, without colour correction or lossy resizing.
+south and west to east, starting at 90N / 180W. Use decoded bytes directly,
+without colour correction or lossy resizing.
 
-Population (`humans_{year}.png`): compute people = density × spherical cell
-area in km² (Earth radius 6371.0088 km). Encode
-`v = round(log1p(people) / log1p(5000000) * 65535)`, clipped to uint16;
-R is the high byte, G the low byte, B zero. Decode with
-`expm1((256*R+G) / 65535 * log1p(5000000))`. Negative source values become zero.
+Population (`humans_{year}.webp`, lossless WebP, RGB): compute
+people = density × spherical cell area in km² (Earth radius 6371.0088 km).
+Encode level `q = round(log1p(people) / log1p(5000000) * 1023)`, clipped to
+1..1023 where people > 0 and 0 where there are none. R is the high byte of `q`,
+G the low byte, B zero. Decode with `expm1((256*R+G) / 1023 * log1p(5000000))`
+(zero stays zero). Negative source values become zero.
+
+Why 1023 levels, not 65535: the 16-bit PNGs were ~3 MB each because their low
+byte was noise. Lossless WebP alone only reaches ~75% of that (2.2 MB for year 0);
+1023 levels give ~35% (about 1 MB) with every cell within ±0.76% of HYDE
+(cells under 0.008 people round up to the first level, ~0.015 people). A year's
+decoded total is within 3×10⁻⁴ of the HYDE total (worst
+year measured in `docs/log.md`). `--verify` checks all of this per pixel.
+HYDE's own uncertainty is orders of magnitude larger. Land use below is unchanged.
 
 Land use (`landuse_{year}.png`): R = `cropland`, G = `grazing`,
 B = `tot_irri`. HYDE inputs are **km² per cell**, not percentages.
@@ -41,6 +50,9 @@ rsync -az --include='cropland*.asc' --include='grazing*.asc' --include='tot_irri
 YEARS=$(sed -n '/TARGET_YEARS = \[/,/\];/p' footsteps-web/lib/constants.ts | grep -v '//' | grep -oE -- '-?[0-9]+')
 python3 footstep-generator/grid_image.py --landuse $YEARS
 python3 footstep-generator/grid_image.py --landuse --verify $YEARS
+# Population images (needs popd_*.asc too):
+python3 footstep-generator/grid_image.py $YEARS
+python3 footstep-generator/grid_image.py --verify $YEARS
 ```
 
 Run these commands in bash (zsh does not split `$YEARS`). Dependencies: NumPy
@@ -55,9 +67,9 @@ GRID_ONLY=1 scripts/deploy-budgie.sh
 scripts/smoke.sh https://footsteps.willhs.me
 ```
 
-The regular deploy also syncs both PNG types. Grid publishing adds/updates
-generated images without deleting existing years or population images; this
-allows a land-use-only checkout to publish safely. Caddy serves the files at
-`https://footsteps.willhs.me/grid/landuse_{year}.png`. Smoke checks full PNG
-signatures for all 30 population and land-use images, plus the existing PMTiles
-and app checks. The client does not consume land-use images yet.
+The regular deploy also syncs both image types. Grid publishing adds/updates
+generated images without deleting existing years; superseded `humans_*.png` are
+removed after sync. This allows a land-use-only checkout to publish safely.
+Caddy serves the files at `https://footsteps.willhs.me/grid/` with a one-day cache. Smoke checks file
+signatures (WebP/PNG) for all 30 population and land-use images, plus the
+existing PMTiles and app checks. The client does not consume land-use images yet.

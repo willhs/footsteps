@@ -1,12 +1,17 @@
 'use client';
 import { getLODLevel } from '@/lib/lod';
-import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
 import type { LayersList } from '@deck.gl/core';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TooltipData } from '@/components/footsteps/overlays/TooltipOverlay';
 
+// PMTiles, the MVT loader and the tile-metrics worker are only needed for Dots
+// mode, so they load on first use instead of weighing down the default view.
+type HumanLayerFactory =
+  typeof import('@/components/footsteps/layers/humanLayer').createHumanLayerFactory;
+
 interface UseHumanLayersProps {
+  enabled: boolean;
   year: number;
   is3DMode: boolean;
   viewState: { zoom: number };
@@ -21,6 +26,7 @@ interface UseHumanLayersProps {
 }
 
 export default function useHumanLayers({
+  enabled,
   year,
   is3DMode,
   viewState,
@@ -34,13 +40,30 @@ export default function useHumanLayers({
   setTooltipData,
 }: UseHumanLayersProps) {
   const newLayerHasTileRef = useRef(false);
+  const [createFactory, setCreateFactory] = useState<{
+    create: HumanLayerFactory;
+  } | null>(null);
+  useEffect(() => {
+    if (!enabled || createFactory) return;
+    let live = true;
+    import('@/components/footsteps/layers/humanLayer')
+      .then((module) => {
+        if (live) setCreateFactory({ create: module.createHumanLayerFactory });
+      })
+      .catch((error) => console.warn('[dots] failed to load', error));
+    return () => {
+      live = false;
+    };
+  }, [enabled, createFactory]);
 
   const roundedZoom = Math.floor(viewState.zoom);
   const stableLODLevel = getLODLevel(roundedZoom);
 
   const layerViewState = viewState;
 
-  const createHumanLayerForYear = createHumanLayerFactory({
+  if (!enabled || !createFactory) return { layers: [], stableLODLevel } as const;
+
+  const createHumanLayerForYear = createFactory.create({
     is3DMode,
     layerViewState,
     isZooming,

@@ -1,4 +1,5 @@
-"""Exercise source ASC -> RGB PNG -> source verification and population compatibility."""
+"""Exercise source ASC -> RGB image -> source verification for population and land use."""
+import math
 import sys
 from pathlib import Path
 
@@ -70,14 +71,44 @@ def test_missing_channel_fails(sources):
         grid.encode_landuse(-1000)
 
 
-def test_population_encoding_unchanged(sources):
-    sources("popd_0AD.asc", [[-9999, 0], [1, 2]])
+def test_population_webp_levels_and_decode(sources):
+    sources("popd_0AD.asc", [[-9999, 0], [1, 1e-12]])
+    path = grid.encode(0)
+    assert path.name == "humans_0.webp"
+    with Image.open(path) as image:
+        assert image.format == "WEBP" and image.mode == "RGB"
+        pixels = np.array(image)
+    assert pixels[0].tolist() == [[0, 0, 0], [0, 0, 0]]  # nodata and zero: no people
+    # Spherical 1-degree cell from 0N to 1N holds 12363.718 people at density 1.
+    expected = round(math.log1p(12363.718145) / math.log1p(5_000_000) * 1023)
+    assert pixels[1, 0].tolist() == [expected >> 8, expected & 255, 0]
+    assert pixels[1, 1].tolist() == [0, 1, 0]  # populated, however tiny: first level
+    people = grid.decode(path)
+    assert people[0].tolist() == [0, 0]
+    assert people[1, 0] == pytest.approx(12363.718145, rel=0.0077)
+    grid.verify(0, rtol=0.0077)  # two cells only: no averaging across thousands
+
+
+def test_population_decode_matches_browser_constants():
+    # gridData.ts decodes expm1(value / 1023 * log1p(5e6)); level 0 is empty.
+    levels = np.array([0, 1, 512, 1023], dtype=np.uint16)
+    assert grid.dequantise(levels).tolist() == pytest.approx(
+        [0, math.expm1(math.log1p(5e6) / 1023), math.expm1(512 / 1023 * math.log1p(5e6)), 5e6]
+    )
+
+
+def test_population_verify_catches_a_wrong_cell_and_a_missing_cell(sources):
+    sources("popd_0AD.asc", [[0, 0], [1, 2]])
     path = grid.encode(0)
     with Image.open(path) as image:
         pixels = np.array(image)
-    assert path.name == "humans_0.png"
-    assert pixels[0].tolist() == [[0, 0, 0], [0, 0, 0]]
-    encoded = pixels[1, :, 0].astype(int) * 256 + pixels[1, :, 1]
-    people = np.expm1(encoded / 65535 * np.log1p(5_000_000))
-    assert people == pytest.approx([12363.718145, 24727.436290], rel=0.00012)
-    assert pixels[..., 2].tolist() == [[0, 0], [0, 0]]
+    bad = pixels.copy()
+    bad[1, 0, 1] += 3  # three levels off, ~9%
+    Image.fromarray(bad).save(path, lossless=True)
+    with pytest.raises(ValueError, match="more than half a level"):
+        grid.verify(0)
+    bad = pixels.copy()
+    bad[0, 0, 1] = 1  # a cell with people where the source has none
+    Image.fromarray(bad).save(path, lossless=True)
+    with pytest.raises(ValueError, match="populated cells differ"):
+        grid.verify(0)

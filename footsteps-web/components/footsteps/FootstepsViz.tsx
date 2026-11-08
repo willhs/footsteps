@@ -52,6 +52,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers();
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
+    enabled: renderMode === 'dots',
     year: nearestDotTileYear(year),
     is3DMode,
     viewState,

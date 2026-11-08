@@ -1,78 +1,22 @@
-// Grid mode: draw HYDE cells straight from a small per-year PNG
-// (footstep-generator/grid_image.py) instead of pre-built dot tiles.
-// One dot per populated ~10 km cell, sized by people; ~3 MB per year.
-import { useEffect, useMemo, useState } from 'react';
-import { ScatterplotLayer } from '@deck.gl/layers';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
-import { buildUnits, UnitKind, type Units } from '@/components/footsteps/layers/units';
+import { TARGET_YEARS } from '@/lib/constants';
+import { type GridData, type PointBuffers, type YearGrid } from './gridData';
+import { loadGrid, loadUnitMorph } from './gridLoader';
+import type { MorphPoints } from './unitMorph';
+import useYearCrossfade from './useYearCrossfade';
+import GridYearLayer from '../layers/GridYearLayer';
 
-const MAX_PEOPLE = 5_000_000; // must match grid_image.py
-const LOG_MAX = Math.log1p(MAX_PEOPLE);
-
-export type GridData = {
-  length: number;
-  positions: Float32Array; // lon, lat pairs
-  people: Float32Array;
-  cellIds: Uint32Array; // row * width + col, stable across years
-  cellDeg: number;
-  total: number;
-};
-
+export { gridUrl, type GridData, type YearGrid } from './gridData';
+export { loadGrid } from './gridLoader';
 export type GridStyle = 'grid' | 'units';
-
-const cache = new Map<number, Promise<GridData>>();
-
-export function gridUrl(year: number) {
-  return `/grid/humans_${year}.png`;
-}
-
-async function decodeGrid(year: number): Promise<GridData> {
-  const blob = await (await fetch(gridUrl(year))).blob();
-  const bmp = await createImageBitmap(blob, {
-    colorSpaceConversion: 'none',
-    premultiplyAlpha: 'none',
-  });
-  const canvas = new OffscreenCanvas(bmp.width, bmp.height);
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(bmp, 0, 0);
-  const px = ctx.getImageData(0, 0, bmp.width, bmp.height).data;
-  const w = bmp.width;
-  const h = bmp.height;
-  const cell = 360 / w;
-
-  let n = 0;
-  for (let i = 0; i < w * h; i++) if (px[i * 4] | px[i * 4 + 1]) n++;
-  const positions = new Float32Array(n * 2);
-  const people = new Float32Array(n);
-  const cellIds = new Uint32Array(n);
-  let k = 0;
-  let total = 0;
-  for (let row = 0; row < h; row++) {
-    for (let col = 0; col < w; col++) {
-      const o = (row * w + col) * 4;
-      const v = (px[o] << 8) | px[o + 1];
-      if (!v) continue;
-      const p = Math.expm1((v / 65535) * LOG_MAX);
-      positions[k * 2] = -180 + (col + 0.5) * cell;
-      positions[k * 2 + 1] = 90 - (row + 0.5) * cell;
-      people[k] = p;
-      cellIds[k] = row * w + col;
-      total += p;
-      k++;
-    }
-  }
-  return { length: n, positions, people, cellIds, cellDeg: cell, total };
-}
-
-export function loadGrid(year: number) {
-  let p = cache.get(year);
-  if (!p) {
-    p = decodeGrid(year);
-    p.catch(() => cache.delete(year));
-    cache.set(year, p);
-  }
-  return p;
-}
+type Scene = {
+  year: number;
+  fromYear: number;
+  data: PointBuffers | MorphPoints;
+  style: GridStyle;
+  zoomBucket: number;
+};
 
 export default function useGridLayer({
   year,
@@ -90,122 +34,171 @@ export default function useGridLayer({
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
-}) {
-  const [grid, setGrid] = useState<{ year: number; data: GridData } | null>(null);
+}): { layers: LayersList; grid: GridData | null } {
+  const [grid, setGrid] = useState<YearGrid | null>(null);
+  const [scene, setScene] = useState<Scene | null>(null);
+  const [ready, setReady] = useState<Scene | null>(null);
+  const frames = useYearCrossfade(ready, enabled);
+  const zoomBucket = style === 'grid' ? 0 : zoom < 3 ? 0 : zoom < 5 ? 1 : 2;
+  const target = useRef(scene);
+  target.current =
+    scene?.year === year &&
+    scene.style === style &&
+    scene.zoomBucket === zoomBucket
+      ? scene
+      : null;
+  useEffect(() => {
+    if (!enabled) {
+      setReady(null);
+      setScene(null);
+    }
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
     let live = true;
+    setMetricsLoading(true);
     loadGrid(year)
-      .then((data) => {
+      .then((snapshot) => {
         if (!live) return;
-        setGrid({ year, data });
-        setTotalPopulation(data.total);
+        setGrid(snapshot);
+        setTotalPopulation(snapshot.data.total);
+        setFeatureCount(
+          style === 'units' ? snapshot.units.length : snapshot.data.length,
+        );
         setMetricsLoading(false);
+        const index = TARGET_YEARS.indexOf(year);
+        for (const neighbour of [
+          TARGET_YEARS[index - 1],
+          TARGET_YEARS[index + 1],
+        ]) {
+          if (neighbour !== undefined)
+            void loadGrid(neighbour).catch((error) =>
+              console.warn('[grid] prefetch failed', neighbour, error),
+            );
+        }
       })
-      .catch((e) => console.warn('[grid] failed to load', year, e));
+      .catch((error) => {
+        if (live) {
+          setMetricsLoading(false);
+          console.warn('[grid] failed to load', year, error);
+        }
+      });
     return () => {
       live = false;
     };
-  }, [year, enabled, setFeatureCount, setTotalPopulation, setMetricsLoading]);
+  }, [
+    year,
+    enabled,
+    style,
+    setFeatureCount,
+    setTotalPopulation,
+    setMetricsLoading,
+  ]);
 
-  const units = useMemo<Units | null>(
+  // Prepare a union against the year that will actually precede it. A queued
+  // request waits for the active fade, so rapid reversal cannot use stale endpoints.
+  useEffect(() => {
+    if (!enabled || !grid || grid.year !== year || frames.length === 2) return;
+    if (
+      grid.year === ready?.year &&
+      style === ready.style &&
+      zoomBucket === ready.zoomBucket
+    )
+      return;
+    let live = true;
+    const fromYear = ready?.year ?? grid.year;
+    const data =
+      style === 'units'
+        ? loadUnitMorph(fromYear, grid.year, zoomBucket)
+        : Promise.resolve(grid.gridPoints);
+    data
+      .then((data) => {
+        if (live)
+          setScene({ year: grid.year, fromYear, data, style, zoomBucket });
+      })
+      .catch((error) => {
+        if (live) console.warn('[grid] failed to prepare transition', error);
+      });
+    return () => {
+      live = false;
+    };
+  }, [
+    enabled,
+    year,
+    grid,
+    ready?.year,
+    ready?.style,
+    ready?.zoomBucket,
+    frames.length,
+    style,
+    zoomBucket,
+  ]);
+
+  const first = frames[0]?.snapshot;
+  const second = frames[1]?.snapshot;
+  const staging =
+    scene !== ready &&
+    target.current === scene &&
+    frames.length < 2 &&
+    scene?.fromYear === (ready?.year ?? scene?.year)
+      ? scene
+      : null;
+  const layers = useMemo(
     () =>
-      enabled && grid && style === 'units'
-        ? buildUnits(grid.data.cellIds, grid.data.positions, grid.data.people, grid.data.cellDeg)
-        : null,
-    [enabled, grid, style],
+      [first, second, staging, ready]
+        .filter(
+          (snapshot, index, snapshots) =>
+            snapshot && snapshots.indexOf(snapshot) === index,
+        )
+        .flatMap((snapshot) =>
+          snapshot
+            ? [
+                {
+                  snapshot,
+                  layer: new GridYearLayer({
+                    id: `${snapshot.style}-${snapshot.year}${snapshot.zoomBucket ? `/zoom-${snapshot.zoomBucket}` : ''}`,
+                    data: snapshot.data,
+                    units: snapshot.style === 'units',
+                    morph: snapshot.style === 'units',
+                    year: snapshot.year,
+                    fromYear: snapshot.fromYear,
+                    zoomBucket: snapshot.zoomBucket,
+                    onReady: () => {
+                      if (target.current === snapshot) setReady(snapshot);
+                    },
+                  }),
+                },
+              ]
+            : [],
+        ),
+    [first, second, staging, ready],
   );
 
-  useEffect(() => {
-    if (!enabled || !grid) return;
-    setFeatureCount(units ? units.length : grid.data.length);
-    if (units && process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true') {
-      console.log('[units]', grid.year, { bands: units.counts[0], villages: units.counts[1], glows: units.counts[2] });
-    }
-  }, [enabled, grid, units, setFeatureCount]);
-
-  // Far out, units are faint specks so density shows through overlap;
-  // closer in, each band or village is a visible mark.
-  // A ~10 km cell is ~0.06 * 2^zoom px wide, so marks only get a real size
-  // once cells are a few pixels apart (zoom ~5+).
-  const zoomBucket = zoom < 3 ? 0 : zoom < 5 ? 1 : 2;
-
-  const layers = useMemo(() => {
-    if (!enabled || !grid) return [];
-    const { data } = grid;
-    if (units) return unitLayers(grid.year, units, zoomBucket);
-    return [
-      new ScatterplotLayer({
-        id: `grid-${grid.year}`,
-        data: {
-          length: data.length,
-          attributes: {
-            getPosition: { value: data.positions, size: 2 },
-          },
-        },
-        // Area grows with people: ~300 m for 100 people, ~10 km for 100k.
-        getRadius: (_: unknown, { index }: { index: number }) =>
-          Math.min(Math.sqrt(data.people[index]) * 30, 25_000),
-        getFillColor: (_: unknown, { index }: { index: number }) => {
-          // Sparse cells (a few foragers) stay faint; dense ones glow.
-          const t = Math.min(Math.log1p(data.people[index]) / Math.log1p(1_000_000), 1);
-          return [0, 220, 255, Math.round(12 + 243 * t * t * t)];
-        },
-        radiusUnits: 'meters',
-        radiusMinPixels: 0.5,
-        stroked: false,
-        pickable: false,
-        parameters: { depthTest: false },
-      }),
-    ] as LayersList;
-  }, [enabled, grid, units, zoomBucket]);
-  return { layers, grid: enabled && grid?.year === year ? grid.data : null };
-}
-
-// Bands and villages are fixed-size marks (a group is a group, however many
-// there are); only the glow cells scale with people. Warm colour for the
-// invented placements, cyan for the measured density glow.
-const UNIT_MIN_PX = [0.35, 0.6, 1.4];
-const BAND_ALPHA = [60, 110, 200];
-const VILLAGE_ALPHA = [35, 60, 150];
-
-function unitLayers(year: number, u: Units, zb: number): LayersList {
-  return [
-    new ScatterplotLayer({
-      id: `units-${year}`,
-      data: {
-        length: u.length,
-        attributes: { getPosition: { value: u.positions, size: 2 } },
-      },
-      getRadius: (_: unknown, { index }: { index: number }) => {
-        const k = u.kind[index];
-        if (k === UnitKind.Band) return 600;
-        if (k === UnitKind.Village) return 1500;
-        return Math.min(Math.sqrt(u.people[index]) * 45, 30_000);
-      },
-      getFillColor: (_: unknown, { index }: { index: number }) => {
-        const k = u.kind[index];
-        if (k === UnitKind.Band) return [255, 190, 110, BAND_ALPHA[zb]];
-        if (k === UnitKind.Village) return [255, 225, 160, VILLAGE_ALPHA[zb]];
-        const t = Math.min(Math.log1p(u.people[index]) / Math.log1p(1_000_000), 1);
-        return [60, 230, 255, Math.round(140 + 115 * t)];
-      },
-      radiusUnits: 'meters',
-      radiusMinPixels: UNIT_MIN_PX[zb],
-      updateTriggers: { getFillColor: zb },
-      stroked: false,
-      pickable: true,
-      // Additive: overlapping marks brighten like night lights instead of
-      // stacking into a flat fill.
-      parameters: {
-        depthTest: false,
-        blend: true,
-        blendColorSrcFactor: 'src-alpha',
-        blendColorDstFactor: 'one',
-        blendAlphaSrcFactor: 'one',
-        blendAlphaDstFactor: 'one',
-      },
-    }),
-  ] as LayersList;
+  const layerList = useMemo(
+    () =>
+      enabled
+        ? layers.map(({ snapshot, layer }) => {
+            const frame = frames.find((frame) => frame.snapshot === snapshot);
+            // The incoming union already contains the outgoing marks. Draw it alone;
+            // persistent bands retain full alpha while only gains/losses fade.
+            const modeChanged = second && first?.style !== second.style;
+            const superseded =
+              (second?.style === 'units' || modeChanged) && snapshot !== second;
+            return layer.clone({
+              opacity: frame
+                ? modeChanged
+                  ? 1
+                  : Math.pow(frame.opacity, 2.2)
+                : 0,
+              visible: !!frame && !superseded,
+            });
+          })
+        : [],
+    [enabled, layers, frames, first, second],
+  );
+  return {
+    layers: layerList,
+    grid: enabled && grid?.year === year ? grid.data : null,
+  };
 }

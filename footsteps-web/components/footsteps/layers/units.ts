@@ -18,6 +18,7 @@ export type Units = {
   positions: Float32Array; // lon, lat
   people: Float32Array; // people this unit stands for
   kind: Uint8Array;
+  ids: Uint32Array; // cell * 32 + kind slot + ordinal; sorted for decoded grids
   counts: [bands: number, villages: number, glows: number];
 };
 
@@ -58,7 +59,10 @@ export function buildUnits(
       count = Math.floor(x) + (r < x - Math.floor(x) ? 1 : 0);
     } else {
       k = UnitKind.Village;
-      count = Math.min(MAX_VILLAGES_PER_CELL, Math.max(1, Math.round(p / VILLAGE_SIZE)));
+      count = Math.min(
+        MAX_VILLAGES_PER_CELL,
+        Math.max(1, Math.round(p / VILLAGE_SIZE)),
+      );
     }
     per[i] = count;
     kinds[i] = k;
@@ -71,6 +75,7 @@ export function buildUnits(
     positions: new Float32Array(total * 2),
     people: new Float32Array(total),
     kind: new Uint8Array(total),
+    ids: new Uint32Array(total),
     counts: [0, 0, 0],
   };
   let j = 0;
@@ -88,6 +93,10 @@ export function buildUnits(
       out.positions[j * 2 + 1] = lat + (rand() - 0.5) * cellDeg * jitter;
       out.people[j] = share;
       out.kind[j] = k;
+      out.ids[j] =
+        cellIds[i] * 32 +
+        (k === UnitKind.Band ? 0 : k === UnitKind.Village ? 20 : 24) +
+        c;
       out.counts[k]++;
       j++;
     }

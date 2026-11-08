@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { getLODLevel } from '@/lib/lod';
 import { createSeaLayer, createContinentsLayer, createTerrainLayer } from '@/components/footsteps/layers';
@@ -10,7 +10,6 @@ import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import PopulationTooltip from '@/components/footsteps/overlays/PopulationTooltip';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
-import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
 import { useInterpolation } from '@/components/footsteps/hooks/useInterpolation';
 import VizToggles from '@/components/ui/VizToggles';
 import { type ColorScheme } from '@/components/footsteps/layers/color';
@@ -57,9 +56,7 @@ function FootstepsVizWithInterpolation({
     interpolationThreshold,
   });
 
-  // Use year crossfade hook for non-interpolated transitions
-  const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
-    useYearCrossfade(enableInterpolation ? currentDisplayYear : year);
+  const newLayerHasTileRef = useRef(false);
 
   useEffect(() => {
     setViewMode(is3DMode);
@@ -128,37 +125,23 @@ function FootstepsVizWithInterpolation({
     ],
   );
 
-  // Always use traditional crossfade approach (interpolation removed)
+  // Tile years retain their existing immediate replacement behavior.
   const layers: LayersList = useMemo(() => {
     const baseLayers = [...backgroundLayers];
     const currentYearLayer = createHumanLayerForYear(
       currentDisplayYear,
       stableLODLevel,
-      currentOpacity,
+      1,
       `human-layer-current-${colorScheme}`,
       true,
     );
-    const previousYearLayer = previousYear !== null
-      ? createHumanLayerForYear(
-          previousYear as number,
-          stableLODLevel,
-          previousOpacity,
-          `human-layer-previous-${colorScheme}`,
-          false,
-        )
-      : null;
-    return previousYearLayer
-      ? ([...baseLayers, previousYearLayer, currentYearLayer] as LayersList)
-      : ([...baseLayers, currentYearLayer] as LayersList);
+    return [...baseLayers, currentYearLayer];
   }, [
     backgroundLayers,
     colorScheme,
     currentDisplayYear,
     createHumanLayerForYear,
     stableLODLevel,
-    currentOpacity,
-    previousYear,
-    previousOpacity,
   ]);
 
   // Debug logging

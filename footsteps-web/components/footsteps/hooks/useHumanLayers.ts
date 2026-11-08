@@ -3,7 +3,7 @@ import { getLODLevel } from '@/lib/lod';
 import { createHumanLayerFactory } from '@/components/footsteps/layers';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
 import type { LayersList } from '@deck.gl/core';
-import useYearCrossfade from '@/components/footsteps/hooks/useYearCrossfade';
+import { useRef } from 'react';
 import type { TooltipData } from '@/components/footsteps/overlays/TooltipOverlay';
 
 interface UseHumanLayersProps {
@@ -33,8 +33,7 @@ export default function useHumanLayers({
   setTotalPopulation,
   setTooltipData,
 }: UseHumanLayersProps) {
-  const { previousYear, currentOpacity, previousOpacity, newLayerHasTileRef } =
-    useYearCrossfade(year);
+  const newLayerHasTileRef = useRef(false);
 
   const roundedZoom = Math.floor(viewState.zoom);
   const stableLODLevel = getLODLevel(roundedZoom);
@@ -62,25 +61,12 @@ export default function useHumanLayers({
   const currentYearLayer = createHumanLayerForYear(
     year,
     stableLODLevel,
-    currentOpacity,
+    1,
     `human-layer-current-${colorScheme}`,
     true,
   );
 
-  const previousYearLayer =
-    previousYear !== null
-      ? createHumanLayerForYear(
-          previousYear as number,
-          stableLODLevel,
-          previousOpacity,
-          `human-layer-previous-${colorScheme}`,
-          false,
-        )
-      : null;
-
-  const layers: LayersList = previousYearLayer
-    ? ([previousYearLayer, currentYearLayer] as LayersList)
-    : ([currentYearLayer] as LayersList);
+  const layers: LayersList = [currentYearLayer];
 
   return { layers, stableLODLevel } as const;
 }

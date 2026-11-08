@@ -41,6 +41,39 @@ For local Dots mode, copy existing `humans_*.pmtiles` archives from
 `data/tiles/humans/` into `footsteps-web/public/pmtiles/`. Required Dots years are
 listed separately in `DOT_TILE_YEARS`. Generated files are not committed.
 
+### Cross-fade between years
+
+Units (the default) and Grid blend decoded years over 300 ms. The previous
+snapshot stays visible while the next PNG loads. Rapid scrubbing finishes the
+active blend, then takes the latest decoded year, keeping at most two datasets
+on the GPU. Seeded bands that persist stay in place and retain their brightness.
+The nearest earlier and later years are fetched, decoded and prepared in a Web
+Worker; an LRU cache retains five prepared snapshots. Positions, radii and colours
+arrive as transferable binary buffers. Hidden chunks of 32,768 points upload
+four at a time across frames before a year becomes visible, so large uploads do not stall the
+fade. The previous year stays visible during this preparation; rapid requests
+replace an unfinished upload with the latest decoded year.
+Dots keeps its existing tile behavior.
+
+Units uses stable cell/kind/ordinal IDs to merge the two years into one cloud.
+The shader interpolates each mark's colour and radius; persistent bands are drawn
+once at full brightness, while only gained or lost marks fade. Compact unit
+endpoints stay in the worker's four-year cache; the UI caches five decoded grids.
+
+To verify transitions with the real data, serve all 30 generated PNGs from
+`footsteps-web/public/grid/` (for example, symlink it to `data/tiles/grid/`). With
+the app running on port 4444, run from `footsteps-web/`:
+
+```bash
+CROSSFADE_EVIDENCE=/absolute/path/outside/git node scripts/verify-year-crossfade.mjs
+```
+
+This drives every year and rapid reversals, checks continuous opacity and the
+two-snapshot limit, switches rendering modes, checks actual population pixels,
+and captures screenshots and frame timings (median under 20 ms, p95 under 125 ms; slow frames cluster in years with 3M+ units). It opens
+Chromium by default; set `HEADLESS=true` for CI. Set `CROSSFADE_VIDEO=true` to also
+record video; leave it off for timing measurements to avoid capture overhead.
+
 ## Raw data and processing
 
 The project's raw HYDE 3.5 archive is on the NAS at **`/volume2/deep-footsteps`**.

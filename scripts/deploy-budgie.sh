@@ -17,8 +17,8 @@ rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/"
 # Grid mode: one ~3 MB PNG per year (footstep-generator/grid_image.py)
 rsync -az --delete "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
 if [[ -z "${SKIP_TILES:-}" ]]; then
-  rsync -az --info=progress2 --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
+  rsync -az --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
 fi
-ssh "$REMOTE" "cd $DEST && docker compose up -d && docker compose restart web >/dev/null && curl -fsS http://127.0.0.1:5090/healthz"
+ssh "$REMOTE" "cd $DEST && docker compose up -d && docker compose restart web >/dev/null && for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:5090/healthz && exit 0; sleep 1; done; exit 1"
 echo
 echo "Deployed. Local check: ssh $REMOTE curl -sI http://127.0.0.1:5090/"

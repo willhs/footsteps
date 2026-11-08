@@ -210,3 +210,38 @@ jobs:
           echo "## 📦 Static Export" >> $GITHUB_STEP_SUMMARY
           echo "- NEXT_PUBLIC_CDN_HOST: $NEXT_PUBLIC_CDN_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- Output: footsteps-web/out (Next.js export)" >> $GITHUB_STEP_SUMMARY
+
+  notify-medic:
+    needs: [build_and_deploy]
+    if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report failure to medic
+        env:
+          MEDIC_URL: https://medic.willhs.me
+          MEDIC_SECRET: ${{ secrets.MEDIC_SHARED_SECRET }}
+          # Cloudflare Access service token; the CF-Access headers are sent only when both are set.
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          workflow_file="${GITHUB_WORKFLOW_REF%%@*}"; workflow_file="${workflow_file##*/}"
+          cf_access=()
+          if [ -n "${CF_ACCESS_CLIENT_ID}" ] && [ -n "${CF_ACCESS_CLIENT_SECRET}" ]; then
+            cf_access=(-H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}")
+          fi
+          curl -fsS --max-time 15 -X POST "${MEDIC_URL}/incident" \
+            "${cf_access[@]}" \
+            -H "X-Medic-Secret: ${MEDIC_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg repo "${GITHUB_REPOSITORY}" \
+              --arg branch "${GITHUB_REF_NAME}" \
+              --argjson run_id "${GITHUB_RUN_ID}" \
+              --arg run_url "${RUN_URL}" \
+              --arg workflow "${workflow_file}" \
+              --arg conclusion "failure" \
+              --arg head_sha "${GITHUB_SHA}" \
+              --arg actor "${GITHUB_ACTOR}" \
+              '{source:"ci", repo:$repo, branch:$branch, run_id:$run_id, run_url:$run_url, workflow:$workflow, conclusion:$conclusion, head_sha:$head_sha, actor:$actor}')" \
+            || echo "::warning::medic unreachable; failure not paged"

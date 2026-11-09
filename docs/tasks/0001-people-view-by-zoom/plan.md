@@ -109,7 +109,7 @@ colours carry full alpha; zoom brightness is a uniform.
 
 - [x] `pnpm build`, serve `out/`, `node scripts/measure-view.mjs` — ≥ 50 fps pans, screenshots
 - [x] Tune thresholds/ramp from screenshots; record in decisions.tsv
-- [ ] Deploy `scripts/deploy-budgie.sh`; `scripts/smoke.sh` green
+- [x] Deploy `scripts/deploy-budgie.sh`; `scripts/smoke.sh` green
 
 ## Phase 5: Wrap
 

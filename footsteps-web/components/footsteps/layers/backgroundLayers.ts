@@ -147,6 +147,10 @@ export function createTerrainLayer() {
           boundingBox[1][1],
         ],
         coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+        // Dimmed, cool "from space" look so the warm people layer stays on
+        // top visually (Tufte: terrain is context, people are the data).
+        desaturate: 0.55,
+        tintColor: [95, 110, 135],
         // Small optimisation: disable updates once image is set
         updateTriggers: {
           image: props.data,

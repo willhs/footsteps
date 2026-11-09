@@ -1,0 +1,6 @@
+when	what	why	evidence	result
+plan	Premise partly false: units already built in a worker as binary buffers	Task notes claimed per-mark JS accessors on main thread	hooks/gridWorker.ts, layers/GridYearLayer.ts on e1a77f3	Do item 3 already done; focus on culling + GPU glow + zoom-continuous uniforms
+plan	Baseline measured with scripts/measure-view.mjs on Metal (M5 Pro)	Need numbers before changing anything	evidence/before/results.json	1900 pan: world 10.5 fps, Europe 33.4, close 26.6; scrub 23 fps
+plan	Glow = r8 texture per year in BitmapLayer subclass, additive	Constant cost per year; additive makes year cross-fade sum exactly; r8 is 8.8 MB vs 35 MB RGBA	plan.md Design options	chosen over TileLayer of units and unit LOD
+plan	Units culled to a 1°-snapped region around the viewport, sliced in the worker	Rows are contiguous in sorted unit ids; panning inside region costs nothing	layers/units.ts id layout	chosen
+plan	Zoom brightness/min size as uniform/props, morph progress moved to its own uniform	Bucket change re-uploaded ~5M marks; layer.opacity needed for zoom fade	hooks/unitMorph.ts BAND_ALPHA per bucket	chosen

@@ -18,9 +18,9 @@ export type ViewBlend = {
 
 // A ~9 km cell is 3.3 px at zoom 4.8 and 7 px at 5.8 (512 px world, 4320 cells).
 export const ZOOM = {
-  unitsIn: 4.8, // units start to fade in
-  unitsFull: 5.8, // units fully drawn
-  glowGone: 6.4, // glow has faded out under the units
+  unitsIn: 4.6, // units start to fade in
+  unitsFull: 5.4, // units fully drawn
+  glowGone: 5.4, // glow has faded out under the units
   groups: 7, // marks are big enough to click one by one
 } as const;
 
@@ -43,8 +43,8 @@ function ramp(stops: [number, number][], zoom: number) {
 }
 
 export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
-  const minPx = ramp([[3, 0.35], [5, 0.6], [6, 1], [7, 1.6], [9, 2.5]], zoom);
-  const brightness = ramp([[3, 0.3], [5, 0.55], [7, 1]], zoom);
+  const minPx = ramp([[3, 0.35], [4.6, 0.9], [5.4, 1.2], [7, 1.6], [9, 2.5]], zoom);
+  const brightness = ramp([[3, 0.3], [4.6, 0.6], [5.4, 0.6], [7, 1]], zoom);
   const pickable = zoom >= ZOOM.groups;
   if (mode === 'auto')
     return {

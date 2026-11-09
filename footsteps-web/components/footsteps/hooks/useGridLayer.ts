@@ -231,8 +231,10 @@ export default function useGridLayer({
     if (!enabled) return [];
     const glowList = glowLayers.map((layer, index) =>
       layer.clone({
-        // Additive: (1 - p) + p sums to one across the year cross-fade.
-        opacity: (glowFrames[index]?.opacity ?? 0) * glow,
+        // Outgoing year stays at full strength underneath; the incoming year
+        // (last frame) fades in over it, so mid-fade is a mix, never brighter.
+        opacity:
+          (index === glowFrames.length - 1 ? glowFrames[index]?.opacity ?? 0 : 1) * glow,
         visible: glow > 0 && !!glowFrames[index],
       }),
     );

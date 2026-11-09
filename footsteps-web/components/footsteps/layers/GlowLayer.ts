@@ -22,10 +22,11 @@ const ramp = /* glsl */ `
     city,
     smoothstep(${level(GLOW_MIN_CELL / 4)}, ${level(GLOW_MIN_CELL)}, t)
   );
-  // A floor keeps thinly peopled land (10,000 BCE foragers) visible; squared
-  // above it so density differences still read clearly in farmed regions.
+  // A small floor keeps thinly peopled land (10,000 BCE foragers) visible
+  // without lighting every sparse cell as a solid block when zoomed in;
+  // squared above it so density differences read clearly in farmed regions.
   float s = smoothstep(0.0, ${level(GLOW_MIN_CELL * 4)}, t);
-  float strength = 0.2 + 0.8 * s * s;
+  float strength = 0.1 + 0.9 * s * s;
   color = vec4(hue, strength * color.a);
 `;
 
@@ -33,7 +34,7 @@ type Props = BitmapLayerProps;
 export const glowImage = (glow: GlowImage) => glow as Props['image'];
 
 /** One year of people as a single texture: cost is the same at any year and zoom.
- * Blends additively, so two years cross-fading at (1-p, p) sum to exactly one. */
+ * Cross-fades by drawing the incoming year over the outgoing one (see parameters). */
 export default class GlowLayer extends BitmapLayer<Props> {
   static layerName = 'GlowLayer';
   static defaultProps: DefaultProps<Props> = {
@@ -43,11 +44,14 @@ export default class GlowLayer extends BitmapLayer<Props> {
     pickable: false,
     parameters: {
       depthTest: false,
+      // Normal "over" blending: the incoming year is drawn on top of the
+      // outgoing one at opacity p, so a fade is a mix of the two years and can
+      // never be brighter than both (additive (1-p)+p visibly over-brightened).
       blend: true,
       blendColorSrcFactor: 'src-alpha',
-      blendColorDstFactor: 'one',
+      blendColorDstFactor: 'one-minus-src-alpha',
       blendAlphaSrcFactor: 'one',
-      blendAlphaDstFactor: 'one',
+      blendAlphaDstFactor: 'one-minus-src-alpha',
     },
   } as DefaultProps<Props>;
 

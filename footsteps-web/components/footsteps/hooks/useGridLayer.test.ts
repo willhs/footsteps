@@ -3,6 +3,19 @@ import useGridLayer, { loadGrid } from './useGridLayer';
 import type { Units } from '../layers/units';
 
 // Exercise the hook's layer inputs without requiring WebGL in jsdom.
+jest.mock('../layers/GlowLayer', () => ({
+  __esModule: true,
+  glowImage: (glow: unknown) => glow,
+  default: class {
+    props: Record<string, unknown>;
+    constructor(props: Record<string, unknown>) {
+      this.props = props;
+    }
+    clone(props: Record<string, unknown>) {
+      return { props: { ...this.props, ...props } };
+    }
+  },
+}));
 jest.mock('../layers/GridYearLayer', () => ({
   __esModule: true,
   default: class {
@@ -32,6 +45,7 @@ jest.mock('./gridWorkerClient', () => ({
   createGridWorker: () => {
     const { decodeYearGrid } = jest.requireActual('./gridData');
     const { buildUnitMorph } = jest.requireActual('./unitMorph');
+    const { sliceUnits } = jest.requireActual('./unitRegion');
     const years = new Map<number, Units>();
     const worker = {
       onmessage: null as ((event: { data: unknown }) => void) | null,
@@ -42,7 +56,7 @@ jest.mock('./gridWorkerClient', () => ({
               id: string;
               fromYear: number;
               toYear: number;
-              zoomBucket: number;
+              region: unknown;
             },
       ) {
         if ('id' in request) {
@@ -50,9 +64,8 @@ jest.mock('./gridWorkerClient', () => ({
             data: {
               id: request.id,
               morph: buildUnitMorph(
-                years.get(request.fromYear)!,
-                years.get(request.toYear)!,
-                request.zoomBucket,
+                sliceUnits(years.get(request.fromYear)!, 2, request.region),
+                sliceUnits(years.get(request.toYear)!, 2, request.region),
               ),
             },
           });
@@ -126,7 +139,7 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
       useGridLayer({
         year,
         enabled: true,
-        style: 'units',
+        mode: 'units',
         setFeatureCount,
         setTotalPopulation,
         setMetricsLoading,
@@ -135,11 +148,12 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
   );
   await flush();
   await flush();
+  // Units at every zoom: the glow texture is off, so only unit layers remain.
   const layers = () => result.current.layers as unknown[];
   const layer = () => layers()[0] as { props: Record<string, unknown> };
   act(() => (layer().props.onReady as () => void)());
   await waitFor(() => expect(layer().props.opacity).toBe(1));
-  expect(layer().props.id).toBe('units-0');
+  expect(layer().props.id).toBe('units-0@-180,-90,180,90');
   expect(layer().props.opacity).toBe(1);
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(
     expect.arrayContaining(['/grid/humans_-1000.webp', '/grid/humans_100.webp']),
@@ -164,13 +178,15 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
   act(() => jest.advanceTimersByTime(150));
   expect(layers()).toHaveLength(2);
   expect(layer().props.data).toBe(initialData);
-  const opacities = layers().map((l) =>
-    Math.pow((l as { props: { opacity: number } }).props.opacity, 1 / 2.2),
-  );
-  expect(opacities[1]).toBeCloseTo(0.5, 1);
-  expect(opacities[0] + opacities[1]).toBeCloseTo(1, 8);
+  // The incoming union draws alone; its year morph runs in `progress`, while
+  // opacity stays free for the zoom fade.
+  const incoming = (layers()[1] as { props: Record<string, number | boolean> }).props;
+  expect(incoming.visible).toBe(true);
+  expect(incoming.opacity).toBe(1);
+  expect(Math.pow(incoming.progress as number, 1 / 2.2)).toBeCloseTo(0.5, 1);
+  expect((layers()[0] as { props: { visible: boolean } }).props.visible).toBe(false);
   act(() => jest.advanceTimersByTime(180));
-  expect(layer().props.id).toBe('units-100');
+  expect(layer().props.id).toBe('units-100@-180,-90,180,90');
   expect(layer().props.opacity).toBe(1);
   jest.useRealTimers();
   let resolveOld!: (v: unknown) => void;
@@ -181,7 +197,7 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
       }),
   );
   rerender({ year: 700 });
-  expect(layer().props.id).toBe('units-100');
+  expect(layer().props.id).toBe('units-100@-180,-90,180,90');
   rerender({ year: 900 });
   await flush();
   const population =

@@ -78,7 +78,7 @@ colours carry full alpha; zoom brightness is a uniform.
   per cell, so the hand-off to units does not change colour.
 - `?mode=units` keeps "units at every zoom" for comparison; the mode button only shows
   when `?mode=` is in the URL.
-- "Dots drawn" metric shows marks actually drawn (units in region) or cells when glow.
+- "Dots drawn" metric is unchanged (the year's unit count); changing it is unrelated.
 - Globe view uses the same mercator-derived region with a larger margin.
 - Deploying to budgie from the branch is authorised by the task's done-when.
 
@@ -86,32 +86,32 @@ colours carry full alpha; zoom brightness is a uniform.
 
 ## Phase 1: Data — glow image and region slices in the worker
 
-- [ ] `hooks/gridData.ts`: add `glow: GlowImage` to `YearGrid` from the decoded pixels
-- [ ] `hooks/unitRegion.ts`: `sliceUnits(units, cellWidth, region)` + tests
-- [ ] `hooks/unitMorph.ts`: drop zoomBucket, full alpha, add `info`; update tests
-- [ ] `hooks/gridWorker.ts` / `gridLoader.ts`: morph requests carry `region`
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand` — green
+- [x] `hooks/gridData.ts`: add `glow: GlowImage` to `YearGrid` from the decoded pixels
+- [x] `hooks/unitRegion.ts`: `sliceUnits(units, cellWidth, region)` + tests
+- [x] `hooks/unitMorph.ts`: drop zoomBucket, full alpha, add `info`; update tests
+- [x] `hooks/gridWorker.ts` / `gridLoader.ts`: morph requests carry `region`
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand` — green
 
 ## Phase 2: Layers
 
-- [ ] `layers/GlowLayer.ts`: BitmapLayer subclass, r8 texture, ramp, additive
-- [ ] `layers/MorphScatterplotLayer.ts`: `progress` and `brightness` uniforms
-- [ ] `layers/GridYearLayer.ts`: pass progress/brightness/minPx/pickable; picking info
+- [x] `layers/GlowLayer.ts`: BitmapLayer subclass, r8 texture, ramp, additive
+- [x] `layers/MorphScatterplotLayer.ts`: `progress` and `brightness` uniforms
+- [x] `layers/GridYearLayer.ts`: pass progress/brightness/minPx/pickable; picking info
 
 ## Phase 3: View choice
 
-- [ ] `hooks/peopleView.ts`: `viewBlend`, `nextRegion`, `viewportRegion` + tests
-- [ ] `hooks/useGridLayer.ts`: glow frames + units scenes keyed by region
-- [ ] `FootstepsViz.tsx`: mode `auto`, debug button, legend, click on group
-- [ ] Run lint, tsc, jest — green
+- [x] `hooks/peopleView.ts`: `viewBlend`, `nextRegion`, `viewportRegion` + tests
+- [x] `hooks/useGridLayer.ts`: glow frames + units scenes keyed by region
+- [x] `FootstepsViz.tsx`: mode `auto`, debug button, legend, click on group
+- [x] Run lint, tsc, jest — green
 
 ## Phase 4: Prove it
 
-- [ ] `pnpm build`, serve `out/`, `node scripts/measure-view.mjs` — ≥ 50 fps pans, screenshots
-- [ ] Tune thresholds/ramp from screenshots; record in decisions.tsv
+- [x] `pnpm build`, serve `out/`, `node scripts/measure-view.mjs` — ≥ 50 fps pans, screenshots
+- [x] Tune thresholds/ramp from screenshots; record in decisions.tsv
 - [ ] Deploy `scripts/deploy-budgie.sh`; `scripts/smoke.sh` green
 
 ## Phase 5: Wrap
 
-- [ ] Update `footsteps-web/AGENTS.md` rendering notes
-- [ ] Commit
+- [x] Update `footsteps-web/AGENTS.md` rendering notes
+- [x] Commit

@@ -19,8 +19,9 @@ freeze the page, the smoke test is green and the build is deployed to budgie.
 
 Units draws every band, village and city glow for the whole world at every zoom:
 5.1M marks at 1900, most of them sub-pixel at world zoom. Baseline measured on this
-MacBook (M5 Pro, Metal, 1440×900, `scripts/measure-view.mjs`): world pan 10.5 fps,
-Europe (z4.2) 33 fps, close (z7.5) 27 fps, scrub 23 fps.
+MacBook (M5 Pro, Metal, 1440×900, headed, `scripts/measure-view.mjs`): world pan
+17.9 fps (p95 frame 281 ms); zoomed pans ~100 fps with 84–180 ms hitches; worst
+scrub frame 176 ms.
 
 Premise check against main (`e1a77f3`):
 - False: "getRadius/getFillColor are per-mark JS accessors recomputed on the main

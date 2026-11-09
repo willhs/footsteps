@@ -15,16 +15,26 @@ import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
 import { nearestDotTileYear } from '@/lib/constants';
+import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
+import { UnitKind } from './layers/units';
 
-type RenderMode = 'dots' | 'grid' | 'units';
-const RENDER_MODES: RenderMode[] = ['units', 'grid', 'dots'];
-const RENDER_MODE_LABEL: Record<RenderMode, string> = { dots: 'Dots', grid: 'Grid', units: 'Units' };
-const DEFAULT_RENDER_MODE: RenderMode = 'units';
-function initialRenderMode(): RenderMode {
-  if (typeof window === 'undefined') return DEFAULT_RENDER_MODE;
-  const m = new URLSearchParams(window.location.search).get('mode');
-  return RENDER_MODES.includes(m as RenderMode) ? (m as RenderMode) : DEFAULT_RENDER_MODE;
+// The look follows zoom ('auto'). ?mode=units|grid|dots is a debug override
+// and also reveals the mode button.
+const RENDER_MODE_LABEL: Record<PeopleMode, string> = { auto: 'Auto', dots: 'Dots', grid: 'Grid', units: 'Units' };
+const DEFAULT_RENDER_MODE: PeopleMode = 'auto';
+function modeParam(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('mode');
 }
+function initialRenderMode(): PeopleMode {
+  const m = modeParam();
+  return PEOPLE_MODES.includes(m as PeopleMode) ? (m as PeopleMode) : DEFAULT_RENDER_MODE;
+}
+const UNIT_KIND_LABEL: Record<number, string> = {
+  [UnitKind.Band]: 'A band',
+  [UnitKind.Village]: 'A village',
+  [UnitKind.Glow]: 'A town or city',
+};
 
 interface FootstepsVizProps {
   year: number;
@@ -38,7 +48,8 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
-  const [renderMode, setRenderMode] = useState<RenderMode>(initialRenderMode);
+  const [renderMode, setRenderMode] = useState<PeopleMode>(initialRenderMode);
+  const [debugModes] = useState(() => modeParam() !== null);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -67,11 +78,17 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
-  const { layers: gridLayers, grid } = useGridLayer({
+  const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
+  const { layers: gridLayers, grid, blend } = useGridLayer({
     year,
     enabled: renderMode !== 'dots',
-    style: renderMode === 'units' ? 'units' : 'grid',
-    zoom: viewState.zoom,
+    mode: renderMode === 'dots' ? 'auto' : renderMode,
+    view: viewState,
+    size:
+      typeof window === 'undefined'
+        ? undefined
+        : { width: window.innerWidth, height: window.innerHeight },
+    globe: is3DMode,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -96,6 +113,9 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
     setYearChangedAt(Date.now());
   }, [year]);
 
+  const peopleView = renderMode === 'auto' || renderMode === 'units';
+  const showGlowLegend = renderMode === 'auto' && blend.units < 0.5;
+
   const layers: LayersList = [
     ...backgroundLayers,
     ...(renderMode === 'dots' ? humanLayers : gridLayers),
@@ -109,16 +129,28 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         onViewStateChange={onViewStateChange}
         layers={layers}
         onClick={(info) => {
-          if (renderMode !== 'units' || !info.coordinate) return;
+          if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
+          const group = info.object as { kind: number; people: number } | undefined;
+          setSelectedGroup(group && typeof group.kind === 'number' ? group : null);
           if (Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90) setSelectedPlace([lon, lat]);
         }}
       />
 
-      {renderMode === 'units' && selectedPlace && (
+      {peopleView && selectedPlace && (
         <GroundingPanel
           facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
-          onClose={() => setSelectedPlace(null)}
+          group={
+            selectedGroup && {
+              label: UNIT_KIND_LABEL[selectedGroup.kind] ?? 'A group',
+              people: selectedGroup.people,
+              placed: selectedGroup.kind !== UnitKind.Glow,
+            }
+          }
+          onClose={() => {
+            setSelectedPlace(null);
+            setSelectedGroup(null);
+          }}
         />
       )}
 
@@ -147,11 +179,24 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         year={year}
       />
 
-      {renderMode === 'units' && (
+      {peopleView && (
         <div className="pointer-events-none absolute bottom-20 left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
-          <span className="text-[#ffbe6e]">●</span> band (~30 people){' '}
-          <span className="text-[#ffe1a0]">●</span> village (~300){' '}
-          <span className="text-cyan-300">●</span> town/city density
+          {showGlowLegend ? (
+            <>
+              Brightness is people per ~10 km cell:{' '}
+              <span className="text-[#ffbe6e]">sparse</span>,{' '}
+              <span className="text-[#ffe1a0]">farming</span>,{' '}
+              <span className="text-cyan-300">towns and cities</span>. Zoom in to
+              see bands and villages.
+            </>
+          ) : (
+            <>
+              <span className="text-[#ffbe6e]">●</span> band (~30 people){' '}
+              <span className="text-[#ffe1a0]">●</span> village (~300){' '}
+              <span className="text-cyan-300">●</span> town/city density
+              {blend.pickable && ' · click a mark to name it'}
+            </>
+          )}
           <br />
           Head counts per ~10 km cell are HYDE estimates. Where bands and villages
           sit inside a cell is illustrative, not known.
@@ -168,17 +213,17 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
-        {/* Prototype: compare pre-built dot tiles with the raw HYDE grid */}
-        <button
+        {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
+        {debugModes && <button
           type="button"
           onClick={() =>
-            setRenderMode((m) => RENDER_MODES[(RENDER_MODES.indexOf(m) + 1) % RENDER_MODES.length])
+            setRenderMode((m) => PEOPLE_MODES[(PEOPLE_MODES.indexOf(m) + 1) % PEOPLE_MODES.length])
           }
           className="rounded bg-black/60 px-2 py-1 text-xs text-white/80 hover:text-white"
-          title="Dots: pre-built dot tiles. Grid: one dot per HYDE cell. Units: bands, villages and city glow by density."
+          title="Auto: look chosen by zoom. Units: bands, villages and city glow at every zoom. Grid: one dot per HYDE cell. Dots: pre-built dot tiles."
         >
           {RENDER_MODE_LABEL[renderMode]}
-        </button>
+        </button>}
       </div>
     </div>
   );

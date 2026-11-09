@@ -1,11 +1,27 @@
 import type { GroundingFacts } from '../layers/grounding';
 
-export default function GroundingPanel({ facts, onClose }: { facts: GroundingFacts | null; onClose: () => void }) {
+export default function GroundingPanel({
+  facts,
+  group,
+  onClose,
+}: {
+  facts: GroundingFacts | null;
+  /** The clicked mark, at close zoom: what it stands for, not where it really was. */
+  group?: { label: string; people: number; placed: boolean } | null;
+  onClose: () => void;
+}) {
   const count = (n: number) => Math.round(n).toLocaleString();
   return (
     <section aria-label="What we know here" className="absolute bottom-44 left-4 z-20 max-w-xs rounded bg-black/85 p-4 text-xs leading-relaxed text-white/85">
       <button type="button" aria-label="Close grounding facts" onClick={onClose} className="float-right ml-4 px-1">×</button>
       <h2 className="mb-2 text-sm font-semibold text-white">What we know here</h2>
+      {group && (
+        <p className="mb-2 text-white">
+          {group.placed
+            ? `${group.label} of about ${count(group.people)} people. Where it sits inside its cell is illustrative.`
+            : `${group.label}: about ${count(group.people)} people in one ~10 km cell.`}
+        </p>
+      )}
       {facts ? <>
         <p>{facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · cell centre {facts.latitude.toFixed(3)}°, {facts.longitude.toFixed(3)}°</p>
         <dl className="my-2 grid grid-cols-2 gap-x-3">

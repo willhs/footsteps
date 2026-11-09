@@ -2,6 +2,7 @@ import { type YearGrid } from './gridData';
 import { type GridReply } from './gridWorker';
 import { createGridWorker } from './gridWorkerClient';
 import type { MorphPoints } from './unitMorph';
+import type { Region } from './unitRegion';
 
 // Only settled snapshots count against the LRU. In-flight requests are always
 // deduplicated, including during a fast sweep beyond the five cached years.
@@ -25,14 +26,14 @@ let morphId = 0;
 export async function loadUnitMorph(
   fromYear: number,
   toYear: number,
-  zoomBucket: number,
+  region: Region,
 ): Promise<MorphPoints> {
   // Establish the worker and its endpoint data through the ordinary loader.
   await loadGrid(toYear);
   const id = `morph-${++morphId}`;
   return new Promise((resolve, reject) => {
     morphs.set(id, { resolve, reject });
-    worker!.postMessage({ id, fromYear, toYear, zoomBucket });
+    worker!.postMessage({ id, fromYear, toYear, region });
   });
 }
 

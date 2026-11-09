@@ -1,17 +1,20 @@
 import {
   CompositeLayer,
+  type GetPickingInfoParams,
   type Layer,
+  type PickingInfo,
   type UpdateParameters,
 } from '@deck.gl/core';
 import { ScatterplotLayer } from '@deck.gl/layers';
 import { gridChunks } from '../hooks/gridChunks';
-import { UNIT_MIN_PX, type PointBuffers } from '../hooks/gridData';
+import type { PointBuffers } from '../hooks/gridData';
 import { isMorphPoints, type MorphPoints } from '../hooks/unitMorph';
 import MorphScatterplotLayer from './MorphScatterplotLayer';
 
 type GridBuffer = ReturnType<Layer['context']['device']['createBuffer']>;
 type UploadedPoints = {
   length: number;
+  info?: MorphPoints['info'];
   attributes: {
     getPosition: { buffer: GridBuffer; size: 2; type: 'float32'; stride: 8 };
     getRadius: { buffer: GridBuffer; size: 1; type: 'float32' };
@@ -23,7 +26,10 @@ type UploadedPoints = {
 type Props = {
   data: PointBuffers | MorphPoints;
   units: boolean;
-  zoomBucket: number;
+  minPx: number; // unit marks only; grid points keep 0.5 px
+  brightness: number;
+  progress: number; // year morph, 0..1
+  pickable: boolean;
   onReady: () => void;
   morph: boolean;
   year: number;
@@ -58,6 +64,7 @@ export default class GridYearLayer extends CompositeLayer<Props> {
     const device = this.context.device;
     const data: UploadedPoints = {
       length: props.data.length,
+      info: isMorphPoints(props.data) ? props.data.info : undefined,
       attributes: {
         getPosition: {
           buffer: device.createBuffer({
@@ -168,6 +175,17 @@ export default class GridYearLayer extends CompositeLayer<Props> {
     destroy(this.state.data);
   }
 
+  /** Name the unit under the cursor: its kind and head count in the target year. */
+  getPickingInfo({ info }: GetPickingInfoParams): PickingInfo {
+    const unitInfo = this.state.data?.info;
+    if (unitInfo && info.index >= 0 && info.index < unitInfo.kind.length)
+      info.object = {
+        kind: unitInfo.kind[info.index],
+        people: unitInfo.people[info.index],
+      };
+    return info;
+  }
+
   renderLayers() {
     if (!this.state.data) return [];
     const LayerClass = this.props.morph
@@ -178,11 +196,12 @@ export default class GridYearLayer extends CompositeLayer<Props> {
         ...this.getSubLayerProps({ id: 'points' }),
         data: this.state.data,
         radiusUnits: 'meters',
-        radiusMinPixels: this.props.units
-          ? UNIT_MIN_PX[this.props.zoomBucket]
-          : 0.5,
+        radiusMinPixels: this.props.units ? this.props.minPx : 0.5,
         stroked: false,
-        pickable: false,
+        pickable: this.props.pickable,
+        ...(this.props.morph
+          ? { progress: this.props.progress, brightness: this.props.brightness }
+          : {}),
         parameters: this.props.units
           ? {
               depthTest: false,

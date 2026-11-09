@@ -5,9 +5,9 @@ import { buildUnits, type Units } from '../layers/units';
 const MAX_PEOPLE = 5_000_000;
 const LEVELS = 1023;
 const LOG_MAX = Math.log1p(MAX_PEOPLE);
-export const UNIT_MIN_PX = [0.35, 0.6, 1.4];
-export const BAND_ALPHA = [60, 110, 200];
-export const VILLAGE_ALPHA = [35, 60, 150];
+// Rows beyond this latitude are left out of the glow image: Web Mercator cannot
+// draw the poles, and HYDE records almost nobody there.
+export const GLOW_MAX_LAT = 85;
 
 export type GridData = {
   length: number;
@@ -27,9 +27,19 @@ export type PointBuffers = {
   };
 };
 
+/** One byte per cell: 255 * log1p(people) / log1p(MAX_PEOPLE), rows ±GLOW_MAX_LAT.
+ * The GPU turns it into colour, so a year costs one texture whatever its size. */
+export type GlowImage = {
+  data: Uint8Array;
+  width: number;
+  height: number;
+  format: 'r8unorm';
+};
+
 export type YearGrid = {
   year: number;
   data: GridData;
+  glow: GlowImage;
   units: Pick<Units, 'length' | 'counts'>;
   gridPoints: PointBuffers;
 };
@@ -55,7 +65,11 @@ function points(
 }
 
 /** Prepare every CPU-derived render attribute once, off the UI thread. */
-export function prepareYearGrid(year: number, data: GridData): DecodedYearGrid {
+export function prepareYearGrid(
+  year: number,
+  data: GridData,
+  glow: GlowImage,
+): DecodedYearGrid {
   const units = buildUnits(
     data.cellIds,
     data.positions,
@@ -72,6 +86,7 @@ export function prepareYearGrid(year: number, data: GridData): DecodedYearGrid {
   return {
     year,
     data,
+    glow,
     units,
     gridPoints: points(data.positions, gridRadii, gridColors),
   };
@@ -100,6 +115,13 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
   const cellDeg = 360 / w;
+  const crop = Math.min(Math.floor(h / 2), Math.round((90 - GLOW_MAX_LAT) / cellDeg));
+  const glow: GlowImage = {
+    data: new Uint8Array(w * (h - 2 * crop)),
+    width: w,
+    height: h - 2 * crop,
+    format: 'r8unorm',
+  };
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
@@ -107,6 +129,11 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
       const offset = (row * w + col) * 4;
       const value = (px[offset] << 8) | px[offset + 1];
       if (!value) continue;
+      if (row >= crop && row < h - crop)
+        glow.data[(row - crop) * w + col] = Math.max(
+          1,
+          Math.round((value * 255) / LEVELS),
+        );
       const population = Math.expm1((value / LEVELS) * LOG_MAX);
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
@@ -116,12 +143,9 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
       index++;
     }
   }
-  return prepareYearGrid(year, {
-    length,
-    positions,
-    people,
-    cellIds,
-    cellDeg,
-    total,
-  });
+  return prepareYearGrid(
+    year,
+    { length, positions, people, cellIds, cellDeg, total },
+    glow,
+  );
 }

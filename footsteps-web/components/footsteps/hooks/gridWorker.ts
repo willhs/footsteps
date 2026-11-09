@@ -1,6 +1,11 @@
-import { decodeYearGrid, type YearGrid } from './gridData';
+import {
+  decodeYearGrid,
+  type DecodedYearGrid,
+  type YearGrid,
+} from './gridData';
 import { buildUnitMorph, type MorphPoints } from './unitMorph';
 import type { Units } from '../layers/units';
+import { sliceUnits, type Region } from './unitRegion';
 
 declare const self: DedicatedWorkerGlobalScope;
 export type GridReply =
@@ -10,21 +15,28 @@ export type GridReply =
   | { id: string; error: string };
 type Request =
   | { year: number }
-  | { id: string; fromYear: number; toYear: number; zoomBucket: number };
+  | { id: string; fromYear: number; toYear: number; region: Region };
+type Endpoint = { units: Units; width: number };
 // Retain only compact unit endpoints in the worker; render buffers transfer to
 // the UI. This cache is independent of the UI's five decoded snapshots.
-const units = new Map<number, Units>();
-function remember(year: number, source: Units) {
+const units = new Map<number, Endpoint>();
+function remember(year: number, source: Endpoint) {
   units.delete(year);
   units.set(year, source);
   if (units.size > 4) units.delete(units.keys().next().value!);
 }
-async function endpoints(year: number): Promise<Units> {
+function endpoint(snapshot: DecodedYearGrid): Endpoint {
+  return {
+    units: snapshot.units,
+    width: Math.round(360 / snapshot.data.cellDeg),
+  };
+}
+async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
   const snapshot = await decodeYearGrid(year);
-  remember(year, snapshot.units);
-  return snapshot.units;
+  remember(year, endpoint(snapshot));
+  return endpoint(snapshot);
 }
 function buffers(arrays: ArrayBufferView[]) {
   return [...new Set(arrays.map((array) => array.buffer))].filter(
@@ -35,12 +47,17 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
   if ('id' in data) {
     void Promise.all([endpoints(data.fromYear), endpoints(data.toYear)])
       .then(([from, to]) => {
-        const morph = buildUnitMorph(from, to, data.zoomBucket);
+        const morph = buildUnitMorph(
+          sliceUnits(from.units, from.width, data.region),
+          sliceUnits(to.units, to.width, data.region),
+        );
         self.postMessage(
           { id: data.id, morph } satisfies GridReply,
-          buffers(
-            Object.values(morph.attributes).map((attribute) => attribute.value),
-          ),
+          buffers([
+            ...Object.values(morph.attributes).map((attribute) => attribute.value),
+            morph.info.kind,
+            morph.info.people,
+          ]),
         );
       })
       .catch((error: unknown) =>
@@ -54,8 +71,9 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
   const { year } = data;
   void decodeYearGrid(year)
     .then((snapshot) => {
-      remember(year, snapshot.units);
+      remember(year, endpoint(snapshot));
       const arrays = [
+        snapshot.glow.data,
         snapshot.data.positions,
         snapshot.data.people,
         snapshot.data.cellIds,

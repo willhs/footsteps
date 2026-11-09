@@ -15,7 +15,7 @@ sync_grid() {
   rsync -az --include='humans_*.webp' --include='landuse_*.png' --exclude='*' \
     "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
   # Population images used to be PNGs; drop the superseded ones.
-  ssh "$REMOTE" "rm -f $DEST/app/grid/humans_*.png"
+  ssh "$REMOTE" "find $DEST/app/grid -name 'humans_*.png' -delete"
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid

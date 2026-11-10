@@ -37,6 +37,7 @@ const regionKey = (r: Region) => `${r.west},${r.south},${r.east},${r.north}`;
 export default function useGridLayer({
   year,
   time,
+  onTerrain = false,
   enabled,
   mode = 'auto',
   view = { longitude: 0, latitude: 0, zoom: 1 },
@@ -49,6 +50,8 @@ export default function useGridLayer({
   year: number;
   /** Continuous year: when set, the glow mixes the data years either side. */
   time?: number;
+  /** Satellite terrain is under the people: raise the glow's minimum brightness. */
+  onTerrain?: boolean;
   enabled: boolean;
   mode?: GridMode;
   view?: View;
@@ -320,6 +323,7 @@ export default function useGridLayer({
       ? [
           glowLayer.clone({
             progress: glowProgress,
+            floor: onTerrain ? 0.16 : 0.1,
             opacity: glow,
             visible: glow > 0,
           }),
@@ -371,6 +375,7 @@ export default function useGridLayer({
     enabled,
     glowLayer,
     glowProgress,
+    onTerrain,
     unitsContinuous,
     morphLayer,
     morphProgress,

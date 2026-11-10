@@ -29,7 +29,7 @@ const ramp = /* glsl */ `
   // without lighting every sparse cell as a solid block when zoomed in;
   // squared above it so density differences read clearly in farmed regions.
   float s = smoothstep(0.0, ${level(GLOW_MIN_CELL * 4)}, t);
-  float strength = 0.1 + 0.9 * s * s;
+  float strength = glowFade.floor + (1.0 - glowFade.floor) * s * s;
   color = vec4(hue, strength * color.a);
 `;
 
@@ -37,12 +37,15 @@ const glowFade = {
   name: 'glowFade',
   fs: /* glsl */ `uniform glowFadeUniforms {
   float progress;
+  float floor;
 } glowFade;
 `,
-  uniformTypes: { progress: 'f32' },
+  uniformTypes: { progress: 'f32', floor: 'f32' },
 } as const;
 
-type Props = BitmapLayerProps & { progress: number };
+/** `floor`: minimum brightness of any peopled cell (raised over terrain so
+ * sparse eras stay visible against the satellite image). */
+type Props = BitmapLayerProps & { progress: number; floor: number };
 
 /** Pack two years (or one year twice) into one RG texture: R = from, G = to.
  * Built once per transition; the per-frame fade is only a uniform. */
@@ -67,13 +70,16 @@ export default class GlowLayer extends BitmapLayer<Props> {
     _imageCoordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     pickable: false,
     progress: 1,
+    floor: 0.1,
     parameters: {
       depthTest: false,
+      // Additive, so people read as light over the dark map and the terrain.
+      // Safe for year fades: both years are mixed inside this one draw.
       blend: true,
       blendColorSrcFactor: 'src-alpha',
-      blendColorDstFactor: 'one-minus-src-alpha',
+      blendColorDstFactor: 'one',
       blendAlphaSrcFactor: 'one',
-      blendAlphaDstFactor: 'one-minus-src-alpha',
+      blendAlphaDstFactor: 'one',
     },
   } as DefaultProps<Props>;
 
@@ -88,7 +94,7 @@ export default class GlowLayer extends BitmapLayer<Props> {
 
   draw(params: Parameters<BitmapLayer['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({
-      glowFade: { progress: this.props.progress },
+      glowFade: { progress: this.props.progress, floor: this.props.floor },
     });
     super.draw(params);
   }

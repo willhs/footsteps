@@ -87,6 +87,7 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
   const { layers: gridLayers, grid, blend } = useGridLayer({
     year,
     time,
+    onTerrain: showTerrain,
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,
@@ -163,8 +164,10 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
       {/* Data info overlay */}
       <SupportingText
         loading={
-          metricsLoading ||
-          (Date.now() - yearChangedAt < 1000 && totalPopulation === 0)
+          // Grid views compute the total from the time model, so never wait.
+          renderMode === 'dots' &&
+          (metricsLoading ||
+            (Date.now() - yearChangedAt < 1000 && totalPopulation === 0))
         }
         dotCount={featureCount}
         totalPopulation={renderMode === 'dots' ? totalPopulation : populationAt(time)}

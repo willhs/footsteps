@@ -169,6 +169,29 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             }
           }
           person={selectedPerson ? describePerson(selectedPerson) : null}
+          day={
+            selectedPerson && selectedPlace && grid
+              ? (() => {
+                  const facts = groundingFacts(grid, year, ...selectedPlace);
+                  return {
+                    year: Math.round(time),
+                    lat: selectedPerson.position[1],
+                    lon: selectedPerson.position[0],
+                    cellPeople: facts?.people ?? 0,
+                    neighbourhoodPeople: facts?.neighbourhoodPeople ?? 0,
+                    densityClass: facts?.densityClass ?? 'unknown',
+                    confidence: facts?.confidence ?? '',
+                    person: {
+                      age: selectedPerson.age,
+                      female: selectedPerson.female,
+                      role: selectedPerson.role,
+                      groupKind: selectedPerson.groupKind,
+                      groupPeople: selectedPerson.groupPeople,
+                    },
+                  };
+                })()
+              : null
+          }
           onClose={() => {
             setSelectedPlace(null);
             setSelectedGroup(null);

@@ -1,9 +1,11 @@
 import type { GroundingFacts } from '../layers/grounding';
+import PersonDay, { type DayRequest } from './PersonDay';
 
 export default function GroundingPanel({
   facts,
   group,
   person,
+  day,
   onClose,
 }: {
   facts: GroundingFacts | null;
@@ -11,6 +13,8 @@ export default function GroundingPanel({
   group?: { label: string; people: number; placed: boolean } | null;
   /** A clicked individual (street-level zoom): imagined from the head count. */
   person?: { title: string; detail: string } | null;
+  /** Facts for 'Imagine their day' (present when a person is selected). */
+  day?: DayRequest | null;
   onClose: () => void;
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
@@ -26,6 +30,7 @@ export default function GroundingPanel({
             Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
             camp are drawn from a typical pre-modern population.
           </p>
+          {day && <PersonDay request={day} />}
         </div>
       )}
       {group && (

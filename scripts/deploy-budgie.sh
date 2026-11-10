@@ -28,12 +28,13 @@ fi
 
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
+rsync -az --delete "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
 rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then
   rsync -az --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
 fi
-ssh "$REMOTE" "cd $DEST && docker compose up -d && docker compose restart web >/dev/null && for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:5090/healthz && exit 0; sleep 1; done; exit 1"
+ssh "$REMOTE" "cd $DEST && docker compose up -d --build && docker compose restart web >/dev/null && for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:5090/healthz && exit 0; sleep 1; done; exit 1"
 echo
 echo "Deployed. Local check: ssh $REMOTE curl -sI http://127.0.0.1:5090/"

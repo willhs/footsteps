@@ -18,6 +18,10 @@
 		file_server
 	}
 
+	handle /api/* {
+		reverse_proxy footsteps-api:8000
+	}
+
 	handle /healthz {
 		respond "ok" 200
 	}

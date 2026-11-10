@@ -11,3 +11,17 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./app:/srv/app:ro
       - ./pmtiles:/srv/pmtiles:ro
+
+  # "Imagine their day": Claude-written, cached, daily-capped. The key lives in
+  # api.env on budgie (not in git); without it the API returns demo text.
+  api:
+    build: ./api
+    container_name: footsteps-api
+    restart: unless-stopped
+    env_file:
+      - path: ./api.env
+        required: false
+    environment:
+      DAY_DB: /data/days.db
+    volumes:
+      - ./api-data:/data

@@ -37,3 +37,7 @@ worktrees/
 # budgie deploy payload (rsynced, not tracked)
 deploy/budgie/app/
 deploy/budgie/pmtiles/
+
+# budgie runtime (not tracked)
+deploy/budgie/api.env
+deploy/budgie/api-data/

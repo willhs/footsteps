@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-11-10T10:07:47Z	plan	premise checked: no terrain pipeline on main; Esri tiles in terrain mode; land-use PNGs already published	task notes unverified	backgroundLayers.ts:96, grid_image.py --landuse, curl -I footsteps.willhs.me/grid/landuse_1900.png 200	premise holds
+2026-11-10T10:07:47Z	plan	cross-fade with two BitmapLayers (opaque lower, upper opacity f)	exact lerp with no shader; textures persist per frame year	plan.md Design options	chosen
+2026-11-10T10:07:47Z	plan	colour = Blue Marble detail x low-frequency colour shifted by biome palette difference; palette from low-land-use cells	keeps real texture and present-day look; BM 2004 shows modern farms	plan.md Key Discoveries	chosen
+2026-11-10T10:07:47Z	plan	coastlines from ETOPO1 4 arc-min thresholded at per-step sea level fitted to Krapp land mask	Krapp 0.5 deg coasts are blocky at globe zoom	data/raw/etopo/etopo_4min.nc via ERDDAP	chosen

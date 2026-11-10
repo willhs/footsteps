@@ -60,7 +60,13 @@ export default function useGridLayer({
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
-}): { layers: LayersList; grid: GridData | null; blend: ViewBlend } {
+}): {
+  layers: LayersList;
+  grid: GridData | null;
+  blend: ViewBlend;
+  /** Data years being fetched/decoded for what's on screen, or null when ready. */
+  loading: [number, number] | null;
+} {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
   const marksOn = enabled && (mode === 'grid' || blend.units > 0);
@@ -397,9 +403,22 @@ export default function useGridLayer({
     brightness,
     pickable,
   ]);
+  // What the view is waiting on: the glow's data-year pair, and zoomed in,
+  // the unit morph for the visible region.
+  const glowWaiting = continuous && enabled && mode === 'auto' && glow > 0 && !pairCurrent;
+  const unitsWaiting =
+    unitsContinuous &&
+    units > 0 &&
+    !(
+      morphScene &&
+      morphScene.y0 === y0 &&
+      morphScene.y1 === y1 &&
+      morphScene.region === region
+    );
   return {
     layers: layerList,
     grid: enabled && grid?.year === year ? grid.data : null,
     blend,
+    loading: glowWaiting || unitsWaiting ? [y0, y1] : null,
   };
 }

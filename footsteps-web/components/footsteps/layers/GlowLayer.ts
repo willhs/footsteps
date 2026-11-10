@@ -69,13 +69,15 @@ const lightsMain = /* glsl */ `
     // A point of firelight in the cell with a wide dark ring, so it reads by
     // brightness on sand, ice and forest alike.
     float r = length((fract(g) - 0.5) * cellPx);
-    float core = max(1.3, 0.16 * cellPx);
-    float ring = core * 3.4;
-    float coreA = 1.0 - smoothstep(core - 0.8, core + 0.8, r);
-    float ringA = (1.0 - smoothstep(core, ring, r)) * 0.8;
+    // Core stays at least ~2 px so the light, not its ring, leads when
+    // cells are only a few pixels wide; the ring is a soft, narrow shadow.
+    float core = max(2.0, 0.2 * cellPx);
+    float ring = core + max(1.5, 0.12 * cellPx);
+    float coreA = 1.0 - smoothstep(core - 0.8, core + 0.6, r);
+    float ringA = (1.0 - smoothstep(core, ring, r)) * 0.5;
     if (coreA <= 0.0 && ringA <= 0.01) discard;
     // premultiplied: rgb adds light, alpha darkens what is underneath
-    fragColor = vec4(fire * light * coreA * 1.25, max(ringA, coreA * 0.9));
+    fragColor = vec4(fire * light * coreA * 1.6, max(ringA, coreA * 0.85));
     return;
   }
 `;

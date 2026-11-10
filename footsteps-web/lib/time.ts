@@ -90,7 +90,11 @@ export function timeAtLivesFraction(q: number): number {
 const int = (n: number) => Math.round(n).toLocaleString('en-US');
 export function calendarLabel(time: number): string {
   const y = Math.round(time);
-  return y < 0 ? `${int(-y)} BCE` : `${int(y)} CE`;
+  const n = Math.abs(y);
+  // "1800 CE", "3000 BCE", but "10,000 BCE": calendar years read without a
+  // thousands separator below 10,000.
+  const text = n >= 10000 ? int(n) : String(n);
+  return y < 0 ? `${text} BCE` : `${text} CE`;
 }
 export function agoLabel(time: number): string {
   return `${int(NOW - time)} years ago`;

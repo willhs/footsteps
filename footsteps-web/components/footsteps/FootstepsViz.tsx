@@ -40,11 +40,13 @@ const UNIT_KIND_LABEL: Record<number, string> = {
 interface FootstepsVizProps {
   /** Continuous year; data years are points along it. */
   time: number;
+  /** Reports the data years still loading for the current view (null = ready). */
+  onLoadingChange?: (loading: [number, number] | null) => void;
 }
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizInner({ time }: FootstepsVizProps) {
+function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Views that can only show whole data years use the nearest one; the glow
   // mixes the two data years either side of `time`.
   const year = nearestDataYear(time);
@@ -84,7 +86,7 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
-  const { layers: gridLayers, grid, blend } = useGridLayer({
+  const { layers: gridLayers, grid, blend, loading } = useGridLayer({
     year,
     time,
     onTerrain: showTerrain,
@@ -107,6 +109,11 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
     else url.searchParams.delete('mode');
     window.history.replaceState(null, '', url);
   }, [renderMode]);
+
+  const loadingKey = loading ? loading.join() : '';
+  useEffect(() => {
+    onLoadingChange?.(loadingKey ? (loadingKey.split(',').map(Number) as [number, number]) : null);
+  }, [loadingKey, onLoadingChange]);
 
   useEffect(() => {
     setViewMode(is3DMode);

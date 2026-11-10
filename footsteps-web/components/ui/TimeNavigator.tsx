@@ -23,6 +23,8 @@ import {
 interface Props {
   time: number;
   onChange: (time: number) => void;
+  /** Data years still loading for the current view; null when the map is up to date. */
+  loading?: [number, number] | null;
 }
 
 const BAR_H = 22;
@@ -67,7 +69,7 @@ function popHeight(t: number) {
   return Math.max(0.08, Math.min(1, v)) * BAR_H;
 }
 
-export default function TimeNavigator({ time, onChange }: Props) {
+export default function TimeNavigator({ time, onChange, loading = null }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cssWidth, setCssWidth] = useState(800);
 
@@ -126,11 +128,16 @@ export default function TimeNavigator({ time, onChange }: Props) {
     // data years
     ctx.fillStyle = COLORS.data;
     for (const k of TARGET_YEARS) ctx.fillRect(x(k) - 1, 0, 2, 5);
-    // current moment
+    // current moment: dashed cyan while the map is still catching up
     const cxp = x(time);
-    ctx.fillStyle = COLORS.cursor;
-    ctx.fillRect(cxp - 1, -2, 2, BAR_H + 4);
-  }, [time, cssWidth]);
+    if (loading) {
+      ctx.fillStyle = COLORS.data;
+      for (let y = -2; y < BAR_H + 2; y += 5) ctx.fillRect(cxp - 1, y, 2, 3);
+    } else {
+      ctx.fillStyle = COLORS.cursor;
+      ctx.fillRect(cxp - 1, -2, 2, BAR_H + 4);
+    }
+  }, [time, cssWidth, loading]);
 
   // Drag: the pointer maps through the current lens, so the scale shifts
   // smoothly under the finger as the moment moves.
@@ -168,14 +175,28 @@ export default function TimeNavigator({ time, onChange }: Props) {
         <span className="text-base font-semibold tabular-nums">{agoLabel(time)}</span>
         <span className="text-xs text-white/60 tabular-nums">{calendarLabel(time)}</span>
         <span className="text-xs text-[#f2b56b] tabular-nums">~{populationLabel(populationAt(time))} people</span>
-        <span
-          className={`rounded-full border px-2 py-px text-[10px] ${status.exact ? 'border-[#5fd4e8] text-[#5fd4e8]' : 'border-white/30 text-white/60'}`}
-          title="HYDE gives data every 1,000 years before 1 CE and every 100 years after. Years in between are estimated."
-        >
-          {status.exact
-            ? 'data year'
-            : `estimated between ${calendarLabel(status.y0)} and ${calendarLabel(status.y1)}`}
-        </span>
+        {loading ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-1.5 rounded-full border border-[#5fd4e8] px-2 py-px text-[10px] text-[#5fd4e8]"
+            title="The map shows the nearest data it has until this loads."
+          >
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#5fd4e8]" />
+            {loading[0] === loading[1]
+              ? `loading ${calendarLabel(loading[0])} data…`
+              : `loading ${calendarLabel(loading[0])}–${calendarLabel(loading[1])} data…`}
+          </span>
+        ) : (
+          <span
+            className={`rounded-full border px-2 py-px text-[10px] ${status.exact ? 'border-[#5fd4e8] text-[#5fd4e8]' : 'border-white/30 text-white/60'}`}
+            title="HYDE gives data every 1,000 years before 1 CE and every 100 years after. Years in between are estimated."
+          >
+            {status.exact
+              ? 'data year'
+              : `estimated between ${calendarLabel(status.y0)} and ${calendarLabel(status.y1)}`}
+          </span>
+        )}
       </div>
       <canvas
         ref={canvasRef}

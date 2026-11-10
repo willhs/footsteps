@@ -12,7 +12,7 @@ services:
       - ./app:/srv/app:ro
       - ./pmtiles:/srv/pmtiles:ro
 
-  # "Imagine their day": Claude-written, cached, daily-capped. The key lives in
+  # "Imagine their day": Claude via OpenRouter, cached, daily-capped. OPENROUTER_API_KEY lives in
   # api.env on budgie (not in git); without it the API returns demo text.
   api:
     build: ./api

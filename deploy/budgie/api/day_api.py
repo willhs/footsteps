@@ -6,8 +6,9 @@ place x era x way of life x role x age band x sex, so most clicks never reach
 the model, and a hard daily cap bounds spend.
 
 Env:
-  ANTHROPIC_API_KEY   required for real generations (absent -> canned demo text)
-  DAY_MODEL           default claude-opus-5-5
+  OPENROUTER_API_KEY  required for real generations (absent -> canned demo text)
+  DAY_MODEL           OpenRouter model id, default anthropic/claude-opus-5.5
+  DAY_FALLBACK_MODEL  used if the first declines or fails, default anthropic/claude-sonnet-5.5
   DAY_DAILY_CAP       new generations per UTC day (default 200)
   DAY_DB              sqlite path (default /data/days.db)
 """
@@ -22,7 +23,10 @@ import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODEL = os.environ.get("DAY_MODEL", "claude-opus-5-5")
+MODEL = os.environ.get("DAY_MODEL", "anthropic/claude-opus-5.5")
+FALLBACK_MODEL = os.environ.get("DAY_FALLBACK_MODEL", "anthropic/claude-sonnet-5.5")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+KEY_ENV = "OPENROUTER_API_KEY"
 DAILY_CAP = int(os.environ.get("DAY_DAILY_CAP", "200"))
 DB_PATH = os.environ.get("DAY_DB", "/data/days.db")
 PER_IP_PER_HOUR = 30
@@ -125,22 +129,39 @@ def demo(f: dict) -> dict:
 
 
 def generate(f: dict) -> tuple[dict, str]:
-    import anthropic
+    """One call to OpenRouter (OpenAI-style chat completions), JSON schema output,
+    with OpenRouter's model fallback list."""
+    import urllib.request
 
-    client = anthropic.Anthropic()
-    response = client.beta.messages.create(
-        model=MODEL,
-        max_tokens=4000,
-        system=SYSTEM,
-        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        messages=[{"role": "user", "content": prompt(f)}],
+    payload = {
+        "models": [MODEL, FALLBACK_MODEL],
+        "max_tokens": 4000,
+        "reasoning": {"effort": "low"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": "day_in_the_life", "strict": True, "schema": SCHEMA},
+        },
+        "messages": [
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": prompt(f)},
+        ],
+    }
+    req = urllib.request.Request(
+        OPENROUTER_URL,
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {os.environ[KEY_ENV]}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://footsteps.willhs.me",
+            "X-Title": "Footsteps of Time",
+        },
     )
-    if response.stop_reason == "refusal":
+    with urllib.request.urlopen(req, timeout=90) as res:
+        body = json.load(res)
+    choice = body["choices"][0]
+    if choice.get("finish_reason") in ("content_filter", "refusal"):
         raise RuntimeError("The model declined this request.")
-    text = next(b.text for b in response.content if b.type == "text")
-    return json.loads(text), response.model
+    return json.loads(choice["message"]["content"]), body.get("model", MODEL)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -158,7 +179,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path.rstrip("/") in ("/api/day/health", "/health"):
-            self._send(200, {"ok": True, "model": MODEL, "live": bool(os.environ.get("ANTHROPIC_API_KEY"))})
+            self._send(200, {"ok": True, "model": MODEL, "live": bool(os.environ.get(KEY_ENV))})
         else:
             self._send(404, {"error": "not found"})
 
@@ -177,7 +198,7 @@ class Handler(BaseHTTPRequestHandler):
         if row:
             return self._send(200, {**json.loads(row[0]), "model": row[1], "cached": True})
 
-        live = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        live = bool(os.environ.get(KEY_ENV))
         if not live:
             return self._send(200, {**demo(f), "model": "demo", "cached": False})
 
@@ -211,5 +232,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-    print(f"day api on :8000 model={MODEL} cap={DAILY_CAP}/day live={bool(os.environ.get('ANTHROPIC_API_KEY'))}", flush=True)
+    print(f"day api on :8000 model={MODEL} cap={DAILY_CAP}/day live={bool(os.environ.get(KEY_ENV))}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()

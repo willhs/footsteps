@@ -3,3 +3,16 @@ ts	phase	decision	why	evidence	result
 2026-11-10T10:07:47Z	plan	cross-fade with two BitmapLayers (opaque lower, upper opacity f)	exact lerp with no shader; textures persist per frame year	plan.md Design options	chosen
 2026-11-10T10:07:47Z	plan	colour = Blue Marble detail x low-frequency colour shifted by biome palette difference; palette from low-land-use cells	keeps real texture and present-day look; BM 2004 shows modern farms	plan.md Key Discoveries	chosen
 2026-11-10T10:07:47Z	plan	coastlines from ETOPO1 4 arc-min thresholded at per-step sea level fitted to Krapp land mask	Krapp 0.5 deg coasts are blocky at globe zoom	data/raw/etopo/etopo_4min.nc via ERDDAP	chosen
+2026-11-10T10:29:23Z	phase-1	first pass painted palette colour x luminance detail; result blocky and Sahara overlay in hard bands	per-cell colour upsampled from 0.5 deg shows cell edges	evidence/pipeline/v1.png	reverted
+2026-11-10T10:29:23Z	phase-1	switched to Blue Marble x (blurred era colour / blurred Blue Marble), sigma 1.2 cells; Sahara overlay with smoothstep edges	keeps today's detail exactly; removes cell blockiness	evidence/pipeline/v2.png	chosen
+2026-11-10T10:29:23Z	phase-1	ratio softened to (era+20)/(bm+20), clipped 0.25-2.5	dark Canadian lakes blew the ratio up into a bright green patch	evidence/pipeline/ice-edge.png vs ice-edge2.png	fixed
+2026-11-10T10:29:23Z	phase-1	WebP q90 instead of q80	q80 was ~110 KB; q90 ~200 KB leaves room under 400 KB and is sharper when zoomed	evidence/pipeline/generate.log max 223 KB	chosen
+2026-11-10T10:29:23Z	phase-1	farmland from the published landuse PNGs (downloaded from the site) rather than NAS ASCs	already encoded and identical; no NAS access needed	docs/ops/grid-images.md	chosen
+2026-11-10T10:29:23Z	phase-1	pipeline tests + all 120 frames	verify helpers and size cap	pytest footstep-generator/tests/test_terrain_image.py 6 passed	tests green
+2026-11-10T10:29:24Z	phase-2	deleted unused FootstepsVizWithInterpolation.tsx and createTerrainLayer/createStaticTerrainLayer	only users of the Esri tile layer; the former was imported nowhere	grep createTerrainLayer before removal	removed
+2026-11-10T10:29:24Z	phase-2	added ?year= deep link	screenshots need exact years; the time bar steps on a log scale	footsteps-web/app/page.tsx	chosen
+2026-11-10T10:29:24Z	phase-2	client tint 230 / desaturate 0.1 (from 205 / 0.15)	first pass read darker than the Esri look Will had asked to brighten (commit 0805be5)	evidence/after-v1 vs evidence/after	tuned
+2026-11-10T10:29:24Z	phase-2	scrub check across ~10 terrain steps	prove no blank or flashing frames with the hold-last-pair loader	evidence/scrub/samples.json min lum 91 max jump 10	pass
+2026-11-10T10:29:24Z	phase-2	people band along the globe limb noted as pre-existing	same band on production before this change	evidence/before-globe/europe-nafrica_-10000_globe.png	open, not in scope
+2026-11-10T10:29:24Z	phase-3	deployed SKIP_TILES=1 and ran smoke against footsteps.willhs.me	task asks for a live deploy; PMTiles unchanged and not in worktree	evidence/deploy.log, evidence/smoke.log (101 ok)	pass
+2026-11-10T10:29:24Z	phase-3	AGENTS.md jest command 'pnpm test -- --runInBand' matches 0 tests under pnpm 10; ran 'pnpm test --runInBand' instead	the literal -- becomes a test-name pattern	jest 16 suites 54 tests passed	noted, docs not changed

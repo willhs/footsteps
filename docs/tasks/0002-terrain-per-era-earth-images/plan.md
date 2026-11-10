@@ -86,7 +86,7 @@ present-day look; (3) per-pixel biome classification from Blue Marble → no pal
   away from that band.
 - Frame years are calendar years; Krapp steps (BP) are interpolated linearly.
 - Green Sahara weight eases in 9750→8250 BCE and out 4250→2750 BCE (centres 9000 and
-  3500 BCE). Region 18W–35E; savanna south of 21N, grassland to 27N, fading out by 31N;
+  3500 BCE). Region 18W–35E, 9–31N; savanna grading to grassland between 18N and 24N, fading out 25→31N;
   applied only on desert/xeric cells. Mega-Chad = Chad-basin land below 330 m (Drake &
   Bristow 2006 shoreline ~329 m), scaled by the same weight.
 - Farmland: weight = crop + 0.35·grazing (rangeland in deserts should not tan them),
@@ -101,54 +101,54 @@ present-day look; (3) per-pixel biome classification from Blue Marble → no pal
 ## Phase 1: Pipeline
 
 ### Tasks
-- [ ] Write `footstep-generator/terrain_image.py` (load, palette, steps, frames, Sahara, farmland, encode)
-- [ ] Write `footstep-generator/tests/test_terrain_image.py` for the pure helpers (year↔BP bracket, sea-level fit, Sahara weight, farm blend)
-- [ ] Generate all frames into `data/tiles/terrain/`
+- [x] Write `footstep-generator/terrain_image.py` (load, palette, steps, frames, Sahara, farmland, encode)
+- [x] Write `footstep-generator/tests/test_terrain_image.py` for the pure helpers (year↔BP bracket, sea-level fit, Sahara weight, farm blend)
+- [x] Generate all frames into `data/tiles/terrain/`
 
 ### Success Criteria
-- [ ] Run: `poetry run pytest footstep-generator/tests/test_terrain_image.py -q` — pass
-- [ ] Every `earth_*.webp` <= 400 KB (script prints sizes; max reported)
-- [ ] Look at 10,000 BCE (Doggerland, Beringia, Laurentide/Fennoscandian ice), 6000 BCE (green Sahara, Mega-Chad), 1000 CE, 1900 (farmland)
+- [x] Run: `poetry run pytest footstep-generator/tests/test_terrain_image.py -q` — pass
+- [x] Every `earth_*.webp` <= 400 KB (script prints sizes; max reported)
+- [x] Look at 10,000 BCE (Doggerland, Beringia, Laurentide/Fennoscandian ice), 6000 BCE (green Sahara, Mega-Chad), 1000 CE, 1900 (farmland)
 
 ## Phase 2: Client
 
 ### Tasks
-- [ ] `TERRAIN_YEARS` in `lib/constants.ts`, `terrainBracket` in `lib/time.ts` + tests
-- [ ] `hooks/useTerrainLayers.ts` (image cache, pair hold, two bitmap layers, coastline)
-- [ ] Replace Esri in `useBackgroundLayers.ts`; delete `createTerrainLayer`
-- [ ] Legend source note in `FootstepsViz.tsx` when terrain is on
-- [ ] Copy frames to `footsteps-web/public/terrain/` for dev (gitignored)
+- [x] `TERRAIN_YEARS` in `lib/constants.ts`, `terrainBracket` in `lib/time.ts` + tests
+- [x] `hooks/useTerrainLayers.ts` (image cache, pair hold, two bitmap layers, coastline)
+- [x] Replace Esri in `useBackgroundLayers.ts`; delete `createTerrainLayer`
+- [x] Legend source note in `FootstepsViz.tsx` when terrain is on
+- [x] Copy frames to `footsteps-web/public/terrain/` for dev (gitignored)
 
 ### Success Criteria
-- [ ] Run: `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`, `test -- --runInBand` — pass
-- [ ] Browser: scrub across steps, no flash; night lights readable on Sahara and ice; 2D and globe
+- [x] Run: `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`, `test -- --runInBand` — pass
+- [x] Browser: scrub across steps, no flash; night lights readable on Sahara and ice; 2D and globe
 
 ## Phase 3: Deploy
 
 ### Tasks
-- [ ] `scripts/deploy-budgie.sh` syncs `data/tiles/terrain/` to `app/terrain/` (also under GRID_ONLY); Caddy caches `/terrain/*`
-- [ ] `scripts/smoke.sh` checks `terrain/earth_{year}.webp` for every TARGET_YEAR (RIFF/WEBP)
-- [ ] `docs/ops/terrain-images.md`: sources, licences, regeneration
-- [ ] Deploy and run smoke against footsteps.willhs.me
+- [x] `scripts/deploy-budgie.sh` syncs `data/tiles/terrain/` to `app/terrain/` (also under GRID_ONLY); Caddy caches `/terrain/*`
+- [x] `scripts/smoke.sh` checks `terrain/earth_{year}.webp` for every TARGET_YEAR (RIFF/WEBP)
+- [x] `docs/ops/terrain-images.md`: sources, licences, regeneration
+- [x] Deploy and run smoke against footsteps.willhs.me
 
 ### Success Criteria
-- [ ] Run: `scripts/smoke.sh https://footsteps.willhs.me` — exit 0
-- [ ] Screenshots before/after in the workspace `evidence/`
+- [x] Run: `scripts/smoke.sh https://footsteps.willhs.me` — exit 0
+- [x] Screenshots before/after in the workspace `evidence/`
 
 ## Phase 4: Wrap (commit & finalize)
 
-- [ ] Run: `git status` — note files
-- [ ] Commit (Manager job: commit only)
-- [ ] Run: `git status` — clean
+- [x] Run: `git status` — note files
+- [x] Commit (Manager job: commit only)
+- [x] Run: `git status` — clean
 
 ## Final Checklist
 
-- [ ] All phases complete
-- [ ] Documentation updated
+- [x] All phases complete
+- [x] Documentation updated
 
 ## Documentation Updates
 
-- [ ] `docs/ops/terrain-images.md` (new), AGENTS.md architecture line for terrain
+- [x] `docs/ops/terrain-images.md` (new), AGENTS.md architecture line for terrain
 
 ## References
 

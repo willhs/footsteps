@@ -186,7 +186,7 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
       />
 
       {peopleView && (
-        <div className="pointer-events-none absolute bottom-[132px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
+        <div className="pointer-events-none absolute bottom-[92px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
           {showGlowLegend ? (
             <>
               Brightness is people per ~10 km cell:{' '}

@@ -55,7 +55,7 @@ None` ⇔ `source == "none"`.
 | Option | Shape | Verdict |
 |---|---|---|
 | A. Precompute full records per cell × era | 27k JSON records, runtime is a lookup | Rejected: ~25 MB, rules frozen into data, D-PLACE repeated per cell |
-| B. Compact atlas + runtime rules (chosen) | numbers per cell, societies once, rules in `anthropology.py` | ~1 MB gz; rules testable as pure functions |
+| B. Compact atlas + runtime rules (chosen) | numbers per cell, societies once, rules in `atlas.py` | ~1 MB gz; rules testable as pure functions |
 | C. SQLite file | same as B in tables | No gain for read-only lookups; JSON loads in ms |
 
 Gap-fill: one fixed schema for all `MODEL_FIELDS` (simpler cache, real values win in merge)
@@ -86,40 +86,40 @@ vs a per-record schema of only missing fields (fewer tokens, cache varies). Chos
 
 ## Phase 1: Atlas builder
 
-- [ ] Copy `humans_*.webp`, `landuse_*.png` from budgie into `data/tiles/grid/` (gitignored)
-- [ ] `footstep-generator/anthropology/build.py`: `fetch` (idempotent downloads to `data/raw/`), pure
+- [x] Copy `humans_*.webp`, `landuse_*.png` from budgie into `data/tiles/grid/` (gitignored)
+- [x] `footstep-generator/anthropology/build.py`: `fetch` (idempotent downloads to `data/raw/`), pure
       `aggregate_cells(people, landuse, cell_px)`, `decode_societies()`, `nearest_analogues()`,
       `seshat_snapshots()`, `build()` writing `deploy/budgie/api/anthropology.json.gz`
-- [ ] Run: `poetry run python footstep-generator/anthropology/build.py` — file < 3 MB, ~900 land cells
+- [x] Run: `poetry run python footstep-generator/anthropology/build.py` — file < 3 MB, ~900 land cells
 
 ## Phase 2: Runtime record
 
-- [ ] `deploy/budgie/api/anthropology.py`: `era_of`, `cell_of`, `Atlas.record()`, `MODEL_FIELDS`,
+- [x] `deploy/budgie/api/atlas.py` (renamed from anthropology.py, see decisions.tsv): `era_of`, `cell_of`, `Atlas.record()`, `MODEL_FIELDS`,
       `GAPFILL_SCHEMA`, `gapfill_prompt()`, `merge_gapfill()`, `prompt_facts()`
-- [ ] `footstep-generator/tests/test_anthropology.py`: bucketing, rules, schema, source tags, merge
-- [ ] Run: `poetry run pytest footstep-generator/tests/test_anthropology.py -q` — pass
+- [x] `footstep-generator/tests/test_anthropology.py`: bucketing, rules, schema, source tags, merge
+- [x] Run: `poetry run pytest footstep-generator/tests/test_anthropology.py -q` — pass
 
 ## Phase 3: API + day prompt
 
-- [ ] `day_api.py`: `call_model()` shared; `reserve_generation()` shared cap/IP; GET route; `anthro` cache table;
+- [x] `day_api.py`: `call_model()` shared; `reserve_generation()` shared cap/IP; GET route; `anthro` cache table;
       `prompt()` adds `what_we_know`; Dockerfile copies module + atlas
-- [ ] Endpoint tests (in-process server, stubbed model): 200 record, 404 ocean, 400 bad input, cache hit,
+- [x] Endpoint tests (in-process server, stubbed model): 200 record, 404 ocean, 400 bad input, cache hit,
       cap respected, day prompt contains record, every land cell × era returns a record from the real atlas
-- [ ] Run: `poetry run pytest footstep-generator/tests/ -q`
+- [x] Run: `poetry run pytest footstep-generator/tests/ -q`
 
 ## Phase 4: Docs + deploy
 
-- [ ] `footstep-generator/anthropology/README.md`: sources, licences, coverage, rebuild
-- [ ] `scripts/deploy-budgie.sh`: `API_ONLY=1` mode; README/AGENTS mention
-- [ ] Deploy `API_ONLY=1 scripts/deploy-budgie.sh`; curl the live endpoint for 3 places/eras → evidence
+- [x] `footstep-generator/anthropology/README.md`: sources, licences, coverage, rebuild
+- [x] `scripts/deploy-budgie.sh`: `API_ONLY=1` mode; README/AGENTS mention
+- [x] Deploy `API_ONLY=1 scripts/deploy-budgie.sh`; curl the live endpoint for 3 places/eras → evidence
 
 ## Phase 5: Wrap (commit & finalize)
 
-- [ ] `git status` clean after commit; decisions.tsv committed beside this plan
+- [x] `git status` clean after commit; decisions.tsv committed beside this plan
 
 ## Final Checklist
 
-- [ ] All phases complete; tests green; live endpoint checked
+- [x] All phases complete; tests green; live endpoint checked
 - [ ] [HUMAN] optional: add `OPENROUTER_API_KEY` to `deploy/budgie/api.env` on budgie to turn on gap-fill
       (and the day API, which is in demo mode today)
 

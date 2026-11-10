@@ -21,7 +21,10 @@ covers 10,000 BCE–1900 CE (30 years); 100,000 BCE–present is aspirational.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.
-- `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health.
+- `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health
+  (`API_ONLY=1` for just the API container).
+- `deploy/budgie/api/`: day API (`day_api.py`) and `GET /api/anthropology` (`atlas.py`), a sourced
+  record per 5° cell × era built by `footstep-generator/anthropology/` (see its README).
   `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures (grid, terrain) for configured years.
 
 ## Data and development

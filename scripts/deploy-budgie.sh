@@ -3,6 +3,7 @@
 #   scripts/deploy-budgie.sh            # app + tiles
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
 #   GRID_ONLY=1 scripts/deploy-budgie.sh # publish generated grid + terrain images without rebuilding app
+#   API_ONLY=1 scripts/deploy-budgie.sh  # day + anthropology API container only
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="${REMOTE:-will@budgie}"
@@ -30,13 +31,21 @@ if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid
   exit 0
 fi
+# The day/anthropology API container only: no app build, no data sync.
+if [[ -n "${API_ONLY:-}" ]]; then
+  rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
+  rsync -az --delete --exclude=__pycache__ "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
+  ssh "$REMOTE" "cd $DEST && docker compose up -d --build api && for i in \$(seq 1 20); do curl -fsS http://127.0.0.1:5090/api/day/health && exit 0; sleep 1; done; exit 1"
+  echo
+  exit 0
+fi
 
 # Tiles are same-origin (/pmtiles), served by Caddy next to the app.
 (cd "$ROOT/footsteps-web" && NEXT_PUBLIC_CDN_HOST= NEXT_PUBLIC_PMTILES_DIRECT=false pnpm build)
 
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
-rsync -az --delete "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
+rsync -az --delete --exclude=__pycache__ "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
 rsync -az --delete --exclude=/pmtiles --exclude=/grid --exclude=/terrain "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid

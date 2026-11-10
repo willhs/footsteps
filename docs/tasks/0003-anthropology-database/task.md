@@ -41,7 +41,7 @@ Premise check (main `f5eb02f`, 2026-11-10):
 ### Must Do
 - Offline builder `footstep-generator/anthropology/build.py`: HYDE population + land use,
   D-PLACE EA (+ TEOW biomes), Seshat Equinox → `deploy/budgie/api/anthropology.json.gz`.
-- Runtime module `deploy/budgie/api/anthropology.py` (stdlib only): era/cell bucketing,
+- Runtime module `deploy/budgie/api/atlas.py` (stdlib only): era/cell bucketing,
   record assembly, gap-fill schema, prompt and merge.
 - `GET /api/anthropology` in `day_api.py`; gap-fill via OpenRouter sharing the day cap and
   per-IP limit; cached in the API SQLite.

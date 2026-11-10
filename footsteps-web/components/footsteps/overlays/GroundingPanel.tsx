@@ -1,11 +1,14 @@
 import type { GroundingFacts } from '../layers/grounding';
 import PersonDay, { type DayRequest } from './PersonDay';
+import Portrait from './Portrait';
+import type { Person } from '../layers/people';
 
 export default function GroundingPanel({
   facts,
   group,
   person,
   day,
+  portrait,
   onClose,
 }: {
   facts: GroundingFacts | null;
@@ -15,6 +18,8 @@ export default function GroundingPanel({
   person?: { title: string; detail: string } | null;
   /** Facts for 'Imagine their day' (present when a person is selected). */
   day?: DayRequest | null;
+  /** The selected person, for their illustrated portrait. */
+  portrait?: { person: Person; year: number; lat: number } | null;
   onClose: () => void;
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
@@ -24,8 +29,13 @@ export default function GroundingPanel({
       <h2 className="mb-2 text-sm font-semibold text-white">What we know here</h2>
       {person && (
         <div className="mb-3 border-b border-white/15 pb-3">
-          <p className="text-sm font-semibold text-[#ffe2aa]">{person.title}</p>
-          <p className="text-white">{person.detail}</p>
+          <div className="flex gap-3">
+            {portrait && <Portrait {...portrait} />}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#ffe2aa]">{person.title}</p>
+              <p className="text-white">{person.detail}</p>
+            </div>
+          </div>
           <p className="mt-1 text-white/55">
             Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
             camp are drawn from a typical pre-modern population.

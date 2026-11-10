@@ -169,6 +169,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             }
           }
           person={selectedPerson ? describePerson(selectedPerson) : null}
+          portrait={
+            selectedPerson
+              ? { person: selectedPerson, year: Math.round(time), lat: selectedPerson.position[1] }
+              : null
+          }
           day={
             selectedPerson && selectedPlace && grid
               ? (() => {

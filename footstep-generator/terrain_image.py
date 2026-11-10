@@ -59,11 +59,10 @@ HYDE_YEARS = list(range(-10_000, 0, 1000)) + list(range(0, 2000, 100))
 # Biomes absent from today's map borrow a present-day look.
 FALLBACK = {16: (15, 20), 18: (11, 22), 2: (1, 3), 3: (2, 12), 19: (12, 20)}
 
-# Warm, slightly saturated field colour, so farmed land reads against both forest
-# green and desert sand. FARM_GAMMA < 1 lifts partly farmed cells: a 5 arc-min
-# cell that is 30% cropland already looks farmed from space.
-FARM_TAN = np.array([200, 168, 104], dtype=np.float32)
-CROP_WEIGHT, GRAZING_WEIGHT, FARM_MAX, FARM_GAMMA = 1.0, 0.4, 0.9, 0.6
+# Farmland is calibrated to reality: Blue Marble (July 2004) is a photo of farmed
+# Earth, so a cell as farmed as in 1900 shows its real photo colour and less
+# farmed eras blend back toward natural cover. No invented field colour.
+CROP_WEIGHT, GRAZING_WEIGHT = 1.0, 0.35
 
 
 # --- pure helpers (tested) ---------------------------------------------------
@@ -97,9 +96,11 @@ def farmed_fraction(crop: np.ndarray, grazing: np.ndarray) -> np.ndarray:
     return np.clip(CROP_WEIGHT * crop + GRAZING_WEIGHT * grazing, 0.0, 1.0)
 
 
-def farm_share(crop: np.ndarray, grazing: np.ndarray) -> np.ndarray:
-    """How far a cell's colour moves toward farmland tan."""
-    return farmed_fraction(crop, grazing) ** FARM_GAMMA * FARM_MAX
+def farm_weight(farmed_then: np.ndarray, farmed_today: np.ndarray) -> np.ndarray:
+    """How much of today's farmed look a cell has in an era (0..1): its farmed
+    fraction then over its fraction in 1900, the latest HYDE year (closest to the
+    2004 photo). Cells hardly farmed today have no farm look to restore."""
+    return np.clip(farmed_then / np.maximum(farmed_today, 0.02), 0.0, 1.0) * (farmed_today > 0.01)
 
 
 def fit_sea_level(elev: np.ndarray, land_frac: np.ndarray, band: np.ndarray,
@@ -231,7 +232,8 @@ class Palette:
     biome: np.ndarray  # (29, 3): colour per biome id
     ice: np.ndarray
     sea: np.ndarray
-    farm: np.ndarray
+    farm_delta: np.ndarray  # (CH, CW, 3): today's photo minus its natural colour (the farm look)
+    farmed_today: np.ndarray  # (CH, CW): farmed fraction in 1900
     lake: np.ndarray
     residual: np.ndarray  # (CH, CW, 3): today's natural colour minus its biome colour
 
@@ -257,13 +259,14 @@ def palette() -> Palette:
             pal[b] = (pal[a] + pal[c]) / 2
     ice = np.maximum(pal[ICE], 225)
     sea = np.median(bm[~land], axis=0)
-    tan = np.median(bm[land & (crop > 0.5)], axis=0) if (land & (crop > 0.5)).any() else FARM_TAN
-    farm = 0.2 * tan + 0.8 * FARM_TAN
     # Today's natural colour: the modern farm tint pulled back toward the biome.
     natural = bm - farmed[..., None] * (bm - pal[now])
-    residual = np.where((land & (now != ICE))[..., None], natural - pal[now], 0.0)
+    real = (land & (now != ICE))[..., None]
+    residual = np.where(real, natural - pal[now], 0.0)
+    farm_delta = np.where(real, bm - natural, 0.0)
     lake = sea * 1.3 + np.array([2, 10, 14], np.float32)
-    return Palette(pal, ice, sea, farm, lake, residual.astype(np.float32))
+    return Palette(pal, ice, sea, farm_delta.astype(np.float32), farmed.astype(np.float32),
+                   lake, residual.astype(np.float32))
 
 
 @dataclass
@@ -363,6 +366,11 @@ def frame(year: int) -> np.ndarray:
     # Land colour: Blue Marble times the (smoothed) change in colour since today, so
     # today's detail and real colours stay and only the broad colour moves.
     era = blur(colour, 1.2)
+    # Farmland for HYDE years: put back the share of today's farm look this era had.
+    if year in HYDE_YEARS:
+        crop, grazing = landuse(year, CW, CH)
+        k = farm_weight(farmed_fraction(crop, grazing), p.farmed_today)
+        era = era + blur(p.farm_delta * k[..., None] * land_c[..., None], 1.2)
     # (+20 keeps dark cells such as lakes from blowing the ratio up)
     ratio = np.clip(resize((era + 20) / (t["bm_lo"] + 20), W, H), 0.25, 2.5)
     land_rgb = bm_hi * ratio
@@ -370,13 +378,6 @@ def frame(year: int) -> np.ndarray:
     painted = resize(era, W, H) * t["grain"]
     has_bm = np.clip((t["land"] - t["ice"][..., 0]) * 2 - 0.5, 0, 1)[..., None]
     land_rgb = painted + (land_rgb - painted) * has_bm
-
-    # Farmland for HYDE years.
-    if year in HYDE_YEARS:
-        crop, grazing = landuse(year, W, H)
-        share = farm_share(crop, grazing)[..., None]
-        farm = p.farm * (0.75 + 0.25 * land_rgb / np.maximum(resize(era, W, H), 4.0))
-        land_rgb = land_rgb + (farm - land_rgb) * share
 
     # Ice: Blue Marble's own ice where it is ice today, soft-edged white elsewhere.
     ice_a = smoothstep(0.42, 0.58, resize(blur(ice_c, 1.3), W, H) + t["ice_noise"])[..., None]

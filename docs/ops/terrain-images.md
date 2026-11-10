@@ -67,9 +67,12 @@ poetry run python footstep-generator/terrain_image.py -6000    # one year
    out 4250→2750 BCE (full ~8250–4250 BCE). Lake Mega-Chad = Chad-basin land
    (10.5–19.5N, 12.5–20.5E) between 150 m and 329 m (Drake & Bristow 2006 highstand
    shoreline), with the same weight. Guide: Li, Dallmeyer et al. 2025 megabiomes.
-7. **Farmland.** HYDE years only: colour moves toward farmland tan by
-   `0.8 × min(1, crop + 0.35 × grazing)` (rangeland counts little: it is mostly open
-   land that already looks like itself).
+7. **Farmland.** Calibrated to reality: Blue Marble (July 2004) is a photo of farmed
+   Earth, so step 2's removed "farm look" (photo minus natural colour) is put back in
+   proportion to how farmed a cell was then versus 1900 (`farm_weight`), with
+   farmed fraction `min(1, crop + 0.35 × grazing)`. A cell as farmed as in 1900 shows its
+   real photo colour; nothing is tinted beyond what the photo shows. An earlier
+   invented field tan overstated farming (greener July crops read as tan sheets).
 
 The client dims the images (`tintColor` 230, `desaturate` 0.1), draws a faint modern
 coastline (`world-simple.geojson`, Natural Earth 110m land, stroked) and puts the

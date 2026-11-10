@@ -46,12 +46,20 @@ def test_green_sahara_is_full_in_the_humid_period_and_absent_outside():
     assert terrain.sahara_weight(-9500) < terrain.sahara_weight(-8500)
 
 
-def test_farm_share_counts_cropland_more_than_rangeland():
+def test_farmed_fraction_counts_cropland_more_than_rangeland():
     crop = np.array([1.0, 0.0, 0.0])
     grazing = np.array([0.0, 1.0, 0.0])
-    share = terrain.farm_share(crop, grazing)
-    assert share[0] > share[1] > share[2] == 0
-    assert share.max() <= 1
+    f = terrain.farmed_fraction(crop, grazing)
+    assert f[0] > f[1] > f[2] == 0
+    assert f.max() <= 1
+
+
+def test_farm_weight_is_the_share_of_todays_farming():
+    today = np.array([0.6, 0.6, 0.6, 0.0])
+    then = np.array([0.0, 0.3, 0.9, 0.5])
+    k = terrain.farm_weight(then, today)
+    # none, half of today's, capped at today's look, and nothing to restore where unfarmed today
+    assert k.tolist() == pytest.approx([0.0, 0.5, 1.0, 0.0])
 
 
 def test_blur_keeps_the_mean_and_wraps_east_west():
@@ -69,8 +77,3 @@ def test_frame_years_match_the_web_client():
     steps = np.diff(terrain.TERRAIN_YEARS)
     assert steps.max() == 1000 and steps.min() == 100
 
-
-def test_farm_share_lifts_partly_farmed_cells():
-    # a third-cropland cell should move well over a third of the way to farm tan
-    share = terrain.farm_share(np.array([0.3]), np.array([0.0]))
-    assert share[0] > 0.4

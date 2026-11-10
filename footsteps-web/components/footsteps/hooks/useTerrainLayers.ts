@@ -10,8 +10,8 @@ import { clampTime, terrainBracket } from '@/lib/time';
 // The two images either side of `time` are drawn as an opaque lower image and the
 // upper one at opacity f: an exact cross-fade, no shader needed.
 // Bump when the images are regenerated: Cloudflare caches /terrain for a day.
-// v2: stronger farmland (2026-11-11).
-const TERRAIN_VERSION = 2;
+// v3: farmland calibrated to the Blue Marble photo (2026-11-11).
+const TERRAIN_VERSION = 3;
 const terrainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.

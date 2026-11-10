@@ -1,14 +1,16 @@
 'use client';
 
-// People-drawer v1: a layered SVG portrait built from a template. Inputs are
-// the imagined person (age, sex, role, band or village) and place/era. Until
-// the anthropology database lands, era and way of life choose materials,
-// colours and objects from broad defaults; skin and hair tones are sampled
-// from wide, overlapping ranges, nudged by latitude. Deterministic per person.
-// It is an illustration of the kind of person, never a likeness.
+// People-drawer: a layered SVG portrait built from a template. Inputs are the
+// imagined person (age, sex, role, band or village) and the anthropology atlas
+// record for their place and era (clothing colours and materials, hair styles,
+// ornaments, body paint, skin and hair palettes). While the record loads, or
+// where it has nothing, era and way of life choose from broad defaults and
+// skin/hair tones come from wide ranges nudged by latitude. Deterministic per
+// person and record. An illustration of the kind of person, never a likeness.
 
 import type { Person } from '../layers/people';
 import { UnitKind } from '../layers/units';
+import { useAnthropology, type AtlasRecord } from '../hooks/useAnthropology';
 
 function rng(seed: number) {
   let a = seed >>> 0;
@@ -48,6 +50,44 @@ function clothing(year: number, kind: number, lat: number, r: () => number): Pal
   };
 }
 
+// Garments only: materials lists include sandals and belts, so 'leather' there says nothing about a fur wrap.
+const FUR = /\bfurs?\b|\bhides?\b|\bpelts?\b|\bskins?\b/i;
+/** Atlas text that records an absence ("none recorded", "no evidence") rather than a thing. */
+export const saysNone = (s: string | null | undefined) => !s || /^\s*(none|no|not|unknown)\b/i.test(s);
+
+/** Atlas clothing over the era defaults: its palette for garment and trim, fur if its materials say so. */
+function atlasClothing(base: Palette & { fur: boolean }, rec: AtlasRecord | null, r: () => number) {
+  const c = rec?.fields.clothing?.value;
+  const palette = (c?.palette ?? []).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
+  if (!c || palette.length === 0) return base;
+  const text = (c.garments ?? []).join(' ');
+  return {
+    garment: palette[Math.floor(r() * Math.min(2, palette.length))],
+    trim: palette[palette.length - 1],
+    accent: base.accent,
+    fur: base.fur || FUR.test(text),
+  };
+}
+
+type HairStyle = 'long' | 'tied' | 'braid' | 'short' | 'wrap';
+/** Map the atlas's hair-style phrases onto the styles the template can draw. */
+export function hairStylesFrom(phrases: string[]): HairStyle[] {
+  const out = new Set<HairStyle>();
+  for (const p of phrases) {
+    if (/braid|plait/i.test(p)) out.add('braid');
+    if (/tied|bun|knot|topknot|tail/i.test(p)) out.add('tied');
+    if (/cover|wrap|cap|veil|turban|headdress|hood|scarf/i.test(p)) out.add('wrap');
+    if (/short|shaved|shorn|cropped/i.test(p)) out.add('short');
+    if (/long|loose/i.test(p) && !/tied|braid/i.test(p)) out.add('long');
+  }
+  return [...out];
+}
+
+const pickHex = (r: () => number, xs: string[] | undefined) => {
+  const ok = (xs ?? []).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
+  return ok.length ? pick(r, ok) : null;
+};
+
 /** A small object in hand that says what they do. */
 function Tool({ role, r }: { role: string; r: () => number }) {
   const wood = '#6e4b2a';
@@ -81,6 +121,7 @@ function Tool({ role, r }: { role: string; r: () => number }) {
 }
 
 export default function Portrait({ person, year, lat }: { person: Person; year: number; lat: number }) {
+  const rec = useAnthropology(lat, person.position[0], year);
   const seed = Math.round(person.position[0] * 1e5) ^ Math.round(person.position[1] * 1e5) ^ (person.id * 2654435761);
   const r = rng(seed);
   const child = person.age < 13;
@@ -89,18 +130,31 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
   // skin: wide random spread, centre nudged deeper toward the tropics
   const latPull = 1 - Math.min(1, Math.abs(lat) / 60); // 1 at equator, 0 at 60°
   const tone = Math.min(1, Math.max(0, 0.25 + 0.5 * latPull + (r() - 0.5) * 0.6));
-  const skin = mix(SKIN_LIGHT, SKIN_DEEP, tone);
-  const skinShade = mix(SKIN_LIGHT, SKIN_DEEP, Math.min(1, tone + 0.18));
-  let hair = Math.abs(lat) > 45 && r() < 0.35 ? pick(r, HAIR.slice(3)) : pick(r, HAIR.slice(0, 4));
+  const looks = rec?.fields.skin_hair?.value;
+  const atlasSkin = pickHex(r, looks?.skin_palette);
+  const skin = atlasSkin ?? mix(SKIN_LIGHT, SKIN_DEEP, tone);
+  const skinShade = atlasSkin ? `color-mix(in srgb, ${atlasSkin} 82%, black)` : mix(SKIN_LIGHT, SKIN_DEEP, Math.min(1, tone + 0.18));
+  let hair = pickHex(r, looks?.hair_palette) ?? (Math.abs(lat) > 45 && r() < 0.35 ? pick(r, HAIR.slice(3)) : pick(r, HAIR.slice(0, 4)));
   if (elder) hair = r() < 0.7 ? '#bdb6ac' : '#8f8a83';
-  const cloth = clothing(year, person.groupKind, lat, r);
+  const cloth = atlasClothing(clothing(year, person.groupKind, lat, r), rec, r);
+  const adorn = rec?.fields.hair_adornment?.value;
+  const atlasStyles = hairStylesFrom(adorn?.styles ?? []);
+  // most, not all: people in one place still differ. null: the atlas says nothing, use chance
+  const beads = adorn?.ornaments?.length ? r() < 0.85 : null;
+  const paint = adorn ? (saysNone(adorn.body_paint) ? false : r() < 0.6) : null;
 
   // proportions: children have bigger heads on smaller bodies
   const headR = child ? 25 : 21;
   const headY = child ? 66 : 58;
   const shoulderY = child ? 112 : 104;
   const shoulderW = child ? 26 : person.female ? 32 : 36;
-  const hairStyle = pick(r, person.female ? ['long', 'tied', 'braid', 'short', 'wrap'] : ['short', 'long', 'tied', 'short', 'wrap']);
+  const hairStyle: HairStyle = atlasStyles.length
+    ? pick(r, atlasStyles)
+    : pick(r, person.female ? ['long', 'tied', 'braid', 'short', 'wrap'] : ['short', 'long', 'tied', 'short', 'wrap']);
+  const dress = rec?.fields.clothing?.value?.garments?.[0];
+  const sources = rec
+    ? [...new Set(['clothing', 'hair_adornment', 'skin_hair'].map((k) => rec.fields[k]?.source).filter((x): x is string => !!x && x !== 'none'))]
+    : [];
 
   return (
     <figure className="m-0 shrink-0">
@@ -115,7 +169,7 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
         {/* neck */}
         <rect x="53" y={headY + headR - 6} width="14" height={shoulderY - headY - headR + 4} fill={skinShade} />
         {/* adornment */}
-        {r() < 0.6 && <path d={`M50 ${shoulderY - 2} Q60 ${shoulderY + 8} 70 ${shoulderY - 2}`} stroke={cloth.accent} strokeWidth="2.5" strokeDasharray="2 2" fill="none" />}
+        {(beads ?? r() < 0.6) && <path d={`M50 ${shoulderY - 2} Q60 ${shoulderY + 8} 70 ${shoulderY - 2}`} stroke={cloth.accent} strokeWidth="2.5" strokeDasharray="2 2" fill="none" />}
         {/* hair behind */}
         {(hairStyle === 'long' || hairStyle === 'braid') && <path d={`M${60 - headR - 2} ${headY} Q${60 - headR - 4} ${headY + 34} ${60 - headR + 6} ${headY + 38} L${60 + headR - 6} ${headY + 38} Q${60 + headR + 4} ${headY + 34} ${60 + headR + 2} ${headY} Z`} fill={hair} />}
         {/* head */}
@@ -135,10 +189,16 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
         <path d={`M60 ${headY + 3} q-2 6 1 7`} stroke={skinShade} strokeWidth="1.4" fill="none" />
         <path d={`M54 ${headY + 13} q6 ${child ? 4 : 3} 12 0`} stroke="#6b3b2c" strokeWidth="1.6" fill="none" />
         {elder && <path d={`M45 ${headY + 2} q3 3 6 0 M69 ${headY + 2} q3 3 6 0 M52 ${headY - 13} h16`} stroke={skinShade} strokeWidth="1" fill="none" />}
-        {cloth.accent === '#b5532c' && person.groupKind === UnitKind.Band && r() < 0.4 && <path d={`M47 ${headY + 7} h6 M67 ${headY + 7} h6`} stroke="#b5532c" strokeWidth="2" />}
+        {(paint ?? (cloth.accent === '#b5532c' && person.groupKind === UnitKind.Band && r() < 0.4)) && <path d={`M47 ${headY + 7} h6 M67 ${headY + 7} h6`} stroke="#b5532c" strokeWidth="2" />}
         <Tool role={person.role} r={r} />
       </svg>
-      <figcaption className="mt-1 text-[10px] leading-tight text-white/45">Illustration,<br />not a likeness</figcaption>
+      <figcaption
+        className="mt-1 w-24 text-[10px] leading-tight text-white/45"
+        title={rec ? `${rec.era.label}. Dress, hair and colours from the anthropology atlas (${sources.join(', ')}); "model" means AI gap-fill.` : undefined}
+      >
+        {dress && <span className="block text-white/60">{dress}</span>}
+        Illustration,<br />not a likeness
+      </figcaption>
     </figure>
   );
 }

@@ -32,6 +32,9 @@ DAILY_CAP = int(os.environ.get("DAY_DAILY_CAP", "200"))
 DB_PATH = os.environ.get("DAY_DB", "/data/days.db")
 PER_IP_PER_HOUR = 30
 
+# Bump when the prompt changes so days written under an old prompt aren't served.
+PROMPT_VERSION = 2
+
 SYSTEM = """You write short, plausible, clearly speculative snapshots of one ordinary \
 person's day in the past, for an interactive map of human population history.
 
@@ -40,8 +43,9 @@ the person's age, sex and role) plus well-established general knowledge of how p
 lived in that region and period. Where knowledge is thin (deep prehistory, sparse \
 regions), stay general and say so in the uncertainty note rather than inventing \
 specifics. Do not invent named historical events or famous people. Do not give the \
-person a name. Avoid stereotypes; keep the role you are given, and do not assume tasks \
-from sex. Plain, warm, concrete English; present tense. Keep it short: 5 to 7 schedule \
+person a name. Avoid stereotypes; keep the role you are given. Do not divide work by \
+sex for anyone in the scene: describe other group members by role or age (adults, \
+children, elders), never as "the men" doing one task and "the women" another. Plain, warm, concrete English; present tense. Keep it short: 5 to 7 schedule \
 entries of one sentence each."""
 
 SCHEMA = {
@@ -88,6 +92,7 @@ def cache_key(f: dict) -> str:
     age = int(f["person"]["age"])
     age_band = "child" if age < 13 else "youth" if age < 20 else "adult" if age < 50 else "elder"
     parts = [
+        PROMPT_VERSION,
         round(float(f["lat"]), 1),
         round(float(f["lon"]), 1),
         era,

@@ -18,9 +18,13 @@ sync_grid() {
   # find, not rm with a glob: budgie's zsh aborts on a glob with no matches.
   ssh "$REMOTE" "find $DEST/app/grid -name 'humans_*.png' -delete"
   # Terrain: one ~200 KB WebP per terrain year (footstep-generator/terrain_image.py)
-  ssh "$REMOTE" "mkdir -p $DEST/app/terrain"
-  rsync -az --include='earth_*.webp' --exclude='*' \
-    "$ROOT/data/tiles/terrain/" "$REMOTE:$DEST/app/terrain/"
+  if compgen -G "$ROOT/data/tiles/terrain/earth_*.webp" >/dev/null; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/terrain"
+    rsync -az --include='earth_*.webp' --exclude='*' \
+      "$ROOT/data/tiles/terrain/" "$REMOTE:$DEST/app/terrain/"
+  else
+    echo "warning: no local terrain images; skipping (see docs/ops/terrain-images.md)" >&2
+  fi
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid

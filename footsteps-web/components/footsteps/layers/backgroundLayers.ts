@@ -147,10 +147,11 @@ export function createTerrainLayer() {
           boundingBox[1][1],
         ],
         coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
-        // Dimmed, cool "from space" look so the warm people layer stays on
-        // top visually (Tufte: terrain is context, people are the data).
-        desaturate: 0.8,
-        tintColor: [92, 104, 128],
+        // Natural colours, lightly dimmed: the land's condition (forest,
+        // desert, ice) is part of the story. People are drawn over it as
+        // night lights with dark rings (GlowLayer), so they still read.
+        desaturate: 0.1,
+        tintColor: [215, 215, 215],
         // Small optimisation: disable updates once image is set
         updateTriggers: {
           image: props.data,

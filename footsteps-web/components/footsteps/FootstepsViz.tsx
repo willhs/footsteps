@@ -135,6 +135,8 @@ function FootstepsVizInner({ time }: FootstepsVizProps) {
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         layers={layers}
+        // Night lights flicker on the GPU; redraw continuously only then.
+        animate={showTerrain && renderMode !== 'dots'}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;

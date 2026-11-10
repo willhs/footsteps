@@ -15,7 +15,7 @@ import {
 import useYearCrossfade from './useYearCrossfade';
 import { bracket } from '@/lib/time';
 import GridYearLayer from '../layers/GridYearLayer';
-import GlowLayer, { glowPair } from '../layers/GlowLayer';
+import GlowLayer, { ADDITIVE, LIGHTS, glowPair } from '../layers/GlowLayer';
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -304,6 +304,9 @@ export default function useGridLayer({
     : glowFrames.length > 1
       ? glowFrames[1].opacity
       : 1;
+  const glowSize: [number, number] = glowTo
+    ? [glowTo.glow.width, glowTo.glow.height]
+    : [1, 1];
   const glowLayer = useMemo(
     () =>
       glowTo && glowFrom
@@ -323,7 +326,11 @@ export default function useGridLayer({
       ? [
           glowLayer.clone({
             progress: glowProgress,
-            floor: onTerrain ? 0.16 : 0.1,
+            floor: 0.1,
+            // Over natural-colour terrain, people are night lights.
+            lights: onTerrain,
+            size: glowSize,
+            parameters: onTerrain ? LIGHTS : ADDITIVE,
             opacity: glow,
             visible: glow > 0,
           }),
@@ -376,6 +383,7 @@ export default function useGridLayer({
     glowLayer,
     glowProgress,
     onTerrain,
+    glowSize,
     unitsContinuous,
     morphLayer,
     morphProgress,

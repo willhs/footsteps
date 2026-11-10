@@ -22,6 +22,8 @@ interface DeckGLViewProps {
   onViewStateChange: DeckGLProps['onViewStateChange'];
   layers: LayersList;
   onClick?: DeckGLProps['onClick'];
+  /** Redraw every frame (shader animation, e.g. flickering night lights). */
+  animate?: boolean;
   children?: ReactNode;
 }
 
@@ -31,6 +33,7 @@ export default function DeckGLView({
   onViewStateChange,
   layers,
   onClick,
+  animate = false,
   children,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
@@ -78,6 +81,7 @@ export default function DeckGLView({
     >
       <DeckGL
         ref={deckRef}
+        _animate={animate}
         onLoad={handleLoad}
         views={is3D ? globeView : mapView}
         viewState={viewState}

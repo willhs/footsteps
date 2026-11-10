@@ -7,7 +7,8 @@ the model, and a hard daily cap bounds spend.
 
 Env:
   OPENROUTER_API_KEY  required for real generations (absent -> canned demo text)
-  DAY_MODEL           OpenRouter model id, default anthropic/claude-opus-5.5
+  DAY_MODEL           OpenRouter model id, default anthropic/claude-haiku-5.5
+                      (~0.05c per day; Sonnet 5.5 ~1c, Opus 5.5 ~2c)
   DAY_FALLBACK_MODEL  used if the first declines or fails, default anthropic/claude-sonnet-5.5
   DAY_DAILY_CAP       new generations per UTC day (default 200)
   DAY_DB              sqlite path (default /data/days.db)
@@ -23,7 +24,7 @@ import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODEL = os.environ.get("DAY_MODEL", "anthropic/claude-opus-5.5")
+MODEL = os.environ.get("DAY_MODEL", "anthropic/claude-haiku-5.5")
 FALLBACK_MODEL = os.environ.get("DAY_FALLBACK_MODEL", "anthropic/claude-sonnet-5.5")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 KEY_ENV = "OPENROUTER_API_KEY"

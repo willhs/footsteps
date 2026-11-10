@@ -54,10 +54,10 @@ const lightsMain = /* glsl */ `
       if (ta <= 0.0) discard;
       float pa = exp(ta * ${LOG_MAX.toFixed(6)}) - 1.0;
       float cells = 1.0 / (cellPx * cellPx);
-      if (h >= 1.0 - exp(-pa * cells / 120.0)) discard;
+      if (h >= 1.0 - exp(-pa * cells / 60.0)) discard;
       float la = 0.65 + 0.35 * smoothstep(${level(100)}, ${level(60000)}, ta);
       // premultiplied: bright light, and darken under it so it reads on sand
-      fragColor = vec4(fire * la * flicker * 1.3, 0.6);
+      fragColor = vec4(fire * la * flicker * 1.7, 0.85);
       return;
     }
     vec4 texel = texelFetch(bitmapTexture, ivec2(cell), 0);

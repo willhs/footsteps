@@ -1,0 +1,6 @@
+ts	phase	decision	why	evidence	result
+2026-11-10T10:36:27Z	plan	Premise: no anthropology code; landuse PNGs only on budgie; D-PLACE EA is CC-BY-NC not CC-BY; budgie API has no OpenRouter key	verify task notes before building	ssh budgie ls app/grid (30 landuse); /api/day/health live:false; dplace-dataset-ea LICENSE	scope adjusted
+2026-11-10T10:36:27Z	plan	Compact atlas + stdlib runtime rules instead of precomputed full records	rules testable as pure functions, ~1MB vs ~25MB, societies stored once	plan.md Design options	chosen
+2026-11-10T10:36:27Z	plan	Eras for <1800 use same-subsistence D-PLACE analogue within 2500km, labelled analogue	EA is ethnographic present; task asks for regional priors labelled as such	plan.md Assumptions	chosen
+2026-11-10T10:36:27Z	plan	Gap-fill fixed schema for all model fields; real values win in merge	one cache shape per cell x era; model never overrides data	plan.md Design options	chosen
+2026-11-10T10:36:27Z	plan	Deploy via new API_ONLY=1 mode of deploy-budgie.sh	full deploy would ship an unmerged static app; change is API-only	plan.md Assumptions	chosen

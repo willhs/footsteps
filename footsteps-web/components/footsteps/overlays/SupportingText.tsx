@@ -39,6 +39,7 @@ function SupportingText({
   totalPopulation,
   viewState,
   lodLevel,
+  cacheSize,
   progressiveRenderStatus,
   year,
   // Additional props intentionally omitted to avoid unused var warnings
@@ -242,7 +243,9 @@ function SupportingText({
       {/* Technical details */}
       <div className="mt-2 pt-2 border-t border-slate-700/60 text-xs text-slate-500 space-y-1">
         <div>
-          Zoom: {viewState.zoom.toFixed(1)}x • {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}
+          Zoom: {viewState.zoom.toFixed(1)}x
+          {/* LOD and tile cache only describe the Dots tiles (cacheSize > 0). */}
+          {cacheSize > 0 && <> • {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}</>}
         </div>
         <div>
           Dots drawn:{' '}
@@ -250,7 +253,7 @@ function SupportingText({
             {displayDotCount.toLocaleString()}
           </span>
         </div>
-        <div>
+        {cacheSize > 0 && <div>
           Cache:{' '}
           <span title="Tiles held in memory">{cacheStats.tiles}</span>{' '}tiles •{' '}
           <span title="Approximate memory used">{formatBytes(cacheStats.bytes)}</span>{' '}•{' '}
@@ -260,7 +263,7 @@ function SupportingText({
               ? Math.round((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100)
               : 0}% )
           </span>
-        </div>
+        </div>}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ export type ViewBlend = {
   minPx: number; // smallest drawn radius of a unit mark
   brightness: number; // alpha multiplier for bands and villages
   pickable: boolean; // close zoom: a click names the group under the cursor
+  people: number; // street-level zoom: individual people (group marks fade out)
 };
 
 // A ~9 km cell is 3.3 px at zoom 4.8 and 7 px at 5.8 (512 px world, 4320 cells).
@@ -22,6 +23,8 @@ export const ZOOM = {
   unitsFull: 5.4, // units fully drawn
   glowGone: 5.4, // glow has faded out under the units
   groups: 7, // marks are big enough to click one by one
+  peopleIn: 11.5, // individual people start to appear (~60 m per pixel)
+  peopleFull: 12.5, // people fully drawn, group marks gone
 } as const;
 
 const smoothstep = (a: number, b: number, x: number) => {
@@ -43,7 +46,7 @@ function ramp(stops: [number, number][], zoom: number) {
 }
 
 export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
-  const minPx = ramp([[3, 0.35], [4.6, 0.9], [5.4, 1.2], [7, 1.6], [9, 2.5]], zoom);
+  const minPx = ramp([[3, 0.35], [4.6, 1.0], [5.4, 1.5], [7, 2.4], [9, 3.6]], zoom);
   const brightness = ramp([[3, 0.3], [4.6, 0.6], [5.4, 0.6], [7, 1]], zoom);
   const pickable = zoom >= ZOOM.groups;
   if (mode === 'auto')
@@ -53,9 +56,18 @@ export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
       minPx,
       brightness,
       pickable,
+      people: smoothstep(ZOOM.peopleIn, ZOOM.peopleFull, zoom),
     };
-  if (mode === 'units') return { glow: 0, units: 1, minPx, brightness, pickable };
-  return { glow: 0, units: 0, minPx, brightness, pickable: false };
+  if (mode === 'units')
+    return {
+      glow: 0,
+      units: 1,
+      minPx,
+      brightness,
+      pickable,
+      people: smoothstep(ZOOM.peopleIn, ZOOM.peopleFull, zoom),
+    };
+  return { glow: 0, units: 0, minPx, brightness, pickable: false, people: 0 };
 }
 
 type View = { longitude: number; latitude: number; zoom: number };

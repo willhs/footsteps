@@ -3,11 +3,14 @@ import type { GroundingFacts } from '../layers/grounding';
 export default function GroundingPanel({
   facts,
   group,
+  person,
   onClose,
 }: {
   facts: GroundingFacts | null;
   /** The clicked mark, at close zoom: what it stands for, not where it really was. */
   group?: { label: string; people: number; placed: boolean } | null;
+  /** A clicked individual (street-level zoom): imagined from the head count. */
+  person?: { title: string; detail: string } | null;
   onClose: () => void;
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
@@ -15,6 +18,16 @@ export default function GroundingPanel({
     <section aria-label="What we know here" className="absolute bottom-44 left-4 z-20 max-w-xs rounded bg-black/85 p-4 text-xs leading-relaxed text-white/85">
       <button type="button" aria-label="Close grounding facts" onClick={onClose} className="float-right ml-4 px-1">×</button>
       <h2 className="mb-2 text-sm font-semibold text-white">What we know here</h2>
+      {person && (
+        <div className="mb-3 border-b border-white/15 pb-3">
+          <p className="text-sm font-semibold text-[#ffe2aa]">{person.title}</p>
+          <p className="text-white">{person.detail}</p>
+          <p className="mt-1 text-white/55">
+            Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
+            camp are drawn from a typical pre-modern population.
+          </p>
+        </div>
+      )}
       {group && (
         <p className="mb-2 text-white">
           {group.placed

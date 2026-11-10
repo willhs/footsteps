@@ -16,6 +16,19 @@ jest.mock('../layers/GlowLayer', () => ({
     }
   },
 }));
+jest.mock('../layers/people', () => ({
+  __esModule: true,
+  peopleForGroups: () => [],
+  PeopleLayer: class {
+    props: Record<string, unknown>;
+    constructor(props: Record<string, unknown>) {
+      this.props = props;
+    }
+    clone(props: Record<string, unknown>) {
+      return { props: { ...this.props, ...props } };
+    }
+  },
+}));
 jest.mock('../layers/GridYearLayer', () => ({
   __esModule: true,
   default: class {

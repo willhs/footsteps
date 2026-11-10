@@ -82,6 +82,8 @@ export default function DeckGLView({
       <DeckGL
         ref={deckRef}
         _animate={animate}
+        // Small, moving marks (people) need a forgiving click target.
+        pickingRadius={8}
         onLoad={handleLoad}
         views={is3D ? globeView : mapView}
         viewState={viewState}

@@ -16,6 +16,7 @@ import useYearCrossfade from './useYearCrossfade';
 import { bracket } from '@/lib/time';
 import GridYearLayer from '../layers/GridYearLayer';
 import GlowLayer, { ADDITIVE, LIGHTS, glowPair } from '../layers/GlowLayer';
+import { PeopleLayer, peopleForGroups, type GroupInView } from '../layers/people';
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -326,6 +327,34 @@ export default function useGridLayer({
   );
 
   const { glow, units, minPx, brightness, pickable } = blend;
+
+  // Street-level zoom: the bands and villages in view become individual people.
+  const peopleOn = unitsContinuous && blend.people > 0 && !!morphScene;
+  const snap = (v: number) => Math.round(v / 0.02) * 0.02;
+  const bounds = peopleOn ? viewBounds(view, size.width, size.height) : null;
+  const boundsKey = bounds
+    ? [bounds.west, bounds.south, bounds.east, bounds.north].map(snap).join()
+    : '';
+  const people = useMemo(() => {
+    if (!peopleOn || !morphScene || !bounds) return null;
+    const pad = 0.05;
+    const { west, south, east, north } = bounds;
+    const pos = morphScene.data.attributes.getPosition.value;
+    const { kind, people: counts } = morphScene.data.info;
+    const groups: GroupInView[] = [];
+    for (let i = 0; i < kind.length; i++) {
+      const lon = pos[i * 2];
+      const lat = pos[i * 2 + 1];
+      if (lon < west - pad || lon > east + pad || lat < south - pad || lat > north + pad) continue;
+      if (counts[i] > 0) groups.push({ lon, lat, kind: kind[i], people: counts[i] });
+    }
+    return peopleForGroups(groups);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peopleOn, morphScene, boundsKey]);
+  const peopleLayer = useMemo(
+    () => (people ? new PeopleLayer({ id: 'people', data: people }) : null),
+    [people],
+  );
   const layerList = useMemo(() => {
     if (!enabled) return [];
     const glowList = glowLayer
@@ -348,14 +377,17 @@ export default function useGridLayer({
         ...(morphLayer
           ? [
               morphLayer.clone({
-                opacity: units,
+                opacity: units * (1 - blend.people),
                 progress: morphProgress,
                 minPx,
                 brightness,
                 pickable,
-                visible: units > 0,
+                visible: units > 0 && blend.people < 1,
               }),
             ]
+          : []),
+        ...(peopleLayer
+          ? [peopleLayer.clone({ opacity: blend.people, visible: blend.people > 0 })]
           : []),
       ];
     }
@@ -393,6 +425,8 @@ export default function useGridLayer({
     unitsContinuous,
     morphLayer,
     morphProgress,
+    peopleLayer,
+    blend.people,
     glow,
     layers,
     frames,

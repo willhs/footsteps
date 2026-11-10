@@ -11,6 +11,7 @@ import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
+import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import GroundingPanel from './overlays/GroundingPanel';
@@ -86,6 +87,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const { layers: gridLayers, grid, blend, loading } = useGridLayer({
     year,
     time,
@@ -142,13 +144,16 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         layers={layers}
-        // Night lights flicker on the GPU; redraw continuously only then.
-        animate={showTerrain && renderMode !== 'dots'}
+        // Night lights flicker and bands/villages move on the GPU; redraw
+        // continuously only while either is on screen.
+        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0)}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
+          const person = info.layer?.id === 'people' ? (info.object as Person | undefined) : undefined;
+          setSelectedPerson(person ?? null);
           const group = info.object as { kind: number; people: number } | undefined;
-          setSelectedGroup(group && typeof group.kind === 'number' ? group : null);
+          setSelectedGroup(!person && group && typeof group.kind === 'number' ? group : null);
           if (Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90) setSelectedPlace([lon, lat]);
         }}
       />
@@ -163,9 +168,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
               placed: selectedGroup.kind !== UnitKind.Glow,
             }
           }
+          person={selectedPerson ? describePerson(selectedPerson) : null}
           onClose={() => {
             setSelectedPlace(null);
             setSelectedGroup(null);
+            setSelectedPerson(null);
           }}
         />
       )}
@@ -190,7 +197,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           renderTime: 0,
           lastUpdate: 0,
         }}
-        cacheSize={1}
+        cacheSize={renderMode === 'dots' ? 1 : 0}
         progressiveRenderStatus={undefined}
         viewportBounds={null}
         is3DMode={is3DMode}

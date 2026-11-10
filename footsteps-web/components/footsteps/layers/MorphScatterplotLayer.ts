@@ -8,9 +8,10 @@ const morph = {
   vs: /* glsl */ `uniform morphUniforms {
   float progress;
   float brightness;
+  float time;
 } morph;
 `,
-  uniformTypes: { progress: 'f32', brightness: 'f32' },
+  uniformTypes: { progress: 'f32', brightness: 'f32', time: 'f32' },
 } as const;
 
 type Props = ScatterplotLayerProps & MorphProps;
@@ -54,7 +55,9 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     const { progress, brightness } = this.props;
-    this.state.model?.shaderInputs.setProps({ morph: { progress, brightness } });
+    this.state.model?.shaderInputs.setProps({
+      morph: { progress, brightness, time: (performance.now() / 1000) % 1000 },
+    });
     super.draw(params);
   }
 }

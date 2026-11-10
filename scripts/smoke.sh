@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke-check a deployed Footsteps: the app loads and every year's PMTiles
-# archive really is PMTiles, and each grid image has the right file signature. Checks magic bytes, not status codes: a missing
+# archive really is PMTiles, and each grid and terrain image has the right file signature. Checks magic bytes, not status codes: a missing
 # object once came back as HTTP 206 with an XML error body, which passed.
 #   scripts/smoke.sh [base-url]
 set -euo pipefail
@@ -25,5 +25,10 @@ for y in $YEARS; do
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   grid humans $y"; else echo "FAIL grid humans $y"; fail=1; fi
   magic=$(curl -fsS -r 0-7 -H 'Accept-Encoding: identity' "$BASE/grid/landuse_${y}.png" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "$magic" == 89504e470d0a1a0a* ]]; then echo "ok   grid landuse $y"; else echo "FAIL grid landuse $y"; fail=1; fi
+done
+# Terrain (lossy WebP: "RIFF" size "WEBP" "VP8 "): every slider year plus the oldest.
+for y in -100000 $YEARS; do
+  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/earth_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain $y"; else echo "FAIL terrain $y"; fail=1; fi
 done
 exit $fail

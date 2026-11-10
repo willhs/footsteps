@@ -68,7 +68,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers();
+  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
     enabled: renderMode === 'dots',
@@ -253,6 +253,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           <br />
           Head counts per ~10 km cell are HYDE estimates. Where bands and villages
           sit inside a cell is illustrative, not known.
+          {showTerrain && <TerrainNote />}
+        </div>
+      )}
+      {!peopleView && showTerrain && (
+        <div className="pointer-events-none absolute bottom-[92px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
+          <TerrainNote />
         </div>
       )}
 
@@ -279,6 +285,17 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         </button>}
       </div>
     </div>
+  );
+}
+
+/** One-line source note for the terrain images. */
+function TerrainNote() {
+  return (
+    <span className="mt-1 block text-white/50">
+      Land, sea and ice reconstructed from climate and ice models (Krapp et al. 2021),
+      coloured from NASA Blue Marble; the green Sahara is drawn from the literature.
+      Faint line: today&apos;s coast.
+    </span>
   );
 }
 

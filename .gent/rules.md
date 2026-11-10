@@ -15,11 +15,14 @@ covers 10,000 BCE–1900 CE (30 years); 100,000 BCE–present is aspirational.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
   lossless WebP per year in `data/tiles/grid/`. Browser decoding is in
   `footsteps-web/components/footsteps/hooks/useGridLayer.ts`.
-- `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS` and `DOT_TILE_YEARS`.
+- `footstep-generator/terrain_image.py`: Krapp2021 biomes + Blue Marble colours + HYDE
+  farmland → one ~200 KB Earth image per terrain year in `data/tiles/terrain/`, drawn
+  cross-faded in terrain mode by `hooks/useTerrainLayers.ts`. See `docs/ops/terrain-images.md`.
+- `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.
 - `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health.
-  `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures for configured years.
+  `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures (grid, terrain) for configured years.
 
 ## Data and development
 

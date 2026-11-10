@@ -17,3 +17,11 @@ export function nearestDotTileYear(year: number): number {
     Math.abs(y - year) < Math.abs(best - year) ? y : best,
   );
 }
+
+// Terrain images (footstep-generator/terrain_image.py): every 1,000 years from
+// 100,000 BCE, then every HYDE year from 0 CE so each carries its farmland.
+// Every TARGET_YEAR is a terrain year.
+export const TERRAIN_YEARS: readonly number[] = [
+  ...Array.from({ length: 100 }, (_, i) => -100000 + i * 1000),
+  ...Array.from({ length: 20 }, (_, i) => i * 100),
+];

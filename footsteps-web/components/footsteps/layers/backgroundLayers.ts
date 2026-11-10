@@ -1,7 +1,5 @@
-import { GeoJsonLayer, BitmapLayer, PolygonLayer } from '@deck.gl/layers';
-import { TileLayer } from '@deck.gl/geo-layers';
+import { GeoJsonLayer, PolygonLayer } from '@deck.gl/layers';
 import { COORDINATE_SYSTEM } from '@deck.gl/core';
-const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 // Create sea layer factory function
 export function createSeaLayer() {
@@ -94,80 +92,6 @@ export function createContinentsLayer() {
   });
 }
 
-export function createTerrainLayer() {
-  return new TileLayer({
-    id: 'terrain-layer',
-    // Using satellite imagery that shows natural land and water colors without labels
-    data: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    maxZoom: 8,
-    minZoom: 0,
-    // Provide no-op callbacks to satisfy deck.gl TileLayer expectations
-    onTileLoad: () => {},
-    onViewportLoad: () => {},
-    onTileError: () => {},
-    // Only render the sub-layer once the tile image has loaded.
-    // Otherwise DeckGL will attempt to create a BitmapLayer with
-    // an undefined image which triggers an `assert` failure under
-    // WebGL. This manifests as large dark artefacts on first load
-    // when the page is opened directly in 3-D mode.
-    renderSubLayers: (props) => {
-      // Skip if tile image hasn't loaded yet
-      if (!props.data) {
-        return null;
-      }
-
-      // Defensive: ensure bounding box exists & values are finite
-      const { boundingBox } = props.tile ?? {};
-      if (
-        !boundingBox ||
-        !Number.isFinite(boundingBox[0]?.[0]) ||
-        !Number.isFinite(boundingBox[0]?.[1]) ||
-        !Number.isFinite(boundingBox[1]?.[0]) ||
-        !Number.isFinite(boundingBox[1]?.[1])
-      ) {
-        if (DEBUG) {
-          /* eslint-disable no-console */
-          console.warn(
-            '[terrain-layer] invalid boundingBox, skipping sub-layer',
-            boundingBox,
-          );
-          /* eslint-enable no-console */
-        }
-        return null;
-      }
-
-      return new BitmapLayer(props, {
-        id: `${props.id}-bitmap`,
-        data: undefined,
-        image: props.data,
-        bounds: [
-          boundingBox[0][0],
-          boundingBox[0][1],
-          boundingBox[1][0],
-          boundingBox[1][1],
-        ],
-        coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
-        // Natural colours, lightly dimmed: the land's condition (forest,
-        // desert, ice) is part of the story. People are drawn over it as
-        // night lights with dark rings (GlowLayer), so they still read.
-        desaturate: 0.1,
-        tintColor: [215, 215, 215],
-        // Small optimisation: disable updates once image is set
-        updateTriggers: {
-          image: props.data,
-        },
-      });
-    },
-    pickable: false,
-    opacity: 1.0, // Full opacity to prevent seeing through globe
-    parameters: {
-      depthTest: true, // Enable depth testing for proper layering
-      depthMask: true, // Write to depth buffer to block background
-      blend: false, // Disable blending for solid coverage
-    },
-  });
-}
-
 // Create basemap layer
 export function createBasemapLayer(data: unknown, basemapError: boolean) {
   return new GeoJsonLayer({
@@ -231,9 +155,4 @@ export function createEarthSphereLayer() {
       blend: false, // No blending needed for solid base layer
     },
   });
-}
-
-// Create static terrain layer for land/water visualization
-export function createStaticTerrainLayer() {
-  return createTerrainLayer();
 }

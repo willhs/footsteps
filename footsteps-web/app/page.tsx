@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { clampTime } from '@/lib/time';
 import FootstepsViz from '@/components/footsteps/FootstepsViz';
 import TimeNavigator from '@/components/ui/TimeNavigator';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -8,6 +9,11 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 export default function Home() {
   const [time, setTime] = useState(-1000);
   const [loading, setLoading] = useState<[number, number] | null>(null);
+  // ?year=-6000 opens at that year (deep links, screenshots).
+  useEffect(() => {
+    const y = Number(new URLSearchParams(window.location.search).get('year') ?? NaN);
+    if (Number.isFinite(y)) setTime(clampTime(y));
+  }, []);
   
   return (
     <main className="relative w-full h-full overflow-hidden bg-black">

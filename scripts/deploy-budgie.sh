@@ -2,7 +2,7 @@
 # Build the static app and push it (and any new tiles) to budgie.
 #   scripts/deploy-budgie.sh            # app + tiles
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
-#   GRID_ONLY=1 scripts/deploy-budgie.sh # publish generated PNGs without rebuilding app
+#   GRID_ONLY=1 scripts/deploy-budgie.sh # publish generated grid + terrain images without rebuilding app
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="${REMOTE:-will@budgie}"
@@ -17,6 +17,10 @@ sync_grid() {
   # Population images used to be PNGs; drop the superseded ones.
   # find, not rm with a glob: budgie's zsh aborts on a glob with no matches.
   ssh "$REMOTE" "find $DEST/app/grid -name 'humans_*.png' -delete"
+  # Terrain: one ~200 KB WebP per terrain year (footstep-generator/terrain_image.py)
+  ssh "$REMOTE" "mkdir -p $DEST/app/terrain"
+  rsync -az --include='earth_*.webp' --exclude='*' \
+    "$ROOT/data/tiles/terrain/" "$REMOTE:$DEST/app/terrain/"
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid
@@ -29,7 +33,7 @@ fi
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 rsync -az --delete "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
-rsync -az --delete --exclude=/pmtiles --exclude=/grid "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+rsync -az --delete --exclude=/pmtiles --exclude=/grid --exclude=/terrain "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then

@@ -11,8 +11,9 @@
 		file_server
 	}
 
-	# Grid images are regenerated rarely; let repeat visits and Cloudflare reuse them.
-	handle /grid/* {
+	# Grid and terrain images are regenerated rarely; let repeat visits and Cloudflare reuse them.
+	@images path /grid/* /terrain/*
+	handle @images {
 		root * /srv/app
 		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
 		file_server

@@ -1,7 +1,7 @@
 // Continuous time: the slider moves through any year; HYDE data years are
 // labelled points along it, not stops. Everything between data years is an
 // estimate (geometric interpolation, since populations grow multiplicatively).
-import { TARGET_YEARS } from './constants';
+import { TARGET_YEARS, TERRAIN_YEARS } from './constants';
 
 /** Reference "now" for years-ago labels. */
 export const NOW = 2025;
@@ -22,15 +22,26 @@ export const HYDE_TOTALS: Record<number, number> = {
 
 export const clampTime = (t: number) => Math.min(TIME_MAX, Math.max(TIME_MIN, t));
 
-/** The data years either side of `time`, and how far between them (0..1). */
-export function bracket(time: number): { y0: number; y1: number; f: number } {
+/** The two `years` (ascending) either side of `time`, and how far between them (0..1). */
+function bracketIn(years: readonly number[], time: number): { y0: number; y1: number; f: number } {
   const t = clampTime(time);
-  for (let i = 0; i < TARGET_YEARS.length - 1; i++) {
-    const y0 = TARGET_YEARS[i];
-    const y1 = TARGET_YEARS[i + 1];
+  for (let i = 0; i < years.length - 1; i++) {
+    const y0 = years[i];
+    const y1 = years[i + 1];
     if (t >= y0 && t <= y1) return { y0, y1, f: (t - y0) / (y1 - y0) };
   }
-  return { y0: TIME_MAX, y1: TIME_MAX, f: 0 };
+  const last = years[years.length - 1];
+  return { y0: last, y1: last, f: 0 };
+}
+
+/** The data years either side of `time`, and how far between them (0..1). */
+export function bracket(time: number): { y0: number; y1: number; f: number } {
+  return bracketIn(TARGET_YEARS, time);
+}
+
+/** The terrain images either side of `time`, cross-faded by `f`. */
+export function terrainBracket(time: number): { y0: number; y1: number; f: number } {
+  return bracketIn(TERRAIN_YEARS, time);
 }
 
 /** The data year to use where a view can only show whole data years. */

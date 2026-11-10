@@ -1,4 +1,4 @@
-import { TARGET_YEARS } from './constants';
+import { TARGET_YEARS, TERRAIN_YEARS } from './constants';
 import {
   HYDE_TOTALS,
   bracket,
@@ -6,6 +6,7 @@ import {
   livesFraction,
   nearestDataYear,
   populationAt,
+  terrainBracket,
   timeAtLivesFraction,
 } from './time';
 
@@ -42,5 +43,12 @@ describe('continuous time', () => {
     }
     expect(livesFraction(TARGET_YEARS[0])).toBe(0);
     expect(livesFraction(TARGET_YEARS[TARGET_YEARS.length - 1])).toBeCloseTo(1, 5);
+  });
+
+  it('brackets terrain images: 1,000-year steps BCE, 100-year steps CE', () => {
+    for (const y of TARGET_YEARS) expect(TERRAIN_YEARS).toContain(y);
+    expect(terrainBracket(-5500)).toEqual({ y0: -6000, y1: -5000, f: 0.5 });
+    expect(terrainBracket(1850)).toEqual({ y0: 1800, y1: 1900, f: 0.5 });
+    expect(terrainBracket(1900)).toMatchObject({ y0: 1800, y1: 1900, f: 1 });
   });
 });

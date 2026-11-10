@@ -41,3 +41,4 @@ deploy/budgie/pmtiles/
 # budgie runtime (not tracked)
 deploy/budgie/api.env
 deploy/budgie/api-data/
+footsteps-web/public/terrain

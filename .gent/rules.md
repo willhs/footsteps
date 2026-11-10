@@ -73,3 +73,18 @@ repository-relative symlink. Use `gent list` to inspect agent configuration; avo
 syncing unrelated machine-wide configuration during project work.
 See `footsteps-web/AGENTS.md` for frontend specifics. Treat old research as dated
 evidence; use README and deployed scripts for the current operating model.
+
+## Secrets
+
+There is no `.env`. The OpenRouter key lives in 1Password: vault `proj-deep-footsteps`,
+item `OPENROUTER_API_KEY`, field `credential` (`op://proj-deep-footsteps/OPENROUTER_API_KEY/credential`).
+It is used by the day/anthropology API container on budgie (`deploy/budgie/api`).
+
+- Budgie: `scripts/push-api-secrets.sh` renders `deploy/budgie/api.env.tpl` with `op inject`
+  straight into `deploy/budgie/api.env` on budgie (git-ignored, mode 600) and recreates the
+  `api` container. Run it from Will's terminal; the key never lands on the Mac's disk.
+- Local: `op-scope deep-footsteps -- <cmd>` or `op run --env-file .env.tpl -- <cmd>`.
+- Manager jobs: dispatch with `secrets=true` (read-only service account
+  `manager-agent-deep-footsteps`, ADR 0036).
+- Never write the resolved key to a file in the repo, echo it, or pass it as an argument.
+

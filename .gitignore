@@ -42,3 +42,4 @@ deploy/budgie/pmtiles/
 deploy/budgie/api.env
 deploy/budgie/api-data/
 footsteps-web/public/terrain
+!.env.tpl

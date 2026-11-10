@@ -14,6 +14,7 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
+import usePresenceLayers, { presenceFromUrl, type Presence } from '@/components/footsteps/hooks/usePresenceLayers';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
 import { nearestDotTileYear } from '@/lib/constants';
@@ -88,10 +89,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [presence, setPresence] = useState<Presence>(presenceFromUrl);
   const { layers: gridLayers, grid, blend, loading } = useGridLayer({
     year,
     time,
     onTerrain: showTerrain,
+    glowHidden: presence.lights === 'fire',
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,
@@ -104,6 +107,27 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     setTotalPopulation,
     setMetricsLoading,
   });
+
+  const viewSize =
+    typeof window === 'undefined' ? { width: 1440, height: 900 } : { width: window.innerWidth, height: window.innerHeight };
+  const { layers: presenceLayers, animating: presenceAnimating } = usePresenceLayers({
+    enabled: renderMode === 'auto',
+    presence,
+    time,
+    view: viewState,
+    size: viewSize,
+    far: blend.glow,
+    people: blend.people,
+  });
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (presence.lights === 'classic') url.searchParams.set('lights', 'classic');
+    else url.searchParams.delete('lights');
+    if (!presence.steps) url.searchParams.set('steps', '0');
+    else url.searchParams.delete('steps');
+    window.history.replaceState(null, '', url);
+  }, [presence]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -134,7 +158,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const layers: LayersList = [
     ...backgroundLayers,
-    ...(renderMode === 'dots' ? humanLayers : gridLayers),
+    ...(renderMode === 'dots' ? humanLayers : [...gridLayers, ...presenceLayers]),
   ] as LayersList;
 
   return (
@@ -146,7 +170,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         layers={layers}
         // Night lights flicker and bands/villages move on the GPU; redraw
         // continuously only while either is on screen.
-        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0)}
+        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating)}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
@@ -272,6 +296,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
         />
+        {renderMode === 'auto' && <PresencePicker presence={presence} onChange={setPresence} />}
         {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
         {debugModes && <button
           type="button"
@@ -284,6 +309,24 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           {RENDER_MODE_LABEL[renderMode]}
         </button>}
       </div>
+    </div>
+  );
+}
+
+/** Prototype: compare ways of showing people (lights style, footsteps on/off). */
+function PresencePicker({ presence, onChange }: { presence: Presence; onChange: (p: Presence) => void }) {
+  const chip = (on: boolean) =>
+    `rounded-full border px-2 py-0.5 text-[11px] ${on ? 'border-white bg-white text-black' : 'border-white/25 text-white/80 hover:text-white'}`;
+  return (
+    <div role="group" aria-label="How people are shown" className="flex flex-col items-end gap-1 rounded bg-black/55 p-1.5">
+      <div className="flex gap-1">
+        <button type="button" aria-pressed={presence.lights === 'fire'} className={chip(presence.lights === 'fire')}
+          onClick={() => onChange({ ...presence, lights: 'fire' })}>Firelight</button>
+        <button type="button" aria-pressed={presence.lights === 'classic'} className={chip(presence.lights === 'classic')}
+          onClick={() => onChange({ ...presence, lights: 'classic' })}>Classic glow</button>
+      </div>
+      <button type="button" aria-pressed={presence.steps} className={chip(presence.steps)}
+        onClick={() => onChange({ ...presence, steps: !presence.steps })}>Footsteps</button>
     </div>
   );
 }

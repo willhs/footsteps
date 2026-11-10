@@ -39,6 +39,7 @@ export default function useGridLayer({
   year,
   time,
   onTerrain = false,
+  glowHidden = false,
   enabled,
   mode = 'auto',
   view = { longitude: 0, latitude: 0, zoom: 1 },
@@ -53,6 +54,8 @@ export default function useGridLayer({
   time?: number;
   /** Satellite terrain is under the people: raise the glow's minimum brightness. */
   onTerrain?: boolean;
+  /** Another layer (firelight) stands in for the glow: keep it loaded, don't draw it. */
+  glowHidden?: boolean;
   enabled: boolean;
   mode?: GridMode;
   view?: View;
@@ -367,7 +370,7 @@ export default function useGridLayer({
             size: glowSize,
             parameters: onTerrain ? LIGHTS : ADDITIVE,
             opacity: glow,
-            visible: glow > 0,
+            visible: glow > 0 && !glowHidden,
           }),
         ]
       : [];
@@ -418,6 +421,7 @@ export default function useGridLayer({
     return [...glowList, ...markList];
   }, [
     enabled,
+    glowHidden,
     glowLayer,
     glowProgress,
     onTerrain,

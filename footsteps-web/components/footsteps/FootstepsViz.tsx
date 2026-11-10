@@ -11,6 +11,7 @@ import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
+import { nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
@@ -37,12 +38,16 @@ const UNIT_KIND_LABEL: Record<number, string> = {
 };
 
 interface FootstepsVizProps {
-  year: number;
+  /** Continuous year; data years are points along it. */
+  time: number;
 }
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizInner({ year }: FootstepsVizProps) {
+function FootstepsVizInner({ time }: FootstepsVizProps) {
+  // Views that can only show whole data years use the nearest one; the glow
+  // mixes the two data years either side of `time`.
+  const year = nearestDataYear(time);
   const setTooltipData = useTooltipOverlay();
 
   const [is3DMode, setIs3DMode] = useState(() => getViewMode());
@@ -81,6 +86,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const { layers: gridLayers, grid, blend } = useGridLayer({
     year,
+    time,
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,
@@ -161,7 +167,7 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
           (Date.now() - yearChangedAt < 1000 && totalPopulation === 0)
         }
         dotCount={featureCount}
-        totalPopulation={totalPopulation}
+        totalPopulation={renderMode === 'dots' ? totalPopulation : populationAt(time)}
         viewState={viewState}
         lodLevel={stableLODLevel}
         lodEnabled={false}
@@ -176,11 +182,11 @@ function FootstepsVizInner({ year }: FootstepsVizProps) {
         progressiveRenderStatus={undefined}
         viewportBounds={null}
         is3DMode={is3DMode}
-        year={year}
+        year={Math.round(time)}
       />
 
       {peopleView && (
-        <div className="pointer-events-none absolute bottom-20 left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
+        <div className="pointer-events-none absolute bottom-[132px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
           {showGlowLegend ? (
             <>
               Brightness is people per ~10 km cell:{' '}

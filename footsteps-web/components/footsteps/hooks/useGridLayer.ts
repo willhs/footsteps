@@ -13,6 +13,7 @@ import {
   type ViewBlend,
 } from './peopleView';
 import useYearCrossfade from './useYearCrossfade';
+import { bracket } from '@/lib/time';
 import GridYearLayer from '../layers/GridYearLayer';
 import GlowLayer, { glowPair } from '../layers/GlowLayer';
 
@@ -35,6 +36,7 @@ const regionKey = (r: Region) => `${r.west},${r.south},${r.east},${r.north}`;
  * cells around the viewport closer in, cross-faded in between. */
 export default function useGridLayer({
   year,
+  time,
   enabled,
   mode = 'auto',
   view = { longitude: 0, latitude: 0, zoom: 1 },
@@ -45,6 +47,8 @@ export default function useGridLayer({
   setMetricsLoading,
 }: {
   year: number;
+  /** Continuous year: when set, the glow mixes the data years either side. */
+  time?: number;
   enabled: boolean;
   mode?: GridMode;
   view?: View;
@@ -73,10 +77,26 @@ export default function useGridLayer({
   const [scene, setScene] = useState<Scene | null>(null);
   const [ready, setReady] = useState<Scene | null>(null);
   const frames = useYearCrossfade(ready, marksOn);
+  const continuous = time !== undefined;
   const glowFrames = useYearCrossfade(
     grid?.year === year ? grid : null,
-    enabled && mode === 'auto',
+    enabled && mode === 'auto' && !continuous,
   );
+  // Continuous time: keep the two data years either side of `time` decoded.
+  const { y0, y1, f } = bracket(time ?? year);
+  const [pair, setPair] = useState<{ a: YearGrid; b: YearGrid } | null>(null);
+  useEffect(() => {
+    if (!continuous || !enabled || mode !== 'auto') return;
+    let live = true;
+    Promise.all([loadGrid(y0), loadGrid(y1)])
+      .then(([a, b]) => {
+        if (live) setPair({ a, b });
+      })
+      .catch((error) => console.warn('[grid] failed to load pair', y0, y1, error));
+    return () => {
+      live = false;
+    };
+  }, [continuous, enabled, mode, y0, y1]);
   const target = useRef(scene);
   target.current =
     scene?.year === year && scene.style === style && scene.region === region
@@ -214,8 +234,19 @@ export default function useGridLayer({
 
   // One glow layer for the (from, to) pair; the texture is rebuilt only when
   // the pair of years changes, not every fade frame.
-  const glowFrom = glowFrames[0]?.snapshot;
-  const glowTo = glowFrames[glowFrames.length - 1]?.snapshot;
+  const glowFrom = continuous ? pair?.a : glowFrames[0]?.snapshot;
+  const glowTo = continuous ? pair?.b : glowFrames[glowFrames.length - 1]?.snapshot;
+  // While the next pair decodes, hold the old one at its nearer end.
+  const pairCurrent = pair?.a.year === y0 && pair?.b.year === y1;
+  const glowProgress = continuous
+    ? pairCurrent
+      ? f
+      : pair && (time ?? year) > pair.b.year
+        ? 1
+        : 0
+    : glowFrames.length > 1
+      ? glowFrames[1].opacity
+      : 1;
   const glowLayer = useMemo(
     () =>
       glowTo && glowFrom
@@ -234,7 +265,7 @@ export default function useGridLayer({
     const glowList = glowLayer
       ? [
           glowLayer.clone({
-            progress: glowFrames.length > 1 ? glowFrames[1].opacity : 1,
+            progress: glowProgress,
             opacity: glow,
             visible: glow > 0,
           }),
@@ -268,7 +299,7 @@ export default function useGridLayer({
   }, [
     enabled,
     glowLayer,
-    glowFrames,
+    glowProgress,
     glow,
     layers,
     frames,

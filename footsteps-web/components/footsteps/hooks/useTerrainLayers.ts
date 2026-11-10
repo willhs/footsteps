@@ -9,7 +9,10 @@ import { clampTime, terrainBracket } from '@/lib/time';
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
 // upper one at opacity f: an exact cross-fade, no shader needed.
-const terrainUrl = (year: number) => `/terrain/earth_${year}.webp`;
+// Bump when the images are regenerated: Cloudflare caches /terrain for a day.
+// v2: stronger farmland (2026-11-11).
+const TERRAIN_VERSION = 2;
+const terrainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
 const TINT: [number, number, number] = [230, 230, 235];

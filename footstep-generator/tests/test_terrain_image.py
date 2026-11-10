@@ -68,3 +68,9 @@ def test_frame_years_match_the_web_client():
     assert set(terrain.HYDE_YEARS) <= set(terrain.TERRAIN_YEARS)
     steps = np.diff(terrain.TERRAIN_YEARS)
     assert steps.max() == 1000 and steps.min() == 100
+
+
+def test_farm_share_lifts_partly_farmed_cells():
+    # a third-cropland cell should move well over a third of the way to farm tan
+    share = terrain.farm_share(np.array([0.3]), np.array([0.0]))
+    assert share[0] > 0.4

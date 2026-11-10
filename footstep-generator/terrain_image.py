@@ -59,8 +59,11 @@ HYDE_YEARS = list(range(-10_000, 0, 1000)) + list(range(0, 2000, 100))
 # Biomes absent from today's map borrow a present-day look.
 FALLBACK = {16: (15, 20), 18: (11, 22), 2: (1, 3), 3: (2, 12), 19: (12, 20)}
 
-FARM_TAN = np.array([182, 160, 118], dtype=np.float32)
-CROP_WEIGHT, GRAZING_WEIGHT, FARM_MAX = 1.0, 0.35, 0.8
+# Warm, slightly saturated field colour, so farmed land reads against both forest
+# green and desert sand. FARM_GAMMA < 1 lifts partly farmed cells: a 5 arc-min
+# cell that is 30% cropland already looks farmed from space.
+FARM_TAN = np.array([200, 168, 104], dtype=np.float32)
+CROP_WEIGHT, GRAZING_WEIGHT, FARM_MAX, FARM_GAMMA = 1.0, 0.4, 0.9, 0.6
 
 
 # --- pure helpers (tested) ---------------------------------------------------
@@ -88,10 +91,15 @@ def sahara_weight(year: float) -> float:
     return float(smoothstep(-9750, -8250, year) * (1 - smoothstep(-4250, -2750, year)))
 
 
+def farmed_fraction(crop: np.ndarray, grazing: np.ndarray) -> np.ndarray:
+    """Share of a cell that is farmed, rangeland counting for less (it is mostly
+    open land that already looks like itself). 0..1."""
+    return np.clip(CROP_WEIGHT * crop + GRAZING_WEIGHT * grazing, 0.0, 1.0)
+
+
 def farm_share(crop: np.ndarray, grazing: np.ndarray) -> np.ndarray:
-    """How far a cell moves toward farmland tan (rangeland counts for little: it
-    is mostly open land that already looks like itself)."""
-    return np.clip(CROP_WEIGHT * crop + GRAZING_WEIGHT * grazing, 0.0, 1.0) * FARM_MAX
+    """How far a cell's colour moves toward farmland tan."""
+    return farmed_fraction(crop, grazing) ** FARM_GAMMA * FARM_MAX
 
 
 def fit_sea_level(elev: np.ndarray, land_frac: np.ndarray, band: np.ndarray,
@@ -233,7 +241,7 @@ def palette() -> Palette:
     _, bm = blue_marble()
     now = biome(0)
     crop, grazing = landuse(1900, CW, CH)
-    farmed = farm_share(crop, grazing) / FARM_MAX
+    farmed = farmed_fraction(crop, grazing)
     land = now > 0
     pal = np.zeros((29, 3), np.float32)
     have = np.zeros(29, bool)
@@ -250,7 +258,7 @@ def palette() -> Palette:
     ice = np.maximum(pal[ICE], 225)
     sea = np.median(bm[~land], axis=0)
     tan = np.median(bm[land & (crop > 0.5)], axis=0) if (land & (crop > 0.5)).any() else FARM_TAN
-    farm = 0.4 * tan + 0.6 * FARM_TAN
+    farm = 0.2 * tan + 0.8 * FARM_TAN
     # Today's natural colour: the modern farm tint pulled back toward the biome.
     natural = bm - farmed[..., None] * (bm - pal[now])
     residual = np.where((land & (now != ICE))[..., None], natural - pal[now], 0.0)

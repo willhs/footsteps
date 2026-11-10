@@ -8,11 +8,14 @@ const level = (people: number) => (Math.log1p(people) / LOG_MAX).toFixed(4);
 const rgb = (r: number, g: number, b: number) =>
   `vec3(${(r / 255).toFixed(4)}, ${(g / 255).toFixed(4)}, ${(b / 255).toFixed(4)})`;
 
-// The texture holds log people per cell (one byte). Colour it with the Units
+// The texture holds log people per cell for two years: red = the year fading
+// out, green = the year fading in. Mix the head counts by fade progress, then
+// colour once, so a year cross-fade is one draw and can never stack two
+// semi-transparent layers (that brightened the map mid-fade). Colour with the Units
 // palette by the same density classes, so zooming from glow to units keeps the
 // colour of each place: bands orange, villages pale gold, towns and cities cyan.
 const ramp = /* glsl */ `
-  float t = color.r;
+  float t = mix(color.r, color.g, glowFade.progress);
   if (t <= 0.0) discard;
   vec3 band = ${rgb(255, 190, 110)};
   vec3 village = ${rgb(255, 225, 160)};
@@ -30,11 +33,32 @@ const ramp = /* glsl */ `
   color = vec4(hue, strength * color.a);
 `;
 
-type Props = BitmapLayerProps;
-export const glowImage = (glow: GlowImage) => glow as Props['image'];
+const glowFade = {
+  name: 'glowFade',
+  fs: /* glsl */ `uniform glowFadeUniforms {
+  float progress;
+} glowFade;
+`,
+  uniformTypes: { progress: 'f32' },
+} as const;
 
-/** One year of people as a single texture: cost is the same at any year and zoom.
- * Cross-fades by drawing the incoming year over the outgoing one (see parameters). */
+type Props = BitmapLayerProps & { progress: number };
+
+/** Pack two years (or one year twice) into one RG texture: R = from, G = to.
+ * Built once per transition; the per-frame fade is only a uniform. */
+export function glowPair(from: GlowImage, to: GlowImage): Props['image'] {
+  const n = to.width * to.height;
+  const data = new Uint8Array(n * 2);
+  const a = from.data;
+  const b = to.data;
+  for (let i = 0; i < n; i++) {
+    data[2 * i] = a[i];
+    data[2 * i + 1] = b[i];
+  }
+  return { data, width: to.width, height: to.height, format: 'rg8unorm' } as Props['image'];
+}
+
+/** People as one texture: cost is the same at any year and zoom. */
 export default class GlowLayer extends BitmapLayer<Props> {
   static layerName = 'GlowLayer';
   static defaultProps: DefaultProps<Props> = {
@@ -42,11 +66,9 @@ export default class GlowLayer extends BitmapLayer<Props> {
     bounds: [-180, -GLOW_MAX_LAT, 180, GLOW_MAX_LAT],
     _imageCoordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     pickable: false,
+    progress: 1,
     parameters: {
       depthTest: false,
-      // Normal "over" blending: the incoming year is drawn on top of the
-      // outgoing one at opacity p, so a fade is a mix of the two years and can
-      // never be brighter than both (additive (1-p)+p visibly over-brightened).
       blend: true,
       blendColorSrcFactor: 'src-alpha',
       blendColorDstFactor: 'one-minus-src-alpha',
@@ -59,7 +81,15 @@ export default class GlowLayer extends BitmapLayer<Props> {
     const shaders = super.getShaders();
     return {
       ...shaders,
+      modules: [...shaders.modules, glowFade],
       inject: { ...shaders.inject, 'fs:DECKGL_FILTER_COLOR': ramp },
     };
+  }
+
+  draw(params: Parameters<BitmapLayer['draw']>[0]) {
+    this.state.model?.shaderInputs.setProps({
+      glowFade: { progress: this.props.progress },
+    });
+    super.draw(params);
   }
 }

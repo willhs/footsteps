@@ -5,7 +5,7 @@ import type { Units } from '../layers/units';
 // Exercise the hook's layer inputs without requiring WebGL in jsdom.
 jest.mock('../layers/GlowLayer', () => ({
   __esModule: true,
-  glowImage: (glow: unknown) => glow,
+  glowPair: (_from: unknown, to: unknown) => to,
   default: class {
     props: Record<string, unknown>;
     constructor(props: Record<string, unknown>) {

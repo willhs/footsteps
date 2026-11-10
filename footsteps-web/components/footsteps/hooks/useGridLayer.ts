@@ -14,7 +14,7 @@ import {
 } from './peopleView';
 import useYearCrossfade from './useYearCrossfade';
 import GridYearLayer from '../layers/GridYearLayer';
-import GlowLayer, { glowImage } from '../layers/GlowLayer';
+import GlowLayer, { glowPair } from '../layers/GlowLayer';
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -212,32 +212,34 @@ export default function useGridLayer({
     [first, second, staging, ready],
   );
 
-  const glowLayers = useMemo(
+  // One glow layer for the (from, to) pair; the texture is rebuilt only when
+  // the pair of years changes, not every fade frame.
+  const glowFrom = glowFrames[0]?.snapshot;
+  const glowTo = glowFrames[glowFrames.length - 1]?.snapshot;
+  const glowLayer = useMemo(
     () =>
-      glowFrames.map(
-        ({ snapshot }) =>
-          new GlowLayer({
-            id: `glow-${snapshot.year}`,
-            image: glowImage(snapshot.glow),
-          }),
-      ),
-    // Layers are rebuilt only when the set of years changes, not every fade frame.
+      glowTo && glowFrom
+        ? new GlowLayer({
+            id: 'glow',
+            image: glowPair(glowFrom.glow, glowTo.glow),
+          })
+        : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [glowFrames.map(({ snapshot }) => snapshot.year).join()],
+    [glowFrom?.year, glowTo?.year],
   );
 
   const { glow, units, minPx, brightness, pickable } = blend;
   const layerList = useMemo(() => {
     if (!enabled) return [];
-    const glowList = glowLayers.map((layer, index) =>
-      layer.clone({
-        // Outgoing year stays at full strength underneath; the incoming year
-        // (last frame) fades in over it, so mid-fade is a mix, never brighter.
-        opacity:
-          (index === glowFrames.length - 1 ? glowFrames[index]?.opacity ?? 0 : 1) * glow,
-        visible: glow > 0 && !!glowFrames[index],
-      }),
-    );
+    const glowList = glowLayer
+      ? [
+          glowLayer.clone({
+            progress: glowFrames.length > 1 ? glowFrames[1].opacity : 1,
+            opacity: glow,
+            visible: glow > 0,
+          }),
+        ]
+      : [];
     const markList = layers.map(({ snapshot, layer }) => {
       const frame = frames.find((frame) => frame.snapshot === snapshot);
       // The incoming union already contains the outgoing marks. Draw it alone;
@@ -265,7 +267,7 @@ export default function useGridLayer({
     return [...glowList, ...markList];
   }, [
     enabled,
-    glowLayers,
+    glowLayer,
     glowFrames,
     glow,
     layers,

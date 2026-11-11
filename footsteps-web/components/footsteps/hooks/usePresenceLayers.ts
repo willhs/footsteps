@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { bracket, nearestDataYear } from '@/lib/time';
+import { TARGET_YEARS } from '@/lib/constants';
 import { loadGrid } from './gridLoader';
 import { viewBounds } from './peopleView';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction, type FireMarks } from '../layers/FireLayer';
@@ -67,14 +68,25 @@ export default function usePresenceLayers({
     if (!wanted) return;
     let live = true;
     Promise.all([marksFor(y0), marksFor(y1)])
-      .then(([a, b]) => live && setPair({ a, b }))
+      .then(([a, b]) => {
+        if (!live) return;
+        setPair({ a, b });
+        // Warm the years either side so scrubbing on does not wait.
+        const i = TARGET_YEARS.indexOf(y0);
+        for (const y of [TARGET_YEARS[i - 1], TARGET_YEARS[i + 2]])
+          if (y !== undefined) void marksFor(y).catch(() => {});
+      })
       .catch((e) => console.warn('[presence] marks failed', y0, y1, e));
     return () => {
       live = false;
     };
   }, [wanted, y0, y1]);
 
-  const current = pair && pair.a.marks.year === y0 && pair.b.marks.year === y1 ? pair : null;
+  // While the next pair builds, hold the old one at its nearer end rather than
+  // dropping to nothing.
+  const current = pair;
+  const fresh = !!pair && pair.a.marks.year === y0 && pair.b.marks.year === y1;
+  const fade = fresh ? f : pair && time > pair.b.marks.year ? 1 : 0;
   const visibleFraction = fireVisibleFraction(view.zoom);
 
   const fireLayers = useMemo(
@@ -92,7 +104,15 @@ export default function usePresenceLayers({
   const b = viewBounds(view, size.width, size.height);
   const zoomKey = snap(view.zoom, 0.5);
   const boundsKey = [b.west, b.south, b.east, b.north].map((v) => snap(v, 2 / Math.pow(2, zoomKey))).join();
-  const nearMarks = current ? (near === y0 ? current.a.marks : current.b.marks) : null;
+  const nearMarks = current
+    ? fresh
+      ? near === y0
+        ? current.a.marks
+        : current.b.marks
+      : fade >= 0.5
+        ? current.b.marks
+        : current.a.marks
+    : null;
   const walks = useMemo(
     () =>
       presence.steps && nearMarks && zoomKey >= 2.5 ? buildWalks(nearMarks, b, zoomKey, fireVisibleFraction(zoomKey)) : [],
@@ -123,7 +143,7 @@ export default function usePresenceLayers({
   const layers: LayersList = [];
   if (enabled && presence.lights === 'fire' && far > 0)
     fireLayers.forEach((l, i) =>
-      layers.push(l.clone({ visibleFraction, opacity: far * (i === 0 ? 1 - f : f), visible: true })),
+      layers.push(l.clone({ visibleFraction, opacity: far * (i === 0 ? 1 - fade : fade), visible: true })),
     );
   const steps = (1 - people) * stepsOpacity(view.zoom);
   if (enabled && walkLayer && steps > 0) layers.push(walkLayer.clone({ opacity: 0.85 * steps, visible: true }));

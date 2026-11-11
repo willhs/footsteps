@@ -22,7 +22,7 @@ describe('buildWalks', () => {
       Math.max(...ws.flatMap((w) => w.path.map(([x, y]) => Math.hypot(x - w.path[0][0], y - w.path[0][1]))));
     expect(farmers.every((w) => w.farmer)).toBe(true);
     expect(foragers.every((w) => !w.farmer)).toBe(true);
-    expect(far(farmers)).toBeLessThan(10 * degPerPx(zoom));
+    expect(far(farmers)).toBeLessThan(20 * degPerPx(zoom));
     expect(far(foragers)).toBeGreaterThan(0.2);
   });
 
@@ -30,6 +30,17 @@ describe('buildWalks', () => {
     const [w] = buildWalks(marks([[0, 0, 100], [0.2, 0.1, 100]]), view, 5, 1, 1);
     expect(w.timestamps[w.timestamps.length - 1]).toBeGreaterThanOrEqual(WALK_PERIOD);
     for (let i = 1; i < w.timestamps.length; i++) expect(w.timestamps[i]).toBeGreaterThanOrEqual(w.timestamps[i - 1]);
+  });
+
+  it('finds a nearby camp among many at street zoom', () => {
+    const zoom = 6;
+    const px = degPerPx(zoom);
+    // a dense grid of forager camps 20 px apart across a wide view
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i < 60; i++) for (let j = 0; j < 40; j++) pts.push([i * 20 * px, j * 20 * px, 100]);
+    const ws = buildWalks(marks(pts), view, zoom, 1, 50);
+    const moving = ws.filter((w) => new Set(w.path.map((p) => p.join())).size > 3);
+    expect(moving.length).toBeGreaterThan(45);
   });
 
   it('ignores marks out of view or hidden at this zoom', () => {

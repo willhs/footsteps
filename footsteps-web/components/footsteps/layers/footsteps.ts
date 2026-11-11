@@ -13,7 +13,7 @@ type Bounds = { west: number; south: number; east: number; north: number };
 /** Seconds before the walks repeat. */
 export const WALK_PERIOD = 60;
 /** Seconds of trail behind each walker. */
-export const WALK_TRAIL = 3.5;
+export const WALK_TRAIL = 2.5;
 export const MAX_WALKERS = 320;
 
 function rng(seed: number) {
@@ -56,8 +56,32 @@ export function buildWalks(
   if (!inView.length) return [];
   const r = rng(marks.year * 7919 + Math.round(bounds.west * 10) * 31 + Math.round(zoom * 4));
   const px = degPerPx(zoom);
-  const speed = 20 * px; // degrees per second: a stylised, time-compressed walk
+  const speed = 16 * px; // degrees per second: a stylised, time-compressed walk
   const reach = 70 * px;
+  const hop = 12 * px; // shortest move worth drawing
+  // Bucket marks by `reach` so a walker finds its neighbours without scanning
+  // every mark in view (at street zoom a random pick is almost never nearby).
+  const buckets = new Map<number, number[]>();
+  const key = (bx: number, by: number) => bx * 100003 + by;
+  for (const i of inView) {
+    const k = key(Math.floor(marks.positions[i * 2] / reach), Math.floor(marks.positions[i * 2 + 1] / reach));
+    const b = buckets.get(k);
+    if (b) b.push(i);
+    else buckets.set(k, [i]);
+  }
+  const near: number[] = [];
+  const neighbour = (x: number, y: number): number | null => {
+    near.length = 0;
+    const bx = Math.floor(x / reach);
+    const by = Math.floor(y / reach);
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const m of buckets.get(key(bx + dx, by + dy)) ?? []) {
+          const d = Math.hypot(marks.positions[m * 2] - x, marks.positions[m * 2 + 1] - y);
+          if (d < reach && d > hop) near.push(m);
+        }
+    return near.length ? near[Math.floor(r() * near.length)] : null;
+  };
   const n = Math.min(max, inView.length);
   const walks: Walk[] = [];
   for (let w = 0; w < n; w++) {
@@ -82,29 +106,18 @@ export function buildWalks(
     const end = WALK_PERIOD + WALK_TRAIL;
     while (t < end) {
       if (farmer) {
-        // out to a field a few km away, work, home again, rest
+        // out to a field, work, home again, rest
         const a = r() * Math.PI * 2;
-        const d = (3 + r() * 5) * px;
-        go(hx + Math.cos(a) * d, hy + Math.sin(a) * d, 0.25);
+        const d = (8 + r() * 10) * px;
+        go(hx + Math.cos(a) * d, hy + Math.sin(a) * d, 0.5);
+        t += 1 + r() * 2;
+        go(hx, hy, 0.5);
         t += 1 + r() * 3;
-        go(hx, hy, 0.25);
-        t += 2 + r() * 4;
       } else {
         // roam to a nearby camp; with none close, stay (never into empty land or sea)
-        let nx = x;
-        let ny = y;
-        for (let k = 0; k < 10; k++) {
-          const m = inView[Math.floor(r() * inView.length)];
-          const mx = marks.positions[m * 2];
-          const my = marks.positions[m * 2 + 1];
-          if (Math.hypot(mx - x, my - y) < reach) {
-            nx = mx;
-            ny = my;
-            break;
-          }
-        }
-        if (nx === x && ny === y) t += 2 + r() * 2;
-        else go(nx, ny, 0.8 + r() * 0.5);
+        const m = neighbour(x, y);
+        if (m === null) t += 2 + r() * 2;
+        else go(marks.positions[m * 2], marks.positions[m * 2 + 1], 0.8 + r() * 0.5);
         t += r() * 1.5;
       }
     }

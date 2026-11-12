@@ -206,30 +206,28 @@ function SupportingText({
 
   return (
     <div
-      className="absolute backdrop-blur-md bg-black/40 bg-opacity-50 rounded-md p-3 text-slate-200 font-sans"
-      style={{ top: '1rem', left: '1rem', zIndex: 30 }}
+      className="ov-panel ov-stats absolute z-30 px-3.5 py-3 sm:px-4"
+      style={{ top: 'var(--ov-top)', left: 'var(--ov-left)' }}
     >
       {/* Current year */}
       <div
-        className={`text-2xl font-normal text-slate-400 mb-1 year-text metric-value ${yearFlash ? 'metric-flash' : ''}`}
+        className={`text-[15px] font-medium leading-tight text-[var(--ov-text-2)] tabular-nums year-text metric-value ${yearFlash ? 'metric-flash' : ''}`}
         aria-live="polite"
       >
         {formatYear(year)}
       </div>
 
-      {/* Title removed per design tweak: keep overlay minimal */}
-      <div className="text-xl font-semibold mb-2">
+      {/* Population: the headline number */}
+      <div className="mt-0.5 whitespace-nowrap text-[22px] font-semibold leading-tight tracking-tight text-[var(--ov-text)] tabular-nums sm:text-2xl">
         <span className={`metric-value ${popFlash ? 'metric-flash' : ''}`}>
           {formatPopulation(displayPopulation)}
         </span>
       </div>
 
-      {/* Current view context removed per request to reduce overlay text */}
-
       {/* Progressive loading feedback */}
       {progressiveRenderStatus &&
         progressiveRenderStatus.rendered < progressiveRenderStatus.total && (
-          <div className="text-xs text-slate-300 mt-2">
+          <div className="ov-note mt-2">
             Loading settlements:{' '}
             {(
               (progressiveRenderStatus.rendered /
@@ -240,28 +238,28 @@ function SupportingText({
           </div>
         )}
 
-      {/* Technical details */}
-      <div className="mt-2 pt-2 border-t border-slate-700/60 text-xs text-slate-500 space-y-1">
+      {/* Technical details: secondary */}
+      <div className="ov-debug mt-2.5 space-y-0.5 border-t border-[var(--ov-divider)] pt-2 tabular-nums">
         <div>
-          Zoom: {viewState.zoom.toFixed(1)}x
+          Zoom {viewState.zoom.toFixed(1)}x
           {/* LOD and tile cache only describe the Dots tiles (cacheSize > 0). */}
-          {cacheSize > 0 && <> • {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}</>}
+          {cacheSize > 0 && <> · {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}</>}
         </div>
         <div>
-          Dots drawn:{' '}
+          Dots drawn{' '}
           <span className={`metric-value ${dotsFlash ? 'metric-flash' : ''}`}>
             {displayDotCount.toLocaleString()}
           </span>
         </div>
         {cacheSize > 0 && <div>
           Cache:{' '}
-          <span title="Tiles held in memory">{cacheStats.tiles}</span>{' '}tiles •{' '}
-          <span title="Approximate memory used">{formatBytes(cacheStats.bytes)}</span>{' '}•{' '}
+          <span title="Tiles held in memory">{cacheStats.tiles}</span>{' '}tiles ·{' '}
+          <span title="Approximate memory used">{formatBytes(cacheStats.bytes)}</span>{' '}·{' '}
           <span title="Memory cache hits / misses">{cacheStats.hits}/{cacheStats.misses}</span>{' '}
           <span title="Memory cache hit rate">
             ({(cacheStats.hits + cacheStats.misses) > 0
               ? Math.round((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100)
-              : 0}% )
+              : 0}%)
           </span>
         </div>}
       </div>

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { getTooltipPosition, formatCoordinates } from './tooltipUtils';
 import { getPopulationScale } from '@/lib/format';
 import type { TooltipData } from './TooltipOverlay';
+import { CloseIcon } from '@/components/ui/icons';
 
 interface PopulationTooltipProps {
   data: TooltipData | null;
@@ -75,14 +76,14 @@ export default function PopulationTooltip({
           maxWidth: '260px',
         }}
       >
-        <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-sm rounded-md p-3 pr-4 text-white shadow-xl border border-slate-700/40">
+        <div className="ov-panel ov-panel-strong pointer-events-auto">
           {/* Population (primary) */}
           <div className="mb-2">
-            <div className="text-3xl font-semibold text-orange-300 leading-none tracking-tight">
-              <span className="font-mono">
+            <div className="text-3xl font-semibold text-[var(--ov-amber)] leading-none tracking-tight">
+              <span className="tabular-nums">
                 {roundedPopulation.toLocaleString()}
               </span>{' '}
-              <span className="text-base font-normal text-slate-300">
+              <span className="text-base font-normal text-[var(--ov-text-2)]">
                 {populationLabel}
               </span>
             </div>
@@ -90,26 +91,26 @@ export default function PopulationTooltip({
 
           {/* Subheader: Year + Scale badge + Close */}
           <div className="flex items-center justify-between mb-2 gap-2">
-            <div className="text-xs text-slate-400 truncate">
+            <div className="ov-note truncate">
               {data.year < 0 ? `${Math.abs(data.year)} BC` : `${data.year} CE`}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="text-[10px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300">
+              <div className="ov-chip text-[var(--ov-text-3)]">
                 {populationScale.scale}
               </div>
               <button
                 onClick={handleClose}
-                className="text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all duration-200 text-base leading-none w-6 h-6 flex items-center justify-center rounded"
+                className="ov-icon-btn -mr-2 h-7 w-7"
                 title="Close (ESC)"
                 aria-label="Close tooltip"
               >
-                ×
+                <CloseIcon />
               </button>
             </div>
           </div>
 
           {/* Coordinates */}
-          <div className="text-[11px] text-slate-400">
+          <div className="ov-debug">
             {formatCoordinates(data.coordinates)}
           </div>
         </div>

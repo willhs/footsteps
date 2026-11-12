@@ -1,6 +1,7 @@
 'use client';
 
 import ToggleButton, { TOGGLE_CONTAINER_TW } from './ToggleButton';
+import { PlainIcon, TerrainIcon } from './icons';
 
 interface TerrainToggleProps {
   showTerrain: boolean;
@@ -14,19 +15,17 @@ export default function TerrainToggle({ showTerrain, onToggle }: TerrainTogglePr
         pressed={showTerrain}
         onClick={() => onToggle(true)}
         label="Terrain"
-        title="🏔️ Show terrain imagery"
-        activeClassName="bg-emerald-500 text-white shadow-md"
+        title="Terrain: land, sea and ice of the time"
       >
-        🏔️
+        <TerrainIcon />
       </ToggleButton>
       <ToggleButton
         pressed={!showTerrain}
         onClick={() => onToggle(false)}
         label="Plain"
-        title="⚫️ Plain background for dot clarity"
-        activeClassName="bg-emerald-500 text-white shadow-md"
+        title="Plain: dark background for clearer dots"
       >
-        ⚫️
+        <PlainIcon />
       </ToggleButton>
     </div>
   );

@@ -2,6 +2,7 @@ import type { GroundingFacts } from '../layers/grounding';
 import PersonDay, { type DayRequest } from './PersonDay';
 import Portrait from './Portrait';
 import type { Person } from '../layers/people';
+import { CloseIcon } from '@/components/ui/icons';
 
 export default function GroundingPanel({
   facts,
@@ -24,42 +25,68 @@ export default function GroundingPanel({
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
   return (
-    <section aria-label="What we know here" className="absolute bottom-44 left-4 z-20 max-w-xs rounded bg-black/85 p-4 text-xs leading-relaxed text-white/85">
-      <button type="button" aria-label="Close grounding facts" onClick={onClose} className="float-right ml-4 px-1">×</button>
-      <h2 className="mb-2 text-sm font-semibold text-white">What we know here</h2>
-      {person && (
-        <div className="mb-3 border-b border-white/15 pb-3">
-          <div className="flex gap-3">
-            {portrait && <Portrait {...portrait} />}
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#ffe2aa]">{person.title}</p>
-              <p className="text-white">{person.detail}</p>
+    <section
+      aria-label="What we know here"
+      className="ov-panel ov-panel-strong pointer-events-auto min-h-0 overflow-y-auto overscroll-contain p-0"
+    >
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[var(--ov-divider)] bg-[rgba(14,15,19,0.97)] py-2 pl-4 pr-2">
+        <h2 className="ov-eyebrow">What we know here</h2>
+        <button type="button" aria-label="Close grounding facts" title="Close" onClick={onClose} className="ov-icon-btn">
+          <CloseIcon />
+        </button>
+      </header>
+
+      <div className="flex flex-col gap-4 px-4 pb-4 pt-3">
+        {person && (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3.5">
+              {portrait && <Portrait {...portrait} />}
+              <div className="min-w-0 pt-0.5">
+                <p className="ov-title text-[var(--ov-warm)]">{person.title}</p>
+                <p className="ov-body mt-1 text-[var(--ov-text)]">{person.detail}</p>
+              </div>
             </div>
+            <p className="ov-note">
+              Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
+              camp are drawn from a typical pre-modern population.
+            </p>
+            {day && <PersonDay request={day} />}
           </div>
-          <p className="mt-1 text-white/55">
-            Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
-            camp are drawn from a typical pre-modern population.
+        )}
+
+        {group && (
+          <p className="ov-body text-[var(--ov-text)]">
+            {group.placed
+              ? `${group.label} of about ${count(group.people)} people. Where it sits inside its cell is illustrative.`
+              : `${group.label}: about ${count(group.people)} people in one ~10 km cell.`}
           </p>
-          {day && <PersonDay request={day} />}
-        </div>
-      )}
-      {group && (
-        <p className="mb-2 text-white">
-          {group.placed
-            ? `${group.label} of about ${count(group.people)} people. Where it sits inside its cell is illustrative.`
-            : `${group.label}: about ${count(group.people)} people in one ~10 km cell.`}
-        </p>
-      )}
-      {facts ? <>
-        <p>{facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · cell centre {facts.latitude.toFixed(3)}°, {facts.longitude.toFixed(3)}°</p>
-        <dl className="my-2 grid grid-cols-2 gap-x-3">
-          <dt>People in cell</dt><dd>≈ {count(facts.people)}</dd>
-          <dt>3×3 neighbourhood</dt><dd>≈ {count(facts.neighbourhoodPeople)}</dd>
-          <dt>Density class</dt><dd>{facts.densityClass}</dd>
-        </dl>
-        <p>{facts.confidence}</p>
-        <p className="mt-2 text-white/60">Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Band/village placements are illustrative.</p>
-      </> : <p>Population image for this year is not loaded yet.</p>}
+        )}
+
+        {facts ? (
+          <div className={person || group ? 'border-t border-[var(--ov-divider)] pt-3' : ''}>
+            <h3 className="ov-eyebrow mb-1">This ~10 km cell</h3>
+            <p className="ov-note mb-2 tabular-nums">
+              {facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · centre{' '}
+              {facts.latitude.toFixed(3)}°, {facts.longitude.toFixed(3)}°
+            </p>
+            <dl className="ov-kv ov-body">
+              <dt>People in cell</dt>
+              <dd>≈ {count(facts.people)}</dd>
+              <dt>3×3 neighbourhood</dt>
+              <dd>≈ {count(facts.neighbourhoodPeople)}</dd>
+              <dt>Density class</dt>
+              <dd className="capitalize">{facts.densityClass}</dd>
+            </dl>
+            <p className="ov-body mt-3">{facts.confidence}</p>
+            <p className="ov-note mt-2">
+              Counts are decoded HYDE estimates. Zero means no population recorded in this image, not
+              confirmed absence. Band/village placements are illustrative.
+            </p>
+          </div>
+        ) : (
+          <p className="ov-body">Population image for this year is not loaded yet.</p>
+        )}
+      </div>
     </section>
   );
 }

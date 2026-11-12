@@ -7,6 +7,7 @@ import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import VizToggles from '@/components/ui/VizToggles';
+import ControlRow from '@/components/ui/ControlRow';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
@@ -176,53 +177,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         }}
       />
 
-      {peopleView && selectedPlace && (
-        <GroundingPanel
-          facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
-          group={
-            selectedGroup && {
-              label: UNIT_KIND_LABEL[selectedGroup.kind] ?? 'A group',
-              people: selectedGroup.people,
-              placed: selectedGroup.kind !== UnitKind.Glow,
-            }
-          }
-          person={selectedPerson ? describePerson(selectedPerson) : null}
-          portrait={
-            selectedPerson
-              ? { person: selectedPerson, year: Math.round(time), lat: selectedPerson.position[1] }
-              : null
-          }
-          day={
-            selectedPerson && selectedPlace && grid
-              ? (() => {
-                  const facts = groundingFacts(grid, year, ...selectedPlace);
-                  return {
-                    year: Math.round(time),
-                    lat: selectedPerson.position[1],
-                    lon: selectedPerson.position[0],
-                    cellPeople: facts?.people ?? 0,
-                    neighbourhoodPeople: facts?.neighbourhoodPeople ?? 0,
-                    densityClass: facts?.densityClass ?? 'unknown',
-                    confidence: facts?.confidence ?? '',
-                    person: {
-                      age: selectedPerson.age,
-                      female: selectedPerson.female,
-                      role: selectedPerson.role,
-                      groupKind: selectedPerson.groupKind,
-                      groupPeople: selectedPerson.groupPeople,
-                    },
-                  };
-                })()
-              : null
-          }
-          onClose={() => {
-            setSelectedPlace(null);
-            setSelectedGroup(null);
-            setSelectedPerson(null);
-          }}
-        />
-      )}
-
       {/* Data info overlay */}
       <SupportingText
         loading={
@@ -250,38 +204,100 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         year={Math.round(time)}
       />
 
-      {peopleView && (
-        <div className="pointer-events-none absolute bottom-[92px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
-          {showGlowLegend ? (
-            <>
-              Brightness is people per ~10 km cell:{' '}
-              <span className="text-[#ffbe6e]">sparse</span>,{' '}
-              <span className="text-[#ffe1a0]">farming</span>,{' '}
-              <span className="text-cyan-300">towns and cities</span>. Zoom in to
-              see bands and villages.
-            </>
-          ) : (
-            <>
-              <span className="text-[#ffbe6e]">●</span> band (~30 people){' '}
-              <span className="text-[#ffe1a0]">●</span> village (~300){' '}
-              <span className="text-cyan-300">●</span> town/city density
-              {blend.pickable && ' · click a mark to name it'}
-            </>
-          )}
-          <br />
-          Head counts per ~10 km cell are HYDE estimates. Where bands and villages
-          sit inside a cell is illustrative, not known.
-          {showTerrain && <TerrainNote />}
-        </div>
-      )}
-      {!peopleView && showTerrain && (
-        <div className="pointer-events-none absolute bottom-[92px] left-4 z-10 max-w-xs text-[11px] leading-snug text-white/60">
-          <TerrainNote />
-        </div>
-      )}
+      {/* Bottom-left stack: details panel above the legend, both above the timeline. */}
+      <div
+        className="pointer-events-none absolute z-20 flex flex-col justify-end gap-2 sm:w-[360px]"
+        style={{
+          left: 'var(--ov-left)',
+          right: 'var(--ov-right)',
+          bottom: 'calc(var(--ov-timeline-h) + 8px)',
+          // stay clear of the year/population panel at the top
+          top: 'calc(var(--ov-top) + 150px)',
+        }}
+      >
+        {peopleView && selectedPlace && (
+          <GroundingPanel
+            facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
+            group={
+              selectedGroup && {
+                label: UNIT_KIND_LABEL[selectedGroup.kind] ?? 'A group',
+                people: selectedGroup.people,
+                placed: selectedGroup.kind !== UnitKind.Glow,
+              }
+            }
+            person={selectedPerson ? describePerson(selectedPerson) : null}
+            portrait={
+              selectedPerson
+                ? { person: selectedPerson, year: Math.round(time), lat: selectedPerson.position[1] }
+                : null
+            }
+            day={
+              selectedPerson && selectedPlace && grid
+                ? (() => {
+                    const facts = groundingFacts(grid, year, ...selectedPlace);
+                    return {
+                      year: Math.round(time),
+                      lat: selectedPerson.position[1],
+                      lon: selectedPerson.position[0],
+                      cellPeople: facts?.people ?? 0,
+                      neighbourhoodPeople: facts?.neighbourhoodPeople ?? 0,
+                      densityClass: facts?.densityClass ?? 'unknown',
+                      confidence: facts?.confidence ?? '',
+                      person: {
+                        age: selectedPerson.age,
+                        female: selectedPerson.female,
+                        role: selectedPerson.role,
+                        groupKind: selectedPerson.groupKind,
+                        groupPeople: selectedPerson.groupPeople,
+                      },
+                    };
+                  })()
+                : null
+            }
+            onClose={() => {
+              setSelectedPlace(null);
+              setSelectedGroup(null);
+              setSelectedPerson(null);
+            }}
+          />
+        )}
 
-      {/* View Mode + Terrain toggles */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {/* Legend: hidden while the details panel is open, which needs the height. */}
+        {peopleView && !selectedPlace ? (
+          <div className="ov-panel shrink-0 px-3.5 py-3">
+            {showGlowLegend ? (
+              <p className="ov-body">
+                Brightness is people per ~10 km cell:{' '}
+                <span className="text-[#ffbe6e]">sparse</span>,{' '}
+                <span className="text-[#ffe1a0]">farming</span>,{' '}
+                <span className="text-cyan-300">towns and cities</span>. Zoom in to
+                see bands and villages.
+              </p>
+            ) : (
+              <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
+                <li><span className="mr-1.5 text-[#ffbe6e]">●</span>band (~30 people)</li>
+                <li><span className="mr-1.5 text-[#ffe1a0]">●</span>village (~300)</li>
+                <li><span className="mr-1.5 text-cyan-300">●</span>town/city density</li>
+                {blend.pickable && <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>}
+              </ul>
+            )}
+            <p className="ov-note mt-1.5">
+              Head counts per ~10 km cell are HYDE estimates. Where bands and villages
+              sit inside a cell is illustrative, not known.
+            </p>
+            {showTerrain && <TerrainNote />}
+          </div>
+        ) : (
+          !peopleView && showTerrain && (
+            <div className="ov-panel shrink-0 px-3.5 py-3">
+              <TerrainNote />
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Map controls */}
+      <div className="absolute z-30" style={{ top: 'var(--ov-top)', right: 'var(--ov-right)' }}>
         <VizToggles
           is3DMode={is3DMode}
           onModeChange={setIs3DMode}
@@ -289,19 +305,29 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
-        />
-        {renderMode === 'auto' && <PresencePicker presence={presence} onChange={setPresence} />}
-        {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
-        {debugModes && <button
-          type="button"
-          onClick={() =>
-            setRenderMode((m) => PEOPLE_MODES[(PEOPLE_MODES.indexOf(m) + 1) % PEOPLE_MODES.length])
-          }
-          className="rounded bg-black/60 px-2 py-1 text-xs text-white/80 hover:text-white"
-          title="Auto: look chosen by zoom. Units: bands, villages and city glow at every zoom. Grid: one dot per HYDE cell. Dots: pre-built dot tiles."
+          showColorScheme={renderMode === 'dots'}
         >
-          {RENDER_MODE_LABEL[renderMode]}
-        </button>}
+          {renderMode === 'auto' && (
+            <ControlRow label="Lights">
+              <PresencePicker presence={presence} onChange={setPresence} />
+            </ControlRow>
+          )}
+          {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
+          {debugModes && (
+            <ControlRow label="Mode (debug)">
+              <button
+                type="button"
+                onClick={() =>
+                  setRenderMode((m) => PEOPLE_MODES[(PEOPLE_MODES.indexOf(m) + 1) % PEOPLE_MODES.length])
+                }
+                className="ov-seg-btn border border-[var(--ov-border)]"
+                title="Auto: look chosen by zoom. Units: bands, villages and city glow at every zoom. Grid: one dot per HYDE cell. Dots: pre-built dot tiles."
+              >
+                {RENDER_MODE_LABEL[renderMode]}
+              </button>
+            </ControlRow>
+          )}
+        </VizToggles>
       </div>
     </div>
   );
@@ -309,16 +335,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
 /** Prototype: compare ways of showing people (lights style). */
 function PresencePicker({ presence, onChange }: { presence: Presence; onChange: (p: Presence) => void }) {
-  const chip = (on: boolean) =>
-    `rounded-full border px-2 py-0.5 text-[11px] ${on ? 'border-white bg-white text-black' : 'border-white/25 text-white/80 hover:text-white'}`;
   return (
-    <div role="group" aria-label="How people are shown" className="flex flex-col items-end gap-1 rounded bg-black/55 p-1.5">
-      <div className="flex gap-1">
-        <button type="button" aria-pressed={presence.lights === 'fire'} className={chip(presence.lights === 'fire')}
-          onClick={() => onChange({ ...presence, lights: 'fire' })}>Firelight</button>
-        <button type="button" aria-pressed={presence.lights === 'classic'} className={chip(presence.lights === 'classic')}
-          onClick={() => onChange({ ...presence, lights: 'classic' })}>Classic glow</button>
-      </div>
+    <div role="group" aria-label="How people are shown" className="ov-seg">
+      <button type="button" aria-pressed={presence.lights === 'fire'} className="ov-seg-btn"
+        title="Firelight: flickering hearths and settlements"
+        onClick={() => onChange({ ...presence, lights: 'fire' })}>Firelight</button>
+      <button type="button" aria-pressed={presence.lights === 'classic'} className="ov-seg-btn"
+        title="Classic glow: smooth density glow"
+        onClick={() => onChange({ ...presence, lights: 'classic' })}>Classic</button>
     </div>
   );
 }
@@ -326,7 +350,7 @@ function PresencePicker({ presence, onChange }: { presence: Presence; onChange: 
 /** One-line source note for the terrain images. */
 function TerrainNote() {
   return (
-    <span className="mt-1 block text-white/50">
+    <span className="ov-note mt-1.5 block">
       Land, sea and ice reconstructed from climate and ice models (Krapp et al. 2021),
       coloured from NASA Blue Marble; the green Sahara is drawn from the literature.
       Faint line: today&apos;s coast.

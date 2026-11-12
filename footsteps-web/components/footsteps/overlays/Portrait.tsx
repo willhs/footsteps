@@ -158,7 +158,7 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
 
   return (
     <figure className="m-0 shrink-0">
-      <svg viewBox="0 0 120 150" width="96" height="120" role="img" aria-label={`Illustration of a ${person.role}, about ${person.age}`} className="rounded bg-[#2a241d]">
+      <svg viewBox="0 0 120 150" width="96" height="120" role="img" aria-label={`Illustration of a ${person.role}, about ${person.age}`} className="rounded-[var(--ov-radius-sm)] bg-[#2a241d]">
         {/* setting hint */}
         <circle cx="60" cy="70" r="58" fill={person.groupKind === UnitKind.Band ? '#3b3a2a' : '#4a3f2a'} />
         <rect x="0" y="128" width="120" height="22" fill={person.groupKind === UnitKind.Band ? '#4b4630' : '#6a5a38'} />
@@ -193,10 +193,10 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
         <Tool role={person.role} r={r} />
       </svg>
       <figcaption
-        className="mt-1 w-24 text-[10px] leading-tight text-white/45"
+        className="mt-1.5 w-24 text-[11px] leading-snug text-[var(--ov-text-3)]"
         title={rec ? `${rec.era.label}. Dress, hair and colours from the anthropology atlas (${sources.join(', ')}); "model" means AI gap-fill.` : undefined}
       >
-        {dress && <span className="block text-white/60">{dress}</span>}
+        {dress && <span className="block text-[var(--ov-text-2)]">{dress}</span>}
         Illustration,<br />not a likeness
       </figcaption>
     </figure>

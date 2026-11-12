@@ -6,19 +6,55 @@
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  /* Overlay design tokens (panels, controls, timeline over the map) */
+  --ov-gutter: 16px;
+  --ov-top: calc(var(--ov-gutter) + env(safe-area-inset-top, 0px));
+  --ov-left: calc(var(--ov-gutter) + env(safe-area-inset-left, 0px));
+  --ov-right: calc(var(--ov-gutter) + env(safe-area-inset-right, 0px));
+  --ov-bottom: calc(var(--ov-gutter) + env(safe-area-inset-bottom, 0px));
+  /* Distance from the screen bottom to the top of the timeline; TimeNavigator
+     measures and updates it so bottom-anchored panels sit just above it. */
+  --ov-timeline-h: 140px;
+  --ov-radius: 12px;
+  --ov-radius-sm: 8px;
+  --ov-surface: rgba(14, 15, 19, 0.74);
+  --ov-surface-strong: rgba(14, 15, 19, 0.9);
+  --ov-border: rgba(255, 255, 255, 0.1);
+  --ov-divider: rgba(255, 255, 255, 0.08);
+  --ov-text: #f3f1ec;                       /* primary content */
+  --ov-text-2: rgba(243, 241, 236, 0.8);    /* body copy */
+  --ov-text-3: rgba(243, 241, 236, 0.62);   /* labels, notes */
+  --ov-text-4: rgba(243, 241, 236, 0.45);   /* debug, fine print */
+  --ov-warm: #ffe2aa;                       /* people, imagined lives */
+  --ov-amber: #f2b56b;                      /* population */
+  --ov-data: #5fd4e8;                       /* data years, loading */
+  --ov-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --ov-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@media (max-width: 480px) {
+  :root {
+    --ov-gutter: 12px;
+  }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden;
+/* In a layer, so Tailwind's padding/margin utilities and the overlay classes
+   can override it. (Unlayered, this reset beat every p-*/m-* utility.) */
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: var(--ov-font);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
 }
 
 html,
@@ -122,6 +158,210 @@ main {
 }
 
 @layer components {
+  /* ---- Overlay system -------------------------------------------------- */
+  /* One surface for everything floating over the map. */
+  .ov-panel {
+    background: var(--ov-surface);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--ov-border);
+    border-radius: var(--ov-radius);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    color: var(--ov-text-2);
+    font-family: var(--ov-font);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 14px 16px;
+  }
+  .ov-panel-strong {
+    background: var(--ov-surface-strong);
+  }
+  /* Quiet scrollbars inside panels */
+  .ov-panel {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  }
+  .ov-panel::-webkit-scrollbar {
+    width: 8px;
+  }
+  .ov-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  /* Year/population panel (top left): leave room for the controls on phones */
+  .ov-stats {
+    max-width: calc(100vw - var(--ov-left) - var(--ov-right) - 164px);
+  }
+  @media (min-width: 640px) {
+    .ov-stats {
+      max-width: 300px;
+    }
+  }
+
+  /* Type scale */
+  .ov-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ov-text-3);
+    line-height: 1.3;
+  }
+  .ov-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ov-text);
+    line-height: 1.35;
+  }
+  .ov-body {
+    font-size: 13px;
+    color: var(--ov-text-2);
+    line-height: 1.5;
+  }
+  .ov-note {
+    font-size: 12px;
+    color: var(--ov-text-3);
+    line-height: 1.5;
+  }
+  .ov-debug {
+    font-family: var(--ov-mono);
+    font-size: 11px;
+    color: var(--ov-text-4);
+    line-height: 1.5;
+  }
+
+  .ov-divider {
+    border-top: 1px solid var(--ov-divider);
+  }
+
+  /* Aligned label/value rows */
+  .ov-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .ov-kv > dt {
+    padding-right: 16px;
+  }
+  .ov-kv > dt,
+  .ov-kv > dd {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-top: 1px solid var(--ov-divider);
+  }
+  .ov-kv > dt {
+    color: var(--ov-text-3);
+  }
+  .ov-kv > dd {
+    color: var(--ov-text);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Segmented control: a row of mutually exclusive options */
+  .ov-seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--ov-divider);
+  }
+  .ov-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    min-width: 32px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ov-text-3);
+    white-space: nowrap;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .ov-seg-btn:hover {
+    color: var(--ov-text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .ov-seg-btn[aria-pressed='true'] {
+    color: #111;
+    background: var(--ov-text);
+  }
+  .ov-seg-btn:focus-visible,
+  .ov-btn:focus-visible,
+  .ov-icon-btn:focus-visible,
+  .ov-swatch:focus-visible {
+    outline: 2px solid var(--ov-data);
+    outline-offset: 2px;
+  }
+
+  /* Text button (secondary action) */
+  .ov-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--ov-radius-sm);
+    border: 1px solid rgba(255, 226, 170, 0.5);
+    color: var(--ov-warm);
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 150ms ease-out;
+  }
+  .ov-btn:hover {
+    background: rgba(255, 226, 170, 0.1);
+  }
+
+  /* Square icon button (close etc.) */
+  .ov-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--ov-radius-sm);
+    color: var(--ov-text-3);
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+  }
+  .ov-icon-btn:hover {
+    color: var(--ov-text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Small rounded status pill */
+  .ov-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 11px;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+
+  /* Colour swatch button */
+  .ov-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    transition: transform 150ms ease-out, border-color 150ms ease-out;
+  }
+  .ov-swatch:hover {
+    transform: scale(1.1);
+  }
+  .ov-swatch[aria-pressed='true'] {
+    border-color: var(--ov-text);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+  }
+
   .glass-panel {
     backdrop-filter: blur(12px);
     background: var(--glass-bg, rgba(0, 0, 0, 0.4));

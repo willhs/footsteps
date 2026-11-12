@@ -28,7 +28,7 @@ interface Props {
 }
 
 const BAR_H = 22;
-const H = BAR_H + 18;
+const H = BAR_H + 20;
 const OFFSET = 30; // years-ago offset so the log scale behaves near the present
 const LENS = 5; // magnification strength
 const AGO_MIN = NOW - TIME_MAX;
@@ -38,7 +38,7 @@ const COLORS = {
   bar: 'rgba(255,255,255,0.10)',
   people: 'rgba(242,181,107,0.55)',
   data: '#5fd4e8',
-  tick: 'rgba(255,255,255,0.55)',
+  tick: 'rgba(243,241,236,0.72)',
   grid: 'rgba(255,255,255,0.12)',
   cursor: '#f2efe8',
 };
@@ -71,7 +71,28 @@ function popHeight(t: number) {
 
 export default function TimeNavigator({ time, onChange, loading = null }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [cssWidth, setCssWidth] = useState(800);
+
+  // Publish how much of the screen bottom the timeline takes (--ov-timeline-h),
+  // so bottom-anchored overlays sit just above it at any width.
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const update = () => {
+      const top = el.getBoundingClientRect().top;
+      root.style.setProperty('--ov-timeline-h', `${Math.max(0, Math.round(window.innerHeight - top))}px`);
+    };
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    update();
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -97,7 +118,10 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     const x = (t: number) => lens(S(t), f) * w;
 
     ctx.fillStyle = COLORS.bar;
-    ctx.fillRect(0, 0, w, BAR_H);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(0, 0, w, BAR_H, 4);
+    else ctx.rect(0, 0, w, BAR_H);
+    ctx.fill();
     ctx.fillStyle = COLORS.people;
     for (let px = 0; px < w; px += 2) {
       const t = Sinv(unlens(px / w, f));
@@ -105,7 +129,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       ctx.fillRect(px, BAR_H - ph, 2, ph);
     }
     // ticks (years ago), skipping labels that would collide
-    ctx.font = '10px ui-monospace, Menlo, monospace';
+    ctx.font = '11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
     ctx.textBaseline = 'top';
     ctx.textAlign = 'center';
     let lastRight = -1e9;
@@ -121,7 +145,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       const cx = Math.min(w - half, Math.max(half, px));
       if (cx - half > lastRight + 8) {
         ctx.fillStyle = COLORS.tick;
-        ctx.fillText(label, cx, BAR_H + 4);
+        ctx.fillText(label, cx, BAR_H + 5);
         lastRight = cx + half;
       }
     }
@@ -170,26 +194,30 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
 
   const status = dataStatus(time);
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 px-4 pb-3 pt-2 bg-gradient-to-t from-black/85 via-black/60 to-transparent">
-      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-white">
-        <span className="text-base font-semibold tabular-nums">{agoLabel(time)}</span>
-        <span className="text-xs text-white/60 tabular-nums">{calendarLabel(time)}</span>
-        <span className="text-xs text-[#f2b56b] tabular-nums">~{populationLabel(populationAt(time))} people</span>
+    <div
+      ref={panelRef}
+      className="ov-panel absolute z-10 px-4 pb-2.5 pt-3 sm:px-5"
+      style={{ left: 'var(--ov-left)', right: 'var(--ov-right)', bottom: 'var(--ov-bottom)' }}
+    >
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
+        <span className="text-[17px] font-semibold leading-tight text-[var(--ov-text)] tabular-nums">{agoLabel(time)}</span>
+        <span className="text-[13px] text-[var(--ov-text-2)] tabular-nums">{calendarLabel(time)}</span>
+        <span className="text-[13px] text-[var(--ov-amber)] tabular-nums">~{populationLabel(populationAt(time))} people</span>
         {loading ? (
           <span
             role="status"
             aria-live="polite"
-            className="flex items-center gap-1.5 rounded-full border border-[#5fd4e8] px-2 py-px text-[10px] text-[#5fd4e8]"
+            className="ov-chip self-center text-[var(--ov-data)]"
             title="The map shows the nearest data it has until this loads."
           >
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#5fd4e8]" />
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--ov-data)]" />
             {loading[0] === loading[1]
               ? `loading ${calendarLabel(loading[0])} data…`
               : `loading ${calendarLabel(loading[0])}–${calendarLabel(loading[1])} data…`}
           </span>
         ) : (
           <span
-            className={`rounded-full border px-2 py-px text-[10px] ${status.exact ? 'border-[#5fd4e8] text-[#5fd4e8]' : 'border-white/30 text-white/60'}`}
+            className={`ov-chip self-center ${status.exact ? 'text-[var(--ov-data)]' : 'text-[var(--ov-text-3)]'}`}
             title="HYDE gives data every 1,000 years before 1 CE and every 100 years after. Years in between are estimated."
           >
             {status.exact
@@ -200,7 +228,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       </div>
       <canvas
         ref={canvasRef}
-        className="block w-full cursor-ew-resize touch-none select-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#5fd4e8]"
+        className="block w-full cursor-ew-resize touch-none select-none focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ov-data)] rounded"
         style={{ height: H }}
         tabIndex={0}
         role="slider"

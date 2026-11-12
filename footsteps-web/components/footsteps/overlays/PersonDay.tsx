@@ -50,43 +50,41 @@ export default function PersonDay({ request }: { request: DayRequest }) {
 
   if (state.kind === 'idle')
     return (
-      <button
-        type="button"
-        onClick={imagine}
-        className="mt-2 rounded border border-[#ffe2aa]/60 px-2 py-1 text-[#ffe2aa] hover:bg-[#ffe2aa]/10"
-      >
+      <button type="button" onClick={imagine} className="ov-btn self-start">
         Imagine their day
       </button>
     );
   if (state.kind === 'loading')
     return (
-      <p role="status" className="mt-2 flex items-center gap-2 text-white/70">
-        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#ffe2aa]" />
+      <p role="status" className="ov-body flex items-center gap-2">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--ov-warm)]" />
         Imagining a day from these facts…
       </p>
     );
-  if (state.kind === 'error') return <p className="mt-2 text-white/70">{state.message}</p>;
+  if (state.kind === 'error') return <p className="ov-body">{state.message}</p>;
 
   const { day } = state;
   return (
-    <div className="mt-2 max-h-72 overflow-y-auto pr-1">
-      <p className="mb-1 inline-block rounded-full border border-[#ffe2aa]/60 px-2 py-px text-[10px] uppercase tracking-wide text-[#ffe2aa]">
-        Speculative
-      </p>
-      <p className="mb-2 text-white">{day.summary}</p>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+    <div className="rounded-[var(--ov-radius-sm)] border border-[var(--ov-divider)] bg-white/[0.03] p-3">
+      <p className="ov-chip mb-2 uppercase tracking-wide text-[var(--ov-warm)]">Speculative</p>
+      <p className="ov-body mb-3 text-[var(--ov-text)]">{day.summary}</p>
+      <dl className="ov-body grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
         {day.schedule.map((s, i) => (
           <div key={i} className="contents">
-            <dt className="whitespace-nowrap text-white/55">{s.time}</dt>
-            <dd className="text-white/90">{s.activity}</dd>
+            <dt className="whitespace-nowrap text-[var(--ov-text-3)] tabular-nums">{s.time}</dt>
+            <dd className="text-[var(--ov-text)]">{s.activity}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-white/55">Most uncertain: {day.uncertainty}</p>
+      <p className="ov-note mt-3">
+        <span className="text-[var(--ov-text-2)]">Most uncertain:</span> {day.uncertainty}
+      </p>
       {day.grounded_in.length > 0 && (
-        <p className="mt-1 text-white/45">Shaped by: {day.grounded_in.join('; ')}</p>
+        <p className="ov-note mt-1.5">
+          <span className="text-[var(--ov-text-2)]">Shaped by:</span> {day.grounded_in.join('; ')}
+        </p>
       )}
-      <p className="mt-1 text-white/35">
+      <p className="mt-2 text-[11px] text-[var(--ov-text-4)]">
         Written by {day.model === 'demo' ? 'a placeholder (no API key yet)' : day.model}
         {day.cached ? ' · from cache' : ''}
       </p>

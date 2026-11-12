@@ -7,30 +7,27 @@ interface ToggleButtonProps {
   onClick: () => void;
   label: string;
   title?: string;
-  activeClassName: string;
+  /** Extra classes when pressed (the shared pressed style comes from .ov-seg-btn). */
+  activeClassName?: string;
   children: ReactNode;
 }
 
-export const TOGGLE_CONTAINER_TW =
-  'inline-flex items-center gap-0 rounded-full bg-gray-700/70 p-0 backdrop-blur-md shadow-lg ring-1 ring-gray-600/40';
-
-const BUTTON_TW =
-  'w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full leading-none text-2xl transition-colors duration-200';
+/** Container for a row of ToggleButtons: a segmented control. */
+export const TOGGLE_CONTAINER_TW = 'ov-seg';
 
 export default function ToggleButton({
   pressed,
   onClick,
   label,
   title,
-  activeClassName,
+  activeClassName = '',
   children,
 }: ToggleButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`${BUTTON_TW} ${
-        pressed ? activeClassName : 'text-gray-200 hover:text-white hover:bg-white/10'
-      }`}
+      className={`ov-seg-btn ${pressed ? activeClassName : ''}`}
       title={title ?? label}
       aria-pressed={pressed}
       aria-label={label}
@@ -39,4 +36,3 @@ export default function ToggleButton({
     </button>
   );
 }
-

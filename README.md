@@ -4,6 +4,8 @@ A living atlas of human population: scrub through history on an interactive glob
 The current slider covers 30 HYDE years from **10,000 BCE to 1900 CE**. Extending
 it to deep prehistory and the present remains a goal, not available data.
 
+What it's for and what it isn't: [docs/philosophy/vision.md](docs/philosophy/vision.md).
+
 ## Views
 
 - **Units** (default): population expressed as bands, villages, and dense city glow.

@@ -3,6 +3,8 @@
 An interactive globe of historical human population. Prioritise clear quantitative
 storytelling: pixels should communicate data, not decoration. The current data
 covers 10,000 BCE–1900 CE (30 years); 100,000 BCE–present is aspirational.
+Read [docs/philosophy/vision.md](docs/philosophy/vision.md) first: it is the one
+current vision (measured vs modelled vs imagined, and what Footsteps is not).
 
 ## Current architecture
 

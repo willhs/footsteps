@@ -1,5 +1,7 @@
 # Footsteps of Time
 
+> Historical: the original pitch. The current vision is [vision.md](vision.md).
+
 Web app data story for human presence throughout history.
 
 ## ✨ Vision Statement

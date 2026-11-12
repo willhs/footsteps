@@ -16,7 +16,7 @@ script): every 1,000 years from 100,000 BCE to 1000 BCE, then every 100 years fr
 0 to 1900 CE. Every HYDE slider year is a terrain year, so each one carries its own
 farmland. The client cross-fades the two terrain years either side of the slider
 time (`useTerrainLayers.ts`): an opaque lower image plus the upper at opacity `f`.
-The slider still starts at 10,000 BCE; the older images are published for later.
+The slider reaches 100,000 BCE. Before 10,000 BCE (no HYDE people) terrain is always on.
 
 ## Sources (all gitignored under `data/raw/`)
 

@@ -13,7 +13,7 @@ import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overla
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
-import { nearestDataYear, populationAt } from '@/lib/time';
+import { hasPeopleData, nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers, { presenceFromUrl, type Presence } from '@/components/footsteps/hooks/usePresenceLayers';
 import GroundingPanel from './overlays/GroundingPanel';
@@ -152,9 +152,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const peopleView = renderMode === 'auto' || renderMode === 'units';
   const showGlowLegend = renderMode === 'auto' && blend.units < 0.5;
 
+  // HYDE starts at 10,000 BCE; before that the map shows Earth only.
+  const peopleOn = hasPeopleData(time);
   const layers: LayersList = [
     ...backgroundLayers,
-    ...(renderMode === 'dots' ? humanLayers : [...gridLayers, ...presenceLayers]),
+    ...(!peopleOn ? [] : renderMode === 'dots' ? humanLayers : [...gridLayers, ...presenceLayers]),
   ] as LayersList;
 
   return (
@@ -168,7 +170,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         // continuously only while either is on screen.
         animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating)}
         onClick={(info) => {
-          if (!peopleView || !info.coordinate) return;
+          if (!peopleView || !peopleOn || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
           const person = info.layer?.id === 'people' ? (info.object as Person | undefined) : undefined;
           setSelectedPerson(person ?? null);
@@ -216,7 +218,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           top: 'calc(var(--ov-top) + 150px)',
         }}
       >
-        {peopleView && selectedPlace && (
+        {peopleView && peopleOn && selectedPlace && (
           <GroundingPanel
             facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
             group={
@@ -264,7 +266,15 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         )}
 
         {/* Legend: hidden while the details panel is open, which needs the height. */}
-        {peopleView && !selectedPlace ? (
+        {!peopleOn ? (
+          <div className="ov-panel shrink-0 px-3.5 py-3">
+            <p className="ov-body">
+              No population data before 10,000 BCE, where HYDE starts. People were
+              here, but nobody has mapped how many or where, so the map shows Earth only.
+            </p>
+            {showTerrain && <TerrainNote />}
+          </div>
+        ) : peopleView && !selectedPlace ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             {showGlowLegend ? (
               <p className="ov-body">

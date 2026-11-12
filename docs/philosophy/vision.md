@@ -19,7 +19,7 @@ Me, mostly. It's a personal way to explore history. Others are welcome, but I do
 - **Ordinary lives.** Click a group and meet a plausible person and their day. History as normal people living normal days, not great men and empires
 - **How little we know.** Most of this is a well-grounded guess. The map should make that felt, not hide it
 
-Today it covers 10,000 BCE to 1900 CE (HYDE 3.5, 30 years). The aim is 100,000 BCE to today.
+Today people cover 10,000 BCE to 1900 CE (HYDE 3.5, 30 years) and the Earth goes back to 100,000 BCE. The aim is people from 100,000 BCE to today.
 
 ## What it should feel like
 

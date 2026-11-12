@@ -1,8 +1,9 @@
 # Footsteps of Time
 
 A living atlas of human population: scrub through history on an interactive globe.
-The current slider covers 30 HYDE years from **10,000 BCE to 1900 CE**. Extending
-it to deep prehistory and the present remains a goal, not available data.
+The slider runs from **100,000 BCE to 1900 CE**. People come from 30 HYDE years
+(10,000 BCE–1900 CE); before that the map shows the ice-age Earth only. People in
+deep prehistory and the present remain a goal, not available data.
 
 What it's for and what it isn't: [docs/philosophy/vision.md](docs/philosophy/vision.md).
 

@@ -1,13 +1,13 @@
 import { TARGET_YEARS, TERRAIN_YEARS } from './constants';
 import {
+  HYDE_MIN,
   HYDE_TOTALS,
+  TIME_MIN,
   bracket,
   dataStatus,
-  livesFraction,
   nearestDataYear,
   populationAt,
   terrainBracket,
-  timeAtLivesFraction,
 } from './time';
 
 describe('continuous time', () => {
@@ -33,16 +33,13 @@ describe('continuous time', () => {
     expect(dataStatus(1350).exact).toBe(false);
   });
 
-  it('lives-lived scale is monotonic and invertible', () => {
-    let last = -1;
-    for (const y of TARGET_YEARS) {
-      const q = livesFraction(y);
-      expect(q).toBeGreaterThanOrEqual(last);
-      last = q;
-      expect(Math.abs(timeAtLivesFraction(q) - y)).toBeLessThan(10);
-    }
-    expect(livesFraction(TARGET_YEARS[0])).toBe(0);
-    expect(livesFraction(TARGET_YEARS[TARGET_YEARS.length - 1])).toBeCloseTo(1, 5);
+  it('reaches back to 100,000 BCE, with people data only from HYDE_MIN', () => {
+    expect(TIME_MIN).toBe(-100000);
+    expect(HYDE_MIN).toBe(-10000);
+    expect(populationAt(-20000)).toBe(0);
+    expect(populationAt(HYDE_MIN)).toBeCloseTo(HYDE_TOTALS[-10000], -3);
+    expect(bracket(-50000)).toMatchObject({ y0: -10000, f: 0 });
+    expect(terrainBracket(-50500)).toEqual({ y0: -51000, y1: -50000, f: 0.5 });
   });
 
   it('brackets terrain images: 1,000-year steps BCE, 100-year steps CE', () => {

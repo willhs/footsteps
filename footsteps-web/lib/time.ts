@@ -5,8 +5,12 @@ import { TARGET_YEARS, TERRAIN_YEARS } from './constants';
 
 /** Reference "now" for years-ago labels. */
 export const NOW = 2025;
-export const TIME_MIN = TARGET_YEARS[0];
+/** The slider reaches back to the oldest terrain image (100,000 BCE)... */
+export const TIME_MIN = TERRAIN_YEARS[0];
 export const TIME_MAX = TARGET_YEARS[TARGET_YEARS.length - 1];
+/** ...but HYDE population data starts here. Before it there are no people on the map. */
+export const HYDE_MIN = TARGET_YEARS[0];
+export const hasPeopleData = (time: number) => time >= HYDE_MIN;
 
 /** World totals per data year from the population images (grid_image.py). */
 export const HYDE_TOTALS: Record<number, number> = {
@@ -24,7 +28,7 @@ export const clampTime = (t: number) => Math.min(TIME_MAX, Math.max(TIME_MIN, t)
 
 /** The two `years` (ascending) either side of `time`, and how far between them (0..1). */
 function bracketIn(years: readonly number[], time: number): { y0: number; y1: number; f: number } {
-  const t = clampTime(time);
+  const t = Math.min(years[years.length - 1], Math.max(years[0], time));
   for (let i = 0; i < years.length - 1; i++) {
     const y0 = years[i];
     const y1 = years[i + 1];
@@ -34,7 +38,8 @@ function bracketIn(years: readonly number[], time: number): { y0: number; y1: nu
   return { y0: last, y1: last, f: 0 };
 }
 
-/** The data years either side of `time`, and how far between them (0..1). */
+/** The data years either side of `time`, and how far between them (0..1).
+ * Before HYDE_MIN this is HYDE_MIN itself; check hasPeopleData first. */
 export function bracket(time: number): { y0: number; y1: number; f: number } {
   return bracketIn(TARGET_YEARS, time);
 }
@@ -50,7 +55,9 @@ export function nearestDataYear(time: number): number {
   return f < 0.5 ? y0 : y1;
 }
 
+/** World population at `time`, or 0 before HYDE (no estimate). */
 export function populationAt(time: number): number {
+  if (!hasPeopleData(time)) return 0;
   const { y0, y1, f } = bracket(time);
   const p0 = HYDE_TOTALS[y0];
   const p1 = HYDE_TOTALS[y1];
@@ -62,40 +69,6 @@ export function dataStatus(time: number): { exact: boolean; y0: number; y1: numb
   const { y0, y1, f } = bracket(time);
   const tolerance = 0.5 / Math.max(1, y1 - y0);
   return { exact: f <= tolerance || f >= 1 - tolerance, y0, y1 };
-}
-
-// Lives-lived scale: position proportional to person-years since TIME_MIN.
-const STEP = 5;
-const SAMPLES = Math.ceil((TIME_MAX - TIME_MIN) / STEP) + 1;
-let cumulative: Float64Array | null = null;
-function cum(): Float64Array {
-  if (cumulative) return cumulative;
-  cumulative = new Float64Array(SAMPLES);
-  for (let i = 1; i < SAMPLES; i++) {
-    cumulative[i] = cumulative[i - 1] + populationAt(TIME_MIN + (i - 0.5) * STEP) * STEP;
-  }
-  return cumulative;
-}
-/** Share of person-years (TIME_MIN..TIME_MAX) lived before `time`, 0..1. */
-export function livesFraction(time: number): number {
-  const c = cum();
-  const x = (clampTime(time) - TIME_MIN) / STEP;
-  const i = Math.min(SAMPLES - 2, Math.floor(x));
-  return (c[i] + (c[i + 1] - c[i]) * (x - i)) / c[SAMPLES - 1];
-}
-/** Inverse of livesFraction. */
-export function timeAtLivesFraction(q: number): number {
-  const c = cum();
-  const target = Math.min(1, Math.max(0, q)) * c[SAMPLES - 1];
-  let lo = 0;
-  let hi = SAMPLES - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (c[mid] < target) lo = mid;
-    else hi = mid;
-  }
-  const span = c[hi] - c[lo] || 1;
-  return clampTime(TIME_MIN + (lo + (target - c[lo]) / span) * STEP);
 }
 
 const int = (n: number) => Math.round(n).toLocaleString('en-US');

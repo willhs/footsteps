@@ -102,7 +102,8 @@ export default function useGridLayer({
   const { y0, y1, f } = bracket(time ?? year);
   const [pair, setPair] = useState<{ a: YearGrid; b: YearGrid } | null>(null);
   useEffect(() => {
-    if (!continuous || !enabled || mode !== 'auto') return;
+    // Firelight replaces the glow: don't spend the decoder on a hidden layer.
+    if (!continuous || !enabled || mode !== 'auto' || glowHidden) return;
     let live = true;
     Promise.all([loadGrid(y0), loadGrid(y1)])
       .then(([a, b]) => {
@@ -112,7 +113,7 @@ export default function useGridLayer({
     return () => {
       live = false;
     };
-  }, [continuous, enabled, mode, y0, y1]);
+  }, [continuous, enabled, mode, glowHidden, y0, y1]);
 
   const [morphScene, setMorphScene] = useState<{
     y0: number;
@@ -445,7 +446,8 @@ export default function useGridLayer({
   ]);
   // What the view is waiting on: the glow's data-year pair, and zoomed in,
   // the unit morph for the visible region.
-  const glowWaiting = continuous && enabled && mode === 'auto' && glow > 0 && !pairCurrent;
+  const glowWaiting =
+    continuous && enabled && mode === 'auto' && glow > 0 && !glowHidden && !pairCurrent;
   const unitsWaiting =
     unitsContinuous &&
     units > 0 &&

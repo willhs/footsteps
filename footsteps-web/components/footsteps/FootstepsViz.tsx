@@ -109,7 +109,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     setMetricsLoading,
   });
 
-  const { layers: presenceLayers, animating: presenceAnimating } = usePresenceLayers({
+  const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
     enabled: renderMode === 'auto',
     presence,
     time,
@@ -131,7 +131,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     window.history.replaceState(null, '', url);
   }, [renderMode]);
 
-  const loadingKey = loading ? loading.join() : '';
+  const waitingOn = loading ?? presenceWaiting;
+  const loadingKey = waitingOn ? waitingOn.join() : '';
   useEffect(() => {
     onLoadingChange?.(loadingKey ? (loadingKey.split(',').map(Number) as [number, number]) : null);
   }, [loadingKey, onLoadingChange]);

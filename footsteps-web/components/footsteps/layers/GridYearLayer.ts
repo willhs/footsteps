@@ -29,6 +29,8 @@ type Props = {
   minPx: number; // unit marks only; grid points keep 0.5 px
   brightness: number;
   progress: number; // year morph, 0..1
+  settle?: number; // morph only: 1 = groups drift and breathe, 0 = still
+  halo?: number; // morph only: smallest fire sprite (px) for bands and villages
   pickable: boolean;
   onReady: () => void;
   morph: boolean;
@@ -200,7 +202,12 @@ export default class GridYearLayer extends CompositeLayer<Props> {
         stroked: false,
         pickable: this.props.pickable,
         ...(this.props.morph
-          ? { progress: this.props.progress, brightness: this.props.brightness }
+          ? {
+              progress: this.props.progress,
+              brightness: this.props.brightness,
+              settle: this.props.settle ?? 1,
+              halo: this.props.halo ?? 0,
+            }
           : {}),
         parameters: this.props.units
           ? {

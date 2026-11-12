@@ -15,6 +15,8 @@ export type ViewBlend = {
   brightness: number; // alpha multiplier for bands and villages
   pickable: boolean; // close zoom: a click names the group under the cursor
   people: number; // street-level zoom: individual people (group marks fade out)
+  settle: number; // 1 = groups drift and breathe; 0 = still (close in)
+  halo: number; // px: smallest fire sprite for a band or village
 };
 
 // A ~9 km cell is 3.3 px at zoom 4.8 and 7 px at 5.8 (512 px world, 4320 cells).
@@ -46,7 +48,11 @@ function ramp(stops: [number, number][], zoom: number) {
 }
 
 export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
-  const minPx = ramp([[3, 0.35], [4.6, 1.0], [5.4, 1.5], [7, 2.4], [9, 3.6]], zoom);
+  const minPx = ramp([[3, 0.35], [4.6, 1.0], [5.4, 1.5], [7, 3.2], [9, 5]], zoom);
+  // Close in, groups stop drifting: a mark should hold still under the cursor.
+  const settle = 1 - smoothstep(6, 8.5, zoom);
+  // Match the far-out firelight sprites (FireLayer: 4-13 px) where they hand over.
+  const halo = ramp([[4.6, 7], [7, 8], [9, 9]], zoom);
   const brightness = ramp([[3, 0.3], [4.6, 0.6], [5.4, 0.6], [7, 1]], zoom);
   const pickable = zoom >= ZOOM.groups;
   if (mode === 'auto')
@@ -57,6 +63,8 @@ export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
       brightness,
       pickable,
       people: smoothstep(ZOOM.peopleIn, ZOOM.peopleFull, zoom),
+      settle,
+      halo,
     };
   if (mode === 'units')
     return {
@@ -66,8 +74,10 @@ export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
       brightness,
       pickable,
       people: smoothstep(ZOOM.peopleIn, ZOOM.peopleFull, zoom),
+      settle,
+      halo,
     };
-  return { glow: 0, units: 0, minPx, brightness, pickable: false, people: 0 };
+  return { glow: 0, units: 0, minPx, brightness, pickable: false, people: 0, settle, halo };
 }
 
 type View = { longitude: number; latitude: number; zoom: number };

@@ -385,6 +385,8 @@ export default function useGridLayer({
                 minPx,
                 brightness,
                 pickable,
+                settle: blend.settle,
+                halo: blend.halo,
                 visible: units > 0 && blend.people < 1,
               }),
             ]

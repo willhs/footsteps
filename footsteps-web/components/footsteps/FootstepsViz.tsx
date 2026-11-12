@@ -108,24 +108,18 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     setMetricsLoading,
   });
 
-  const viewSize =
-    typeof window === 'undefined' ? { width: 1440, height: 900 } : { width: window.innerWidth, height: window.innerHeight };
   const { layers: presenceLayers, animating: presenceAnimating } = usePresenceLayers({
     enabled: renderMode === 'auto',
     presence,
     time,
     view: viewState,
-    size: viewSize,
     far: blend.glow,
-    people: blend.people,
   });
 
   useEffect(() => {
     const url = new URL(window.location.href);
     if (presence.lights === 'classic') url.searchParams.set('lights', 'classic');
     else url.searchParams.delete('lights');
-    if (!presence.steps) url.searchParams.set('steps', '0');
-    else url.searchParams.delete('steps');
     window.history.replaceState(null, '', url);
   }, [presence]);
 
@@ -313,7 +307,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   );
 }
 
-/** Prototype: compare ways of showing people (lights style, footsteps on/off). */
+/** Prototype: compare ways of showing people (lights style). */
 function PresencePicker({ presence, onChange }: { presence: Presence; onChange: (p: Presence) => void }) {
   const chip = (on: boolean) =>
     `rounded-full border px-2 py-0.5 text-[11px] ${on ? 'border-white bg-white text-black' : 'border-white/25 text-white/80 hover:text-white'}`;
@@ -325,8 +319,6 @@ function PresencePicker({ presence, onChange }: { presence: Presence; onChange: 
         <button type="button" aria-pressed={presence.lights === 'classic'} className={chip(presence.lights === 'classic')}
           onClick={() => onChange({ ...presence, lights: 'classic' })}>Classic glow</button>
       </div>
-      <button type="button" aria-pressed={presence.steps} className={chip(presence.steps)}
-        onClick={() => onChange({ ...presence, steps: !presence.steps })}>Footsteps</button>
     </div>
   );
 }

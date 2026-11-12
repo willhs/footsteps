@@ -136,7 +136,7 @@ const wander = /* glsl */ `
   float h = fract(sin(dot(geometry.worldPosition.xy, vec2(12.9898, 78.233))) * 43758.5453);
   float t = peopleAnim.time;
   // metres: a slow stroll around their spot, a few people further out
-  float reach = 18.0 + 60.0 * step(0.85, h);
+  float reach = 6.0 + 20.0 * step(0.85, h);
   vec2 m = reach * vec2(
     sin(t * (0.25 + 0.3 * h) + h * 6.2832) + 0.3 * sin(t * 1.7 + h * 21.0),
     cos(t * (0.2 + 0.25 * h) + h * 3.7) + 0.3 * cos(t * 1.3 + h * 13.0)
@@ -156,7 +156,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
   static defaultProps: DefaultProps<Props> = {
     ...ScatterplotLayer.defaultProps,
     radiusUnits: 'meters',
-    radiusMinPixels: 2.6,
+    radiusMinPixels: 4,
     radiusMaxPixels: 9,
     stroked: true,
     lineWidthMinPixels: 1,

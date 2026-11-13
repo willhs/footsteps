@@ -1,4 +1,4 @@
-"""Terrain frame helpers: step bracketing, sea-level fit, Green Sahara timing, farm
+"""Terrain frame helpers: step bracketing, sea level, Green Sahara timing, farm
 share, blur, and the frame years the web client expects."""
 import re
 import sys
@@ -28,12 +28,10 @@ def test_step_bracket_uses_bp_from_1950():
     assert terrain.step_bracket(2000) == (0, 1000, 0.0)
 
 
-def test_sea_level_fit_recovers_the_threshold_that_matches_land_share():
-    elev = np.linspace(-200, 100, 3000, dtype=np.float32).reshape(30, 100)
-    true_level = -60.0
-    land = (elev > true_level).astype(np.float32)
-    band = np.ones_like(land, dtype=bool)
-    assert terrain.fit_sea_level(elev, land, band) == pytest.approx(true_level, abs=0.2)
+def test_sea_level_is_the_readout_series():
+    # Coasts use the same capped Spratt series as the slider readout.
+    assert terrain.sea_level(-19_000) < -100  # Last Glacial Maximum
+    assert terrain.sea_level(1900) == 0.0  # capped at today's
 
 
 def test_green_sahara_is_full_in_the_humid_period_and_absent_outside():

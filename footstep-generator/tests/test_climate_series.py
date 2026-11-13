@@ -48,4 +48,9 @@ def test_committed_series_matches_the_known_glacial_cycle():
     at = dict(zip(d["years"], zip(d["seaLevel"]["values"], d["temperature"]["values"])))
     assert at[-19_000][0] < -100  # Last Glacial Maximum, ~21 ka BP: about -120 m
     assert at[-19_000][1] < -3  # clearly colder than today
-    assert -10 < at[1900][0] < 15 and abs(at[1900][1]) < 1
+    assert at[1900][0] == 0.0 and abs(at[1900][1]) < 1
+    assert max(d["seaLevel"]["values"]) <= 0  # never above today's (capped)
+
+
+def test_sea_level_is_capped_at_today():
+    assert cs.capped_at_today(np.array([-120.0, 3.2, 0.0])).tolist() == [-120.0, 0.0, 0.0]

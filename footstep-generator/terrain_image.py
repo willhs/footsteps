@@ -10,17 +10,19 @@ Inputs (all under data/raw/, gitignored; see docs/ops/terrain-images.md):
   the colours and the fine detail.
 - ETOPO1 elevation, 4 arc-min (NOAA, public domain): sharp coastlines.
 - HYDE 3.5 land use, the published landuse_{year}.png (grid_image.py --landuse).
+- Spratt & Lisiecki 2016 v2 sea level (PANGAEA 979830, CC BY 3.0), via climate_series.py.
 
 How a frame is painted (all grids north-up, column 0 = 180W):
 1. Palette: the median Blue Marble colour of each present-day biome, taken from
    cells with little 1900 land use (Blue Marble shows 2004 farms).
 2. Per Krapp step, a low-frequency colour per cell: the step's biome palette colour,
    plus today's regional deviation from its own biome (the modern farm tint removed).
-3. A frame year interpolates the two bracketing steps (colour, land, ice, sea level),
+3. A frame year interpolates the two bracketing steps (colour, land, ice),
    adds the Green Sahara overlay and the HYDE farmland of that year, then multiplies
    in Blue Marble's own detail (its brightness relative to its local mean).
-4. Coastlines: ETOPO1 above the step's sea level, where Krapp's 0.5 deg land
-   fraction is uncertain; the sea level is fitted so the two agree on land area.
+4. Coastlines: ETOPO1 above the year's global sea level (Spratt & Lisiecki v2,
+   capped at today's, from climate_series.py), where Krapp's 0.5 deg land fraction
+   is uncertain. The slider's sea-level readout shows the same number.
 
 Images are undimmed; the client dims and tints them.
 
@@ -34,6 +36,8 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+from climate_series import sea_level_at
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -101,24 +105,6 @@ def farm_weight(farmed_then: np.ndarray, farmed_today: np.ndarray) -> np.ndarray
     fraction then over its fraction in 1900, the latest HYDE year (closest to the
     2004 photo). Cells hardly farmed today have no farm look to restore."""
     return np.clip(farmed_then / np.maximum(farmed_today, 0.02), 0.0, 1.0) * (farmed_today > 0.01)
-
-
-def fit_sea_level(elev: np.ndarray, land_frac: np.ndarray, band: np.ndarray,
-                  weights: np.ndarray | None = None) -> float:
-    """Sea level (m) at which ETOPO land inside `band` matches Krapp's land share.
-    `elev` and `land_frac` are on the same grid; `weights` are cell areas."""
-    w = np.ones_like(elev) if weights is None else weights
-    w = w[band]
-    target = float((land_frac[band] * w).sum())
-    e = elev[band]
-    lo, hi = -300.0, 100.0
-    for _ in range(40):
-        mid = (lo + hi) / 2
-        if float(w[e > mid].sum()) > target:
-            lo = mid
-        else:
-            hi = mid
-    return (lo + hi) / 2
 
 
 # --- grids -------------------------------------------------------------------
@@ -294,15 +280,9 @@ def step(bp: int) -> Step:
 
 # --- frame -------------------------------------------------------------------
 
-def cell_area_weights(h: int) -> np.ndarray:
-    return np.cos(np.radians(row_lats(h)))[:, None]
-
-
-def sea_level(land_frac_2x: np.ndarray) -> float:
-    elev = elevation()
-    band = (land_frac_2x > 0.02) & (land_frac_2x < 0.98)
-    weights = np.broadcast_to(cell_area_weights(2 * H), elev.shape)
-    return fit_sea_level(elev, land_frac_2x, band, weights)
+def sea_level(year: int) -> float:
+    """Global sea level (m) for a frame year: the same series as the readout."""
+    return float(sea_level_at([year])[0])
 
 
 def green_sahara(colour: np.ndarray, desertish: np.ndarray, year: float) -> np.ndarray:
@@ -385,9 +365,9 @@ def frame(year: int) -> np.ndarray:
     ice_rgb = t["ice"] * np.maximum(bm_hi, ice_rgb * 0.92) + (1 - t["ice"]) * ice_rgb
     land_rgb = land_rgb + (ice_rgb - land_rgb) * ice_a
 
-    # Sea: ETOPO above the fitted sea level where Krapp is unsure; ice is land.
+    # Sea: ETOPO above the year's sea level where Krapp is unsure; ice is land.
     land_2x = resize(land_c, 2 * W, 2 * H)
-    sl = sea_level(land_2x)
+    sl = sea_level(year)
     is_land = (land_2x >= 0.98) | ((land_2x > 0.02) & (elevation() > sl))
     is_land |= resize(blur(ice_c, 1.3), 2 * W, 2 * H) > 0.5
     land_a = resize(is_land.astype(np.float32), W, H, Image.BOX)[..., None]

@@ -8,6 +8,11 @@ from 0 to 1900 CE (the same years as `TERRAIN_YEARS` in `footsteps-web/lib/const
 Sea level: Spratt & Lisiecki (2016), version 2 (2025), PANGAEA 979830, CC BY 3.0.
   Global mean sea level in metres relative to today (the 0-430 ka "short" stack),
   with the one-sigma bootstrap uncertainty. Source rows are every 1,000 years.
+  Capped at 0 m: the stack is zeroed at 5 ka and drifts to +8 m by 0 ka, an artefact
+  of its isotope proxies (sigma ~5 m). Global sea level has not been meaningfully
+  above today's since before 100 ka, and has stayed within a few metres of it for
+  the last ~7,000 years, so values above 0 are clipped to 0.
+  `terrain_image.py` draws its coastlines at this same sea level.
 Temperature: Beyer, Krapp & Manica (2020), Figshare 12293345 v4, CC BY 4.0.
   Land-mean annual temperature change (deg C) against the 0 BP field, area-weighted over
   a FIXED mask (cells with data in the 0 BP field), so shelves that emerge at low sea
@@ -83,6 +88,17 @@ def load_sea_level(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return a[:, 0] * 1000.0, a[:, 1], a[:, 2]
 
 
+def capped_at_today(sea: np.ndarray) -> np.ndarray:
+    """Clip sea level above today's to 0 m (see the module docstring)."""
+    return np.minimum(sea, 0.0)
+
+
+def sea_level_at(years: list[int], spratt: Path = SPRATT) -> np.ndarray:
+    """Sea level (m relative to today) at calendar years, as shown by the app."""
+    bp_sl, sl, _ = load_sea_level(spratt)
+    return capped_at_today(interp_bp(bp_sl, sl, years))
+
+
 def land_mean(field: np.ndarray, lat: np.ndarray, mask: np.ndarray) -> float:
     """cos(latitude)-weighted mean of field over a fixed mask [lat, lon]."""
     w = np.broadcast_to(np.cos(np.deg2rad(lat))[:, None], field.shape)
@@ -107,7 +123,7 @@ def build(spratt: Path, beyer: Path) -> dict:
     years = slider_years()
     bp_sl, sl, sig = load_sea_level(spratt)
     bp_t, anom = load_temperature(beyer)
-    sea = interp_bp(bp_sl, sl, years)
+    sea = capped_at_today(interp_bp(bp_sl, sl, years))
     err = interp_bp(bp_sl, sig, years)
     temp = interp_bp(bp_t, anom, years)
     return {

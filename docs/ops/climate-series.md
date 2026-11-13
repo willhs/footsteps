@@ -20,8 +20,11 @@ sea-level and temperature readouts and the pre-HYDE population model. `lib/clima
 
 - **Time**: BP = 1950 − year (as in `terrain_image.year_to_bp`), so 1900 CE = 50 BP. Source ages
   are used as published; no calendar-year-zero shift is applied (≤1 year, far below source precision).
-- **Sea level is relative to the stack's own zero**, which reads +4 to +8 m for 0–1 ka BP
-  (within its ~5 m 1σ). Use differences, not absolute values, near the present.
+- **Sea level is capped at 0 m.** The stack is zeroed at 5 ka BP and drifts to +4 to +8 m for
+  0–4 ka BP (within its ~5 m 1σ), a proxy artefact: global sea level has stayed within a few
+  metres of today's for ~7,000 years and was not above it anywhere in 100 ka–present. Values
+  above 0 are clipped to 0 (`capped_at_today`). `terrain_image.py` draws its coasts at this
+  same series (`sea_level_at`), so the readout and the map agree.
 - **Temperature is land-mean, not global**, for a fixed mask (cells with data at 0 BP, 60°S–90°N,
   cos-latitude weighted). Land swings more than the ocean, so the LGM reads about −7 °C where
   global mean surface cooling is nearer −5 to −6 °C. It has no uncertainty band.

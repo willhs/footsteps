@@ -4,7 +4,11 @@ import { MOMENTS } from './moments';
 test('sea level is about 0 today and about -120 m at the glacial maximum', () => {
   expect(Math.abs(seaLevelAt(1900))).toBeLessThan(1);
   expect(seaLevelAt(-18975)).toBeLessThan(-100);
-  expect(seaLevelAt(-18975)).toBeGreaterThan(-140);
+  expect(seaLevelAt(-18975)).toBeGreaterThan(-135);
+});
+
+test('sea level is never above today in recent millennia', () => {
+  for (const year of [-4000, -2000, -1000, 0, 1000]) expect(seaLevelAt(year)).toBeLessThanOrEqual(0);
 });
 
 test('labels use a real minus sign', () => {

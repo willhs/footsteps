@@ -26,6 +26,7 @@ The slider reaches 100,000 BCE. Before 10,000 BCE (no HYDE people) terrain is al
 | NASA Blue Marble Next Generation, July 2004, 5400 × 2700 | `data/raw/bluemarble/world.200407.3x5400x2700.jpg` | NASA Earth Observatory |
 | ETOPO1 elevation, 4 arc-min subsample (ERDDAP `etopo180`) | `data/raw/etopo/etopo_4min.nc` | NOAA NCEI, public domain |
 | HYDE 3.5 land use | `data/tiles/grid/landuse_{year}.png` (`grid-images.md`) | HYDE 3.5 |
+| Spratt & Lisiecki v2 sea level (`climate-series.md`) | `data/raw/spratt2025/` | CC BY 3.0, PANGAEA 979830 |
 
 ```bash
 mkdir -p data/raw/krapp2021 data/raw/bluemarble data/raw/etopo data/tiles/grid
@@ -56,9 +57,12 @@ poetry run python footstep-generator/terrain_image.py -6000    # one year
    steps' colour, land and ice fractions. Land colour = Blue Marble × (smoothed era
    colour ÷ smoothed Blue Marble), so today's detail stays and only the broad colour
    moves. Land that is sea or ice today is painted flat with a little grain.
-4. **Coast.** ETOPO1 above a per-frame sea level, inside Krapp's uncertain coastal band
-   (land fraction 0.02–0.98); the sea level is fitted so ETOPO and Krapp agree on land
-   area in that band. Krapp decides land and sea elsewhere; ice counts as land.
+4. **Coast.** ETOPO1 above the year's global sea level, inside Krapp's uncertain coastal
+   band (land fraction 0.02–0.98). The sea level is Spratt & Lisiecki v2, capped at today's
+   (`climate_series.sea_level_at`), the same number as the slider's readout. Krapp decides
+   land and sea elsewhere; ice counts as land. (Until Nov 2026 the level was fitted so ETOPO
+   matched Krapp's land share in the band; that came out 15–30 m below Spratt in glacial
+   times, adding 1–2 M km² of shelf.)
 5. **Ice.** Krapp ice, blurred and edge-noised, painted white (Blue Marble's own ice
    where there is ice today).
 6. **Green Sahara (literature, not the model).** Krapp/BIOME4 under-greens the African
@@ -88,5 +92,7 @@ scripts/smoke.sh https://footsteps.willhs.me   # checks terrain/earth_{year}.web
 ## Known limits
 
 - Krapp is 0.5°: ice-sheet and biome edges are soft; coasts are sharper (ETOPO).
-- Isostatic depression is not modelled beyond what Krapp's mask carries.
+- Isostatic depression is not modelled beyond what Krapp's mask carries. The coast uses
+  one global sea level against today's elevation, so regional sea level (ice loading,
+  rebound) is not modelled.
 - The modern coastline line is Natural Earth 110m, coarse when zoomed in.

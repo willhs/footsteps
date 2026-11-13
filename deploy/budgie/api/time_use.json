@@ -1,0 +1,68 @@
+{
+ "version": 1,
+ "units": "hours_per_day_adult",
+ "note": "Ranges are the spread across studies, not confidence intervals. Definitions of work differ between studies. No figure is split by sex.",
+ "ways_of_life": {
+  "foraging": {
+   "measured_among": "20th-21st century mobile hunter-gatherers (!Kung, Hadza, Agta), not Palaeolithic people",
+   "figures": {
+    "food_getting": {
+     "value": 4.0,
+     "range": [
+      2.2,
+      6.0
+     ],
+     "scope": "food getting only, not processing or chores",
+     "cite": [
+      "Lee 1979 The !Kung San",
+      "Hawkes, O'Connell & Blurton Jones 1997 Curr Anthropol 38",
+      "Dyble et al. 2019 Nat Hum Behav 3:792, doi:10.1038/s41562-019-0614-6"
+     ],
+     "check": "secondary"
+    },
+    "domestic_chores": {
+     "value": 2.9,
+     "range": [
+      2.0,
+      3.5
+     ],
+     "scope": "daylight hours",
+     "cite": [
+      "Dyble et al. 2019, via Cambridge press release"
+     ],
+     "check": "secondary"
+    },
+    "social_leisure": {
+     "value": 4.3,
+     "range": [
+      3.0,
+      6.0
+     ],
+     "scope": "daylight hours only, so the evening is not counted",
+     "cite": [
+      "Dyble et al. 2019, via Cambridge press release"
+     ],
+     "check": "secondary"
+    }
+   }
+  },
+  "farming": {
+   "measured_among": "Agta foragers who also took up farming (20th-21st century), not long-established farmers",
+   "figures": {
+    "food_getting": {
+     "value": 4.3,
+     "range": [
+      3.0,
+      5.5
+     ],
+     "scope": "all work for the farming Agta, about 1.4 h a day more than foraging Agta",
+     "cite": [
+      "Dyble et al. 2019, via Cambridge press release"
+     ],
+     "check": "secondary"
+    }
+   },
+   "caution": "The only farming figure is from foragers who took up farming, not from long-established peasants. Do not generalise to ancient farmers."
+  }
+ }
+}

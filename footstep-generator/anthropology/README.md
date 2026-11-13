@@ -105,8 +105,9 @@ Changing the record's meaning for existing cells? Bump `VERSION` in `build.py`: 
 cache key includes it, so old model answers are not reused.
 
 Not in the atlas: D-PLACE's Binford hunter-gatherer and SCCS datasets. They are in a separate export with a
-similarity-scored "nearest known analog" (`ethnography.py`, `ethnography.json.gz`, not wired into the API); see
-[docs/ops/ethnography.md](../../docs/ops/ethnography.md).
+similarity-scored "nearest known analog" (`ethnography.py` builds `deploy/budgie/api/ethnography.json.gz`; `analogs.py` ranks it). The day API reads it, and
+`time_use.yaml` (via `time_use.py` -> `time_use.json`, rerun after editing the YAML), to ground "Imagine their day"; see
+[docs/ops/ethnography.md](../../docs/ops/ethnography.md#in-the-day-prompt).
 
 ## Life-course research priors (not integrated)
 

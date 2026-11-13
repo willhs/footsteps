@@ -4,6 +4,13 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] add | "Imagine their day" grounded in the nearest recorded societies and measured hours
+
+`day_api.py` now puts the 3 nearest D-PLACE societies ("like the !Kung (recorded 1950s)") and measured adult hours (`time_use.yaml`, foraging and
+farming only) in the prompt, asks the model to cite them in `grounded_in`, and holds the facts under a token budget. The ranking moved to
+`deploy/budgie/api/analogs.py` (re-exported by `ethnography.py`) and `ethnography.json.gz` moved beside it. No work is assigned by sex. Needs
+`API_ONLY=1 scripts/deploy-budgie.sh`. See [ethnography](ops/ethnography.md#in-the-day-prompt).
+
 ## [2026-11-14] add | Ethnographic "nearest known analog" (D-PLACE)
 
 `footstep-generator/anthropology/ethnography.py`: Ethnographic Atlas + SCCS + Binford + TEOW biome + ecoClimate merged by `xd_id` into 1,404

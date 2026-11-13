@@ -17,6 +17,8 @@ Env:
   DAY_DAILY_CAP       new generations per UTC day (default 200)
   DAY_DB              sqlite path (default /data/days.db)
   ANTHROPOLOGY_ATLAS  atlas path (default anthropology.json.gz beside this file)
+  ETHNOGRAPHY_EXPORT  D-PLACE societies (default ethnography.json.gz beside this file)
+  TIME_USE            measured hours per day (default time_use.json beside this file)
 """
 from __future__ import annotations
 
@@ -31,7 +33,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import analogs
 import atlas
+import grounding
 
 MODEL = os.environ.get("DAY_MODEL", "anthropic/claude-haiku-5.5")
 FALLBACK_MODEL = os.environ.get("DAY_FALLBACK_MODEL", "anthropic/claude-sonnet-5.5")
@@ -42,9 +46,15 @@ DB_PATH = os.environ.get("DAY_DB", "/data/days.db")
 PER_IP_PER_HOUR = 30
 ATLAS_PATH = os.environ.get("ANTHROPOLOGY_ATLAS", str(Path(__file__).with_name("anthropology.json.gz")))
 ATLAS = atlas.Atlas.load(ATLAS_PATH)
+ETHNOGRAPHY = analogs.load(Path(os.environ.get("ETHNOGRAPHY_EXPORT", analogs.OUT)))
+TIME_USE = grounding.load_time_use(Path(os.environ.get("TIME_USE", grounding.TIME_USE_PATH)))
+# The user message (facts) stays under this many tokens, estimated at 4 characters each; `prompt` drops
+# recorded societies, furthest down the ranking first, until it fits. The system prompt is extra.
+PROMPT_TOKEN_BUDGET = 2000
+CHARS_PER_TOKEN = 4
 
 # Bump when the prompt changes so days written under an old prompt aren't served.
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 # Separate version for modelled years (before HYDE): bumping it leaves HYDE-era days cached.
 DEEP_PROMPT_VERSION = 1
 
@@ -60,6 +70,19 @@ person a name. Avoid stereotypes; keep the role you are given. Do not divide wor
 sex for anyone in the scene: describe other group members by role or age (adults, \
 children, elders), never as "the men" doing one task and "the women" another. Plain, warm, concrete English; present tense. Keep it short: 5 to 7 schedule \
 entries of one sentence each."""
+
+# Added when the facts carry grounding from grounding.py.
+GROUNDING_SYSTEM = """
+
+If the facts include nearest_recorded_societies, those are real peoples recorded later than this day \
+(years_after_this_day), described by outsiders: analogies for how such a life has worked, not this \
+person's own culture. Borrow texture only where it fits the place (camp or village size, how often \
+camp moves, dwellings, staple foods); never copy a named custom, ritual or event from them, and do not \
+name them in the schedule. In grounded_in, add one entry per society you drew on, starting with its \
+cite_as text exactly as given (for example "like the Hadza (recorded 1910s)") and then what you took \
+from it. The uncertainty note must say the analog is a later record. If the facts include \
+typical_adult_time_use, keep the schedule's proportions consistent with those hours and do not invent \
+hours it does not give; where it is absent, give no hours. Never assign tasks by sex, whatever the sources say."""
 
 # Added for years before HYDE (before 10,000 BCE), where the people themselves are a model.
 DEEP_SYSTEM = """
@@ -156,7 +179,46 @@ def prompt(f: dict, record: dict | None = None) -> str:
         # Real data with its sources, plus any cached model gap-fill (marked "model"), so the
         # day agrees with the portrait drawn from the same record.
         facts["what_we_know_about_this_region_and_era"] = atlas.known_facts(record)
+        facts.update(grounding_facts(record))
+    return fit_budget(facts)
+
+
+def setting_of(record: dict) -> grounding.Setting | None:
+    """The way of life, cell centre, year and environment of a record; None for an empty cell."""
+    way = record["fields"]["subsistence"]["value"]["way"]
+    if way == "uninhabited":
+        return None
+    lat, lon = analogs.cell_centre(record["cell"]["key"], atlas.CELL_DEG)
+    biome, temp_c, precip_mm = ATLAS.environment(record)
+    return grounding.Setting(way, lat, lon, record["era"]["start"], biome, temp_c, precip_mm)
+
+
+def grounding_facts(record: dict) -> dict:
+    """The nearest recorded societies and measured hours for the record's cell, era and way of life.
+    Keys are left out when there is nothing sourced to say."""
+    setting = setting_of(record)
+    if setting is None:
+        return {}
+    found = {
+        "nearest_recorded_societies": grounding.analog_facts(ETHNOGRAPHY, setting),
+        "typical_adult_time_use": grounding.time_use_facts(TIME_USE, setting.way),
+    }
+    return {k: v for k, v in found.items() if v}
+
+
+def render(facts: dict) -> str:
     return "Write a day in this person's life.\n\n" + json.dumps(facts, indent=2)
+
+
+def fit_budget(facts: dict) -> str:
+    """The user message, with recorded societies dropped from the bottom of the ranking until it is
+    within PROMPT_TOKEN_BUDGET (at least one is kept: the card must cite its analog)."""
+    text = render(facts)
+    societies = facts.get("nearest_recorded_societies", {}).get("societies", [])
+    while len(text) > PROMPT_TOKEN_BUDGET * CHARS_PER_TOKEN and len(societies) > 1:
+        societies.pop()
+        text = render(facts)
+    return text
 
 
 def demo(f: dict) -> dict:
@@ -208,7 +270,7 @@ def call_model(system: str, user: str, schema: dict, name: str) -> tuple[dict, s
 
 
 def generate(f: dict, record: dict | None = None) -> tuple[dict, str]:
-    system = SYSTEM + (DEEP_SYSTEM if int(f["year"]) < atlas.HYDE_FIRST else "")
+    system = SYSTEM + (DEEP_SYSTEM if int(f["year"]) < atlas.HYDE_FIRST else "") + GROUNDING_SYSTEM
     return call_model(system, prompt(f, record), SCHEMA, "day_in_the_life")
 
 

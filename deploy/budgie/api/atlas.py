@@ -349,6 +349,15 @@ class Atlas:
             "atlas_version": f"{self.version}.d{deep['version']}",
         }
 
+    def environment(self, record: dict) -> tuple[str | None, float | None, float | None]:
+        """(biome name, annual mean C, annual rain mm) of a record, None where unknown. Modelled years
+        have Krapp's biome and Beyer's climate for the era; HYDE years only the present-day TEOW biome."""
+        if record.get("evidence") == "modelled":
+            cell, i = self.deep["cells"][record["cell"]["key"]], DEEP_ERAS.index(record["era"]["start"])
+            return self.deep["biomes"].get(str(cell["biome"][i])), cell["temp"][i], cell["rain"][i]
+        climate = record["fields"]["climate"]
+        return (climate["value"] if climate["source"] == TEOW else None), None, None
+
     @classmethod
     def load(cls, path: str | Path) -> "Atlas":
         with gzip.open(path, "rt") as f:

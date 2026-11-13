@@ -1,7 +1,7 @@
 ---
 id: ethnography
 type: reference
-purpose: "The D-PLACE ethnographic export and the 'nearest known analog' function: sources, variables, method, limits; not wired into the app"
+purpose: "The D-PLACE ethnographic export and the 'nearest known analog' function: sources, variables, method, limits, and how the day API prompt uses them"
 ---
 
 # Ethnography: the nearest known analog for a place and way of life
@@ -9,15 +9,16 @@ purpose: "The D-PLACE ethnographic export and the 'nearest known analog' functio
 Many of the [constants of human life](../philosophy/human-constants.md) have cross-cultural data in
 [D-PLACE](https://d-place.org). This is a first test of one idea: for a place, a year and a way of life,
 name the three recorded societies that lived most like it, with a score. It is **a comparison, not a
-reconstruction, and nothing in the app or API reads it yet**.
+reconstruction**. The day API reads it for "Imagine their day" ([below](#in-the-day-prompt)); the map and portraits do not.
 
-Code: `footstep-generator/anthropology/ethnography.py` (extends the anthropology atlas, see below).
+Code: `footstep-generator/anthropology/ethnography.py` builds the export, `deploy/budgie/api/analogs.py` ranks it (in the API directory so the
+day API image ships it; `ethnography.py` re-exports it). It extends the anthropology atlas, see below.
 Tests: `footstep-generator/tests/test_ethnography.py`.
 
 ```bash
 poetry install
 poetry run python footstep-generator/anthropology/ethnography.py fetch   # 5 zips (~17 MB) -> data/raw/dplace/
-poetry run python footstep-generator/anthropology/ethnography.py         # -> ethnography.json.gz (0.2 MB, committed)
+poetry run python footstep-generator/anthropology/ethnography.py         # -> deploy/budgie/api/ethnography.json.gz (0.2 MB, committed)
 poetry run pytest footstep-generator/tests/test_ethnography.py -q
 ```
 
@@ -126,6 +127,29 @@ Full output: `evidence/sanity-places.txt` in the job workspace; the same cases a
 Reading them: the first two are the answers an anthropologist would give, for the right reason (same desert, same mobile way of life).
 The third works because the Atlas happens to hold two ancient states; remove them and a 1950 Punjabi town would be the "city". Where a way
 of life is not in the sample near a place, the best score is low and the warning says so.
+
+## In the day prompt
+
+`deploy/budgie/api/grounding.py` + `day_api.prompt()` (prompt version 3). For a click, the atlas record gives the cell, era and way of life
+(HYDE rule; "mixed" is farming); `Atlas.environment` gives the climate (modelled years: Krapp biome and Beyer temperature and rain, so an
+ice-age cell is matched on its ice-age climate; HYDE years: only the present-day TEOW biome). The ranking runs at the cell centre, so one cell
+and era always get the same societies, which keeps the day cache valid.
+
+- `nearest_recorded_societies`: the top 3, each with `cite_as` ("like the Hadza (recorded 1910s)"), region, distance, score, how many years after
+  the day it was recorded, and up to 6 recorded traits (settlement pattern, community or camp size, moves per year, dominant activity, crop,
+  livestock, house walls). The caveat is included once. The system prompt asks the model to cite each society it used in `grounded_in`, to say in
+  the uncertainty note that the analog is a later record, and not to copy named customs or events. The day stays labelled speculative.
+- `typical_adult_time_use`: measured hours from [time_use.yaml](../../footstep-generator/anthropology/time_use.yaml) (research 0005), for foraging
+  and farming only, with the study range, scope and sources. Herding, fishing and cities have no figure, so the key is left out and the model is
+  told to give no hours. `recalled` figures and `sex_note` never reach the API (`time_use.py` filters them). The farming row is from Agta
+  foragers who took up farming and says so.
+- **No work is assigned by sex.** Neither source passes a sex difference to the prompt (the ethnography export holds no sex variables; the
+  YAML's `sex_note` is dropped), and the system prompt forbids it.
+- **Token budget.** The facts (user message) are held to `PROMPT_TOKEN_BUDGET` (2,000, estimated at 4 characters a token). Typical prompts are
+  900-1,100 tokens; the largest modelled-era cells reach about 2,150 with three societies, so `fit_budget` drops the lowest-ranked society
+  (keeping at least one) until it fits. A test samples 300 cells and eras.
+- Deploy: `API_ONLY=1 scripts/deploy-budgie.sh`. The Dockerfile copies `analogs.py`, `grounding.py`, `ethnography.json.gz` and `time_use.json`
+  (a test checks the list). Old cached days are not served (`PROMPT_VERSION` 3).
 
 ## Limits
 

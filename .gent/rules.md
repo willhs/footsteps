@@ -36,8 +36,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; the anthropology atlas reads it for big game before 10,000 BCE (`anthropology/deep.py`).
   See `docs/ops/fauna.md`.
 - `footstep-generator/anthropology/ethnography.py`: D-PLACE (Ethnographic Atlas, SCCS, Binford, TEOW, ecoClimate) → 1,404 societies with 25 variables
-  (`ethnography.json.gz`, committed) and `nearest_analogs`, the 3 most similar societies for a place, year and way of life, with a score and a plain
-  "the ethnographic present is not the past" caveat. Not used by the app or API yet. See `docs/ops/ethnography.md`.
+  (`deploy/budgie/api/ethnography.json.gz`, committed) and `nearest_analogs` (`deploy/budgie/api/analogs.py`), the 3 most similar societies for a place,
+  year and way of life, with a score and a plain "the ethnographic present is not the past" caveat. The day API puts them in the "Imagine their day"
+  prompt as "like the X (recorded 1930s)" (`grounding.py`), beside measured adult hours from `anthropology/time_use.yaml` (exported to `time_use.json` by
+  `time_use.py`). The prompt's facts stay under `PROMPT_TOKEN_BUDGET`. See `docs/ops/ethnography.md`.
 - `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
   tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
   staples by biome. A modelled dataset (most dates recalled, see its `checked` flag); not used by the app yet. See `docs/ops/food.md`, research 0008.

@@ -33,8 +33,10 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   `lib/hoverCard.ts` decides the words, `lib/habitat.ts` reads the lookups (`public/habitat_meta.json` holds the encoding),
   `hooks/useHoverPoint.ts` is the desktop-only, per-frame pointer tracking, and `hooks/useHabitatLookups.ts` fetches the
   `/habitat/*.webp` images lazily. Copy `../data/tiles/habitat/` into `public/habitat/` for local dev (docs/ops/habitat-lookup.md).
-- `components/ui/TimeSlider.tsx`: time navigation. Derive year assumptions from
-  constants rather than hardcoding counts in tests.
+- `components/ui/TimeBar.tsx`: time navigation, one fixed log-of-years-ago track. Its scale, key steps,
+  typed-year parsing and speed-based fine drag live in `lib/timeScale.ts` (tested); the readout above it is
+  `TimeReadout.tsx`. `?bar=old` still shows the previous two-strip `TimeNavigator.tsx` for comparison:
+  delete it once the new bar is accepted. Derive year assumptions from constants rather than hardcoding counts in tests.
 
 ## Commands
 

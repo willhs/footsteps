@@ -3,35 +3,30 @@
 import { useEffect, useState } from 'react';
 import { clampTime } from '@/lib/time';
 import FootstepsViz from '@/components/footsteps/FootstepsViz';
+import TimeBar from '@/components/ui/TimeBar';
 import TimeNavigator from '@/components/ui/TimeNavigator';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export default function Home() {
   const [time, setTime] = useState(-1000);
   const [loading, setLoading] = useState<[number, number] | null>(null);
+  // ?bar=old shows the previous two-strip navigator for comparison (remove after one round).
+  const [oldBar, setOldBar] = useState(false);
   // ?year=-6000 opens at that year (deep links, screenshots).
   useEffect(() => {
-    const y = Number(new URLSearchParams(window.location.search).get('year') ?? NaN);
+    const params = new URLSearchParams(window.location.search);
+    const y = Number(params.get('year') ?? NaN);
     if (Number.isFinite(y)) setTime(clampTime(y));
+    setOldBar(params.get('bar') === 'old');
   }, []);
-  
+
+  const Bar = oldBar ? TimeNavigator : TimeBar;
   return (
     <main className="relative w-full h-full overflow-hidden bg-black">
       <ErrorBoundary>
-        {/* Globe visualization - now with React 18 compatibility */}
         <FootstepsViz time={time} onLoadingChange={setLoading} />
       </ErrorBoundary>
-      
-      {/* Time control slider */}
-      <TimeNavigator time={time} onChange={setTime} loading={loading} />
-      
-      {/* Branding indicator - only show when not loading */}
-      {/* <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div className="text-white/50 text-center">
-          <div className="text-2xl font-bold mb-2">Globe of Humans</div>
-          <div className="text-sm">React 18 Compatible</div>
-        </div>
-      </div> */}
+      <Bar time={time} onChange={setTime} loading={loading} />
     </main>
   );
 }

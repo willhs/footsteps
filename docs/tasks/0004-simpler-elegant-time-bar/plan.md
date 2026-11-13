@@ -98,48 +98,48 @@ scale, steps, parsing and drag gain. Screenshots in the workspace `evidence/`.
 ## Phase 1: Scale and logic (`lib/timeScale.ts`)
 
 ### Tasks
-- [ ] Create `footsteps-web/lib/timeScale.ts` with the API above
-- [ ] Create `footsteps-web/lib/timeScale.test.ts`: round trip, monotonic, labels in order;
+- [x] Create `footsteps-web/lib/timeScale.ts` with the API above
+- [x] Create `footsteps-web/lib/timeScale.test.ts`: round trip, monotonic, labels in order;
       `stepTime` snaps to round years and moves both ways, clamps at ends; `parseYear` forms and
       rejects garbage; drag: fast move puts needle under finger, slow move moves ≤ 0.1×
 
 ### Success Criteria
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand lib/timeScale` — passes
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand lib/timeScale` — passes
 
 ## Phase 2: `TimeBar` component and `?bar=old`
 
 ### Tasks
-- [ ] Create `footsteps-web/components/ui/TimeBar.tsx`: same header + moment note as the old
+- [x] Create `footsteps-web/components/ui/TimeBar.tsx`: same header + moment note as the old
       navigator (shared via a `TimeReadout` extracted from `TimeNavigator.tsx`), one canvas track:
       rounded track, faint population curve (paler before HYDE), boundary hairline at 10k BCE,
       data-year ticks, moment triangles, labels below, needle with knob (dashed cyan while loading),
       hover ghost line on mouse
-- [ ] Pointer: down = jump (or moment snap), move = `dragMove`, capture pointer; wheel nudge
-- [ ] Keys: ←/→ `stepTime`, Shift = big, PageUp/PageDown = big, Home/End, Enter = edit year
-- [ ] Year editor: click calendar label → input, `parseYear`, Enter/Escape/blur
-- [ ] `role="slider"`, `aria-valuetext`, publish `--ov-timeline-h`
-- [ ] `app/page.tsx`: `?bar=old` renders `TimeNavigator`, else `TimeBar`
+- [x] Pointer: down = jump (or moment snap), move = `dragMove`, capture pointer; wheel nudge
+- [x] Keys: ←/→ `stepTime`, Shift = big, PageUp/PageDown = big, Home/End, Enter = edit year
+- [x] Year editor: click calendar label → input, `parseYear`, Enter/Escape/blur
+- [x] `role="slider"`, `aria-valuetext`, publish `--ov-timeline-h`
+- [x] `app/page.tsx`: `?bar=old` renders `TimeNavigator`, else `TimeBar`
 
 ### Success Criteria
-- [ ] Run: `pnpm --dir footsteps-web exec tsc --noEmit` — clean
-- [ ] Run: `pnpm --dir footsteps-web lint` — clean
+- [x] Run: `pnpm --dir footsteps-web exec tsc --noEmit` — clean
+- [x] Run: `pnpm --dir footsteps-web lint` — clean
 
 ## Phase 3: Prove it in the browser
 
-- [ ] Playwright script (workspace `evidence/`): desktop 1440 and 375 px; before (`?bar=old`)
+- [x] Playwright script (workspace `evidence/`): desktop 1440 and 375 px; before (`?bar=old`)
       and after screenshots; one drag 100k → 1900 reads 1900 CE; type 1347 → 1347 CE; slow drag
       near 10k BCE changes the year by small steps; Home key → 100,000 BCE
-- [ ] Look at the screenshots; tune K / sizes if labels collide
+- [x] Look at the screenshots; tune K / sizes if labels collide
 
 ## Phase 4: Wrap (commit & finalize)
 
-- [ ] Update `footsteps-web/AGENTS.md` (time navigation line) to name `TimeBar` / `lib/timeScale.ts`
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand` — passes
-- [ ] Commit (Manager job: commit only, no merge/push)
+- [x] Update `footsteps-web/AGENTS.md` (time navigation line) to name `TimeBar` / `lib/timeScale.ts`
+- [x] Run: `pnpm --dir footsteps-web exec jest --runInBand` — passes (24 suites, 135 tests; the documented `test -- --runInBand` form passes the flag as a pattern and matches nothing)
+- [x] Commit (Manager job: commit only, no merge/push)
 
 ## Final Checklist
 
-- [ ] All phases complete
+- [x] All phases complete
 - [ ] [HUMAN] Will compares `/` and `/?bar=old` on footsteps.willhs.me and says keep / change
 
 ## References

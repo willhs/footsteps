@@ -1,0 +1,282 @@
+# Arrival and habitat table for the modelled pre-HYDE population
+# (docs/research/0002-pre-hyde-population-model/research.md, sections 3 and Conclusions 3).
+#
+# Dates are years before present (ka BP = thousands of years before 1950).
+# BCE = ka*1000 - 1950, rounded to the nearest 100 (so 50 ka BP = 48,050 BCE ~ 48,000 BCE).
+# Each region: `central` drives the model; `early` and `late` bracket the credible range;
+# `alt` records a contested alternative (not used unless a scenario switches to it).
+#
+# verification:
+#   checked  = key figure confirmed against the paper's abstract or a reliable summary
+#              during the 2026-11-13 web pass (see `source` for the paper)
+#   memory   = citation and number written from memory; NOT yet checked against the paper.
+#              The model may use it, but the claim must not be shown to users as sourced.
+#
+# bbox is [west, south, east, north] in degrees; a cell belongs to the FIRST matching
+# region in file order (so put small/specific regions before big ones). Boxes are
+# deliberately coarse: they decide "who could be here by when", not coastlines
+# (the land/ice mask does that).
+
+version: 1
+epoch: 1950   # ka BP is relative to this year CE
+
+regions:
+  - id: africa
+    name: Africa (sub-Saharan, Maghreb, Nile valley)
+    bbox: [-20, -35, 52, 37]
+    arrival_ka_bp: {central: 300, early: 315, late: 200}
+    ramp_ka: 0
+    verification: memory
+    source: "Hublin et al. 2017 Nature 546:289 (Jebel Irhoud ~315 ka, 'earliest H. sapiens'); Richter et al. 2017 Nature 546:293. Whole region occupied for the entire model window."
+    notes: "Present from before the model start (100 ka BP). Treated as populated throughout."
+
+  - id: levant_arabia
+    name: Levant and Arabian Peninsula (early, non-lasting exits)
+    bbox: [32, 12, 60, 38]
+    arrival_ka_bp: {central: 50, early: 120, late: 47}
+    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+    ramp_ka: 3
+    verification: memory
+    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
+    notes: "Central date is the start of continuous occupation tied to the main exit. Early date is the first pulse."
+
+  - id: south_asia
+    name: South Asia (India, Sri Lanka, Pakistan, Nepal)
+    bbox: [60, 5, 92, 36]
+    arrival_ka_bp: {central: 48, early: 74, late: 45}
+    alt: {ka_bp: 74, note: "Jwalapuram, India, stone tools below the Toba ash (~74 ka), attributed to H. sapiens by Petraglia 2007 Science 317:114; the attribution is disputed."}
+    ramp_ka: 3
+    verification: checked
+    source: "Wedage et al. 2019 Nat Commun 10:2 (Fa-Hien Lena, Sri Lanka, earliest H. sapiens fossils in South Asia, ~45 ka; microliths 48-45 ka cal BP, Perera et al. 2019 PLOS ONE 14:e0222606); Langley et al. 2020 Sci Adv 6:eaba3831 (bone points ~48 ka)."
+    notes: "Central 48 ka from Fa-Hien Lena microlith onset; fossils 45 ka."
+
+  - id: southeast_asia_mainland
+    name: Mainland Southeast Asia
+    bbox: [92, -2, 112, 28]
+    arrival_ka_bp: {central: 70, early: 86, late: 46}
+    alt: {ka_bp: 46, note: "Skeletal evidence in Laos is Tam Pa Ling 2 (~46 ka); the 86-68 ka TPL 6/7 fragments are few and debated."}
+    ramp_ka: 5
+    verification: checked
+    source: "Demeter et al. 2012 PNAS 109:14375 (Tam Pa Ling, >=46 ka); Demeter et al. 2022 / Freidline et al. 2023 Nat Commun 14:3193 (TPL 6/7, 86-68 ka)."
+    notes: "Central uses the published 70 +/- 3 ka for TPL 6; low confidence because the sample is two bones. Model treats the 86-46 ka span as very sparse regardless."
+
+  - id: island_se_asia_wallacea
+    name: Island Southeast Asia, Sunda shelf and Wallacea
+    bbox: [95, -12, 126, 8]
+    arrival_ka_bp: {central: 60, early: 70, late: 46}
+    alt: {ka_bp: 46, note: "Earliest fossil sapiens on Borneo (Niah, ~45-40 ka; Barker et al. 2007 J Hum Evol 52:243). A route to Sahul at ~65-50 ka implies earlier transit."}
+    ramp_ka: 3
+    verification: memory
+    source: "Barker et al. 2007 J Hum Evol 52:243 (Niah). Transit date inferred from the Sahul arrival (below), not directly dated."
+    notes: "Corridor to Sahul; coastal sites are now drowned (sea level) so absence of evidence is expected."
+
+  - id: sahul
+    name: Sahul (Australia, New Guinea, Tasmania)
+    bbox: [112, -45, 155, 0]
+    arrival_ka_bp: {central: 50, early: 65, late: 47}
+    alt: {ka_bp: 65, note: "Madjedbebe, Arnhem Land, OSL ages put the earliest artefacts at ~65 ka (Clarkson et al. 2017 Nature 547:306). The age and the artefact-to-layer association are disputed (O'Connell et al. 2018 Archaeol Oceania 53:1, 'optimistic interpretation'). Choose 65 for the early scenario."}
+    ramp_ka: 4
+    verification: checked
+    source: "Clarkson et al. 2017 Nature 547:306 (65 ka, confirmed in this pass); Roberts et al. 1994 / O'Connell & Allen 2004 J Archaeol Sci 31:835 (consensus 50-47 ka); Bird et al. 2018 Sci Rep / Bradshaw et al. 2021 Nat Commun 12:5386 (carrying-capacity ceiling)."
+    notes: "Central 50 ka (contested, documented alternative 65 ka). Lake Mungo 'older than 40 ka' ages are not used."
+
+  - id: europe_west
+    name: Europe (south and west)
+    bbox: [-12, 35, 30, 55]
+    arrival_ka_bp: {central: 45, early: 54, late: 41}
+    alt: {ka_bp: 54, note: "Grotte Mandrin, France, a sapiens-attributed tooth and Neronian layer at ~54 ka (Slimak et al. 2022 Sci Adv 8:eabj9496); a short pulse that did not persist."}
+    ramp_ka: 3
+    verification: checked
+    source: "Hajdinjak et al. 2021 Nature 592:253 (Bacho Kiro IUP, 45.9-42.6 ka, confirmed in this pass); Fu et al. 2014 Nature 514:445 (Ust'-Ishim ~45 ka); Higham et al. 2014 Nature 512:306 (Neanderthal end 41.0-39.3 ka cal BP, Uluzzian overlap 2.6-5.4 ka, confirmed)."
+    notes: "Zlatý kůň (Czechia) is claimed older than 45 ka; ordering vs Bacho Kiro unresolved. Neanderthals share the region until ~40 ka (see other_hominins)."
+
+  - id: europe_east_steppe
+    name: Eastern Europe and the Pontic-Caspian steppe
+    bbox: [30, 40, 60, 62]
+    arrival_ka_bp: {central: 45, early: 47, late: 40}
+    ramp_ka: 4
+    verification: memory
+    source: "Kostenki 14, Russia, ~45-42 ka (Higham et al. 2011 Nature 479:525; Benazzi et al. 2011 Science 332:1049 for Grotta del Cavallo)."
+    notes: "Memory-sourced Kostenki date; check Higham 2011 before use as a headline."
+
+  - id: central_asia_siberia_south
+    name: Central Asia and southern Siberia
+    bbox: [60, 40, 120, 56]
+    arrival_ka_bp: {central: 45, early: 47, late: 40}
+    ramp_ka: 4
+    verification: checked
+    source: "Fu et al. 2014 Nature 514:445 (Ust'-Ishim, W Siberia, 43-47 ka, confirmed). Kozlikin et al. / Zwyns et al. 2019 Nat Commun 10:4 (Tolbor-4, Mongolia, ~45-47 ka) -- memory."
+    notes: "Ust'-Ishim is a single individual; used for the date, not as proof of a settled population."
+
+  - id: siberia_arctic
+    name: Northern Siberia and the Arctic fringe
+    bbox: [60, 56, 180, 78]
+    arrival_ka_bp: {central: 32, early: 45, late: 28}
+    alt: {ka_bp: 45, note: "Early dates (Mamontovaya Kurya ~40 ka, Pitulko et al. 2016 Quat Sci Rev) are weakly supported."}
+    ramp_ka: 4
+    verification: checked
+    source: "Pitulko et al. 2004 Science 303:52 (Yana RHS, ~70 N, before the LGM); Sikora et al. 2019 Nature 570:182 (Yana RHS 31.6 ka cal BP, confirmed in this pass)."
+    notes: "Occupation likely retreated south in the coldest stretch; handled by the cold limit in habitat_rules, not by the arrival date."
+
+  - id: east_asia
+    name: East Asia (China, Korea, Mongolia south of 50 N)
+    bbox: [92, 18, 135, 50]
+    arrival_ka_bp: {central: 42, early: 80, late: 38}
+    alt: {ka_bp: 80, note: "Daoxian, Hunan (Liu et al. 2015 Nature 526:696, 80-120 ka) -- widely doubted as secure sapiens attribution to the date."}
+    ramp_ka: 4
+    verification: checked
+    source: "Fu et al. 2013 PNAS 110:2223 (Tianyuan, ~40 ka, confirmed in this pass)."
+    notes: "40 ka is first securely dated and genomic, not first occupation; probably earlier via the South/Southeast Asian route."
+
+  - id: japan
+    name: Japanese archipelago (Honshu, Kyushu, Shikoku, Hokkaido, Ryukyu)
+    bbox: [122, 24, 146, 46]
+    arrival_ka_bp: {central: 38, early: 38, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    ramp_ka: 3
+    verification: memory
+    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
+    notes: "Central 38 ka is the tool-based figure from the research note; bones imply 36-32 ka."
+
+  - id: tibetan_plateau
+    name: Tibetan Plateau (>3,000 m)
+    bbox: [78, 27, 104, 36]
+    arrival_ka_bp: {central: 38, early: 160, late: 30}
+    alt: {ka_bp: 160, note: "The Xiahe mandible (Denisovan, >=160 ka) shows hominin presence, not H. sapiens. Sapiens on the plateau: Nwya Devu ~40 ka (Zhang et al. 2018 Science 362:1049, memory); Chusang handprints 226-169 ka revised to ~20 ka."}
+    ramp_ka: 8
+    verification: memory
+    source: "Chen et al. 2019 Nature 569:409 (Xiahe, confirmed); Zhang et al. 2018 Science 362:1049 (Nwya Devu, memory)."
+    notes: "Slow ramp: high-altitude hypoxia and cold. Central is for sapiens; the Denisovan record is under other_hominins."
+
+  - id: beringia
+    name: Beringia (Chukotka, Alaska, exposed shelf)
+    bbox: [-170, 55, -140, 72]
+    arrival_ka_bp: {central: 24, early: 30, late: 20}
+    alt: {ka_bp: 30, note: "Bluefish Caves, Yukon (Bourgeon et al. 2017, citation unchecked); Pleistocene Beringian standstill 25-15 ka (Tamm et al. 2007; Moreno-Mayar et al. 2018 Nature 553:203)."}
+    ramp_ka: 4
+    verification: memory
+    source: "Moreno-Mayar et al. 2018 Nature 553:203; Bourgeon et al. 2017 -- both from memory."
+    notes: "Treated as a staging area before the Americas."
+
+  - id: north_america
+    name: North America (south of the ice, plus Mexico)
+    bbox: [-125, 15, -65, 55]
+    arrival_ka_bp: {central: 16, early: 23, late: 14.5}
+    alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
+    ramp_ka: 3
+    verification: checked
+    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry, Idaho, ~16 ka, memory); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
+    notes: "Central 16 ka: coastal route to the unglaciated Pacific side. Interior spread after ~14 ka."
+
+  - id: south_america
+    name: South America
+    bbox: [-82, -56, -34, 13]
+    arrival_ka_bp: {central: 15, early: 18, late: 14}
+    alt: {ka_bp: 18, note: "Monte Verde II, Chile, ~14.5 ka (Dillehay et al. 2015 PLOS ONE 10:e0141923, memory); Pedra Furada, Brazil, claimed 30+ ka (rejected by most)."}
+    ramp_ka: 3
+    verification: memory
+    source: "Dillehay et al. 2015 PLOS ONE, memory. Date follows from North America plus a coastal-rapid dispersal."
+    notes: "Rapid spread south is a modelling choice: ~1-2 ka from Beringia."
+
+  - id: greenland_arctic_canada
+    name: Arctic Canada and Greenland
+    bbox: [-125, 56, -10, 84]
+    arrival_ka_bp: {central: 4.5, early: 5, late: 4}
+    ramp_ka: 1
+    verification: memory
+    source: "Independence I / Saqqaq, ~4.5 ka (Raghavan et al. 2014 Science 345:1255832, memory). After the model window (ends 10,000 BCE ~ 12 ka BP); included so cells here stay empty."
+    notes: "Out of model window; zero population throughout."
+
+  - id: pacific_remote
+    name: Remote Oceania, Pacific islands, Caribbean, Madagascar
+    bbox: [-180, -50, 180, 30]
+    arrival_ka_bp: {central: 3.5, early: 3.5, late: 1}
+    ramp_ka: 1
+    verification: memory
+    source: "Lapita expansion ~3.3 ka (Kirch). After the model window; empty throughout. Must come LAST in order so other regions match first."
+    notes: "Catch-all so no cell is left undefined; population zero before this date."
+
+# Other hominins: NOT H. sapiens, listed separately. The sapiens model must not draw people in
+# these regions before the sapiens arrival; these lists are for labelling and, later, a
+# 'not only us' note in the legend. They are not counted in the sapiens totals.
+other_hominins:
+  - id: neanderthals
+    name: Neanderthals (Homo neanderthalensis)
+    bbox: [-10, 35, 90, 60]
+    last_ka_bp: {central: 40, early: 41, late: 39}
+    verification: checked
+    source: "Higham et al. 2014 Nature 512:306 (Mousterian ended 41,030-39,260 cal BP, 95.4%; overlap with Uluzzian 2.6-5.4 ka; confirmed in this pass). Admixture with sapiens 50.5-43.5 ka (Iasi et al. 2024 Science)."
+    notes: "Regional decline, not one event; late-survival claims (Gorham's Cave, Zafarraya) were treated as underestimates by Higham."
+
+  - id: denisovans
+    name: Denisovans
+    bbox: [75, 10, 135, 56]
+    last_ka_bp: {central: 45, early: 60, late: 32}
+    verification: checked
+    source: "Chen et al. 2019 Nature 569:409 (Xiahe mandible, >=160 ka); Welker et al. 2024 (as summarised, Baishiya: occupation to ~60 ka, possibly 45 ka, rib dated 48-32 ka) -- the 48-32 ka rib date is from a secondary summary; check the paper."
+    notes: "Range is wide: Siberia (Denisova Cave), Tibet, and perhaps Laos and Island SE Asia."
+
+  - id: floresiensis
+    name: Homo floresiensis (Flores, Indonesia)
+    bbox: [119, -9.5, 124, -7.5]
+    last_ka_bp: {central: 50, early: 60, late: 50}
+    verification: checked
+    source: "Sutikna et al. 2016 Nature 532:366 (skeletal remains ~100-60 ka, stone artefacts ~190-50 ka; confirmed in this pass). Replaces the earlier 12 ka estimate."
+    notes: "Tiny island; sapiens overlap with it is unresolved. Negligible for the population map."
+
+# Habitat rules for forager density. These multiply or limit the NPP-based potential density
+# from Tallavaara et al. 2018 (PNAS 115:1232, CC BY 4.0). Values are modelling choices
+# informed by anthropology, not fitted to data: they are defaults for the first prototype and
+# should be tuned or ablated once a comparison with Timmermann & Friedrich 2016 exists.
+# Each rule names what to check in the ethnographic record before trusting the number.
+habitat_rules:
+  coast:
+    bonus: 1.5            # multiplier on density
+    within_km: 20
+    rationale: "Shellfish, fish and sea mammals are reliable calories; coasts hold the highest forager densities (Binford 2001; Kelly 2013). Binford's 'aquatic' resources raise density above terrestrial NPP prediction."
+    verification: memory
+  river:
+    bonus: 1.3
+    within_km: 10
+    rationale: "Floodplains concentrate plants and game, and rivers act as travel corridors."
+    verification: memory
+  lake:
+    bonus: 1.3
+    within_km: 10
+    rationale: "Lake margins and wetlands are among the richest mixed habitats."
+    verification: memory
+  ecotone:
+    bonus: 1.2
+    description: "A cell whose 3x3 neighbourhood spans 2+ biomes (forest/grassland, mountain/plain)."
+    rationale: "Mixed habitats give more food types and seasonal fallbacks."
+    verification: memory
+  cold_limit:
+    # Tallavaara 2015/2018 and Binford 2001 effective temperature (ET) frame; the coldest
+    # month is a better limit than annual means.
+    coldest_month_mean_c:
+      zero_below: -35   # no occupation
+      full_above: -20   # no penalty
+    interpolation: linear
+    rationale: "Foragers at high latitude in winter need fuel, clothing and storage; below roughly -30 C coldest-month mean few ethnographic groups occur outside the Arctic, and then only with marine mammals."
+    verification: memory
+  aridity:
+    npp_floor_g_m2_yr: 100   # below this, density 0
+    npp_ramp_to: 300         # linear ramp from floor to here
+    rationale: "Deep desert has too little plant and animal biomass; the Tallavaara fit already drops to near-zero NPP, but we hard-zero the Sahara and Rub' al Khali cores rather than trust a tiny positive value."
+    verification: memory
+  ice_and_sea:
+    ice: "density 0 under ice sheets (Krapp/Beyer ice mask)"
+    sea: "density 0 on sea; shelf land exposed by lower sea level IS inhabitable (Spratt sea level)."
+    verification: checked
+  refugia:
+    description: "Glacial refugia: during MIS 4 (~71-57 ka) and the LGM (~26-19 ka) cold-limit and aridity rules empty large northern areas; people are kept in southern refugia (Iberia, Italy/Balkans, Ukraine, S China, Mediterranean North Africa)."
+    candidates:
+      - {name: Franco-Cantabrian and Iberia, bbox: [-10, 35, 3, 44]}
+      - {name: Italy and the Balkans, bbox: [8, 36, 30, 46]}
+      - {name: Black Sea and Ukraine, bbox: [28, 42, 42, 50]}
+      - {name: South China, bbox: [100, 20, 120, 32]}
+    rationale: "Genetic and archaeological patterns of the LGM contraction and later re-expansion (Tallavaara 2015 for Europe: ~330 ka -> 130 ka -> 410 ka peak-to-trough)."
+    verification: memory
+  ramp:
+    description: "After the arrival date, density rises linearly from 0 to its potential value over `ramp_ka` thousand years (per region). Cells also gain density only if a neighbour cell is already occupied (diffusion front), to stop isolated blobs appearing in Sahul or the Americas."
+    verification: memory

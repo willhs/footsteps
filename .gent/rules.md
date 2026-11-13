@@ -30,6 +30,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/habitat_lookup.py`: Krapp biome + Beyer temperature/precipitation per 0.5° cell per 1 ka step, and HYDE land use
   per HYDE year, as small lossless WebPs in `data/tiles/habitat/` (served at `/habitat/`) for the hover card (`?hover=1`, off by default).
   See `docs/ops/habitat-lookup.md`.
+- `footstep-generator/fauna/phylacine.py`: PHYLACINE 1.2.1 present-natural ranges + a cited extinction table (`losses.py`) →
+  `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; not used by the app yet.
+  See `docs/ops/fauna.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.

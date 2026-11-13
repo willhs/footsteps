@@ -4,6 +4,14 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
+
+`footstep-generator/fauna/`: PHYLACINE 1.2.1 present-natural ranges (CC0, not CC BY as the task said) for 329 land
+mammals (>= 44 kg plus 14 key smaller ones), a cited extinction/extirpation table, and a land-ice mask, exported as
+`data/fauna/fauna.json.gz` (122 KB, gitignored): species per 1 degree cell for each 1 ka step, 100,000 BCE to 1900.
+Only 21 of 157 prehistorically extinct species have a species-level date; the rest take a regional window (tagged
+`regional`). Not wired into the app. Method and limits: [fauna](ops/fauna.md).
+
 ## [2026-11-09] update | Halve first-load bytes
 
 Default view (Units, 1000 BC), cold cache, Chromium, gzip like Caddy

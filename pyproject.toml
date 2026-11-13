@@ -20,6 +20,8 @@ matplotlib = "^3.9.0"  # For visualization during development
 jupyter = "^1.1.0"  # Optional: for data exploration notebooks
 pydantic = "^2"  # Models use Pydantic v2 API
 pyyaml = "^6.0.3"
+tifffile = "<2026"
+imagecodecs = "<2026"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.0.0"

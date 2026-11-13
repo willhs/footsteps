@@ -1,0 +1,92 @@
+# Time use by way of life: hours per day, adults, awake-day activities.
+#
+# Read docs/research/0005-time-use/research.md before using. Rules:
+#  - Every figure carries a range (lo..hi across studies/seasons, NOT a confidence interval),
+#    a citation and a `check` status:
+#      read      = the number was seen in a source this session (secondary page counts as "secondary")
+#      secondary = seen in a press release / review quoting the paper, paper not opened
+#      recalled  = from memory of the literature; MUST be checked against the paper before it is
+#                  shown to a user as fact
+#  - Definitions differ between studies (what counts as "work", observation vs interview). Do not
+#    add rows across studies.
+#  - No figure is split by sex. The day API does not divide work by sex (commit 4a654a6). Two
+#    sources report sex differences (Lee; Dyble 2019); they are noted in `sex_note` for context
+#    only and must not be fed to the prompt.
+#  - Activities not reported by a study are null, never filled.
+version: 1
+units: hours_per_day_adult
+activities: [food_getting, food_processing, childcare, tools_crafts, social_leisure, sleep, travel]
+
+ways_of_life:
+  foraging:
+    summary: "Mobile hunter-gatherers. Food getting about 2-6 h; the rest is mostly domestic work and leisure."
+    figures:
+      food_getting:
+        value: 4.0
+        range: [2.2, 6.0]
+        basis: "!Kung ~2.2-2.4 h (food getting only, Lee as restated by critics); Lee's ~6 h on a working day, ~2.5 working days a week; Hadza foraging roughly 4-6 h on foraging days; Agta out-of-camp work ~24 h/week (~3.4 h/day)"
+        cite: ["Lee 1979 The !Kung San", "Hawkes, O'Connell & Blurton Jones 1997 Curr Anthropol 38", "Dyble et al. 2019 Nat Hum Behav 3:792, doi:10.1038/s41562-019-0614-6"]
+        check: secondary
+      food_processing:
+        value: null
+        range: null
+        basis: "Lee's broader 'work' (processing, tools, housework) was 44.5 h/week men, 40.1 h/week women (~6 h/day) total, so processing+crafts+housework is roughly 2-3 h/day on top of getting"
+        cite: ["Lee 1979 The !Kung San, via secondary summary"]
+        check: secondary
+      domestic_chores:
+        value: 2.9
+        range: [2.0, 3.5]
+        basis: "Agta ~20 h/week domestic chores (~2.9 h/day), mixed adults, daylight 6am-6pm sampling"
+        cite: ["Dyble et al. 2019, via Cambridge press release"]
+        check: secondary
+      social_leisure:
+        value: 4.3
+        range: [3.0, 6.0]
+        basis: "Agta ~30 h/week daylight leisure (~4.3 h/day); daylight only, so evening not counted. Lowest around age 30, rises later in life"
+        cite: ["Dyble et al. 2019, via Cambridge press release"]
+        check: secondary
+      childcare: {value: null, range: null, basis: "not separated in the figures read this session", cite: [], check: none}
+      tools_crafts: {value: null, range: null, basis: "inside Lee's ~2-3 h of non-food work; not separated", cite: ["Lee 1979"], check: none}
+      sleep: {value: null, range: null, basis: "no forager figure read; see human_baseline", cite: [], check: none}
+      travel: {value: null, range: null, basis: "camp moves and walking to patches are inside food getting for the Hadza and !Kung studies", cite: [], check: none}
+    seasonal: "Dry vs wet season changes food getting (Hadza, !Kung water holes) but no per-season hours were read. Treat as unknown."
+    sex_note: "Lee reports ~2.7 vs 2.1 working days a week (men vs women); Dyble finds field work shifts women away from chores. Context only; not for the prompt."
+
+  forager_horticulturalist:
+    summary: "Gardens plus hunting/fishing (Tsimane, Machiguenga, Ache at settlements). Hours similar to foragers, higher return per hour."
+    figures:
+      food_getting:
+        value: null
+        range: null
+        basis: "Kraft et al. 2021 found horticulture gave higher return rates than hunting and gathering 'despite minimal differences in the amount of time devoted to subsistence' (Hadza vs Tsimane). Tsimane interview data (2005-2009) cover hunting, fishing, garden labour, foraging hours; Johnson 1973 (Machiguenga) and Hill et al. 1985 (Ache) have time tables. Numbers not extracted."
+        cite: ["Kraft et al. 2021 Nat Hum Behav, doi:10.1038/s41562-020-01002-7", "Johnson 1975 Time allocation in a Machiguenga community, Ethnology", "Hill, Kaplan, Hawkes & Hurtado 1985 Ache men's time allocation"]
+        check: none
+    seasonal: "Ache work fewer hours a day at the settlement than on forest treks (source read as a summary only)."
+
+  farming:
+    summary: "Agta who farm vs forage is the one direct within-group comparison."
+    figures:
+      food_getting:
+        value: 4.3
+        range: [3.0, 5.5]
+        basis: "Agta who farm: ~30 h/week on work vs ~20 h/week for foragers (the paper's farming vs foraging work estimate), ~1.4 h/day more; ~4.3 h/day"
+        cite: ["Dyble et al. 2019, via Cambridge press release"]
+        check: secondary
+      social_leisure:
+        value: null
+        range: null
+        basis: "Leisure fell with farming engagement (the paper's finding). Size not read."
+        cite: ["Dyble et al. 2019"]
+        check: none
+    seasonal: "Agricultural peaks (planting, harvest) are the main seasonal driver; no hours read."
+    caution: "The only farming figure is from foragers who took up farming, not from long-established peasants. Do not generalise to ancient farmers."
+
+  herding:
+    summary: "Pastoralists. No figure read or recalled well enough to record."
+    figures: {}
+    gap: "Candidates to read: Turkana (Gray, Little), Maasai, Mongolian herders time-allocation studies."
+
+# A rough whole-day frame so a schedule always sums sensibly. This is a hedge, not a finding.
+human_baseline:
+  awake_hours: {value: 16, range: [14, 17], cite: [], check: recalled,
+    note: "Sleep of about 5.7-7.1 h a night in small-scale societies is recalled from Yetish et al. 2015 Curr Biol (Hadza, San, Tsimane). Verify before using; the sleep figure is the lowest-confidence row here."}

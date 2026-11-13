@@ -54,9 +54,12 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
         self.postMessage(
           { id: data.id, morph } satisfies GridReply,
           buffers([
-            ...Object.values(morph.attributes).map((attribute) => attribute.value),
+            ...Object.values(morph.attributes).map(
+              (attribute) => attribute.value,
+            ),
             morph.info.kind,
             morph.info.people,
+            morph.info.fromPeople,
           ]),
         );
       })

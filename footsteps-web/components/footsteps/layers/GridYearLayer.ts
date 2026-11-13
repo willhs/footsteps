@@ -177,14 +177,20 @@ export default class GridYearLayer extends CompositeLayer<Props> {
     destroy(this.state.data);
   }
 
-  /** Name the unit under the cursor: its kind and head count in the target year. */
+  /** Name a real group at the nearer endpoint, never an invisible future/past mark. */
   getPickingInfo({ info }: GetPickingInfoParams): PickingInfo {
     const unitInfo = this.state.data?.info;
-    if (unitInfo && info.index >= 0 && info.index < unitInfo.kind.length)
+    if (unitInfo && info.index >= 0 && info.index < unitInfo.kind.length) {
+      const people =
+        this.props.progress < 0.5
+          ? unitInfo.fromPeople[info.index]
+          : unitInfo.people[info.index];
+      if (!people) return { ...info, object: null };
       info.object = {
         kind: unitInfo.kind[info.index],
-        people: unitInfo.people[info.index],
+        people,
       };
+    }
     return info;
   }
 

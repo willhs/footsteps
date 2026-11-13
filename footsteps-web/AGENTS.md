@@ -15,6 +15,11 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   region around the viewport (`hooks/unitRegion.ts`), so a pan inside it costs nothing.
   Zoom changes uniforms/opacity, never the uploaded marks. `layers/units.ts` builds
   bands, villages and city glow; in-cell positions are invented and deterministic.
+- Unit marks represent at least 15 people; smaller cells still contribute to the
+  grid, glow and population totals but emit no group. Individual people use the
+  nearer year-morph endpoint, skip absent groups, and include an adult per group.
+  Portraits wait for the atlas (up to 2.5 seconds), then keep that illustration;
+  late atlas responses cannot replace it. Day requests are scoped to the person.
 - `?mode=units|grid|dots` is a debug override and shows the mode button.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium

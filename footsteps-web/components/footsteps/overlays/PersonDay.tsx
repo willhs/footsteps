@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 /** What the day API needs: the grounding facts for one clicked person. */
 export type DayRequest = {
@@ -11,7 +11,13 @@ export type DayRequest = {
   neighbourhoodPeople: number;
   densityClass: string;
   confidence: string;
-  person: { age: number; female: boolean; role: string; groupKind: number; groupPeople: number };
+  person: {
+    age: number;
+    female: boolean;
+    role: string;
+    groupKind: number;
+    groupPeople: number;
+  };
 };
 
 type Day = {
@@ -26,11 +32,17 @@ type Day = {
 /** "Imagine their day": a short, clearly speculative day written by Claude
  * from the facts on this card (deploy/budgie/api/day_api.py). */
 export default function PersonDay({ request }: { request: DayRequest }) {
+  return <PersonDayRequest key={JSON.stringify(request)} request={request} />;
+}
+
+function PersonDayRequest({ request }: { request: DayRequest }) {
   const [state, setState] = useState<
-    { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; day: Day } | { kind: 'error'; message: string }
+    | { kind: 'idle' }
+    | { kind: 'loading' }
+    | { kind: 'done'; day: Day }
+    | { kind: 'error'; message: string }
   >({ kind: 'idle' });
   const key = JSON.stringify(request);
-  useEffect(() => setState({ kind: 'idle' }), [key]);
 
   async function imagine() {
     setState({ kind: 'loading' });
@@ -44,7 +56,10 @@ export default function PersonDay({ request }: { request: DayRequest }) {
       if (!res.ok) throw new Error(body.error || 'The day service is not available.');
       setState({ kind: 'done', day: body as Day });
     } catch (e) {
-      setState({ kind: 'error', message: e instanceof Error ? e.message : 'Something went wrong.' });
+      setState({
+        kind: 'error',
+        message: e instanceof Error ? e.message : 'Something went wrong.',
+      });
     }
   }
 
@@ -77,15 +92,18 @@ export default function PersonDay({ request }: { request: DayRequest }) {
         ))}
       </dl>
       <p className="ov-note mt-3">
-        <span className="text-[var(--ov-text-2)]">Most uncertain:</span> {day.uncertainty}
+        <span className="text-[var(--ov-text-2)]">Most uncertain:</span>{' '}
+        {day.uncertainty}
       </p>
       {day.grounded_in.length > 0 && (
         <p className="ov-note mt-1.5">
-          <span className="text-[var(--ov-text-2)]">Shaped by:</span> {day.grounded_in.join('; ')}
+          <span className="text-[var(--ov-text-2)]">Shaped by:</span>{' '}
+          {day.grounded_in.join('; ')}
         </p>
       )}
       <p className="mt-2 text-[11px] text-[var(--ov-text-4)]">
-        Written by {day.model === 'demo' ? 'a placeholder (no API key yet)' : day.model}
+        Written by{' '}
+        {day.model === 'demo' ? 'a placeholder (no API key yet)' : day.model}
         {day.cached ? ' · from cache' : ''}
       </p>
     </div>

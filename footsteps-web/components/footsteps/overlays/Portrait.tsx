@@ -3,8 +3,8 @@
 // People-drawer: a layered SVG portrait built from a template. Inputs are the
 // imagined person (age, sex, role, band or village) and the anthropology atlas
 // record for their place and era (clothing colours and materials, hair styles,
-// ornaments, body paint, skin and hair palettes). While the record loads, or
-// where it has nothing, era and way of life choose from broad defaults and
+// ornaments, body paint, skin and hair palettes). When the record is unavailable
+// or has nothing, era and way of life choose from broad defaults and
 // skin/hair tones come from wide ranges nudged by latitude. Deterministic per
 // person and record. An illustration of the kind of person, never a likeness.
 
@@ -121,7 +121,13 @@ function Tool({ role, r }: { role: string; r: () => number }) {
 }
 
 export default function Portrait({ person, year, lat }: { person: Person; year: number; lat: number }) {
-  const rec = useAnthropology(lat, person.position[0], year);
+  const atlas = useAnthropology(lat, person.position[0], year);
+  if (atlas.kind === 'loading') return (
+    <div role="status" className="flex h-[120px] w-24 shrink-0 items-center justify-center rounded-[var(--ov-radius-sm)] bg-[#2a241d] p-3 text-center text-[11px] text-[var(--ov-text-3)]">
+      Preparing illustration…
+    </div>
+  );
+  const rec = atlas.rec;
   const seed = Math.round(person.position[0] * 1e5) ^ Math.round(person.position[1] * 1e5) ^ (person.id * 2654435761);
   const r = rng(seed);
   const child = person.age < 13;

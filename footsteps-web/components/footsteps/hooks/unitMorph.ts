@@ -11,8 +11,8 @@ export type MorphPoints = PointBuffers & {
     getTargetRadius: { value: Float32Array; size: 1 };
     getTargetFillColor: { value: Uint8ClampedArray; size: 4 };
   };
-  /** CPU-only, per mark: what a click on it names (the target year's group). */
-  info: { kind: Uint8Array; people: Float32Array };
+  /** CPU-only endpoint populations; zero means absent at that endpoint. */
+  info: { kind: Uint8Array; people: Float32Array; fromPeople: Float32Array };
 };
 export function isMorphPoints(
   points: PointBuffers | MorphPoints,
@@ -55,10 +55,7 @@ function color(
 /** Merge sorted stable unit IDs. Persistent marks occupy one vertex instance;
  * missing endpoints use alpha zero, with radii and colours interpolated on GPU.
  */
-export function buildUnitMorph(
-  from: Units,
-  to: Units,
-): MorphPoints {
+export function buildUnitMorph(from: Units, to: Units): MorphPoints {
   let a = 0;
   let b = 0;
   let length = 0;
@@ -76,6 +73,7 @@ export function buildUnitMorph(
   const targetColors = new Uint8ClampedArray(length * 4);
   const kinds = new Uint8Array(length);
   const people = new Float32Array(length);
+  const fromPeople = new Float32Array(length);
   a = 0;
   b = 0;
   for (let i = 0; i < length; i++) {
@@ -95,7 +93,8 @@ export function buildUnitMorph(
     color(colors, i, kind, oldPeople, hasOld);
     color(targetColors, i, kind, newPeople, hasNew);
     kinds[i] = hasNew ? to.kind[b] : kind;
-    people[i] = newPeople;
+    people[i] = hasNew ? newPeople : 0;
+    fromPeople[i] = hasOld ? oldPeople : 0;
     if (hasOld) a++;
     if (hasNew) b++;
   }
@@ -108,6 +107,6 @@ export function buildUnitMorph(
       getTargetRadius: { value: targetRadii, size: 1 },
       getTargetFillColor: { value: targetColors, size: 4 },
     },
-    info: { kind: kinds, people },
+    info: { kind: kinds, people, fromPeople },
   };
 }

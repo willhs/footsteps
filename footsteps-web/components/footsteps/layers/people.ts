@@ -5,7 +5,7 @@
 // people appear every time you look at the same place.
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
-import { UnitKind } from './units';
+import { MIN_GROUP_PEOPLE, UnitKind } from './units';
 
 export type Person = {
   id: number;
@@ -19,7 +19,12 @@ export type Person = {
   radius: number; // metres
 };
 
-export type GroupInView = { lon: number; lat: number; kind: number; people: number };
+export type GroupInView = {
+  lon: number;
+  lat: number;
+  kind: number;
+  people: number;
+};
 
 /** Per-group cap: a large village shows its first N people. */
 export const MAX_PER_GROUP = 160;
@@ -55,8 +60,23 @@ function sampleAge(r: () => number) {
   return 30;
 }
 
-const BAND_ROLES = ['forager', 'hunter', 'gatherer', 'toolmaker', 'fire-keeper', 'fisher'];
-const VILLAGE_ROLES = ['farmer', 'farmer', 'farmer', 'herder', 'potter', 'weaver', 'builder'];
+const BAND_ROLES = [
+  'forager',
+  'hunter',
+  'gatherer',
+  'toolmaker',
+  'fire-keeper',
+  'fisher',
+];
+const VILLAGE_ROLES = [
+  'farmer',
+  'farmer',
+  'farmer',
+  'herder',
+  'potter',
+  'weaver',
+  'builder',
+];
 
 function role(age: number, kind: number, r: () => number) {
   if (age < 5) return 'young child';
@@ -74,8 +94,9 @@ export function peopleForGroups(groups: GroupInView[]): Person[] {
   let id = 0;
   for (const g of groups) {
     if (g.kind !== UnitKind.Band && g.kind !== UnitKind.Village) continue;
+    if (g.people < MIN_GROUP_PEOPLE) continue;
     const r = rng(groupSeed(g.lon, g.lat));
-    const n = Math.min(MAX_PER_GROUP, Math.max(1, Math.round(g.people)));
+    const n = Math.min(MAX_PER_GROUP, Math.round(g.people));
     // camp/village spread in metres → degrees (longitude scaled by latitude)
     const spread = g.kind === UnitKind.Band ? 260 : 520;
     const mPerDegLat = 111_320;
@@ -91,7 +112,10 @@ export function peopleForGroups(groups: GroupInView[]): Person[] {
       const d = Math.sqrt(r()) * spread * 0.35;
       const x = hx + Math.cos(a) * d;
       const y = hy + Math.sin(a) * d;
-      const age = sampleAge(r);
+      const sampledAge = sampleAge(r);
+      // Put an adult first, including when the view's total cap truncates a group.
+      const age =
+        i === 0 && sampledAge < 18 ? 18 + Math.floor(r() * 37) : sampledAge;
       const female = r() < 0.5;
       const child = age < 13;
       const elder = age >= 55;
@@ -113,7 +137,13 @@ export function peopleForGroups(groups: GroupInView[]): Person[] {
 
 export function describePerson(p: Person) {
   const who =
-    p.age < 13 ? (p.female ? 'A girl' : 'A boy') : p.female ? 'A woman' : 'A man';
+    p.age < 13
+      ? p.female
+        ? 'A girl'
+        : 'A boy'
+      : p.female
+        ? 'A woman'
+        : 'A man';
   const group = p.groupKind === UnitKind.Band ? 'band' : 'village';
   return {
     title: `${who}, about ${p.age}`,

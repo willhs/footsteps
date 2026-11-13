@@ -5,6 +5,9 @@
 // are seeded by the cell alone, so a band stays put as you scrub through time.
 
 export const BAND_SIZE = 30; // people in a band
+// Residential forager groups are roughly 15–50 people (Pearce 2014, Table 1):
+// https://pmc.ncbi.nlm.nih.gov/articles/PMC4157217/
+export const MIN_GROUP_PEOPLE = 15;
 export const VILLAGE_SIZE = 300; // people in a village
 export const BAND_MAX_CELL = 600; // cells below this many people hold bands
 export const GLOW_MIN_CELL = 40_000; // cells above this are drawn as one glow
@@ -56,7 +59,13 @@ export function buildUnits(
     } else if (p < BAND_MAX_CELL) {
       k = UnitKind.Band;
       const x = p / BAND_SIZE; // stochastic rounding: expected count is exact
-      count = Math.floor(x) + (r < x - Math.floor(x) ? 1 : 0);
+      count =
+        p < MIN_GROUP_PEOPLE
+          ? 0
+          : Math.min(
+              Math.floor(p / MIN_GROUP_PEOPLE),
+              Math.max(1, Math.floor(x) + (r < x - Math.floor(x) ? 1 : 0)),
+            );
     } else {
       k = UnitKind.Village;
       count = Math.min(

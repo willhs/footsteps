@@ -16,7 +16,11 @@ import useYearCrossfade from './useYearCrossfade';
 import { bracket } from '@/lib/time';
 import GridYearLayer from '../layers/GridYearLayer';
 import GlowLayer, { ADDITIVE, LIGHTS, glowPair } from '../layers/GlowLayer';
-import { PeopleLayer, peopleForGroups, type GroupInView } from '../layers/people';
+import {
+  PeopleLayer,
+  peopleForGroups,
+  type GroupInView,
+} from '../layers/people';
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -109,7 +113,9 @@ export default function useGridLayer({
       .then(([a, b]) => {
         if (live) setPair({ a, b });
       })
-      .catch((error) => console.warn('[grid] failed to load pair', y0, y1, error));
+      .catch((error) =>
+        console.warn('[grid] failed to load pair', y0, y1, error),
+      );
     return () => {
       live = false;
     };
@@ -339,12 +345,16 @@ export default function useGridLayer({
   const boundsKey = bounds
     ? [bounds.west, bounds.south, bounds.east, bounds.north].map(snap).join()
     : '';
+  const peopleAtTarget = morphProgress >= 0.5;
   const people = useMemo(() => {
     if (!peopleOn || !morphScene || !bounds) return null;
     const pad = 0.05;
     const { west, south, east, north } = bounds;
     const pos = morphScene.data.attributes.getPosition.value;
-    const { kind, people: counts } = morphScene.data.info;
+    const { kind } = morphScene.data.info;
+    const counts = peopleAtTarget
+      ? morphScene.data.info.people
+      : morphScene.data.info.fromPeople;
     const groups: GroupInView[] = [];
     for (let i = 0; i < kind.length; i++) {
       const lon = pos[i * 2];
@@ -354,7 +364,7 @@ export default function useGridLayer({
     }
     return peopleForGroups(groups);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleOn, morphScene, boundsKey]);
+  }, [peopleOn, morphScene, boundsKey, peopleAtTarget]);
   const peopleLayer = useMemo(
     () => (people ? new PeopleLayer({ id: 'people', data: people }) : null),
     [people],
@@ -393,7 +403,12 @@ export default function useGridLayer({
             ]
           : []),
         ...(peopleLayer
-          ? [peopleLayer.clone({ opacity: blend.people, visible: blend.people > 0 })]
+          ? [
+              peopleLayer.clone({
+                opacity: blend.people,
+                visible: blend.people > 0,
+              }),
+            ]
           : []),
       ];
     }

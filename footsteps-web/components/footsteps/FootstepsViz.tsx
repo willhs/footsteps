@@ -221,6 +221,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         {peopleView && peopleOn && selectedPlace && (
           <GroundingPanel
             facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
+            place={{ lat: selectedPlace[1], lon: selectedPlace[0], year: Math.round(time) }}
             group={
               selectedGroup && {
                 label: UNIT_KIND_LABEL[selectedGroup.kind] ?? 'A group',

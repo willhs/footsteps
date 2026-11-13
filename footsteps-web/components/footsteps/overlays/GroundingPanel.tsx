@@ -1,4 +1,5 @@
 import type { GroundingFacts } from '../layers/grounding';
+import EvidenceNearby from './EvidenceNearby';
 import PersonDay, { type DayRequest } from './PersonDay';
 import Portrait from './Portrait';
 import type { Person } from '../layers/people';
@@ -10,6 +11,7 @@ export default function GroundingPanel({
   person,
   day,
   portrait,
+  place,
   onClose,
 }: {
   facts: GroundingFacts | null;
@@ -21,6 +23,8 @@ export default function GroundingPanel({
   day?: DayRequest | null;
   /** The selected person, for their illustrated portrait. */
   portrait?: { person: Person; year: number; lat: number } | null;
+  /** The clicked place and slider year, for the dated sites nearby. */
+  place?: { lat: number; lon: number; year: number } | null;
   onClose: () => void;
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
@@ -86,6 +90,8 @@ export default function GroundingPanel({
         ) : (
           <p className="ov-body">Population image for this year is not loaded yet.</p>
         )}
+
+        {place && <EvidenceNearby lat={place.lat} lon={place.lon} year={place.year} />}
       </div>
     </section>
   );

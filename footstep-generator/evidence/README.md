@@ -48,3 +48,10 @@ Needs numpy and pandas. Everything under `data/` is git-ignored: rebuild, do not
   grouped by name and point and never merged into a precise site by name.
 - **Attribution:** p3k14c records no hominin. Every site is unattributed; the export says so.
 - **Counts are effort, not people.** Never sum dates or sites into a population.
+
+## In the web app
+
+The details panel lists nearby dated sites ("Evidence nearby"): the nearest within 150 km whose range
+overlaps ±500 years of the slider year. `footsteps-web/lib/evidence.ts` fetches the file only when the
+panel opens. To serve it: `mkdir -p footsteps-web/public/evidence && cp data/evidence/p3k14c_sites.json.gz footsteps-web/public/evidence/`
+(git-ignored, like the grid images). Without it the panel says the file is not available.

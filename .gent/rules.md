@@ -44,6 +44,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.
+  `evidence/aadr.py`: AADR ancient-DNA individuals (date, place, hominin) as a second kind of evidence
+  (`data/evidence/aadr_samples.json.gz`); not used by the app yet. See its README and research 0010.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.

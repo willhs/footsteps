@@ -5,6 +5,7 @@ import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
 import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { TERRAIN_YEARS } from '@/lib/constants';
 import { clampTime, terrainBracket } from '@/lib/time';
+import TerrainReliefLayer from '../layers/TerrainReliefLayer';
 
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
@@ -151,6 +152,7 @@ export default function useTerrainLayers(time: number, enabled: boolean): Layer[
       }),
     );
   }
+  layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f }));
   if (coast.length) {
     layers.push(
       new PathLayer<[number, number][]>({

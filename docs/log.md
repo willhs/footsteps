@@ -51,6 +51,12 @@ shelf gain people. Radiocarbon check: 28-47% of dated African sites are in the S
 Method and limits: [hyde-climate-spread](ops/hyde-climate-spread.md). `terrain_image.sahara_extent` and
 `Model.climate_npp/adjust_npp` were factored out for it (no behaviour change).
 
+## [2026-11-14] update | High-zoom terrain relief
+
+Era colours now carry a cached Terrarium hillshade overlay from zoom 5, including
+exposed shelves, plus illustrative surface grain. Source credits, colour-mask
+limits and the real-GPU verification command are in [terrain images](ops/terrain-images.md).
+
 ## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
 
 `footstep-generator/fauna/`: PHYLACINE 1.2.1 present-natural ranges (CC0, not CC BY as the task said) for 329 land

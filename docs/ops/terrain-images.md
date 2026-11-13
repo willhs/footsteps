@@ -2,6 +2,7 @@
 id: terrain-images
 type: reference
 purpose: "Sources, method and regeneration of the per-era Earth terrain images"
+updated: 2026-11-14
 ---
 
 # Terrain images
@@ -82,6 +83,53 @@ The client dims the images (`tintColor` 230, `desaturate` 0.1), draws a faint mo
 coastline (`world-simple.geojson`, Natural Earth 110m land, stroked) and puts the
 source note in the legend.
 
+### High-zoom relief (2026-11-14)
+
+`TerrainReliefLayer.ts` overlays cool-toned hillshade, fading in over zoom 5–7.
+It fetches 256px [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)
+in [Terrarium encoding](https://github.com/tilezen/joerd/blob/master/docs/formats.md),
+through zoom 15 (nominal ~30 m at the equator); actual source resolution varies,
+and ocean bathymetry is much coarser. No modern satellite tiles are fetched.
+Credit: [Mapzen and upstream elevation providers](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
+
+Elevation is independent of the selected year. The viewport tile cache is capped
+at 100 tiles with six requests in flight, and survives scrubbing. A composite owns
+only two shared GPU era textures; individual tiles never upload global images.
+The fragment shader calculates slopes in metres with latitude correction and
+uses a one-sided derivative at tile borders. Neutral flat ground adds no shade.
+
+The water mask comes from the **displayed era colours** (blue oceans/lakes), not
+a modern coastline or a separate sea-level cutoff. Each endpoint is masked before
+cross-fading: exposed shelves receive bathymetric relief while blue sea stays flat.
+This follows the image's Spratt/Krapp coast and ice overrides at its existing
+resolution. It is a colour-derived mask, not a new exact land classification.
+Modern bed topography is an approximation for past terrain, especially under ice.
+
+Fine, world-anchored grain fades in over zoom 6–8, with derivative filtering to
+avoid subpixel shimmer. Sand/grass/forest-like classes are inferred from era
+colour, **not** a high-resolution biome map; this grain is illustrative and does
+not locate real plants, fields or settlements. Snow suppresses it. The legend
+states this distinction. A new per-era image pyramid was rejected because it
+would increase generation work and scrub bandwidth; a separate elevation cutoff
+was rejected because it would disagree with Krapp's land/ice overrides.
+
+To capture the requested Alps/coast scenes (20,000 BCE and 1500 CE at zoom 6/8/10),
+an exposed Channel shelf, all people modes, and scrub timings on a real GPU:
+
+```bash
+# Serve a production export first; data can also be supplied locally.
+DATA_ORIGIN=https://footsteps.willhs.me node footsteps-web/scripts/verify-terrain.mjs \
+  http://localhost:4600 /absolute/path/to/evidence/terrain
+```
+
+`DATA_ORIGIN` is a verification-only browser route for fresh checkouts. Production
+still serves era/population data from the same origin. The script asserts that
+scrubbing issues zero further DEM requests and records browser errors.
+Set `BASELINE_ORIGIN=https://footsteps.willhs.me` to record the same scrub against
+the deployed version. Timings use a headed Chromium with Metal, not software
+rendering. The existing query-driven view-state hydration mismatch is retained
+separately as `knownHydrationErrors`; shader and other runtime errors fail the run.
+
 ## Publish
 
 ```bash
@@ -96,3 +144,10 @@ scripts/smoke.sh https://footsteps.willhs.me   # checks terrain/earth_{year}.web
   one global sea level against today's elevation, so regional sea level (ice loading,
   rebound) is not modelled.
 - The modern coastline line is Natural Earth 110m, coarse when zoomed in.
+- Relief does not sharpen the underlying 2048 × 1024 era coast or biome boundaries.
+  Blue-dominance masking can fade relief in mixed coastal pixels; exact categorical
+  masking would require an additional generated land/ice mask.
+- Close globe view currently loses much of the base era colour; this was also
+  reproduced on the deployed baseline during verification. Map-view screenshots
+  demonstrate the high-zoom colour/relief combination; globe screenshots alone
+  do not prove era-colour fidelity.

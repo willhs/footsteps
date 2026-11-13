@@ -388,6 +388,8 @@ function TerrainNote() {
       Land, sea and ice reconstructed from climate and ice models (Krapp et al. 2021),
       coloured from NASA Blue Marble; the green Sahara is drawn from the literature.
       Faint line: today&apos;s coast.
+      Relief: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noreferrer">Mapzen / AWS Terrain Tiles</a> (modern elevation, including seabed).
+      Fine surface grain is illustrative.
     </span>
   );
 }

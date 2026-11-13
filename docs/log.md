@@ -34,6 +34,15 @@ Thresholds are coarse display choices, not findings; HYDE's cropland is itself a
 `wayOfLife` (0.5° cell, 5% crop) still has its own thresholds and can disagree with a 5′ mark. Years before HYDE
 have no land use, so everyone is drawn as a forager.
 
+## [2026-11-14] add | Food over time (crop and livestock domestication and spread)
+
+`footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (domestication centres, first dates, 529
+dated spread claims in 88 named boxes, the Columbian exchange), pooled with HYDE land use and the Krapp biome (from the habitat
+tiles) into `data/food/food.json.gz` (35 KB, gitignored): for each 5 degree cell and HYDE era, which domesticates were
+present, whether HYDE sees farming, and forager staples by biome. 328 of 529 claims are low-confidence front estimates
+and only 19 were confirmed even against a web summary. Not wired into the app. Method and limits: [food](ops/food.md);
+findings and how the hover card or a "what's on the plate" view could use it: [research 0008](research/0008-food-over-time/research.md).
+
 ## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
 
 `footstep-generator/fauna/`: PHYLACINE 1.2.1 present-natural ranges (CC0, not CC BY as the task said) for 329 land

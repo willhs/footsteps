@@ -38,6 +38,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/anthropology/ethnography.py`: D-PLACE (Ethnographic Atlas, SCCS, Binford, TEOW, ecoClimate) → 1,404 societies with 25 variables
   (`ethnography.json.gz`, committed) and `nearest_analogs`, the 3 most similar societies for a place, year and way of life, with a score and a plain
   "the ethnographic present is not the past" caveat. Not used by the app or API yet. See `docs/ops/ethnography.md`.
+- `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
+  tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
+  staples by biome. A modelled dataset (most dates recalled, see its `checked` flag); not used by the app yet. See `docs/ops/food.md`, research 0008.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.

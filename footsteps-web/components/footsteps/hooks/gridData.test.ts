@@ -58,7 +58,6 @@ test('upsamples a modelled 0.5° cell to 36 cells of the HYDE grid, keeping its 
   const grid = await decodeYearGrid(-50000);
   expect(grid.data.cellDeg).toBeCloseTo(360 / 4320);
   expect(grid.data.length).toBe(36);
-  expect(Math.round(grid.glow.width)).toBe(4320);
   expect(Array.from(grid.data.cellIds)).toEqual(
     Array.from({ length: 36 }, (_, k) => (600 + Math.floor(k / 6)) * 4320 + 2400 + (k % 6)),
   );

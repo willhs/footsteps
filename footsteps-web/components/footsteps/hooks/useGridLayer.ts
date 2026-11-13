@@ -15,7 +15,6 @@ import {
 import useYearCrossfade from './useYearCrossfade';
 import { bracket } from '@/lib/time';
 import GridYearLayer from '../layers/GridYearLayer';
-import GlowLayer, { ADDITIVE, LIGHTS, glowPair } from '../layers/GlowLayer';
 import {
   PeopleLayer,
   peopleForGroups,
@@ -37,13 +36,11 @@ type Scene = {
 const regionKey = (r: Region) => `${r.west},${r.south},${r.east},${r.north}`;
 
 /** People drawn from the per-year population images. In `auto` the look follows
- * zoom (see peopleView.ts): a density glow texture far out, unit marks for the
+ * zoom (see peopleView.ts): firelight (drawn elsewhere, faded by `blend.glow`) far out, unit marks for the
  * cells around the viewport closer in, cross-faded in between. */
 export default function useGridLayer({
   year,
   time,
-  onTerrain = false,
-  glowHidden = false,
   enabled,
   mode = 'auto',
   view = { longitude: 0, latitude: 0, zoom: 1 },
@@ -54,12 +51,8 @@ export default function useGridLayer({
   setMetricsLoading,
 }: {
   year: number;
-  /** Continuous year: when set, the glow mixes the data years either side. */
+  /** Continuous year: when set, units morph between the data years either side. */
   time?: number;
-  /** Satellite terrain is under the people: raise the glow's minimum brightness. */
-  onTerrain?: boolean;
-  /** Another layer (firelight) stands in for the glow: keep it loaded, don't draw it. */
-  glowHidden?: boolean;
   enabled: boolean;
   mode?: GridMode;
   view?: View;
@@ -97,30 +90,8 @@ export default function useGridLayer({
   // side of `time` (below), so the discrete year cross-fade is off for them.
   const unitsContinuous = time !== undefined && marksOn && style === 'units';
   const frames = useYearCrossfade(ready, marksOn && !unitsContinuous);
-  const continuous = time !== undefined;
-  const glowFrames = useYearCrossfade(
-    grid?.year === year ? grid : null,
-    enabled && mode === 'auto' && !continuous,
-  );
-  // Continuous time: keep the two data years either side of `time` decoded.
+  // Continuous time: the data years either side of `time`.
   const { y0, y1, f } = bracket(time ?? year);
-  const [pair, setPair] = useState<{ a: YearGrid; b: YearGrid } | null>(null);
-  useEffect(() => {
-    // Firelight replaces the glow: don't spend the decoder on a hidden layer.
-    if (!continuous || !enabled || mode !== 'auto' || glowHidden) return;
-    let live = true;
-    Promise.all([loadGrid(y0), loadGrid(y1)])
-      .then(([a, b]) => {
-        if (live) setPair({ a, b });
-      })
-      .catch((error) =>
-        console.warn('[grid] failed to load pair', y0, y1, error),
-      );
-    return () => {
-      live = false;
-    };
-  }, [continuous, enabled, mode, glowHidden, y0, y1]);
-
   const [morphScene, setMorphScene] = useState<{
     y0: number;
     y1: number;
@@ -306,37 +277,7 @@ export default function useGridLayer({
     [first, second, staging, ready],
   );
 
-  // One glow layer for the (from, to) pair; the texture is rebuilt only when
-  // the pair of years changes, not every fade frame.
-  const glowFrom = continuous ? pair?.a : glowFrames[0]?.snapshot;
-  const glowTo = continuous ? pair?.b : glowFrames[glowFrames.length - 1]?.snapshot;
-  // While the next pair decodes, hold the old one at its nearer end.
-  const pairCurrent = pair?.a.year === y0 && pair?.b.year === y1;
-  const glowProgress = continuous
-    ? pairCurrent
-      ? f
-      : pair && (time ?? year) > pair.b.year
-        ? 1
-        : 0
-    : glowFrames.length > 1
-      ? glowFrames[1].opacity
-      : 1;
-  const glowSize: [number, number] = glowTo
-    ? [glowTo.glow.width, glowTo.glow.height]
-    : [1, 1];
-  const glowLayer = useMemo(
-    () =>
-      glowTo && glowFrom
-        ? new GlowLayer({
-            id: 'glow',
-            image: glowPair(glowFrom.glow, glowTo.glow),
-          })
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [glowFrom?.year, glowTo?.year],
-  );
-
-  const { glow, units, minPx, brightness, pickable } = blend;
+  const { units, minPx, brightness, pickable } = blend;
 
   // Street-level zoom: the bands and villages in view become individual people.
   const peopleOn = unitsContinuous && blend.people > 0 && !!morphScene;
@@ -371,23 +312,8 @@ export default function useGridLayer({
   );
   const layerList = useMemo(() => {
     if (!enabled) return [];
-    const glowList = glowLayer
-      ? [
-          glowLayer.clone({
-            progress: glowProgress,
-            floor: 0.1,
-            // Over natural-colour terrain, people are night lights.
-            lights: onTerrain,
-            size: glowSize,
-            parameters: onTerrain ? LIGHTS : ADDITIVE,
-            opacity: glow,
-            visible: glow > 0 && !glowHidden,
-          }),
-        ]
-      : [];
     if (unitsContinuous) {
       return [
-        ...glowList,
         ...(morphLayer
           ? [
               morphLayer.clone({
@@ -436,20 +362,14 @@ export default function useGridLayer({
             },
       );
     });
-    return [...glowList, ...markList];
+    return markList;
   }, [
     enabled,
-    glowHidden,
-    glowLayer,
-    glowProgress,
-    onTerrain,
-    glowSize,
     unitsContinuous,
     morphLayer,
     morphProgress,
     peopleLayer,
     blend.people,
-    glow,
     layers,
     frames,
     first,
@@ -459,10 +379,7 @@ export default function useGridLayer({
     brightness,
     pickable,
   ]);
-  // What the view is waiting on: the glow's data-year pair, and zoomed in,
-  // the unit morph for the visible region.
-  const glowWaiting =
-    continuous && enabled && mode === 'auto' && glow > 0 && !glowHidden && !pairCurrent;
+  // What the view is waiting on: zoomed in, the unit morph for the visible region.
   const unitsWaiting =
     unitsContinuous &&
     units > 0 &&
@@ -476,6 +393,6 @@ export default function useGridLayer({
     layers: layerList,
     grid: enabled && grid?.year === year ? grid.data : null,
     blend,
-    loading: glowWaiting || unitsWaiting ? [y0, y1] : null,
+    loading: unitsWaiting ? [y0, y1] : null,
   };
 }

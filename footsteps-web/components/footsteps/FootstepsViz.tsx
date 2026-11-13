@@ -123,9 +123,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const { layers: gridLayers, grid, blend, loading } = useGridLayer({
     year,
     time,
-    onTerrain: showTerrain,
-    // Firelight replaces the density glow.
-    glowHidden: true,
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,

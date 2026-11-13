@@ -3,19 +3,6 @@ import useGridLayer, { loadGrid } from './useGridLayer';
 import type { Units } from '../layers/units';
 
 // Exercise the hook's layer inputs without requiring WebGL in jsdom.
-jest.mock('../layers/GlowLayer', () => ({
-  __esModule: true,
-  glowPair: (_from: unknown, to: unknown) => to,
-  default: class {
-    props: Record<string, unknown>;
-    constructor(props: Record<string, unknown>) {
-      this.props = props;
-    }
-    clone(props: Record<string, unknown>) {
-      return { props: { ...this.props, ...props } };
-    }
-  },
-}));
 jest.mock('../layers/people', () => ({
   __esModule: true,
   peopleForGroups: () => [],

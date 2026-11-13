@@ -7,10 +7,6 @@ import { classifyCell } from '@/lib/waysOfLife';
 const MAX_PEOPLE = 5_000_000;
 const LEVELS = 1023;
 const LOG_MAX = Math.log1p(MAX_PEOPLE);
-// Rows beyond this latitude are left out of the glow image: Web Mercator cannot
-// draw the poles, and HYDE records almost nobody there.
-export const GLOW_MAX_LAT = 85;
-
 export type GridData = {
   length: number;
   positions: Float32Array;
@@ -30,19 +26,9 @@ export type PointBuffers = {
   };
 };
 
-/** One byte per cell: 255 * log1p(people) / log1p(MAX_PEOPLE), rows ±GLOW_MAX_LAT.
- * The GPU turns it into colour, so a year costs one texture whatever its size. */
-export type GlowImage = {
-  data: Uint8Array;
-  width: number;
-  height: number;
-  format: 'r8unorm';
-};
-
 export type YearGrid = {
   year: number;
   data: GridData;
-  glow: GlowImage;
   units: Pick<Units, 'length' | 'counts'>;
   gridPoints: PointBuffers;
 };
@@ -50,7 +36,7 @@ export type DecodedYearGrid = YearGrid & { units: Units };
 
 /** HYDE images are 4320 × 2160 (5′ cells). The modelled pre-HYDE images are
  * 720 × 360 (0.5°); they are decoded as 6 × 6 blocks of 5′ cells so every year
- * shares one cell grid: unit ids, the glow texture and the year morph all
+ * shares one cell grid: unit ids and the year morph all
  * assume it. Each sub-cell takes an equal share of its block's people. */
 const HYDE_WIDTH = 4320;
 const isModelled = (year: number) => year < TARGET_YEARS[0];
@@ -125,7 +111,6 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
-  glow: GlowImage,
 ): DecodedYearGrid {
   const units = buildUnits(
     data.cellIds,
@@ -144,7 +129,6 @@ export function prepareYearGrid(
   return {
     year,
     data,
-    glow,
     units,
     gridPoints: points(data.positions, gridRadii, gridColors),
   };
@@ -175,13 +159,6 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   const cellIds = new Uint32Array(length);
   const ways = new Uint8Array(length);
   const cellDeg = 360 / w;
-  const crop = Math.min(Math.floor(h / 2), Math.round((90 - GLOW_MAX_LAT) / cellDeg));
-  const glow: GlowImage = {
-    data: new Uint8Array(w * (h - 2 * crop)),
-    width: w,
-    height: h - 2 * crop,
-    format: 'r8unorm',
-  };
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
@@ -189,11 +166,6 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
     for (let col = 0; col < w; col++) {
       const value = levels[sourceRow + Math.floor(col / scale)];
       if (!value) continue;
-      if (row >= crop && row < h - crop)
-        glow.data[(row - crop) * w + col] = Math.max(
-          1,
-          Math.round((value * 255) / LEVELS),
-        );
       const population = Math.expm1((value / LEVELS) * LOG_MAX);
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
@@ -210,6 +182,5 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   return prepareYearGrid(
     year,
     { length, positions, people, cellIds, ways, cellDeg, total },
-    glow,
   );
 }

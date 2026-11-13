@@ -76,7 +76,6 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [
-        snapshot.glow.data,
         snapshot.data.positions,
         snapshot.data.people,
         snapshot.data.cellIds,

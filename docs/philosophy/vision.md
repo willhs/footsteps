@@ -21,6 +21,8 @@ Me, mostly. It's a personal way to explore history. Others are welcome, but I do
 
 Today people cover 10,000 BCE to 1900 CE (HYDE 3.5, 30 years) and the Earth goes back to 100,000 BCE. The aim is people from 100,000 BCE to today.
 
+Beyond where and how many, [human-constants.md](human-constants.md) lists the parts of life every human has had (daily routine, food, groups, ritual, conflict, trade and more) that Footsteps could show.
+
 ## What it should feel like
 
 Exploring. Scrub time, zoom from the whole planet to a single camp fire, and follow whatever catches your eye. Panning, zooming and scrubbing are smooth and quick, with no pops or waits.

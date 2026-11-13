@@ -7,6 +7,7 @@ function grid(entries: [number, number][]): GridData {
     length: entries.length, cellDeg: 1, total: entries.reduce((s, e) => s + e[1], 0),
     cellIds: Uint32Array.from(entries.map(e => e[0])),
     people: Float32Array.from(entries.map(e => e[1])), positions: new Float32Array(entries.length * 2),
+    ways: new Uint8Array(entries.length),
   };
 }
 

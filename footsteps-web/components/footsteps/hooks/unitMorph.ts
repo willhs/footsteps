@@ -1,10 +1,12 @@
-import { UnitKind, type Units } from '../layers/units';
+import { UnitKind, WAY_OF_KIND, type Units } from '../layers/units';
+import { LOOKS } from '@/lib/waysOfLife';
 import type { PointBuffers } from './gridData';
 
 // Alpha at full brightness. Zoom dims bands and villages with a uniform
 // (`brightness`), so changing zoom never rebuilds or re-uploads marks.
 export const BAND_ALPHA = 200;
 export const VILLAGE_ALPHA = 150;
+export const CAMP_ALPHA = 180;
 
 export type MorphPoints = PointBuffers & {
   attributes: PointBuffers['attributes'] & {
@@ -25,9 +27,12 @@ function radius(kind: number, people: number) {
     ? 600
     : kind === UnitKind.Village
       ? 1500
-      : Math.min(Math.sqrt(people) * 45, 30_000);
+      : kind === UnitKind.Camp
+        ? 900
+        : Math.min(Math.sqrt(people) * 45, 30_000);
 }
 
+/** A mark's colour is its way of life's (lib/waysOfLife.ts); alpha sets its weight. */
 function color(
   colors: Uint8ClampedArray,
   index: number,
@@ -36,20 +41,18 @@ function color(
   present: boolean,
 ) {
   const offset = index * 4;
-  colors[offset] = kind === UnitKind.Glow ? 60 : 255;
-  colors[offset + 1] =
-    kind === UnitKind.Band ? 190 : kind === UnitKind.Village ? 225 : 230;
-  colors[offset + 2] =
-    kind === UnitKind.Band ? 110 : kind === UnitKind.Village ? 160 : 255;
+  colors.set(LOOKS[WAY_OF_KIND[kind as keyof typeof WAY_OF_KIND]].rgb, offset);
   colors[offset + 3] = !present
     ? 0
     : kind === UnitKind.Band
       ? BAND_ALPHA
       : kind === UnitKind.Village
         ? VILLAGE_ALPHA
-        : Math.round(
-            140 + 115 * Math.min(Math.log1p(people) / Math.log1p(1_000_000), 1),
-          );
+        : kind === UnitKind.Camp
+          ? CAMP_ALPHA
+          : Math.round(
+              140 + 115 * Math.min(Math.log1p(people) / Math.log1p(1_000_000), 1),
+            );
 }
 
 /** Merge sorted stable unit IDs. Persistent marks occupy one vertex instance;

@@ -21,12 +21,13 @@ out float vCore; // the mark's own radius as a share of the drawn sprite
 out float vSeed; // per-mark phase for the flicker
 out float vFire; // 1 = small, fire-like (halo, hot core, flicker); 0 = settled disc
 void main(void) {
-  // Life: bands (orange: green channel < 0.8) wander slowly around their
-  // camp, villages sway a little, everything breathes. Seeded by position,
-  // so each group keeps its own rhythm.
+  // Life: the kind is read from the colour (lib/waysOfLife.ts keeps the palette
+  // to this): bands and herding camps (green channel < 0.8) wander slowly around
+  // their camp, villages sway a little, everything breathes. Seeded by
+  // position, so each group keeps its own rhythm.
   vec4 kindColor = instanceTargetFillColors;
   bool isCity = kindColor.r < 0.5;
-  bool isBand = !isCity && kindColor.g < 0.8;
+  bool isBand = !isCity && kindColor.g < 0.8; // mobile: foragers and herders
   float h = fract(sin(dot(instancePositions.xy, vec2(12.9898, 78.233))) * 43758.5453);
   float t = morph.time;
   // Close in, groups settle where they are (morph.settle -> 0).

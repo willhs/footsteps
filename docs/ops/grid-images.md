@@ -72,4 +72,16 @@ generated images without deleting existing years; superseded `humans_*.png` are
 removed after sync. This allows a land-use-only checkout to publish safely.
 Caddy serves the files at `https://footsteps.willhs.me/grid/` with a one-day cache. Smoke checks file
 signatures (WebP/PNG) for all 30 population and land-use images, plus the
-existing PMTiles and app checks. The client does not consume land-use images yet.
+existing PMTiles and app checks. The client loads each HYDE year's `landuse_{year}.png` beside its `humans_{year}.webp` and classes
+every populated cell as foraging, farming, herding or urban (below).
+
+## Way of life (how the client reads land use)
+
+`footsteps-web/lib/waysOfLife.ts` decides, per populated 5′ cell, in this order: people ≥ 40,000 → urban
+(a glow); cropland share ≥ 2% → farmer; grazing share ≥ 10% → herder; otherwise forager, except that a
+cell with ≥ 600 people is settled (farmer) because nobody forages at ~7 people/km². Foragers are drawn
+as bands (~30 people), farmers as villages (~300), herders as camps (~60); far out, each firelight mark
+takes its cell's colour. Years before HYDE (the modelled images) have no land use, so everyone forages.
+The class is a display reading of HYDE, not a record of any one group. If `landuse_{year}.png` is missing
+the people still load and are classed by head count alone (console warning). Shares of the world's people
+by class at 10,000 BCE, 1000 BCE and 1900 CE, and the threshold choices, are in `docs/log.md`.

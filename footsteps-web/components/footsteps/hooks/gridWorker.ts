@@ -80,6 +80,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
         snapshot.data.positions,
         snapshot.data.people,
         snapshot.data.cellIds,
+        snapshot.data.ways,
         snapshot.gridPoints.attributes.getRadius.value,
         snapshot.gridPoints.attributes.getFillColor.value,
       ];

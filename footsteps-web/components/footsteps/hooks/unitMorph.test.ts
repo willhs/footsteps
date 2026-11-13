@@ -1,4 +1,5 @@
 import { buildUnits } from '../layers/units';
+import { classifyCell } from '@/lib/waysOfLife';
 import { buildUnitMorph } from './unitMorph';
 
 const units = (people: number) =>
@@ -7,6 +8,7 @@ const units = (people: number) =>
     new Float32Array([10, 20]),
     new Float32Array([people]),
     0.1,
+    new Uint8Array([classifyCell(people, 0, 0)]), // no land use: dense cells are settled
   );
 const alpha = (colors: Uint8ClampedArray) =>
   Array.from(colors).filter((_, index) => index % 4 === 3);

@@ -5,7 +5,8 @@
 // people appear every time you look at the same place.
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
-import { MIN_GROUP_PEOPLE, UnitKind } from './units';
+import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
+import { LOOKS } from '@/lib/waysOfLife';
 
 export type Person = {
   id: number;
@@ -13,7 +14,7 @@ export type Person = {
   age: number;
   female: boolean;
   role: string;
-  groupKind: number; // UnitKind.Band | UnitKind.Village
+  groupKind: number; // UnitKind.Band | Village | Camp
   groupPeople: number;
   color: [number, number, number, number];
   radius: number; // metres
@@ -68,6 +69,7 @@ const BAND_ROLES = [
   'fire-keeper',
   'fisher',
 ];
+const CAMP_ROLES = ['herder', 'herder', 'herder', 'shepherd', 'milker', 'weaver', 'tanner'];
 const VILLAGE_ROLES = [
   'farmer',
   'farmer',
@@ -82,7 +84,8 @@ function role(age: number, kind: number, r: () => number) {
   if (age < 5) return 'young child';
   if (age < 13) return 'child';
   if (age >= 55) return 'elder';
-  const roles = kind === UnitKind.Band ? BAND_ROLES : VILLAGE_ROLES;
+  const roles =
+    kind === UnitKind.Band ? BAND_ROLES : kind === UnitKind.Camp ? CAMP_ROLES : VILLAGE_ROLES;
   return roles[Math.floor(r() * roles.length)];
 }
 
@@ -93,18 +96,18 @@ export function peopleForGroups(groups: GroupInView[]): Person[] {
   const out: Person[] = [];
   let id = 0;
   for (const g of groups) {
-    if (g.kind !== UnitKind.Band && g.kind !== UnitKind.Village) continue;
+    if (g.kind === UnitKind.Glow) continue;
     if (g.people < MIN_GROUP_PEOPLE) continue;
     const r = rng(groupSeed(g.lon, g.lat));
     const n = Math.min(MAX_PER_GROUP, Math.round(g.people));
     // camp/village spread in metres → degrees (longitude scaled by latitude)
-    const spread = g.kind === UnitKind.Band ? 260 : 520;
+    const spread = g.kind === UnitKind.Village ? 520 : 260; // camps are as tight as bands
     const mPerDegLat = 111_320;
     const mPerDegLon = mPerDegLat * Math.max(0.2, Math.cos((g.lat * Math.PI) / 180));
     for (let i = 0; i < n; i++) {
       if (out.length >= MAX_PEOPLE) return out;
       // clustered around a few hearths/houses
-      const hearth = Math.floor(r() * (g.kind === UnitKind.Band ? 4 : 10));
+      const hearth = Math.floor(r() * (g.kind === UnitKind.Village ? 10 : 4));
       const hr = rng(groupSeed(g.lon, g.lat) + hearth * 7919);
       const hx = (hr() - 0.5) * spread * 1.2;
       const hy = (hr() - 0.5) * spread * 1.2;
@@ -144,7 +147,7 @@ export function describePerson(p: Person) {
       : p.female
         ? 'A woman'
         : 'A man';
-  const group = p.groupKind === UnitKind.Band ? 'band' : 'village';
+  const group = LOOKS[WAY_OF_KIND[p.groupKind as keyof typeof WAY_OF_KIND]].mark;
   return {
     title: `${who}, about ${p.age}`,
     detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people.`,

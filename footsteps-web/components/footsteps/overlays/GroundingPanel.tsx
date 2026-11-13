@@ -4,6 +4,7 @@ import PersonDay, { type DayRequest } from './PersonDay';
 import Portrait from './Portrait';
 import type { Person } from '../layers/people';
 import { CloseIcon } from '@/components/ui/icons';
+import { cssRgb, LOOKS } from '@/lib/waysOfLife';
 
 export default function GroundingPanel({
   facts,
@@ -81,14 +82,20 @@ export default function GroundingPanel({
               <dd>≈ {count(facts.people)}</dd>
               <dt>3×3 neighbourhood</dt>
               <dd>≈ {count(facts.neighbourhoodPeople)}</dd>
-              <dt>Density class</dt>
-              <dd className="capitalize">{facts.densityClass}</dd>
+              <dt>Way of life</dt>
+              <dd>
+                {facts.way === null ? (
+                  'No one recorded'
+                ) : (
+                  <span style={{ color: cssRgb(facts.way) }}>{LOOKS[facts.way].name}</span>
+                )}
+              </dd>
             </dl>
             <p className="ov-body mt-3">{facts.confidence}</p>
             <p className="ov-note mt-2">
               {modelled
-                ? 'Counts are the model\'s, not observations. Zero means the model puts no one here, not confirmed absence. Band placements are illustrative.'
-                : 'Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Band/village placements are illustrative.'}
+                ? 'Counts are the model\'s, not observations. Zero means the model puts no one here, not confirmed absence. The model has no land use, so everyone is drawn as a forager. Band placements are illustrative.'
+                : 'Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Way of life is read from HYDE cropland and grazing in the cell, not recorded for any one group. Group placements are illustrative.'}
             </p>
           </div>
         ) : (

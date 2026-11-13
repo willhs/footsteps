@@ -1,4 +1,5 @@
 import { buildUnits } from '../layers/units';
+import { WayOfLife } from '@/lib/waysOfLife';
 import { buildUnitMorph } from './unitMorph';
 import { sliceUnits, WORLD } from './unitRegion';
 
@@ -12,6 +13,7 @@ const units = buildUnits(
   new Float32Array(cells.flatMap((c) => centre(Math.floor(c / width), c % width))),
   new Float32Array([300, 300, 300, 300]),
   45,
+  new Uint8Array(4).fill(WayOfLife.Forager),
 );
 const cellsOf = (u: ReturnType<typeof sliceUnits>) => [...new Set(Array.from(u.ids, (id) => Math.floor(id / 32)))];
 

@@ -21,6 +21,7 @@ import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
+import { cssRgb, LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
 import EvidenceTooltip from './overlays/EvidenceTooltip';
@@ -46,9 +47,13 @@ function hoverParam(): boolean {
 function evidenceParam(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('evidence') === '1';
 }
+const LEGEND: WayOfLifeValue[] = [WayOfLife.Forager, WayOfLife.Farmer, WayOfLife.Herder, WayOfLife.Urban];
+// The model has no land use: everyone before HYDE is drawn as a forager.
+const MODELLED_LEGEND: WayOfLifeValue[] = [WayOfLife.Forager];
 const UNIT_KIND_LABEL: Record<number, string> = {
-  [UnitKind.Band]: 'A band',
-  [UnitKind.Village]: 'A village',
+  [UnitKind.Band]: 'A forager band',
+  [UnitKind.Village]: 'A farming village',
+  [UnitKind.Camp]: 'A herding camp',
   [UnitKind.Glow]: 'A town or city',
 };
 
@@ -294,36 +299,37 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         {/* Legend: hidden while the details panel is open, which needs the height. */}
         {peopleView && !selectedPlace ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
-            {showGlowLegend ? (
-              <p className="ov-body">
-                Brightness is people per ~10 km cell:{' '}
-                <span className="text-[#ffbe6e]">sparse</span>,{' '}
-                <span className="text-[#ffe1a0]">farming</span>,{' '}
-                <span className="text-cyan-300">towns and cities</span>. Zoom in to
-                see bands and villages.
-              </p>
-            ) : (
-              <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
-                <li><span className="mr-1.5 text-[#ffbe6e]">●</span>band (~30 people)</li>
-                <li><span className="mr-1.5 text-[#ffe1a0]">●</span>village (~300)</li>
-                <li><span className="mr-1.5 text-cyan-300">●</span>town/city density</li>
-                {blend.pickable && <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>}
-              </ul>
-            )}
+            <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
+              {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (
+                <li key={way}>
+                  <span className="mr-1.5" style={{ color: cssRgb(way) }}>●</span>
+                  {LOOKS[way].name}
+                  {!showGlowLegend && way !== WayOfLife.Urban && (
+                    <span className="text-[var(--ov-text-3)]"> · {LOOKS[way].mark}</span>
+                  )}
+                </li>
+              ))}
+              {!showGlowLegend && blend.pickable && (
+                <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>
+              )}
+            </ul>
             {modelled ? (
               <p className="ov-note mt-1.5">
                 <strong className="font-semibold text-[var(--ov-amber)]">Modelled, not measured.</strong>{' '}
                 Where foragers would live if density followed plant productivity,
                 scaled to a published world total; no one has seen these people.
-                Bands and where they sit are illustrative.{' '}
+                The model has no land use, so all are drawn as foragers. Where
+                bands sit is illustrative.{' '}
                 <a href={MODEL_NOTES_URL} target="_blank" rel="noreferrer" className="pointer-events-auto underline">
                   How it was made
                 </a>
               </p>
             ) : (
               <p className="ov-note mt-1.5">
-                Head counts per ~10 km cell are HYDE estimates. Where bands and villages
-                sit inside a cell is illustrative, not known.
+                Head counts per ~10 km cell are HYDE estimates. Way of life is read
+                from HYDE cropland and grazing in the cell, not known for any one
+                group, and where its bands, villages and camps sit inside the cell
+                is illustrative.
               </p>
             )}
             {evidenceOn && (

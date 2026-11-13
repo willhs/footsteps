@@ -1,5 +1,5 @@
 import type { GridData } from '../hooks/useGridLayer';
-import { BAND_MAX_CELL, GLOW_MIN_CELL } from './units';
+import { SETTLED_MIN_CELL, URBAN_MIN_CELL, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { evidenceAt, type Evidence } from '@/lib/time';
 
 /** The model's own cell: its images are 0.5° blocks (gridData.ts decodes each as 6 × 6 cells). */
@@ -13,6 +13,8 @@ export type GroundingFacts = {
   people: number;
   neighbourhoodPeople: number;
   densityClass: 'band' | 'village' | 'glow';
+  /** How the people in this cell lived (HYDE land use); null for an empty cell. */
+  way: WayOfLifeValue | null;
   confidence: string;
   /** Measured HYDE cell, or a block of the model. */
   evidence: Evidence;
@@ -36,7 +38,7 @@ export function groundingFacts(grid: GridData, year: number, lon: number, lat: n
   const col = Math.floor((((lon + 180) % 360 + 360) % 360) / cellDeg);
   const row = Math.min(height - 1, Math.floor((90 - lat) / cellDeg));
   const cellId = row * width + col;
-  const lookup = (id: number) => {
+  const indexOf = (id: number) => {
     let lo = 0;
     let hi = grid.length;
     while (lo < hi) {
@@ -44,7 +46,11 @@ export function groundingFacts(grid: GridData, year: number, lon: number, lat: n
       if (grid.cellIds[mid] < id) lo = mid + 1;
       else hi = mid;
     }
-    return grid.cellIds[lo] === id ? grid.people[lo] : 0;
+    return grid.cellIds[lo] === id ? lo : -1;
+  };
+  const lookup = (id: number) => {
+    const at = indexOf(id);
+    return at < 0 ? 0 : grid.people[at];
   };
   // People in one unit: a cell, or the span × span cells of a modelled block.
   const population = (r: number, c: number) => {
@@ -61,13 +67,24 @@ export function groundingFacts(grid: GridData, year: number, lon: number, lat: n
     }
   }
   const perCell = people / (span * span);
+  // A block of the model has no land use of its own: take the way of its fullest cell.
+  let way: WayOfLifeValue | null = null;
+  let fullest = 0;
+  for (let i = 0; i < span; i++)
+    for (let j = 0; j < span; j++) {
+      const at = indexOf((row * span + i) * gridWidth + col * span + j);
+      if (at >= 0 && grid.people[at] > fullest) {
+        fullest = grid.people[at];
+        way = grid.ways[at] as WayOfLifeValue;
+      }
+    }
   return {
     year, cellId,
     longitude: -180 + (col + 0.5) * cellDeg,
     latitude: 90 - (row + 0.5) * cellDeg,
-    people, neighbourhoodPeople,
+    people, neighbourhoodPeople, way,
     // Thresholds are per ~10 km cell: compare a block's share of one.
-    densityClass: perCell < BAND_MAX_CELL ? 'band' : perCell >= GLOW_MIN_CELL ? 'glow' : 'village',
+    densityClass: perCell < SETTLED_MIN_CELL ? 'band' : perCell >= URBAN_MIN_CELL ? 'glow' : 'village',
     evidence, cellDeg,
     confidence: evidence === 'modelled'
       ? 'Modelled, not measured: this count is a model output (plant productivity, climate and when people arrived, scaled to a published world total). No one has seen people here.'

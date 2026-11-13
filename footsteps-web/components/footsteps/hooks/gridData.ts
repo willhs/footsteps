@@ -1,5 +1,6 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
+import { classifyCell } from '@/lib/waysOfLife';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -15,6 +16,7 @@ export type GridData = {
   positions: Float32Array;
   people: Float32Array;
   cellIds: Uint32Array; // row * width + col, stable across years
+  ways: Uint8Array; // WayOfLife of each cell (lib/waysOfLife.ts), from HYDE land use
   cellDeg: number;
   total: number;
 };
@@ -64,6 +66,46 @@ export function gridUrl(year: number) {
   return `/grid/humans_${year}.webp`;
 }
 
+/** HYDE land use for a year: same 4320 × 2160 cells; R = cropland share, G = grazing share
+ * (0–255 = 0–1). Written by `grid_image.py --landuse` (docs/ops/grid-images.md). */
+export function landUseUrl(year: number) {
+  return `/grid/landuse_${year}.png`;
+}
+
+type Pixels = { width: number; height: number; data: Uint8ClampedArray };
+
+/** Exact bytes of an encoded image: no colour conversion, no premultiplication. */
+async function readPixels(url: string, label: string): Promise<Pixels> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
+  const bmp = await createImageBitmap(await response.blob(), {
+    colorSpaceConversion: 'none',
+    premultiplyAlpha: 'none',
+  });
+  const { width, height } = bmp;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bmp.close();
+    throw new Error('Grid decoder requires a 2D canvas');
+  }
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close();
+  return { width, height, data: ctx.getImageData(0, 0, width, height).data };
+}
+
+/** Land use is a refinement: without it (missing file, a modelled year) everyone is
+ * classed by head count alone, so a failed fetch never loses the people. */
+async function readLandUse(year: number): Promise<Pixels | null> {
+  if (isModelled(year)) return null; // no land use before HYDE: the model has none
+  try {
+    return await readPixels(landUseUrl(year), `Land use ${year}`);
+  } catch (error) {
+    console.warn('[grid] no land use for', year, error);
+    return null;
+  }
+}
+
 function points(
   positions: Float32Array,
   radii: Float32Array,
@@ -90,6 +132,7 @@ export function prepareYearGrid(
     data.positions,
     data.people,
     data.cellDeg,
+    data.ways,
   );
   const gridRadii = new Float32Array(data.length);
   const gridColors = new Uint8ClampedArray(data.length * 4);
@@ -108,25 +151,16 @@ export function prepareYearGrid(
 }
 
 export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
-  const response = await fetch(gridUrl(year));
-  if (!response.ok) throw new Error(`Grid ${year}: HTTP ${response.status}`);
-  const bmp = await createImageBitmap(await response.blob(), {
-    colorSpaceConversion: 'none',
-    premultiplyAlpha: 'none',
-  });
-  const { width: sw, height: sh } = bmp;
+  const [{ width: sw, height: sh, data: px }, landUse] = await Promise.all([
+    readPixels(gridUrl(year), `Grid ${year}`),
+    readLandUse(year),
+  ]);
   const scale = isModelled(year) ? Math.round(HYDE_WIDTH / sw) : 1;
   const w = sw * scale;
   const h = sh * scale;
-  const canvas = new OffscreenCanvas(sw, sh);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    bmp.close();
-    throw new Error('Grid decoder requires a 2D canvas');
-  }
-  ctx.drawImage(bmp, 0, 0);
-  bmp.close();
-  const px = ctx.getImageData(0, 0, sw, sh).data;
+  // Land use shares the population image's cells; a different size is a bad file.
+  const land = landUse?.width === w && landUse.height === h ? landUse : null;
+  if (landUse && !land) console.warn(`[grid] land use ${year} is ${landUse.width}×${landUse.height}, expected ${w}×${h}`);
   // Level of each source cell, then of each of its sub-cells.
   const levels = new Uint16Array(sw * sh);
   let occupied = 0;
@@ -139,6 +173,7 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
+  const ways = new Uint8Array(length);
   const cellDeg = 360 / w;
   const crop = Math.min(Math.floor(h / 2), Math.round((90 - GLOW_MAX_LAT) / cellDeg));
   const glow: GlowImage = {
@@ -164,13 +199,17 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;
       cellIds[index] = row * w + col;
+      const px4 = (row * w + col) * 4;
+      ways[index] = land
+        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255)
+        : classifyCell(population, 0, 0);
       total += population;
       index++;
     }
   }
   return prepareYearGrid(
     year,
-    { length, positions, people, cellIds, cellDeg, total },
+    { length, positions, people, cellIds, ways, cellDeg, total },
     glow,
   );
 }

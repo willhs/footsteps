@@ -14,7 +14,12 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   cross-fades to Units; from 7 unit marks are clickable. Units are built only for a
   region around the viewport (`hooks/unitRegion.ts`), so a pan inside it costs nothing.
   Zoom changes uniforms/opacity, never the uploaded marks. `layers/units.ts` builds
-  bands, villages and city glow; in-cell positions are invented and deterministic.
+  bands, villages, herding camps and city glow; in-cell positions are invented and deterministic.
+  The kind and colour come from each cell's way of life (`lib/waysOfLife.ts`): `gridData.ts` loads
+  `/grid/landuse_{year}.png` (HYDE years only) beside the population image and classes each cell
+  (`GridData.ways`); `FireLayer.ts` colours the far-out fires the same way, and the legend reads `LOOKS`.
+  `unitMorphVertex.ts` reads a mark's kind from its colour, so `waysOfLife.test.ts` pins the palette.
+  Copy `../data/tiles/grid/landuse_*.png` into `public/grid/` for local dev.
 - Unit marks represent at least 15 people; smaller cells still contribute to the
   grid, glow and population totals but emit no group. Individual people use the
   nearer year-morph endpoint, skip absent groups, and include an adult per group.

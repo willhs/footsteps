@@ -12,8 +12,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 
 - `footsteps-web/`: Next.js 15 static export (`out/`), TypeScript, React, deck.gl,
   Tailwind. No application server in production.
-- The people view is chosen by zoom: a density glow texture far out, Units (bands,
-  villages, city glow) for the cells around the viewport closer in. `?mode=units|grid|dots`
+- The people view is chosen by zoom: firelight far out, Units (bands, villages, herding camps,
+  city glow) for the cells around the viewport closer in. Each populated cell has a way of life
+  (forager / farmer / herder / urban) read from HYDE land use (`footsteps-web/lib/waysOfLife.ts`,
+  `docs/ops/grid-images.md`); it sets the kind of group and the colour. `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB

@@ -12,6 +12,28 @@ way of life; score from subsistence, distance, temperature, precipitation, biome
 existing atlas (shares its zip reader and way-of-life rule) rather than duplicating it; not wired into the app or API. Method, limits and three
 sanity checks: [ethnography](ops/ethnography.md); which constants it grounds: [human-constants](philosophy/human-constants.md#what-d-place-can-ground).
 
+## [2026-11-14] add | Units by way of life (HYDE land use read by the app)
+
+The client now loads `landuse_{year}.png` beside `humans_{year}.webp` and classes each populated 5′ cell
+(`footsteps-web/lib/waysOfLife.ts`): people >= 40,000 urban; cropland >= 2% of the cell farmer; grazing >= 10%
+herder; else forager, except a cell with >= 600 people is settled (farmer). Kind of group follows: bands (30),
+villages (300), new herding camps (60), city glow; colour follows too, in the far-out firelight and the legend.
+Share of the world's people by class under that rule (measured from the images, `grid_image.py` encoding):
+
+| year | forager | farmer | herder | urban |
+|---|---|---|---|---|
+| 10,000 BCE | 98.0% | 2.0% | 0% | 0% |
+| 5000 BCE | 90.5% | 9.2% | 0.3% | 0% |
+| 1000 BCE | 33.4% | 64.4% | 2.1% | 0.1% |
+| 1 CE | 17.7% | 79.8% | 2.3% | 0.2% |
+| 1000 CE | 16.3% | 78.8% | 4.8% | 0.1% |
+| 1900 CE | 2.0% | 83.0% | 3.0% | 12.0% |
+
+The 2% farmers at 10,000 BCE are 37 cells over the density floor, not cropland (HYDE land use is all zero then).
+Thresholds are coarse display choices, not findings; HYDE's cropland is itself a model. The hover card's
+`wayOfLife` (0.5° cell, 5% crop) still has its own thresholds and can disagree with a 5′ mark. Years before HYDE
+have no land use, so everyone is drawn as a forager.
+
 ## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
 
 `footstep-generator/fauna/`: PHYLACINE 1.2.1 present-natural ranges (CC0, not CC BY as the task said) for 329 land

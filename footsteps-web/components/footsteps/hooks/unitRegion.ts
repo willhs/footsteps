@@ -58,7 +58,7 @@ export function sliceUnits(units: Units, width: number, region: Region): Units {
     people: new Float32Array(total),
     kind: new Uint8Array(total),
     ids: new Uint32Array(total),
-    counts: [0, 0, 0],
+    counts: [0, 0, 0, 0],
   };
   let j = 0;
   for (let r = 0; r < runs.length; r += 2) {

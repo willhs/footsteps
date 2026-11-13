@@ -9,6 +9,7 @@
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import type { GridData } from '../hooks/gridData';
+import { LOOKS, type WayOfLifeValue } from '@/lib/waysOfLife';
 
 export type FireMarks = {
   year: number;
@@ -16,13 +17,16 @@ export type FireMarks = {
   positions: Float32Array; // lon, lat
   size: Float32Array; // 0..1: log density of the mark's cell
   rank: Float32Array; // 0..1: shown when below the zoom threshold
-  cellPeople: Float32Array; // people in the mark's cell (way of life proxy)
+  cellPeople: Float32Array; // people in the mark's cell
+  color: Uint8ClampedArray; // r, g, b, a per mark: its cell's way of life
 };
 
 /** Marks across the whole world per year. */
 export const FIRE_BUDGET = 150_000;
 const MAX_PER_CELL = 12;
 const LOG_MAX = Math.log1p(5_000_000);
+/** Fire colour per WayOfLife value. */
+const FIRE_RGBA = ([0, 1, 2, 3] as WayOfLifeValue[]).map((way) => Uint8ClampedArray.of(...LOOKS[way].rgb, 255));
 
 function rng(seed: number) {
   let a = seed >>> 0;
@@ -54,6 +58,7 @@ export function buildFireMarks(year: number, grid: GridData, budget = FIRE_BUDGE
     size: new Float32Array(total),
     rank: new Float32Array(total),
     cellPeople: new Float32Array(total),
+    color: new Uint8ClampedArray(total * 4),
   };
   let j = 0;
   for (let i = 0; i < n; i++) {
@@ -63,12 +68,14 @@ export function buildFireMarks(year: number, grid: GridData, budget = FIRE_BUDGE
     const lon = grid.positions[i * 2];
     const lat = grid.positions[i * 2 + 1];
     const size = Math.log1p(grid.people[i]) / LOG_MAX;
+    const rgba = FIRE_RGBA[grid.ways[i]];
     for (let k = 0; k < c; k++) {
       out.positions[j * 2] = lon + (r() - 0.5) * grid.cellDeg * 0.9;
       out.positions[j * 2 + 1] = lat + (r() - 0.5) * grid.cellDeg * 0.9;
       out.size[j] = size;
       out.rank[j] = r();
       out.cellPeople[j] = grid.people[i];
+      out.color.set(rgba, j * 4);
       j++;
     }
   }
@@ -97,8 +104,6 @@ const fire = {
 
 type Props = ScatterplotLayerProps<unknown> & { visibleFraction: number };
 
-export const FIRE_COLOR: [number, number, number] = [255, 190, 110];
-
 // Additive: fires add light to whatever is under them.
 export const FIRE_BLEND = {
   depthTest: false,
@@ -119,6 +124,7 @@ export function fireData(marks: FireMarks) {
       getPosition: { value: marks.positions, size: 2 },
       getRadius: { value: radius, size: 1 },
       getRank: { value: marks.rank, size: 1 },
+      getFillColor: { value: marks.color, size: 4 },
     },
   };
 }
@@ -131,7 +137,6 @@ export default class FireLayer extends ScatterplotLayer<unknown, { visibleFracti
     stroked: false,
     filled: true,
     antialiasing: false,
-    getFillColor: [...FIRE_COLOR, 255],
     visibleFraction: 1,
     parameters: FIRE_BLEND,
     pickable: false,

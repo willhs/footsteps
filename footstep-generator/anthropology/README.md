@@ -70,3 +70,16 @@ Changing the record's meaning for existing cells? Bump `VERSION` in `build.py`: 
 cache key includes it, so old model answers are not reused.
 
 Not used yet: D-PLACE's Binford hunter-gatherer dataset (better forager detail for the deep past).
+
+## Life-course research priors (not integrated)
+
+`demography.yaml` contains modelled living-age shares, life expectancy at birth and at
+15 (remaining years), and fertility scenarios for foragers, early farmers, established
+agrarian populations and urban residents. Each metric has a range and source IDs;
+editorial scenarios are distinguished from reported analogue summaries. These are not
+jointly calibrated life tables and must not drive births, deaths or population totals.
+The builder, API and frontend do not read this file yet.
+
+See [life-course research](../../docs/research/0006-life-course/research.md) for evidence,
+limitations, an age-sampling follow-up proposal and the life-course visual idea.
+Validate with `poetry run python docs/research/0006-life-course/validate.py` from the repo root.

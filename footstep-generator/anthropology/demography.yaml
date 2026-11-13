@@ -1,0 +1,81 @@
+# Research priors, not observations for a particular map cell. Not loaded by the app.
+schema_version: 1
+evidence: modelled
+research: docs/research/0006-life-course/research.md
+definitions:
+  age_structure: Shares of people alive, both sexes; integer ages, inclusive endpoints.
+  e0: Period life expectancy at birth, in years.
+  e15: Period remaining life expectancy conditional on reaching 15, in years; add 15 for expected age at death.
+  tfr: Period total fertility rate, births per woman under current age-specific fertility rates; not surviving children or marital fertility.
+  ranges: Plausibility envelopes for sensitivity analysis, not confidence intervals; endpoints across metrics need not coexist.
+  value: Illustrative central prior, not an estimate for all societies in this category.
+sources:
+  GK2007:
+    citation: Gurven and Kaplan (2007), Longevity Among Hunter-Gatherers, Population and Development Review 33(2), 321–365.
+    url: https://www.gurven.anth.ucsb.edu/sites/secure.lsit.ucsb.edu.anth.d7_gurven/files/sitefiles/papers/GurvenKaplan2007pdr.pdf
+    locator: Table 2 (mortality); Figure 9 and pp. 346–348 (fertility).
+  BA2011:
+    citation: Bocquet-Appel (2011), When the world's population took off, Science 333, 560–561.
+    url: https://doi.org/10.1126/science.1208880
+    locator: Abstract; relative fertility change, not absolute age shares.
+  LANDERS1987:
+    citation: Landers (1987), London's mortality in the long eighteenth century, Medical History Supplement 11, 1–28.
+    url: https://doi.org/10.1017/S0025727300071088
+    locator: Table 10 and accompanying England comparison tables.
+  WRIGLEY1983:
+    citation: Wrigley and Schofield (1983), English population history from family reconstitution, Population Studies 37(2), 157–184.
+    url: https://doi.org/10.1080/00324728.1983.10408745
+    locator: Abstract establishes reconstruction scope; numerical TFR prior below is not a transcription.
+  EDITORIAL2026:
+    citation: Footsteps life-course research, 14 November 2026.
+    url: docs/research/0006-life-course/research.md
+    locator: Prior construction and limitations; all age-share values and envelopes are editorial scenarios.
+profiles:
+  forager:
+    way_of_life: foraging
+    era: Mobile foraging analogues; extrapolation into prehistory has low confidence.
+    age_structure:
+      0-4: {value: 0.14, range: [0.10, 0.19], sources: [EDITORIAL2026, GK2007]}
+      5-14: {value: 0.24, range: [0.18, 0.29], sources: [EDITORIAL2026, GK2007]}
+      15-29: {value: 0.26, range: [0.21, 0.31], sources: [EDITORIAL2026, GK2007]}
+      30-49: {value: 0.24, range: [0.19, 0.30], sources: [EDITORIAL2026, GK2007]}
+      50+: {value: 0.12, range: [0.07, 0.18], sources: [EDITORIAL2026, GK2007]}
+    e0: {value: 30, range: [21, 37], sources: [GK2007], basis: Rounded analogue envelope from Table 2; central value editorial.}
+    e15: {value: 38, range: [28, 43], sources: [GK2007], basis: Rounded Table 2 hunter-gatherer envelope; remaining years.}
+    tfr: {value: 5.7, range: [3.5, 8.0], sources: [GK2007], basis: Figure 9 analogue mean and approximate envelope; not a prehistoric growth forecast.}
+  early_farmer:
+    way_of_life: farming
+    era: Local transition to food production; no universal calendar cutoff.
+    age_structure:
+      0-4: {value: 0.18, range: [0.13, 0.23], sources: [EDITORIAL2026, BA2011]}
+      5-14: {value: 0.27, range: [0.21, 0.32], sources: [EDITORIAL2026, BA2011]}
+      15-29: {value: 0.25, range: [0.20, 0.31], sources: [EDITORIAL2026, BA2011]}
+      30-49: {value: 0.21, range: [0.16, 0.28], sources: [EDITORIAL2026, BA2011]}
+      50+: {value: 0.09, range: [0.05, 0.16], sources: [EDITORIAL2026, BA2011]}
+    e0: {value: 27, range: [20, 35], sources: [EDITORIAL2026, GK2007, BA2011], basis: Low-confidence scenario; neither source measures Neolithic e0.}
+    e15: {value: 35, range: [28, 43], sources: [EDITORIAL2026, GK2007], basis: Analogue-informed scenario; not a skeletal life table.}
+    tfr: {value: 6.5, range: [5.0, 8.5], sources: [EDITORIAL2026, BA2011, GK2007], basis: Higher-fertility scenario; BA2011 supports a relative increase only.}
+  agrarian:
+    way_of_life: farming
+    era: Established pre-modern rural agrarian populations; English early-modern records are a regional anchor only.
+    age_structure:
+      0-4: {value: 0.15, range: [0.10, 0.21], sources: [EDITORIAL2026, LANDERS1987]}
+      5-14: {value: 0.24, range: [0.18, 0.30], sources: [EDITORIAL2026, LANDERS1987]}
+      15-29: {value: 0.25, range: [0.20, 0.31], sources: [EDITORIAL2026, LANDERS1987]}
+      30-49: {value: 0.24, range: [0.18, 0.30], sources: [EDITORIAL2026, LANDERS1987]}
+      50+: {value: 0.12, range: [0.07, 0.20], sources: [EDITORIAL2026, LANDERS1987]}
+    e0: {value: 32, range: [25, 40], sources: [EDITORIAL2026, LANDERS1987], basis: Broadened prior around historical English comparisons; not a global measured range.}
+    e15: {value: 38, range: [30, 45], sources: [EDITORIAL2026, LANDERS1987, GK2007], basis: Scenario informed by adult survival; Landers reports e30 rather than e15.}
+    tfr: {value: 5.0, range: [4.0, 7.0], sources: [EDITORIAL2026, WRIGLEY1983, GK2007], basis: Broad scenario allowing marriage and fertility variation; not extracted from Wrigley.}
+  urban:
+    way_of_life: urban_residence
+    era: Pre-sanitation towns and cities; London 1650–1799 is an anchor, not an ancient-world table.
+    age_structure:
+      0-4: {value: 0.13, range: [0.08, 0.20], sources: [EDITORIAL2026, LANDERS1987]}
+      5-14: {value: 0.20, range: [0.14, 0.27], sources: [EDITORIAL2026, LANDERS1987]}
+      15-29: {value: 0.32, range: [0.25, 0.40], sources: [EDITORIAL2026, LANDERS1987]}
+      30-49: {value: 0.25, range: [0.18, 0.32], sources: [EDITORIAL2026, LANDERS1987]}
+      50+: {value: 0.10, range: [0.05, 0.17], sources: [EDITORIAL2026, LANDERS1987]}
+    e0: {value: 25, range: [20, 35], sources: [EDITORIAL2026, LANDERS1987], basis: Rounded and broadened London analogue envelope; central value editorial.}
+    e15: {value: 33, range: [25, 42], sources: [EDITORIAL2026, LANDERS1987], basis: Low-confidence scenario; not a reported e15 from Landers.}
+    tfr: {value: 4.5, range: [3.0, 7.0], sources: [EDITORIAL2026, WRIGLEY1983], basis: Low-confidence scenario; urban migration prevents inferring fertility from head counts.}

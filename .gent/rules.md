@@ -49,6 +49,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.
   `evidence/aadr.py`: AADR ancient-DNA individuals (date, place, hominin) as a second kind of evidence
   (`data/evidence/aadr_samples.json.gz`); not used by the app yet. See its README and research 0010.
+  `model_vs_evidence.py` compares the modelled pre-HYDE people with the p3k14c sites per region (research 0009: box-order bugs in `arrivals.yaml`, west Europe glacial-maximum shape, proposals).
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.

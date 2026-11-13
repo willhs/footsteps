@@ -109,3 +109,15 @@ centroid place), `d` date mean, `sd`, `r` = [old, young] 95.4% range (all cal BP
   12 ka. The record cannot test the arrival rows for Sahul, Japan, South Asia or the Tibetan plateau, and none of it
   is older than about 46 ka. Absence is not evidence of empty land.
 - **Counts are effort, not people.** A sample dates one skeleton. Never sum samples into a population.
+
+## Model against evidence
+
+`model_vs_evidence.py` compares the modelled pre-HYDE population (`data/tiles/prehistory/`) with these dates per
+arrival-table region, 50-12 ka BP: site-occupancy curves with the Surovell et al. 2009 taphonomic correction, onset
+dates, shape tests, region-geometry checkpoints and five PNG charts. Findings and model proposals:
+[research 0009](../../docs/research/0009-model-vs-evidence/research.md). Needs matplotlib as well as numpy and pandas.
+
+```bash
+python footstep-generator/evidence/model_vs_evidence.py   # -> docs/research/0009-model-vs-evidence/ (about 1 min)
+python -m pytest footstep-generator/tests/test_model_vs_evidence.py -q
+```

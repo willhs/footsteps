@@ -37,7 +37,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   (`ethnography.json.gz`, committed) and `nearest_analogs`, the 3 most similar societies for a place, year and way of life, with a score and a plain
   "the ethnographic present is not the past" caveat. Not used by the app or API yet. See `docs/ops/ethnography.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
-  (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
+  (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
+  `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.

@@ -1,5 +1,5 @@
 // Dated archaeological sites (p3k14c), for the "evidence nearby" list in the details panel.
-// Never drawn on the map. The file is large (~1 MB gzip), so it loads only when the panel opens.
+// Drawn on the map only behind ?evidence=1 (lib/evidenceMarks.ts). The file is large (~1 MB gzip), so it loads only when the panel opens.
 
 export interface EvidenceDoc {
   meta: { dataset: string; licence: string; caveat: string };

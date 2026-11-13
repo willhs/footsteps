@@ -22,6 +22,8 @@ import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import HoverCard from './overlays/HoverCard';
+import useEvidenceLayer from './hooks/useEvidenceLayer';
+import EvidenceTooltip from './overlays/EvidenceTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 
 // The look follows zoom ('auto'). ?mode=units|grid|dots is a debug override
@@ -39,6 +41,10 @@ function initialRenderMode(): PeopleMode {
 // ?hover=1 turns on the hover card (habitat, climate and people under the cursor). Off by default.
 function hoverParam(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') === '1';
+}
+// ?evidence=1 draws dated archaeological sites as cool marks (experiment). Off by default.
+function evidenceParam(): boolean {
+  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('evidence') === '1';
 }
 const UNIT_KIND_LABEL: Record<number, string> = {
   [UnitKind.Band]: 'A band',
@@ -100,6 +106,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     suspended: isZooming || isPanning,
     unprojectRef,
   });
+
+  // Read after mount so the server-rendered HTML (no query string) matches the first client render.
+  const [evidenceOn, setEvidenceOn] = useState(false);
+  useEffect(() => setEvidenceOn(evidenceParam()), []);
+  const evidence = useEvidenceLayer({ enabled: evidenceOn, time, zoom: viewState.zoom });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
@@ -163,6 +174,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const layers: LayersList = [
     ...backgroundLayers,
     ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers]),
+    ...evidence.layers,
   ] as LayersList;
 
   return (
@@ -188,6 +200,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         }}
       />
 
+      {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} />}
       {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
 
       {/* Data info overlay */}
@@ -311,6 +324,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
               <p className="ov-note mt-1.5">
                 Head counts per ~10 km cell are HYDE estimates. Where bands and villages
                 sit inside a cell is illustrative, not known.
+              </p>
+            )}
+            {evidenceOn && (
+              <p className="ov-note mt-1.5">
+                <span style={{ color: '#78a0ff' }}>●</span> Dated sites (radiocarbon, p3k14c): where people definitely were.
+                Few sites means few excavations, not few people.
               </p>
             )}
             {showTerrain && <TerrainNote />}

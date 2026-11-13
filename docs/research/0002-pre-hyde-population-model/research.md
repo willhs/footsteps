@@ -118,5 +118,5 @@ Before ~45 ka a "people" map is also a map of other hominins.
 ## Recommendations
 
 - **First:** a prototype `footstep-generator/prehistory_population.py` producing one WebP per 1,000 years in the same encoding as `grid_image.py`, at 0.5°. Fewer than 100 files, small.
-- **Then:** check it against Timmermann at a few dates, verify the arrival table, and decide the low/central/high totals with Will.
+- **Then:** check it against Timmermann at a few dates (done: [timmermann2016/comparison.md](timmermann2016/comparison.md)), verify the arrival table, and decide the low/central/high totals with Will.
 - **Separately:** the dated-evidence layer from research 0001 (p3k14c is CC0 and already parsed once).

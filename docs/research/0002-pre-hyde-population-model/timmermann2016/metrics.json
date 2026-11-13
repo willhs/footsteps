@@ -1,0 +1,255 @@
+{
+ "ages_ka": {
+  "60": {
+   "year": -58050,
+   "hyde_weight": 0.0,
+   "ours": {
+    "low": 448140.4746557163,
+    "central": 816581.0452139224,
+    "high": 1442249.5703074092,
+    "occupied_cells": 3523,
+    "regions": {
+     "Africa": 0.7460756377055728,
+     "W Eurasia (Europe, Near East)": 0.08286508199713648,
+     "S Asia": 0.02002683904443887,
+     "E and SE Asia": 0.23104256839724432,
+     "Sahul": 0.0,
+     "Americas": 0.0
+    }
+   },
+   "a": {
+    "people": 9375750.650078937,
+    "occupied_cells": 6836,
+    "overlap_jaccard": 0.4063263643768667,
+    "share_of_theirs_people_in_our_occupied": 0.6622419507759237,
+    "share_of_our_people_in_their_occupied": 0.9580836415023936,
+    "spearman_density_where_both": 0.43170166139733945,
+    "regions": {
+     "Africa": 0.4734590105223073,
+     "W Eurasia (Europe, Near East)": 0.09632724628440346,
+     "S Asia": 0.11770334440604303,
+     "E and SE Asia": 0.29668857616793126,
+     "Sahul": 0.06560242860379274,
+     "Americas": 0.0
+    }
+   },
+   "b": {
+    "people": 8208229.218019283,
+    "occupied_cells": 5872,
+    "overlap_jaccard": 0.47372549019607846,
+    "share_of_theirs_people_in_our_occupied": 0.7547601945874942,
+    "share_of_our_people_in_their_occupied": 0.9588085659133935,
+    "spearman_density_where_both": 0.4614822535114646,
+    "regions": {
+     "Africa": 0.5443775164471873,
+     "W Eurasia (Europe, Near East)": 0.07977386621552217,
+     "S Asia": 0.13014892640175377,
+     "E and SE Asia": 0.2663552684871261,
+     "Sahul": 0.01022473846849758,
+     "Americas": 0.0
+    }
+   }
+  },
+  "40": {
+   "year": -38050,
+   "hyde_weight": 0.0,
+   "ours": {
+    "low": 999999.9999999995,
+    "central": 1799999.9999999984,
+    "high": 3000000.0000000023,
+    "occupied_cells": 8256,
+    "regions": {
+     "Africa": 0.45413841411763245,
+     "W Eurasia (Europe, Near East)": 0.1219655739497266,
+     "S Asia": 0.10229774035496374,
+     "E and SE Asia": 0.2940689323949608,
+     "Sahul": 0.11232371524952998,
+     "Americas": 0.0
+    }
+   },
+   "a": {
+    "people": 12248142.555747263,
+    "occupied_cells": 9203,
+    "overlap_jaccard": 0.7424151696606787,
+    "share_of_theirs_people_in_our_occupied": 0.9824921896224122,
+    "share_of_our_people_in_their_occupied": 0.9291096831463931,
+    "spearman_density_where_both": 0.7004905280956096,
+    "regions": {
+     "Africa": 0.42713214001034594,
+     "W Eurasia (Europe, Near East)": 0.1919338412921771,
+     "S Asia": 0.08112440311816409,
+     "E and SE Asia": 0.2603259833041396,
+     "Sahul": 0.09570468928723806,
+     "Americas": 0.0
+    }
+   },
+   "b": {
+    "people": 12080950.775635773,
+    "occupied_cells": 9028,
+    "overlap_jaccard": 0.7611575300590993,
+    "share_of_theirs_people_in_our_occupied": 0.9856992396286681,
+    "share_of_our_people_in_their_occupied": 0.9294574802782662,
+    "spearman_density_where_both": 0.7403608290141257,
+    "regions": {
+     "Africa": 0.44494611407223633,
+     "W Eurasia (Europe, Near East)": 0.19073592159784536,
+     "S Asia": 0.08717959100124627,
+     "E and SE Asia": 0.2535920860888117,
+     "Sahul": 0.10332616331818131,
+     "Americas": 0.0
+    }
+   }
+  },
+  "21": {
+   "year": -19050,
+   "hyde_weight": 0.0,
+   "ours": {
+    "low": 2099999.9999999995,
+    "central": 3999999.9999999986,
+    "high": 8300000.000000005,
+    "occupied_cells": 8831,
+    "regions": {
+     "Africa": 0.4348857935896697,
+     "W Eurasia (Europe, Near East)": 0.11049568668197397,
+     "S Asia": 0.09023319843702474,
+     "E and SE Asia": 0.33930046565674565,
+     "Sahul": 0.10335849264390273,
+     "Americas": 0.0012667461615103954
+    }
+   },
+   "a": {
+    "people": 11796363.652007477,
+    "occupied_cells": 9587,
+    "overlap_jaccard": 0.6961046136845014,
+    "share_of_theirs_people_in_our_occupied": 0.9835914139898417,
+    "share_of_our_people_in_their_occupied": 0.9403243326352527,
+    "spearman_density_where_both": 0.624617417272414,
+    "regions": {
+     "Africa": 0.3493737935287055,
+     "W Eurasia (Europe, Near East)": 0.14459500134354214,
+     "S Asia": 0.08452117425162593,
+     "E and SE Asia": 0.32221476358860274,
+     "Sahul": 0.1180041034615419,
+     "Americas": 0.0
+    }
+   },
+   "b": {
+    "people": 12027496.532751339,
+    "occupied_cells": 9532,
+    "overlap_jaccard": 0.7021690767519466,
+    "share_of_theirs_people_in_our_occupied": 0.9863447868499399,
+    "share_of_our_people_in_their_occupied": 0.941132248245119,
+    "spearman_density_where_both": 0.6648660367746203,
+    "regions": {
+     "Africa": 0.35789639205744406,
+     "W Eurasia (Europe, Near East)": 0.14894496940154836,
+     "S Asia": 0.09047560024897454,
+     "E and SE Asia": 0.31177224429260514,
+     "Sahul": 0.12269687367546929,
+     "Americas": 0.0
+    }
+   }
+  },
+  "14": {
+   "year": -12050,
+   "hyde_weight": 0.0,
+   "ours": {
+    "low": 3456771.416978148,
+    "central": 4456650.705243135,
+    "high": 6457641.1130805295,
+    "occupied_cells": 12653,
+    "regions": {
+     "Africa": 0.33578188050666885,
+     "W Eurasia (Europe, Near East)": 0.10718030191966783,
+     "S Asia": 0.08865317570918879,
+     "E and SE Asia": 0.2553425836706423,
+     "Sahul": 0.08394507482428919,
+     "Americas": 0.19085030984626153
+    }
+   },
+   "a": {
+    "people": 14578141.961699387,
+    "occupied_cells": 11623,
+    "overlap_jaccard": 0.5454545454545454,
+    "share_of_theirs_people_in_our_occupied": 0.9744035056127166,
+    "share_of_our_people_in_their_occupied": 0.7726512610807008,
+    "spearman_density_where_both": 0.6686138544968079,
+    "regions": {
+     "Africa": 0.38472114443045624,
+     "W Eurasia (Europe, Near East)": 0.21388373208315098,
+     "S Asia": 0.07415469034781873,
+     "E and SE Asia": 0.279681954543649,
+     "Sahul": 0.082712410397707,
+     "Americas": 1.772122793319185e-12
+    }
+   },
+   "b": {
+    "people": 14787532.869551608,
+    "occupied_cells": 11110,
+    "overlap_jaccard": 0.5398522550544324,
+    "share_of_theirs_people_in_our_occupied": 0.9787054153710063,
+    "share_of_our_people_in_their_occupied": 0.7718030295310252,
+    "spearman_density_where_both": 0.6930529928043383,
+    "regions": {
+     "Africa": 0.38970967877436546,
+     "W Eurasia (Europe, Near East)": 0.21583299509060766,
+     "S Asia": 0.07880510306288187,
+     "E and SE Asia": 0.2741280429669391,
+     "Sahul": 0.08794019971025546,
+     "Americas": 0.0
+    }
+   }
+  },
+  "12": {
+   "year": -10050,
+   "hyde_weight": 0.975,
+   "ours": {
+    "low": 4576096.83910102,
+    "central": 4591363.439780558,
+    "high": 4626721.365107447,
+    "occupied_cells": 15377,
+    "regions": {
+     "Africa": 0.08653969690421154,
+     "W Eurasia (Europe, Near East)": 0.17325143585446476,
+     "S Asia": 0.05777629234967388,
+     "E and SE Asia": 0.09113371169061811,
+     "Sahul": 0.07481055951287455,
+     "Americas": 0.5035991239084238
+    }
+   },
+   "a": {
+    "people": 16318925.202283887,
+    "occupied_cells": 11451,
+    "overlap_jaccard": 0.6296926254404082,
+    "share_of_theirs_people_in_our_occupied": 0.9960249615224863,
+    "share_of_our_people_in_their_occupied": 0.4796653343030121,
+    "spearman_density_where_both": 0.4280641141881737,
+    "regions": {
+     "Africa": 0.4456346622849736,
+     "W Eurasia (Europe, Near East)": 0.3090005757429793,
+     "S Asia": 0.06616195584178503,
+     "E and SE Asia": 0.21758758730662106,
+     "Sahul": 0.0593321877544084,
+     "Americas": 1.0759609004044145e-09
+    }
+   },
+   "b": {
+    "people": 16505338.94377796,
+    "occupied_cells": 10987,
+    "overlap_jaccard": 0.6123784478013578,
+    "share_of_theirs_people_in_our_occupied": 0.995874659303124,
+    "share_of_our_people_in_their_occupied": 0.4790814740218716,
+    "spearman_density_where_both": 0.42021310511399806,
+    "regions": {
+     "Africa": 0.44900188536049523,
+     "W Eurasia (Europe, Near East)": 0.3122858124124647,
+     "S Asia": 0.07031412871793738,
+     "E and SE Asia": 0.21396244607195852,
+     "Sahul": 0.06321135136069413,
+     "Americas": 4.735456253577913e-13
+    }
+   }
+  }
+ },
+ "note": "T&F index i = i+1 ka BP; our year = 1950 - age"
+}

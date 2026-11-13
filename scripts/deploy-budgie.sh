@@ -42,6 +42,14 @@ sync_grid() {
   else
     echo "warning: no local habitat lookups; ?hover=1 will show no habitat (see docs/ops/habitat-lookup.md)" >&2
   fi
+  # Hover card animals: 47 small region blocks + species.json (footstep-generator/fauna/export_web.py)
+  if [[ -f "$ROOT/data/tiles/fauna/species.json" ]]; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/fauna"
+    rsync -az --include='r_*.json' --include='species.json' --exclude='*' \
+      "$ROOT/data/tiles/fauna/" "$REMOTE:$DEST/app/fauna/"
+  else
+    echo "warning: no local fauna files; ?hover=1 will show no animals (see docs/ops/fauna.md)" >&2
+  fi
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid

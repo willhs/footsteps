@@ -117,3 +117,19 @@ describe('lonLatAt', () => {
     expect(lonLatAt(flat, 10, -10)).toBeNull(); // 100°N
   });
 });
+
+describe('animals row', () => {
+  const base = { time: -20_000, habitat: land('Tundra', -10, 300), today: land('Tundra', -8, 300), people: null, landUse: null };
+
+  test('lists the animals on land, labelled modelled', () => {
+    const rows = hoverCardRows({ ...base, animals: ['mammoth', 'reindeer', 'wolf'] });
+    expect(rows[rows.length - 1]).toMatchObject({ id: 'animals', text: 'mammoth, reindeer, wolf', evidence: 'modelled' });
+  });
+
+  test('no row while loading, with none modelled, or over sea and ice', () => {
+    expect(ids(hoverCardRows({ ...base, animals: null }))).not.toContain('animals');
+    expect(ids(hoverCardRows({ ...base, animals: [] }))).not.toContain('animals');
+    expect(ids(hoverCardRows({ ...base, habitat: sea, animals: ['wolf'] }))).not.toContain('animals');
+    expect(ids(hoverCardRows({ ...base, habitat: ice, animals: ['wolf'] }))).not.toContain('animals');
+  });
+});

@@ -3,9 +3,11 @@
 import { useMemo } from 'react';
 import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
+import useFauna from '../hooks/useFauna';
 import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
 import { readHabitat, readLandUse } from '@/lib/habitat';
+import { notableAnimals } from '@/lib/fauna';
 import { cardAnchor, formatPlace, hoverCardRows, type CardRow } from '@/lib/hoverCard';
 import { HYDE_MIN } from '@/lib/time';
 
@@ -29,6 +31,7 @@ export default function HoverCard({
   grid: GridData | null;
 }) {
   const lookups = useHabitatLookups(point !== null, time, year >= HYDE_MIN ? year : null);
+  const fauna = useFauna(point, time);
   const rows = useMemo(() => {
     if (!point) return [];
     const facts = grid ? groundingFacts(grid, year, point.lon, point.lat) : null;
@@ -38,8 +41,9 @@ export default function HoverCard({
       today: lookups.today ? readHabitat(lookups.today, point.lon, point.lat) : null,
       people: facts && { count: facts.people, evidence: facts.evidence, cellDeg: facts.cellDeg },
       landUse: lookups.landUse ? readLandUse(lookups.landUse, point.lon, point.lat) : null,
+      animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     });
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna]);
 
   if (!point) return null;
   return (

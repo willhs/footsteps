@@ -6,7 +6,7 @@ import { seaLevelLabel } from './climate';
 import type { Evidence } from './time';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'animals';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -17,6 +17,8 @@ export type HoverCardInput = {
   time: number;
   /** null while the lookup is loading or failed to load. */
   habitat: HabitatCell | null;
+  /** Up to four notable large animals (lib/fauna.ts); null while loading, empty when none are modelled here. */
+  animals?: string[] | null;
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
@@ -91,6 +93,9 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
       detail: `${share(i.landUse.crop)} cropland, ${share(i.landUse.grazing)} grazing`,
       evidence: 'modelled',
     });
+  }
+  if (i.animals?.length && i.habitat && i.habitat.surface === 'land') {
+    rows.push({ id: 'animals', text: i.animals.join(', '), detail: 'animals here, natural range', evidence: 'modelled' });
   }
   return rows;
 }

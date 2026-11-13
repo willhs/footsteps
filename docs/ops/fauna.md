@@ -137,7 +137,11 @@ Common names are hand-written (PHYLACINE has none): species-level for living ani
   natural range holds the cell and no loss has happened yet. Densities, migrations and seasons are absent. Label it "modelled".
 - **Roles and names are coarse** (see above) and the common names are written by hand, so expect odd ones among the extinct genera.
 
-## If this goes in the app
+## In the app
+
+The hover card (`?hover=1`) now shows it: `export_web.py` splits the file into `species.json` plus 47 block files of 30° (each ≤ 260 KB raw, much less gzipped), fetched lazily by `footsteps-web/hooks/useFauna.ts`. The row lists up to 4 animals (three biggest plant eaters + the biggest predator), says "animals here, natural range · modelled", and is hidden over sea and ice. Not yet shown: the `regional` date window.
+
+## If this goes in the app (guidance that still applies)
 
 Label it **modelled** (it is a third kind of claim, with HYDE people "measured" and the pre-HYDE people "modelled"),
 word it "large animals whose natural range includes this area", never "were seen here", and show the `regional` basis as a

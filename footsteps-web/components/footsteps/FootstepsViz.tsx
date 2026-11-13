@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import type { LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
@@ -21,6 +21,8 @@ import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
+import HoverCard from './overlays/HoverCard';
+import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 
 // The look follows zoom ('auto'). ?mode=units|grid|dots is a debug override
 // and also reveals the mode button.
@@ -33,6 +35,10 @@ function modeParam(): string | null {
 function initialRenderMode(): PeopleMode {
   const m = modeParam();
   return PEOPLE_MODES.includes(m as PeopleMode) ? (m as PeopleMode) : DEFAULT_RENDER_MODE;
+}
+// ?hover=1 turns on the hover card (habitat, climate and people under the cursor). Off by default.
+function hoverParam(): boolean {
+  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') === '1';
 }
 const UNIT_KIND_LABEL: Record<number, string> = {
   [UnitKind.Band]: 'A band',
@@ -85,6 +91,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     setFeatureCount,
     setTotalPopulation,
     setTooltipData,
+  });
+
+  const [hoverCard] = useState(hoverParam);
+  const unprojectRef = useRef<Unproject | null>(null);
+  const { point: hoverPoint, bind: hoverBind } = useHoverPoint({
+    enabled: hoverCard,
+    suspended: isZooming || isPanning,
+    unprojectRef,
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
@@ -158,6 +172,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         layers={layers}
+        containerProps={hoverCard ? hoverBind : undefined}
+        unprojectRef={hoverCard ? unprojectRef : undefined}
         // Night lights flicker and bands/villages move on the GPU; redraw
         // continuously only while either is on screen.
         animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating)}
@@ -171,6 +187,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           if (Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90) setSelectedPlace([lon, lat]);
         }}
       />
+
+      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
 
       {/* Data info overlay */}
       <SupportingText

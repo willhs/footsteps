@@ -6,7 +6,8 @@ import {
   MapView,
   type LayersList,
 } from '@deck.gl/core';
-import { ReactNode, useCallback, useMemo, useRef } from 'react';
+import { lonLatAt } from '@/lib/hoverCard';
+import { HTMLAttributes, MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 type BasicViewState = {
   longitude: number;
@@ -24,6 +25,10 @@ interface DeckGLViewProps {
   onClick?: DeckGLProps['onClick'];
   /** Redraw every frame (shader animation, e.g. flickering night lights). */
   animate?: boolean;
+  /** Pointer handlers for the container, e.g. the hover card's. */
+  containerProps?: HTMLAttributes<HTMLDivElement>;
+  /** Filled with a function that turns container pixels into lon/lat (null off the map). */
+  unprojectRef?: MutableRefObject<((x: number, y: number) => [number, number] | null) | null>;
   children?: ReactNode;
 }
 
@@ -34,6 +39,8 @@ export default function DeckGLView({
   layers,
   onClick,
   animate = false,
+  containerProps,
+  unprojectRef,
   children,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
@@ -55,6 +62,11 @@ export default function DeckGLView({
     deckRef.current?.deck?.redraw('initial resize');
   }, []);
 
+  useEffect(() => {
+    if (!unprojectRef) return;
+    unprojectRef.current = (x, y) => lonLatAt(deckRef.current?.deck?.getViewports()[0], x, y);
+  }, [unprojectRef]);
+
   const globeView = useMemo(() => new GlobeView(), []);
   const mapView = useMemo(() => new MapView(), []);
 
@@ -73,6 +85,7 @@ export default function DeckGLView({
 
   return (
     <div
+      {...containerProps}
       style={{
         width: '100%',
         height: '100%',

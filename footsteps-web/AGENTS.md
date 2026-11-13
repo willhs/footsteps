@@ -29,6 +29,10 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
 - Dots uses PMTiles and HTTP Range requests to `/pmtiles/humans_{year}.pmtiles`
   in the budgie build. `lib/constants.ts` defines the 30 slider years
   (10,000 BCE–1900 CE, HYDE; `PEOPLE_YEARS` adds the 90 modelled ones) and nine built Dots years; Dots snaps to the nearest one.
+- `?hover=1` shows the hover card (`overlays/HoverCard.tsx`): habitat, climate, people and way of life under the cursor.
+  `lib/hoverCard.ts` decides the words, `lib/habitat.ts` reads the lookups (`public/habitat_meta.json` holds the encoding),
+  `hooks/useHoverPoint.ts` is the desktop-only, per-frame pointer tracking, and `hooks/useHabitatLookups.ts` fetches the
+  `/habitat/*.webp` images lazily. Copy `../data/tiles/habitat/` into `public/habitat/` for local dev (docs/ops/habitat-lookup.md).
 - `components/ui/TimeSlider.tsx`: time navigation. Derive year assumptions from
   constants rather than hardcoding counts in tests.
 

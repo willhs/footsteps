@@ -44,3 +44,4 @@ deploy/budgie/api-data/
 footsteps-web/public/terrain
 !.env.tpl
 footsteps-web/public/evidence
+footsteps-web/public/habitat

@@ -38,4 +38,14 @@ for y in -100000 $YEARS; do
   magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/earth_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain $y"; else echo "FAIL terrain $y"; fail=1; fi
 done
+# Hover card lookups (footstep-generator/habitat_lookup.py): lossless WebP, one per
+# 1,000-year step (0..102 ka BP, habitat_meta.json maxKa) and one per HYDE year.
+for k in $(seq 0 102); do
+  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/bp_${k}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   habitat bp_$k"; else echo "FAIL habitat bp_$k"; fail=1; fi
+done
+for y in $YEARS; do
+  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/use_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   habitat use $y"; else echo "FAIL habitat use $y"; fail=1; fi
+done
 exit $fail

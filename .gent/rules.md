@@ -27,6 +27,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   in `grid_image.py`'s encoding, plus `totals.json` (also copied to `footsteps-web/public/prehistory_totals.json`, which `lib/time.ts`
   imports for the counter's range). The app reads the WebPs through the same grid pipeline as HYDE's (`MODELLED_YEARS`, `PEOPLE_YEARS`
   in `lib/constants.ts`; `gridData.ts` upsamples 0.5° to HYDE's 5′ cells). See `docs/ops/prehistory-population.md`.
+- `footstep-generator/habitat_lookup.py`: Krapp biome + Beyer temperature/precipitation per 0.5° cell per 1 ka step, and HYDE land use
+  per HYDE year, as small lossless WebPs in `data/tiles/habitat/` (served at `/habitat/`) for the hover card (`?hover=1`, off by default).
+  See `docs/ops/habitat-lookup.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.

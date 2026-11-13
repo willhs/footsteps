@@ -34,6 +34,14 @@ sync_grid() {
   else
     echo "warning: no local terrain images; skipping (see docs/ops/terrain-images.md)" >&2
   fi
+  # Hover card lookups: ~100 lossless WebPs of 70-90 KB (footstep-generator/habitat_lookup.py)
+  if compgen -G "$ROOT/data/tiles/habitat/bp_*.webp" >/dev/null; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/habitat"
+    rsync -az --include='bp_*.webp' --include='use_*.webp' --exclude='*' \
+      "$ROOT/data/tiles/habitat/" "$REMOTE:$DEST/app/habitat/"
+  else
+    echo "warning: no local habitat lookups; ?hover=1 will show no habitat (see docs/ops/habitat-lookup.md)" >&2
+  fi
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
   sync_grid

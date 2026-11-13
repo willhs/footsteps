@@ -1,0 +1,63 @@
+{
+ "description": "Encoding of the habitat lookup images (habitat_lookup.py). BP = 1950 - year.",
+ "maxKa": 102,
+ "stepYears": 1000,
+ "iceBiome": 28,
+ "width": 720,
+ "height": 360,
+ "temperature": {
+  "min": -50.0,
+  "step": 0.5,
+  "unit": "deg C, annual mean (BIO1)"
+ },
+ "precipitation": {
+  "max": 10000.0,
+  "unit": "mm per year (BIO12), log1p scale"
+ },
+ "biomes": {
+  "1": "Tropical evergreen forest",
+  "2": "Tropical semi-deciduous forest",
+  "3": "Tropical deciduous forest/woodland",
+  "4": "Temperate deciduous forest",
+  "5": "Temperate conifer forest",
+  "6": "Warm mixed forest",
+  "7": "Cool mixed forest",
+  "8": "Cool conifer forest",
+  "9": "Cold mixed forest",
+  "10": "Evergreen taiga/montane forest",
+  "11": "Deciduous taiga/montane forest",
+  "12": "Tropical savanna",
+  "13": "Tropical xerophytic shrubland",
+  "14": "Temperate xerophytic shrubland",
+  "15": "Temperate sclerophyll woodland",
+  "16": "Temperate broadleaved savanna",
+  "17": "Open conifer woodland",
+  "18": "Boreal parkland",
+  "19": "Tropical grassland",
+  "20": "Temperate grassland",
+  "21": "Desert",
+  "22": "Steppe tundra",
+  "23": "Shrub tundra",
+  "24": "Dwarf shrub tundra",
+  "25": "Prostrate shrub tundra",
+  "26": "Cushion forb lichen moss tundra",
+  "27": "Barren",
+  "28": "Land ice"
+ },
+ "sources": {
+  "biome": {
+   "name": "Krapp, Beyer, Manica et al. 2021, via pastclim (BIOME4)",
+   "url": "https://doi.org/10.5281/zenodo.8415273",
+   "licence": "CC BY 4.0"
+  },
+  "climate": {
+   "name": "Beyer, Krapp & Manica 2020, Late Quaternary Environment",
+   "url": "https://doi.org/10.6084/m9.figshare.12293345.v4",
+   "licence": "CC BY 4.0"
+  },
+  "landUse": {
+   "name": "HYDE 3.5 (Klein Goldewijk et al. 2017)",
+   "licence": "CC BY 4.0"
+  }
+ }
+}

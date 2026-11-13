@@ -42,6 +42,14 @@ tiles) into `data/food/food.json.gz` (35 KB, gitignored): for each 5 degree cell
 present, whether HYDE sees farming, and forager staples by biome. 328 of 529 claims are low-confidence front estimates
 and only 19 were confirmed even against a web summary. Not wired into the app. Method and limits: [food](ops/food.md);
 findings and how the hover card or a "what's on the plate" view could use it: [research 0008](research/0008-food-over-time/research.md).
+## [2026-11-14] add | HYDE people adjusted for the climate then (not wired into the app)
+
+`footstep-generator/hyde_climate_spread.py`: moves HYDE 3.5 people within ten macro-regions by habitable capacity then vs
+1950 (reusing the pre-HYDE capacity model, plus the terrain's Green Sahara), keeping each region's total. 10,000-4,000 BCE,
+`data/tiles/grid_adjusted/`. Sahara 8% -> 22% of Africa's people from 8,000 BCE; the North Sea floor, Sundaland and the Sahul
+shelf gain people. Radiocarbon check: 28-47% of dated African sites are in the Sahara box then. Strength 1.0 is a choice.
+Method and limits: [hyde-climate-spread](ops/hyde-climate-spread.md). `terrain_image.sahara_extent` and
+`Model.climate_npp/adjust_npp` were factored out for it (no behaviour change).
 
 ## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
 

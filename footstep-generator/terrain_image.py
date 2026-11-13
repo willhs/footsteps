@@ -94,6 +94,14 @@ def sahara_weight(year: float) -> float:
     return float(smoothstep(-9750, -8250, year) * (1 - smoothstep(-4250, -2750, year)))
 
 
+def sahara_extent(lat, lon):
+    """Where the African Humid Period reached, 0..1 (lat, lon in degrees; arrays broadcast):
+    the Sahara and Sahel, ~9N to ~31N, Atlantic to the Red Sea. Shared with the
+    population spread (hyde_climate_spread.py) so both draw the same Green Sahara."""
+    spatial = (1 - smoothstep(25, 31, lat)) * smoothstep(9, 13, lat)
+    return spatial * smoothstep(-19, -15, lon) * (1 - smoothstep(31, 36, lon))
+
+
 def farmed_fraction(crop: np.ndarray, grazing: np.ndarray) -> np.ndarray:
     """Share of a cell that is farmed, rangeland counting for less (it is mostly
     open land that already looks like itself). 0..1."""
@@ -297,9 +305,7 @@ def green_sahara(colour: np.ndarray, desertish: np.ndarray, year: float) -> np.n
     # Savanna in the south grading to grassland/steppe, gone by ~31N.
     south = smoothstep(24, 18, lat)[..., None]
     target = p[12] * south + (p[19] + p[20]) / 2 * (1 - south)
-    spatial = (1 - smoothstep(25, 31, lat)) * smoothstep(9, 13, lat)
-    spatial = spatial * smoothstep(-19, -15, lon) * (1 - smoothstep(31, 36, lon))
-    strength = (w * spatial * blur(desertish, 2.0))[..., None]
+    strength = (w * sahara_extent(lat, lon) * blur(desertish, 2.0))[..., None]
     return colour + (target - colour) * strength * 0.9
 
 

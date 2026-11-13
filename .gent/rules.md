@@ -41,6 +41,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
   tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
   staples by biome. A modelled dataset (most dates recalled, see its `checked` flag); not used by the app yet. See `docs/ops/food.md`, research 0008.
+- `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
+  exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
+  See `docs/ops/hyde-climate-spread.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.

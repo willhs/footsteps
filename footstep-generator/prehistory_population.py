@@ -344,14 +344,23 @@ class Model:
             m = m * np.where(flag, r[name]["bonus"], 1.0)
         return m
 
-    def potential_and_climate(self, year: float) -> tuple[np.ndarray, Land]:
-        land = self.land_fn(year)
+    def climate_npp(self, year: float) -> tuple[np.ndarray, np.ndarray]:
+        """(Miami NPP, coldest-month temperature) per cell from Beyer's climate."""
         c = self.climate.at(BP_ZERO - year)
         # Cells Beyer has no data for (shelf, south of 60S) borrow their neighbours' climate.
         stack = np.stack([c.bio1, c.bio12, c.coldest], axis=-1)
         t, p, cold = np.moveaxis(
             terrain_image.fill_unknown(stack, np.isfinite(c.bio1) & np.isfinite(c.bio12)), -1, 0)
-        npp = miami_npp(t, p)
+        return miami_npp(t, p), cold
+
+    def adjust_npp(self, npp: np.ndarray, year: float) -> np.ndarray:
+        """Hook for a subclass to correct the climate's NPP (none here)."""
+        return npp
+
+    def potential_and_climate(self, year: float) -> tuple[np.ndarray, Land]:
+        land = self.land_fn(year)
+        npp, cold = self.climate_npp(year)
+        npp = self.adjust_npp(npp, year)
         density_km2 = forager_density(npp) / 100.0 * self.habitat(npp, cold, land)
         return density_km2 * land.habitable * self.area, land
 

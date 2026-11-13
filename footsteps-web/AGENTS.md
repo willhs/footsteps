@@ -32,7 +32,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
 - The 90 modelled pre-HYDE images (100,000–11,000 BCE, 0.5°) come from `../footstep-generator/prehistory_population.py`
   and load through the same path (`/grid/humans_{year}.webp`); `gridData.ts` decodes each as 6 × 6 cells of HYDE's grid so ids, glow
   and the year morph line up. `lib/time.ts` splits people into `evidenceAt(time)`: `'measured'` (HYDE, from 10,000 BCE) or `'modelled'`;
-  modelled screens say so (counter range, legend, grounding panel, timeline), and 'imagine their day' is off for them.
+  modelled screens say so (counter range, legend, grounding panel, timeline). 'Imagine their day' and the portrait work for them
+  too (the atlas reaches back to 100,000 BCE); the day card then says "Speculative · modelled people" and why (`PersonDay`'s `modelled` prop).
   Copy `../data/tiles/prehistory/humans_*.webp` into `public/grid/` for local dev.
 - The WebPs are produced by `../footstep-generator/grid_image.py` from local HYDE 3.5
   grids. Keep the log encoding, `LEVELS` and `MAX_PEOPLE` aligned with `gridData.ts`.

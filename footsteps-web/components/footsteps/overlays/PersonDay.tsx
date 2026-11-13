@@ -31,11 +31,30 @@ type Day = {
 
 /** "Imagine their day": a short, clearly speculative day written by Claude
  * from the facts on this card (deploy/budgie/api/day_api.py). */
-export default function PersonDay({ request }: { request: DayRequest }) {
-  return <PersonDayRequest key={JSON.stringify(request)} request={request} />;
+export default function PersonDay({
+  request,
+  modelled = false,
+}: {
+  request: DayRequest;
+  /** Before HYDE: the people themselves are a model, so the day is labelled more strongly. */
+  modelled?: boolean;
+}) {
+  return (
+    <PersonDayRequest
+      key={JSON.stringify(request)}
+      request={request}
+      modelled={modelled}
+    />
+  );
 }
 
-function PersonDayRequest({ request }: { request: DayRequest }) {
+function PersonDayRequest({
+  request,
+  modelled,
+}: {
+  request: DayRequest;
+  modelled: boolean;
+}) {
   const [state, setState] = useState<
     | { kind: 'idle' }
     | { kind: 'loading' }
@@ -81,7 +100,16 @@ function PersonDayRequest({ request }: { request: DayRequest }) {
   const { day } = state;
   return (
     <div className="rounded-[var(--ov-radius-sm)] border border-[var(--ov-divider)] bg-white/[0.03] p-3">
-      <p className="ov-chip mb-2 uppercase tracking-wide text-[var(--ov-warm)]">Speculative</p>
+      <p className="ov-chip mb-2 uppercase tracking-wide text-[var(--ov-warm)]">
+        {modelled ? 'Speculative · modelled people' : 'Speculative'}
+      </p>
+      {modelled && (
+        <p className="ov-note mb-2" role="note">
+          No one saw this person. The head count and place come from a model, the
+          toolkit from a regional table of finds, and the day itself is an AI&apos;s
+          invention from those. Treat it as a story, not a record.
+        </p>
+      )}
       <p className="ov-body mb-3 text-[var(--ov-text)]">{day.summary}</p>
       <dl className="ov-body grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
         {day.schedule.map((s, i) => (

@@ -19,12 +19,23 @@ from pathlib import Path
 
 CELL_DEG = 5
 ERAS = [*range(-10000, 0, 1000), *range(0, 2000, 100)]  # the 30 HYDE years
-FIRST_YEAR, LAST_YEAR = ERAS[0], ERAS[-1]
+HYDE_FIRST = ERAS[0]
+# The modelled pre-HYDE years: one era per 1,000-year step of the population images, 100,000-11,000 BCE.
+DEEP_ERAS = list(range(-100000, HYDE_FIRST, 1000))
+FIRST_YEAR, LAST_YEAR = DEEP_ERAS[0], ERAS[-1]
+BP_ZERO = 1950
 
 HYDE = "HYDE 3.5"
 EA = "D-PLACE EA"
 TEOW = "D-PLACE TEOW"
 SESHAT = "Seshat Equinox 2020"
+# Deep-past sources (built by footstep-generator/anthropology/deep.py; see the README).
+PREHISTORY = "Footsteps prehistory model"      # arrivals.yaml + the modelled population (research 0002)
+CULTURES = "Footsteps technocomplex table"     # footstep-generator/anthropology/deep_past.yaml
+BIOME_PREY = "Footsteps biome-prey table"
+KRAPP = "Krapp 2021"
+BEYER = "Beyer 2020"
+PHYLACINE = "PHYLACINE 1.2"
 MODEL = "model"
 NONE = "none"
 
@@ -33,6 +44,8 @@ SETTLEMENT = ("mobile camp", "seasonal camp", "hamlet", "village", "town", "city
 FIELDS = (
     "subsistence", "settlement", "dwelling", "clothing", "hair_adornment", "tools_by_role",
     "diet", "skin_hair", "climate", "technology", "polity",
+    # Deep past only (HYDE-era records leave them unknown): who else lived there, big game, art.
+    "hominins", "prey", "art",
 )
 # Fields the model may fill when no dataset does. Subsistence and settlement always come
 # from HYDE; polity only from Seshat (a guessed polity name would be fiction).
@@ -61,7 +74,8 @@ def unknown() -> dict:
 
 
 def era_of(year: int) -> int:
-    """1000-year buckets before 1 CE, 100-year after, floored; e.g. -2500 -> -3000, 1850 -> 1800."""
+    """1000-year buckets before 1 CE, 100-year after, floored; e.g. -2500 -> -3000, 1850 -> 1800.
+    Before 10,000 BCE the buckets are the modelled population's, back to 100,000 BCE."""
     if not FIRST_YEAR <= year <= LAST_YEAR:
         raise ValueError(f"year must be {FIRST_YEAR}..{LAST_YEAR}")
     return -((-year + 999) // 1000) * 1000 if year < 0 else year // 100 * 100
@@ -116,6 +130,122 @@ def analogue_note(soc: dict, km: float, era: int) -> str:
     return f"Ethnographic analogue from the 19th-20th c. ({where}); this era may have differed."
 
 
+# --- rules for the modelled deep past: one cell x era (100,000-11,000 BCE) -------------------
+# Data shape. The atlas's `deep` section holds, per 5-degree cell, one value per deep era for
+# climate (Beyer temperature and rain, Krapp biome, ice and land share) and the modelled head
+# count; per cell the large mammals whose ranges hold it; and, for all cells, the arrival table,
+# hominins and technocomplexes (deep_past.yaml). A record is those facts at one era. Everyone
+# is a forager; the only question per place and time is *which* hominins and *which* toolkit.
+
+def era_window_ka(era: int) -> tuple[float, float]:
+    """(young, old) edges of an era in thousands of years before 1950; the era holds years era..era+999."""
+    return (BP_ZERO - era - 999) / 1000, (BP_ZERO - era) / 1000
+
+
+def ka_of_era(era: int) -> int:
+    """The 1 ka climate step inside an era (the step nearest its middle)."""
+    return int((BP_ZERO - era - 500) / 1000 + 0.5)
+
+
+def in_box(box: list[float], lat: float, lon: float) -> bool:
+    west, south, east, north = box
+    return west <= lon <= east and south <= lat <= north
+
+
+def box_area(box: list[float]) -> float:
+    return (box[2] - box[0]) * (box[3] - box[1])
+
+
+def sapiens_status(arrival: dict, window: tuple[float, float]) -> str:
+    """'absent' before the region's central arrival date, 'arriving' while the era spans it,
+    else 'established'. Ages are ka BP, so older means larger."""
+    young, old = window
+    if arrival["central"] < young:
+        return "absent"
+    return "established" if old <= arrival["central"] else "arriving"
+
+
+def hominins_here(deep: dict, region: dict, lat: float, lon: float, window: tuple[float, float]) -> dict:
+    young, old = window
+    sapiens = {
+        "status": sapiens_status(region["arrival_ka_bp"], window),
+        "region": region["name"],
+        "arrival_ka_bp": region["arrival_ka_bp"],
+    }
+    others = []
+    for h in deep["other_hominins"]:
+        # Present while the age is older than their last date: all of the era if it ends before that.
+        if in_box(h["bbox"], lat, lon) and old >= h["last_ka_bp"]["central"]:
+            others.append({
+                "name": h["short"],
+                "species": h["name"],
+                "status": "present" if young >= h["last_ka_bp"]["central"] else "dying out",
+                "last_ka_bp": h["last_ka_bp"],
+                "verification": h["verification"],
+            })
+    return {"sapiens": sapiens, "others": others}
+
+
+def rank_cultures(cultures: list[dict], lat: float, lon: float, window: tuple[float, float],
+                  maker: str) -> list[dict]:
+    """Technocomplexes made by `maker` that hold this place and overlap this era, best first: most
+    overlap, then the smaller region box, then the earlier entry."""
+    young, old = window
+    found = []
+    for i, c in enumerate(cultures):
+        if maker not in c["makers"]:
+            continue
+        boxes = [b for b in c["bbox"] if in_box(b, lat, lon)]
+        overlap = min(old, c["from_ka_bp"]) - max(young, c["to_ka_bp"])
+        if boxes and overlap > 0:
+            found.append(((-overlap, min(box_area(b) for b in boxes), i), c))
+    return [c for _, c in sorted(found, key=lambda x: x[0])]
+
+
+def pick_culture(cultures: list[dict], lat: float, lon: float, window: tuple[float, float],
+                 maker: str) -> dict | None:
+    ranked = rank_cultures(cultures, lat, lon, window, maker)
+    return ranked[0] if ranked else None
+
+
+def culture_note(c: dict) -> str:
+    check = ("Key claim checked against its source." if c["verification"] == "checked"
+             else "Citations written from memory and not yet checked against the papers.")
+    makers = " and ".join(c["makers"])
+    return (f"{c['name']}, made by {makers}, c. {c['from_ka_bp']:g}-{c['to_ka_bp']:g} thousand years ago. "
+            f"A regional pattern, not a record of this place. {check} Sources: {c['source']}")
+
+
+def climate_text(biomes: dict, biome: int, temp: float | None, rain: float | None, ice: int) -> str | None:
+    name = biomes.get(str(biome)) if biome else None
+    if ice >= 50:
+        return "Mostly under an ice sheet" + (f" ({name} where it was clear)" if name else "")
+    parts = [name] if name else []
+    if temp is not None:
+        parts.append(f"annual mean {temp:.0f} °C" + (f", about {rain:.0f} mm of rain a year" if rain is not None else ""))
+    return ", ".join(parts) or None
+
+
+def prey_value(deep: dict, cell: dict, k: int, biome: int) -> dict | None:
+    """Large mammals whose modelled natural range holds the cell at step k (ka BP), most widespread
+    first; plus the biome's typical game. None if the data holds neither."""
+    species = deep["species"]
+    present = [(sid, n) for sid, last_ka, n in cell.get("fauna", ()) if k >= last_ka]
+    present.sort(key=lambda p: (-p[1], -species[p[0]][2]))
+
+    def entry(sid: int) -> dict:
+        common, latin, kg, _, extinct = species[sid]
+        return {"name": common, "latin": latin, "kg": kg, "extinct": bool(extinct)}
+
+    game = [entry(s) for s, _ in present if species[s][3] in ("prey", "herd")][:8]
+    predators = [entry(s) for s, _ in present if species[s][3] == "predator"][:4]
+    group = next((g for g in deep["biome_prey"]["groups"] if biome in g["biomes"]), None)
+    if not game and not predators and not group:
+        return None
+    return {"large_game": game, "large_predators": predators,
+            "biome_game": group["game"] if group else [], "biome_group": group["name"] if group else None}
+
+
 class Atlas:
     def __init__(self, data: dict):
         self.data = data
@@ -123,6 +253,101 @@ class Atlas:
         self.sources = data["sources"]
         self.cells = data["cells"]
         self.societies = data["societies"]
+        self.deep = data.get("deep")  # absent in an atlas built before the deep past was added
+
+    def record_deep(self, key: str, era: int) -> dict | None:
+        """Record for a modelled era: foragers only, with the hominins, toolkit, climate and big
+        game the deep-past tables give for this 5-degree cell. None if the cell has no land then."""
+        deep = self.deep
+        if deep is None:
+            return None
+        cell = deep["cells"].get(key)
+        if cell is None:
+            return None
+        i = DEEP_ERAS.index(era)
+        south, west = (int(v) for v in key.split(","))
+        lat, lon = south + CELL_DEG / 2, west + CELL_DEG / 2
+        window, k = era_window_ka(era), ka_of_era(era)
+        fields = {name: unknown() for name in FIELDS}
+
+        region = deep["regions"][cell["region"]]
+        hom = hominins_here(deep, region, lat, lon, window)
+        sapiens_here = hom["sapiens"]["status"] != "absent"
+        s_note = (f"Arrival date for {region['name']}: {region['arrival_ka_bp']['central']:g} thousand years ago "
+                  f"(credible range {region['arrival_ka_bp']['late']:g}-{region['arrival_ka_bp']['early']:g}). "
+                  f"{'Checked against the paper.' if region['verification'] == 'checked' else 'Citation written from memory.'} "
+                  f"{region['source']}")
+        people = cell["people"][i]
+        if people > 0 and not sapiens_here:
+            s_note += (" The population model still draws people here (its regions blur at their edges "
+                       "and in places the catch-all region leaks onto islands), so read this cell as a model artefact.")
+        fields["hominins"] = field(hom, PREHISTORY, s_note)
+
+        land = cell["land_km2"]
+        way = "foraging" if sapiens_here or people > 0 else "uninhabited"
+        fields["subsistence"] = field(
+            {"way": way, "cropland_share": 0, "grazing_share": 0, "irrigated_share": 0}, PREHISTORY,
+            "Before farming (c. 10,000 BCE in the Near East) everyone lived by hunting and gathering. "
+            "This is the population model's assumption, not an observation at this place.")
+        density = people / land if land else 0.0
+        fields["settlement"] = field(
+            {"type": typical_settlement(way, density), "people_in_cell": round(people),
+             "people_per_km2": round(density, 4), "lived_density_per_km2": None},
+            PREHISTORY,
+            f"Modelled head count for this cell at the start of the era (research 0002); camps are assumed, "
+            f"not found. Typical home from way of life and {density:.3f} people per km2.")
+
+        temp, rain, biome, ice = cell["temp"][i], cell["rain"][i], cell["biome"][i], cell["ice"][i]
+        if text := climate_text(deep["biomes"], biome, temp, rain, ice):
+            fields["climate"] = field(
+                text, f"{KRAPP}; {BEYER}",
+                f"Climate model for the {k:,} thousand years ago step (Beyer, Krapp & Manica 2020), averaged "
+                f"over the cell's land; biome from Krapp et al. 2021.")
+
+        ranked = rank_cultures(deep["cultures"], lat, lon, window, "H. sapiens") if sapiens_here else []
+        if ranked:
+            culture = ranked[0]
+            note = culture_note(culture)
+            # The best fit speaks for the person; others that overlap the era are named, not used.
+            tech = [f"{culture['name']}: {culture['summary']}"]
+            tech += [f"Also in this period: {c['name']}" for c in ranked[1:3]]
+            fields["technology"] = field(tech, CULTURES, note)
+            if culture["shelter"]:
+                fields["dwelling"] = field(culture["shelter"], CULTURES, note)
+            if culture["tools"]:
+                fields["tools_by_role"] = field(culture["tools"], CULTURES, note)
+            if culture["ornaments"]:
+                fields["hair_adornment"] = field(
+                    {"styles": [], "ornaments": culture["ornaments"], "body_paint": None}, CULTURES, note)
+            if culture["art"]:
+                fields["art"] = field(culture["art"], CULTURES, note)
+        # Another hominin's toolkit is named in the hominins field, never as this person's.
+        for other in hom["others"]:
+            other_culture = pick_culture(deep["cultures"], lat, lon, window, other["name"])
+            if other_culture:
+                other["culture"] = other_culture["name"]
+
+        if prey := prey_value(deep, {} if ice >= 50 else cell, k, biome):  # nothing lives under an ice sheet
+            sources = [BIOME_PREY] if prey["biome_game"] else []
+            if prey["large_game"] or prey["large_predators"]:
+                sources.insert(0, PHYLACINE)
+            fields["prey"] = field(
+                prey, "; ".join(sources),
+                "Modelled, not found: animals whose natural range (today's climate, not the Ice Age's) holds "
+                "this cell and which were not yet extinct there by a mostly regional date (PHYLACINE 1.2, "
+                "Faurby et al. 2018). The biome's typical game is a general table (Kelly 2013, Binford 2001).")
+
+        return {
+            "cell": {"key": key, "south": south, "west": west, "size_deg": CELL_DEG},
+            "era": {"start": era, "label": era_label(era)},
+            "fields": fields,
+            "confidence": field(
+                "low", "derived",
+                "Modelled people in a modelled climate, with a regional toolkit table: nobody has seen "
+                "these people. Treat everything here as an informed sketch."),
+            "evidence": "modelled",
+            "atlas_version": f"{self.version}.d{deep['version']}",
+        }
 
     @classmethod
     def load(cls, path: str | Path) -> "Atlas":
@@ -132,6 +357,8 @@ class Atlas:
     def record(self, lat: float, lon: float, year: int) -> dict | None:
         """The real-data record, or None when the cell has no land in HYDE."""
         key, era = cell_of(lat, lon), era_of(year)
+        if era < HYDE_FIRST:
+            return self.record_deep(key, era)
         cell = self.cells.get(key)
         if cell is None:
             return None
@@ -194,6 +421,7 @@ class Atlas:
             "era": {"start": era, "label": era_label(era)},
             "fields": fields,
             "confidence": confidence(fields, era, analogue),
+            "evidence": "measured",
             "atlas_version": self.version,
         }
 
@@ -252,6 +480,9 @@ def known_facts(record: dict, include_model: bool = True) -> dict:
                   f"{record['cell']['west']} to {record['cell']['west'] + CELL_DEG} lon",
         "era": record["era"]["label"],
     }
+    if record.get("evidence") == "modelled":
+        facts["evidence"] = ("MODELLED: the people, climate and toolkit here are a model and a regional table; "
+                             "nothing was found at this place")
     for name, f in record["fields"].items():
         if f["source"] != NONE and (include_model or f["source"] != MODEL):
             facts[name] = {"value": f["value"], "source": f["source"]}
@@ -259,10 +490,16 @@ def known_facts(record: dict, include_model: bool = True) -> dict:
     return facts
 
 
+DEEP_GAPFILL_NOTE = """This is the Palaeolithic or Ice Age, before farming. Everyone is a hunter-gatherer: no crops, \
+herds, pottery, weaving looms or metal unless the facts give them. Clothing is of hide, fur, plant fibre and \
+sinew, shaped to the climate given. The facts are a model and a regional table, so keep every answer general."""
+
+
 def gapfill_prompt(record: dict) -> str:
     missing = [n for n in MODEL_FIELDS if record["fields"][n]["source"] == NONE]
+    note = f"\n\n{DEEP_GAPFILL_NOTE}" if record.get("evidence") == "modelled" else ""
     return ("Real facts for this region and era:\n" + json.dumps(known_facts(record, False), indent=2)
-            + "\n\nFill every field of the schema. The ones nobody has data for here are: "
+            + note + "\n\nFill every field of the schema. The ones nobody has data for here are: "
             + ", ".join(missing) + ".")
 
 

@@ -45,6 +45,8 @@ ATLAS = atlas.Atlas.load(ATLAS_PATH)
 
 # Bump when the prompt changes so days written under an old prompt aren't served.
 PROMPT_VERSION = 2
+# Separate version for modelled years (before HYDE): bumping it leaves HYDE-era days cached.
+DEEP_PROMPT_VERSION = 1
 
 SYSTEM = """You write short, plausible, clearly speculative snapshots of one ordinary \
 person's day in the past, for an interactive map of human population history.
@@ -58,6 +60,17 @@ person a name. Avoid stereotypes; keep the role you are given. Do not divide wor
 sex for anyone in the scene: describe other group members by role or age (adults, \
 children, elders), never as "the men" doing one task and "the women" another. Plain, warm, concrete English; present tense. Keep it short: 5 to 7 schedule \
 entries of one sentence each."""
+
+# Added for years before HYDE (before 10,000 BCE), where the people themselves are a model.
+DEEP_SYSTEM = """
+
+This person lived in the Palaeolithic, before farming. The head count and the place are modelled, \
+not observed, and the toolkit comes from a regional table: nothing was found at this exact spot. \
+Everyone in the scene is a hunter-gatherer: no crops, herds, pottery, looms or metal unless the facts \
+list them. Use only tools, shelters, ornaments and animals the facts or well-established archaeology \
+for that region and time support. Mention other kinds of humans only if the facts list them, and \
+label them as the facts do. Say what is invented: the summary must open with "Imagined:", and the \
+uncertainty note must say plainly that the day is speculation built on a model."""
 
 SCHEMA = {
     "type": "object",
@@ -113,6 +126,8 @@ def cache_key(f: dict) -> str:
         age_band,
         "f" if f["person"]["female"] else "m",
     ]
+    if year < atlas.HYDE_FIRST:
+        parts.append(f"deep{DEEP_PROMPT_VERSION}")
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest()[:32]
 
 
@@ -121,16 +136,22 @@ def prompt(f: dict, record: dict | None = None) -> str:
     when = f"{-y} BCE" if y < 0 else f"{y} CE"
     p = f["person"]
     who = ("girl" if p["female"] else "boy") if p["age"] < 13 else ("woman" if p["female"] else "man")
+    deep = y < atlas.HYDE_FIRST
+    # Modelled years are read per 0.5 degree block (~55 km), HYDE years per ~10 km cell.
+    block, group = ("~55km_block", "blocks") if deep else ("~10km_cell", "cells")
     facts = {
         "year": when,
         "place": f"latitude {float(f['lat']):.2f}, longitude {float(f['lon']):.2f}",
-        "people_in_this_~10km_cell": round(float(f.get("cellPeople", 0))),
-        "people_in_surrounding_3x3_cells": round(float(f.get("neighbourhoodPeople", 0))),
+        f"people_in_this_{block}": round(float(f.get("cellPeople", 0))),
+        f"people_in_surrounding_3x3_{group}": round(float(f.get("neighbourhoodPeople", 0))),
         "density_class": f.get("densityClass", "unknown"),
-        "group": f"{'a foraging band' if p['groupKind'] == 0 else 'a village'} of about {round(float(p['groupPeople']))} people",
+        # Everyone is a forager before farming, whatever size the mark: a big band, not a village.
+        "group": f"{'a foraging band' if deep or p['groupKind'] == 0 else 'a village'} of about {round(float(p['groupPeople']))} people",
         "person": f"a {who} of about {p['age']}, role: {p['role']}",
         "data_confidence_note": f.get("confidence", ""),
     }
+    if deep:
+        facts["head_counts"] = "modelled, not measured: a model of where foragers would live, scaled to a published total"
     if record:
         # Real data with its sources, plus any cached model gap-fill (marked "model"), so the
         # day agrees with the portrait drawn from the same record.
@@ -187,7 +208,8 @@ def call_model(system: str, user: str, schema: dict, name: str) -> tuple[dict, s
 
 
 def generate(f: dict, record: dict | None = None) -> tuple[dict, str]:
-    return call_model(SYSTEM, prompt(f, record), SCHEMA, "day_in_the_life")
+    system = SYSTEM + (DEEP_SYSTEM if int(f["year"]) < atlas.HYDE_FIRST else "")
+    return call_model(system, prompt(f, record), SCHEMA, "day_in_the_life")
 
 
 def reserve_generation(con: sqlite3.Connection, ip: str) -> str | None:
@@ -287,7 +309,7 @@ class Handler(BaseHTTPRequestHandler):
                                              f"({atlas.FIRST_YEAR}..{atlas.LAST_YEAR})."})
         record = anthropology(db(), lat, lon, year, self.client_ip())
         if record is None:
-            return self._send(404, {"error": "No land with people in any era here (HYDE 3.5)."})
+            return self._send(404, {"error": "No land here in any era (HYDE 3.5, or the Ice Age climate model)."})
         self._send(200, {**record, "sources": ATLAS.sources})
 
     def do_POST(self) -> None:

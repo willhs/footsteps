@@ -5,7 +5,8 @@
     poetry run python footstep-generator/anthropology/build.py         # write the atlas
 
 Inputs: data/tiles/grid/humans_{year}.webp and landuse_{year}.png (grid_image.py), and the
-zips `fetch` puts in data/raw/. Output: deploy/budgie/api/anthropology.json.gz.
+zips `fetch` puts in data/raw/. Output: deploy/budgie/api/anthropology.json.gz. The deep-past section
+(before 10,000 BCE) is added by deep.py, which can also be run alone on the existing file.
 """
 from __future__ import annotations
 
@@ -381,6 +382,8 @@ def main() -> None:
     if args.command == "fetch":
         return fetch()
     atlas = build()
+    import deep  # the 100,000-11,000 BCE section; needs the habitat, prehistory and fauna data (see deep.py)
+    atlas = deep.add_to(atlas)
     args.out.write_bytes(gzip.compress(json.dumps(atlas, separators=(",", ":")).encode(), mtime=0))
     print(f"{len(atlas['cells'])} land cells, {len(atlas['societies'])} societies, "
           f"{sum('seshat' in c for c in atlas['cells'].values())} Seshat cells -> "

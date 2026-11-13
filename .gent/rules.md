@@ -33,7 +33,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   per HYDE year, as small lossless WebPs in `data/tiles/habitat/` (served at `/habitat/`) for the hover card (`?hover=1`, off by default).
   See `docs/ops/habitat-lookup.md`.
 - `footstep-generator/fauna/phylacine.py`: PHYLACINE 1.2.1 present-natural ranges + a cited extinction table (`losses.py`) →
-  `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; not used by the app yet.
+  `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; the anthropology atlas reads it for big game before 10,000 BCE (`anthropology/deep.py`).
   See `docs/ops/fauna.md`.
 - `footstep-generator/anthropology/ethnography.py`: D-PLACE (Ethnographic Atlas, SCCS, Binford, TEOW, ecoClimate) → 1,404 societies with 25 variables
   (`ethnography.json.gz`, committed) and `nearest_analogs`, the 3 most similar societies for a place, year and way of life, with a score and a plain
@@ -52,7 +52,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health
   (`API_ONLY=1` for just the API container).
 - `deploy/budgie/api/`: day API (`day_api.py`) and `GET /api/anthropology` (`atlas.py`), a sourced
-  record per 5° cell × era built by `footstep-generator/anthropology/` (see its README).
+  record per 5° cell × era, 100,000 BCE–1900, built by `footstep-generator/anthropology/` (see its README). Before
+  10,000 BCE (`deep.py`) it is a modelled record: foragers only, arrival table, Neanderthals and Denisovans, a cited
+  technocomplex table (`deep_past.yaml`), Beyer/Krapp climate, fauna ranges. "Imagine their day" works there, labelled more strongly.
   `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures (grid, terrain) for configured years.
 
 ## Data and development

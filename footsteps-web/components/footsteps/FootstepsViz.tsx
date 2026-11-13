@@ -265,8 +265,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 : null
             }
             day={
-              // 'Imagine their day' is written from HYDE-era records only.
-              !modelled && selectedPerson && selectedPlace && grid
+              // 'Imagine their day' works in every era; before HYDE the day API labels it more strongly.
+              selectedPerson && selectedPlace && grid
                 ? (() => {
                     const facts = groundingFacts(grid, year, ...selectedPlace);
                     return {

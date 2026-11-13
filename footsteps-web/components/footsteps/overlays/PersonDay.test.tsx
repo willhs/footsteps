@@ -49,3 +49,35 @@ test('an old day response cannot replace a newly selected person', async () => {
     screen.queryByText('The previous person’s day'),
   ).not.toBeInTheDocument();
 });
+
+test('a day before HYDE says the people are modelled and the day an invention', async () => {
+  const request: DayRequest = {
+    year: -30000,
+    lat: 47,
+    lon: 2,
+    cellPeople: 900,
+    neighbourhoodPeople: 5000,
+    densityClass: 'sparse',
+    confidence: 'modelled',
+    person: { age: 30, female: false, role: 'hunter', groupKind: 0, groupPeople: 40 },
+  };
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      summary: 'Imagined: a hunter at dawn',
+      schedule: [],
+      grounded_in: [],
+      uncertainty: 'Speculation built on a model.',
+      model: 'demo',
+    }),
+  })) as jest.Mock;
+  const view = render(<PersonDay request={request} modelled />);
+  fireEvent.click(screen.getByRole('button'));
+  expect(await screen.findByText('Speculative · modelled people')).toBeInTheDocument();
+  expect(screen.getByRole('note')).toHaveTextContent('No one saw this person');
+  // the same day in a measured era keeps the plain label
+  view.rerender(<PersonDay request={{ ...request, year: 1500 }} />);
+  fireEvent.click(screen.getByRole('button'));
+  expect(await screen.findByText('Speculative')).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+});

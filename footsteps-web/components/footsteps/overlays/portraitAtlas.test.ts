@@ -13,7 +13,10 @@ describe('portrait atlas mapping', () => {
     expect(atlasKey(31.8, 35.5, -8000)).toBe('30,35,-8000');
     expect(atlasKey(31.8, 35.5, -2500)).toBe('30,35,-3000');
     expect(atlasKey(-12, -70, 1850)).toBe('-15,-70,1800');
-    expect(atlasKey(50, 10, -30000)).toBe('50,10,-10000'); // clamped to the atlas range
+    expect(atlasKey(50, 10, -30000)).toBe('50,10,-30000'); // modelled eras, 1,000 years each
+    expect(atlasKey(50, 10, -30001)).toBe('50,10,-31000');
+    expect(atlasKey(50, 10, -10001)).toBe('50,10,-11000');
+    expect(atlasKey(50, 10, -250000)).toBe('50,10,-100000'); // clamped to the atlas range
     expect(atlasKey(50, 10, 2025)).toBe('50,10,1900');
   });
 });

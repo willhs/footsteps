@@ -58,7 +58,7 @@ export default function GroundingPanel({
               Imagined: the head count is {modelled ? 'modelled' : 'a HYDE estimate'}; this person&apos;s age, role and place in
               camp are drawn from a typical pre-modern population.
             </p>
-            {day && <PersonDay request={day} />}
+            {day && <PersonDay request={day} modelled={modelled} />}
           </div>
         )}
 

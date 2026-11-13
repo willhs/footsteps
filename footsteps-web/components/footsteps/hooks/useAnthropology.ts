@@ -26,9 +26,12 @@ export type AtlasRecord = {
     [name: string]: Field<unknown> | undefined;
   };
   confidence?: { value: string };
+  evidence?: 'measured' | 'modelled';
 };
 
-export const ATLAS_FIRST_YEAR = -10000;
+// The atlas reaches back to the start of the modelled population (100,000 BCE); before 10,000 BCE
+// its records are modelled (`evidence: 'modelled'`), not measured.
+export const ATLAS_FIRST_YEAR = -100000;
 export const ATLAS_LAST_YEAR = 1900;
 
 /** Same buckets as the API: 1000 years before 1 CE, 100 after; 5-degree cells. */

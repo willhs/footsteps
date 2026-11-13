@@ -1,14 +1,14 @@
 ---
 id: fauna
 type: reference
-purpose: "Method, outputs and limits of the large-animal ranges dataset (PHYLACINE + a cited extinction table); not wired into the app"
+purpose: "Method, outputs and limits of the large-animal ranges dataset (PHYLACINE + a cited extinction table); read only by the anthropology atlas (big game before 10,000 BCE)"
 ---
 
 # Fauna: which big animals lived here then
 
 Animals are one of the human constants ([human-constants](../philosophy/human-constants.md)). This is a first
 dataset for "which big mammals were around this spot at this year". It is **modelled, not measured**, and
-**nothing in the app reads it yet**. Code: `footstep-generator/fauna/`. Tests: `footstep-generator/tests/test_fauna.py`.
+**the only reader is the anthropology atlas** (`footstep-generator/anthropology/deep.py` folds it into 5° cells for the "prey" field before 10,000 BCE; nothing in the web app reads the file itself). Code: `footstep-generator/fauna/`. Tests: `footstep-generator/tests/test_fauna.py`.
 
 ```bash
 poetry install

@@ -1,0 +1,594 @@
+# Material culture and prey for the modelled deep past (100,000-11,000 BCE), per region and time.
+# Read by build.py (`deep`), which writes it into the atlas next to the arrival table
+# (footstep-generator/prehistory/arrivals.yaml). Nothing here is gap-filled by a model.
+#
+# One entry per technocomplex (a named stone-tool tradition, with what archaeology links to it).
+#   makers      who made it: "H. sapiens", "Neanderthals", "Denisovans". Only entries with
+#               "H. sapiens" speak for a clicked person; the others are labelled as another hominin's.
+#   bbox        [west, south, east, north] degrees; any box may hold the cell centre
+#   from_ka_bp / to_ka_bp   start (older) and end (younger), thousands of years before 1950.
+#               Real traditions overlap and fade in and out by site; these are round, regional spans.
+#   shelter     {phrase, material}: what archaeologists found people living in or under
+#   tools       [{role, items}]; ornaments; art: what is recorded, as short phrases
+#   summary     one line shown with the name
+#   verification  checked = key claim confirmed against the paper's abstract or a reliable summary;
+#                 memory  = citation and claim written from memory, NOT yet checked against the paper.
+#                 The atlas passes this on in each field's note; a `memory` entry must not be
+#                 presented as sourced.
+#   source      the papers or books behind the entry
+# Selection (atlas.py): of the entries holding the cell centre, those overlapping the era; the one
+# overlapping the most wins, the one with the smaller box on a tie (then the earlier in this file).
+#
+# Where a field is empty the archaeology is silent or this table has not covered it: the atlas says
+# "none" and lets the model gap-fill (clothing, diet, looks), marked as model.
+
+version: 1
+
+cultures:
+  # ---- Africa ------------------------------------------------------------------------------
+  - id: aterian
+    name: "Aterian (North Africa, Middle Stone Age)"
+    makers: ["H. sapiens"]
+    bbox: [[-17, 18, 35, 37]]
+    from_ka_bp: 145
+    to_ka_bp: 30
+    shelter: {phrase: "caves and rock shelters with hearths", material: "stone and hearth, no built walls recorded"}
+    tools:
+      - {role: hunting, items: ["tanged stone points, probably hafted spear or dart tips", "side scrapers"]}
+      - {role: processing, items: ["flake scrapers for hides and wood", "Levallois flakes"]}
+    ornaments: ["perforated sea-shell beads (Taforalt, c. 82 ka)", "ochre"]
+    art: []
+    summary: "Tanged points and shell beads across the Maghreb and Sahara, long before Europe's Upper Palaeolithic."
+    verification: memory
+    source: "Bouzouggar et al. 2007 PNAS 104:9964 (Grotte des Pigeons, Taforalt: shell beads c. 82 ka); Scerri 2013 Quat Int 300:111 (the Aterian, from memory)."
+
+  - id: iberomaurusian
+    name: "Iberomaurusian (Maghreb, Late Stone Age)"
+    makers: ["H. sapiens"]
+    bbox: [[-17, 28, 12, 37]]
+    from_ka_bp: 25
+    to_ka_bp: 11
+    shelter: {phrase: "cave camps near the coast and uplands; large cemeteries at Taforalt", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["backed bladelets, probably set in spears and arrows", "Barbary sheep and gazelle as main game"]}
+      - {role: gathering, items: ["grinding stones for acorns, pine nuts and wild plants", "land snail collecting"]}
+    ornaments: ["perforated shells", "pierced animal teeth"]
+    art: ["engraved and painted pebbles are rare"]
+    summary: "Backed-bladelet foragers of the Maghreb, c. 25-11 ka, who ground acorns and buried their dead in cave cemeteries."
+    verification: memory
+    source: "Taforalt (Morocco) excavations; Humphrey et al. 2014 Quat Sci Rev, Barton et al. — both from memory."
+
+  - id: africa_msa
+    name: "Middle Stone Age (Africa)"
+    makers: ["H. sapiens"]
+    bbox: [[-20, -35, 52, 37]]
+    from_ka_bp: 300
+    to_ka_bp: 40
+    shelter: {phrase: "caves, rock shelters and open camps with hearths; grass and sedge bedding laid on the floor", material: "stone, hearth, plant bedding"}
+    tools:
+      - {role: hunting, items: ["stone-tipped spears", "small stone points, perhaps arrow tips after 60 ka", "heat-treated stone for sharper flakes"]}
+      - {role: processing, items: ["bone awls and points", "ochre grinding stones", "ochre-and-resin glue for hafting"]}
+    ornaments: ["shell beads strung from Nassarius snails (Blombos, c. 75 ka)", "ochre"]
+    art: ["engraved ochre (Blombos, c. 77 ka)", "ochre crayon drawing on stone (Blombos, c. 73 ka)", "engraved ostrich eggshell (Diepkloof, c. 60 ka)"]
+    summary: "The Middle Stone Age of the first Homo sapiens: hafted points, shell beads, engraved ochre."
+    verification: memory
+    source: "McBrearty & Brooks 2000 J Hum Evol 39:453; Henshilwood et al. 2002 Science 295:1278 (Blombos); Henshilwood et al. 2018 Nature 562:115; Texier et al. 2010 PNAS 107:6180 (Diepkloof); Wadley et al. 2011 Science 334:1388 (Sibudu bedding); Brown et al. 2012 Nature 491:590 (heat treatment) — from memory."
+
+  - id: africa_lsa
+    name: "Later Stone Age (Africa)"
+    makers: ["H. sapiens"]
+    bbox: [[-20, -35, 52, 28]]
+    from_ka_bp: 40
+    to_ka_bp: 11
+    shelter: {phrase: "rock shelters and open-air camps with hearths and windbreaks", material: "stone, brush and hide"}
+    tools:
+      - {role: hunting, items: ["bows and small stone-tipped arrows", "bone arrowheads and poison-grooved points", "snares and traps"]}
+      - {role: gathering, items: ["digging sticks weighted with bored stones", "ostrich eggshell water containers"]}
+      - {role: processing, items: ["bone needles and awls", "tiny stone scrapers and backed blades (microliths)"]}
+    ornaments: ["ostrich eggshell beads", "pierced shells and teeth"]
+    art: ["painted slabs (Apollo 11 Cave, Namibia, c. 27 ka)", "rock engravings and paintings, mostly later and hard to date"]
+    summary: "Microlith foragers of the Later Stone Age: bows, ostrich eggshell beads, bone needles. Start dates run from c. 50 ka in East Africa to c. 20 ka in the south."
+    verification: memory
+    source: "Mitchell 2002 The Archaeology of Southern Africa (CUP); Ambrose 1998 J Hum Evol 34:623; Wendt 1976 (Apollo 11 slabs) — from memory."
+
+  # ---- Levant and Arabia -------------------------------------------------------------------
+  - id: levant_epipalaeolithic
+    name: "Epipalaeolithic: Kebaran and Natufian (Levant)"
+    makers: ["H. sapiens"]
+    bbox: [[32, 28, 45, 38]]
+    from_ka_bp: 23
+    to_ka_bp: 11.7
+    shelter: {phrase: "from mobile camps to the first year-round stone-footed round huts of the Natufian (c. 14.5 ka on)", material: "stone footings, brush and hides"}
+    tools:
+      - {role: hunting, items: ["tiny geometric stone blades set in spears and arrows", "gazelle as main game"]}
+      - {role: gathering, items: ["grinding stones and mortars", "sickle blades with gloss from cutting wild cereals"]}
+    ornaments: ["dentalium shell beads", "bone and stone pendants"]
+    art: ["small carved animal figures in stone and bone (Natufian)"]
+    summary: "Kebaran camps and the Natufian base camps of the Levant, where foragers began living in one place and harvesting wild grain."
+    verification: memory
+    source: "Bar-Yosef 1998 Evol Anthropol 6:159 (The Natufian culture in the Levant) — from memory."
+
+  - id: levant_upper_palaeolithic
+    name: "Early Ahmarian and Levantine Aurignacian"
+    makers: ["H. sapiens"]
+    bbox: [[32, 28, 45, 38]]
+    from_ka_bp: 47
+    to_ka_bp: 23
+    shelter: {phrase: "cave and rock-shelter camps with hearths", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["narrow stone blades and points (Ahmarian), set in spears", "gazelle, fallow deer and wild cattle"]}
+      - {role: processing, items: ["bone points and awls", "end scrapers"]}
+    ornaments: ["perforated marine shells", "bone and antler pendants"]
+    art: []
+    summary: "The Upper Palaeolithic of the Levant, with blade technology like Europe's earliest."
+    verification: memory
+    source: "Bar-Yosef 2007 (Levantine Upper Palaeolithic) — from memory; Boker Tachtit / Ksar Akil."
+
+  - id: levant_middle_palaeolithic
+    name: "Levantine Mousterian (Middle Palaeolithic)"
+    makers: ["H. sapiens", "Neanderthals"]
+    bbox: [[32, 12, 60, 38]]
+    from_ka_bp: 250
+    to_ka_bp: 47
+    shelter: {phrase: "caves and rock shelters with hearths", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["Levallois flakes and points, perhaps hafted as spear tips"]}
+      - {role: processing, items: ["side scrapers", "ochre"]}
+    ornaments: ["perforated Nassarius shells (Skhul and Qafzeh, c. 100-90 ka)"]
+    art: ["ochre pieces and burials with grave goods (Qafzeh, c. 100 ka)"]
+    summary: "Mousterian toolkit shared by early Homo sapiens (Skhul, Qafzeh) and Neanderthals in the Levant."
+    verification: memory
+    source: "Vanhaeren et al. 2006 Science 312:1785 (shell beads); Hovers et al. 2003 Curr Anthropol 44:491 (Qafzeh ochre); Hershkovitz et al. 2018 Science 359:456 (Misliya) — from memory."
+
+  # ---- Europe ------------------------------------------------------------------------------
+  - id: solutrean
+    name: "Solutrean (France and Iberia)"
+    makers: ["H. sapiens"]
+    bbox: [[-10, 36, 5, 48]]
+    from_ka_bp: 24.5
+    to_ka_bp: 19.5
+    shelter: {phrase: "cave and rock-shelter camps by the Franco-Cantabrian coast and valleys", material: "stone and hearth, hide windbreaks"}
+    tools:
+      - {role: hunting, items: ["finely pressure-flaked laurel-leaf and shouldered points", "spear-throwers", "red deer, horse and ibex as main game"]}
+      - {role: processing, items: ["bone needles with eyes, for sewing close-fitting clothes", "end scrapers"]}
+    ornaments: ["pierced shells and animal teeth"]
+    art: ["engraved and painted caves and plaques (Parpalló, Spain)"]
+    summary: "Solutrean hunters of the last glacial peak, with the best-made stone points and the first eyed needles."
+    verification: memory
+    source: "Straus 2000 (The Solutrean of Iberia and France) and Zilhão; Parpalló plaques — from memory."
+
+  - id: magdalenian
+    name: "Magdalenian (western and central Europe)"
+    makers: ["H. sapiens"]
+    bbox: [[-10, 36, 22, 56]]
+    from_ka_bp: 20
+    to_ka_bp: 14
+    shelter: {phrase: "cave and rock-shelter camps, and open-air hide tents with hearths and paved floors", material: "hide, wood, stone"}
+    tools:
+      - {role: hunting, items: ["antler and bone harpoons and spear points", "spear-throwers carved with animals", "reindeer, horse, red deer and bison as main game"]}
+      - {role: processing, items: ["bone needles", "burins for working antler", "stone scrapers"]}
+    ornaments: ["pierced shells and animal teeth", "ivory and jet pendants"]
+    art: ["painted and engraved caves (Lascaux, Altamira, Niaux)", "carved antler and ivory figures"]
+    summary: "Magdalenian reindeer and horse hunters, famous for cave paintings and carved antler."
+    verification: memory
+    source: "Straus 1992 Iberia Before the Iberians; Bahn & Vertut 1997 Journey Through the Ice Age — from memory."
+
+  - id: azilian
+    name: "Azilian and Late Epigravettian (Late Glacial Europe)"
+    makers: ["H. sapiens"]
+    bbox: [[-10, 36, 22, 56]]
+    from_ka_bp: 14
+    to_ka_bp: 11
+    shelter: {phrase: "tents and rock-shelter camps near rivers and lakes", material: "hide, wood, stone"}
+    tools:
+      - {role: hunting, items: ["small backed points and bone barbs", "red deer, roe deer, aurochs and horse"]}
+      - {role: fishing, items: ["bone fish gorges and harpoons"]}
+    ornaments: ["pierced shells and teeth"]
+    art: ["painted pebbles (Azilian)"]
+    summary: "Late Glacial foragers of the warming West, after the Magdalenian."
+    verification: memory
+    source: "Straus; Mas d'Azil painted pebbles — from memory."
+
+  - id: epigravettian
+    name: "Epigravettian (Italy, Balkans, Black Sea)"
+    makers: ["H. sapiens"]
+    bbox: [[8, 36, 42, 52]]
+    from_ka_bp: 22
+    to_ka_bp: 11
+    shelter: {phrase: "cave and rock-shelter camps; tents and, on the plains, huts built of mammoth bones", material: "hide, wood, bone, stone"}
+    tools:
+      - {role: hunting, items: ["small backed stone points", "red deer, ibex, horse and aurochs"]}
+      - {role: processing, items: ["bone needles", "end scrapers"]}
+    ornaments: ["pierced shells", "beads"]
+    art: ["engraved bones and stones (Grotta Romanelli, Italy)"]
+    summary: "Southern Europe's refuge foragers through the Ice Age maximum and after."
+    verification: memory
+    source: "Mussi 2002 Earliest Italy; Soffer 1985 The Upper Paleolithic of the Central Russian Plain — from memory."
+
+  - id: gravettian
+    name: "Gravettian (Europe)"
+    makers: ["H. sapiens"]
+    bbox: [[-10, 36, 42, 56]]
+    from_ka_bp: 33
+    to_ka_bp: 22
+    shelter: {phrase: "tents and huts of hide over wooden or mammoth-bone frames on the plains, caves in the west", material: "hide, wood, bone"}
+    tools:
+      - {role: hunting, items: ["small backed blades and points set in spears", "nets and cord (traces on clay)", "mammoth, reindeer and horse as main game"]}
+      - {role: processing, items: ["bone and ivory needles", "ground stone pestles for plants"]}
+    ornaments: ["beads of ivory, shell and teeth, sewn on clothes and caps (Sunghir)", "pierced animal teeth"]
+    art: ["'Venus' figurines of ivory, stone and baked clay", "hand stencils in caves (Gargas)"]
+    summary: "Gravettian mammoth hunters of the Ice Age plains: figurines, beaded clothing, cord and nets."
+    verification: memory
+    source: "Soffer et al. 2000 Curr Anthropol 41:511 (cordage and nets); Sikora et al. 2017 Science 358:659 (Sunghir burials, c. 34 ka); Pidoplichko 1998 (mammoth-bone dwellings) — from memory."
+
+  - id: aurignacian
+    name: "Aurignacian (Europe)"
+    makers: ["H. sapiens"]
+    bbox: [[-10, 36, 42, 56]]
+    from_ka_bp: 43
+    to_ka_bp: 33
+    shelter: {phrase: "caves and rock shelters at the cave mouth, hearths, open-air camps", material: "stone and hide"}
+    tools:
+      - {role: hunting, items: ["split-base antler points on spears", "horse, reindeer, red deer and bison"]}
+      - {role: processing, items: ["bone awls and needles", "carinated scrapers and burins"]}
+    ornaments: ["thousands of ivory and shell beads, many made in a few set shapes", "pierced teeth"]
+    art: ["ivory figurines: the Lion-human of Hohlenstein-Stadel, the Hohle Fels woman", "bone and ivory flutes (Hohle Fels)", "cave paintings (Chauvet, c. 36 ka)"]
+    summary: "Europe's first Homo sapiens culture: carved ivory, bone flutes and the oldest cave paintings."
+    verification: memory
+    source: "Conard 2009 Nature 459:248 (Hohle Fels figurine); Conard, Malina & Münzel 2009 Nature 460:737 (flutes); Higham et al. 2011 Nature 479:521 (Aurignacian dating) — from memory."
+
+  - id: initial_upper_palaeolithic
+    name: "Initial Upper Palaeolithic (Bacho Kiro, Uluzzian and kin)"
+    makers: ["H. sapiens"]
+    bbox: [[8, 36, 42, 56]]
+    from_ka_bp: 47
+    to_ka_bp: 42
+    shelter: {phrase: "cave camps with hearths", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["long blades struck from prepared cores", "bone points"]}
+      - {role: processing, items: ["end scrapers", "bone awls"]}
+    ornaments: ["pierced animal teeth and shells", "bear-tooth pendants (Bacho Kiro)"]
+    art: []
+    summary: "The first Homo sapiens in Europe, overlapping the last Neanderthals."
+    verification: checked
+    source: "Hajdinjak et al. 2021 Nature 592:253 (Bacho Kiro, 45.9-42.6 ka); Hublin et al. 2020 Nature 581:299; Benazzi et al. 2011 Nature 479:525 (Uluzzian) — checked against arrivals.yaml."
+
+  - id: east_europe_upper_palaeolithic
+    name: "Eastern European Upper Palaeolithic (Kostenki, Sungir, Mezhirich)"
+    makers: ["H. sapiens"]
+    bbox: [[30, 40, 60, 62]]
+    from_ka_bp: 45
+    to_ka_bp: 11
+    shelter: {phrase: "tents and round huts framed with mammoth bones, with hearths and storage pits (Mezhirich, c. 15 ka)", material: "mammoth bone, hide"}
+    tools:
+      - {role: hunting, items: ["spears with ivory and bone points", "mammoth, horse, reindeer and bison", "arctic fox and hare trapped for fur"]}
+      - {role: processing, items: ["bone and ivory needles for tailored clothes", "ground stone"]}
+    ornaments: ["thousands of mammoth-ivory beads sewn on clothes and caps (Sunghir, c. 34 ka)", "shell and amber pendants"]
+    art: ["carved ivory animals and 'Venus' figurines (Kostenki)", "painted and incised mammoth-bone items (Mezhirich)"]
+    summary: "Mammoth-steppe hunters of the Russian Plain: bone huts, beaded clothing, ivory art."
+    verification: memory
+    source: "Sikora et al. 2017 Science 358:659; Pidoplichko 1998 Upper Palaeolithic Dwellings of Mammoth Bones in the Ukraine; Soffer 1985 — from memory."
+
+  # ---- Neanderthal toolkits (not for a clicked person; labelled as another hominin's) -------
+  - id: mousterian
+    name: "Mousterian (Neanderthal)"
+    makers: ["Neanderthals"]
+    bbox: [[-12, 35, 90, 60]]
+    from_ka_bp: 300
+    to_ka_bp: 40
+    shelter: {phrase: "caves and rock shelters with hearths; at Bruniquel, a ring of broken stalagmites built in a cave (c. 176 ka)", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["wooden spears, some tipped with stone points or hardened in fire", "horse, reindeer, red deer and bison"]}
+      - {role: processing, items: ["side scrapers", "Levallois flakes", "handaxes in places", "birch-tar glue for hafting"]}
+    ornaments: ["perforated and painted shells, ochre (Cueva de los Aviones, c. 115-120 ka)", "eagle talons"]
+    art: ["hand stencils and red lines in Spanish caves, dated older than 64 ka"]
+    summary: "The stone-tool tradition of the Neanderthals across Europe and western Asia."
+    verification: memory
+    source: "Hoffmann et al. 2018 Science 359:912 (cave art older than 64.8 ka); Zilhão et al. 2010 PNAS 107:1023 (shell ornaments); Jaubert et al. 2016 Nature 534:111 (Bruniquel); Higham et al. 2014 Nature 512:306 — from memory except the last."
+
+  - id: denisovan_altai
+    name: "Middle Palaeolithic and Initial Upper Palaeolithic of Denisova Cave (Denisovan)"
+    makers: ["Denisovans"]
+    bbox: [[80, 48, 92, 54]]
+    from_ka_bp: 100
+    to_ka_bp: 45
+    shelter: {phrase: "cave with hearths", material: "stone and hearth"}
+    tools:
+      - {role: hunting, items: ["stone points and scrapers in the local Mousterian style", "bone points"]}
+    ornaments: ["bracelet of polished chlorite, c. 40 ka (Denisova Cave, maker unsure)", "beads and pendants of bone, ivory and shell"]
+    art: []
+    summary: "What the cave where Denisovans were first identified held; who made which layer is still argued."
+    verification: memory
+    source: "Douka et al. 2019 Nature 565:640 (Denisova Cave chronology); Derevianko — from memory."
+
+  # ---- Siberia, Central and East Asia ------------------------------------------------------
+  - id: siberian_upper_palaeolithic
+    name: "Siberian Upper Palaeolithic (Mal'ta, Yana, Dyuktai)"
+    makers: ["H. sapiens"]
+    bbox: [[60, 40, 180, 78]]
+    from_ka_bp: 45
+    to_ka_bp: 11
+    shelter: {phrase: "semi-subterranean houses roofed with mammoth tusk, bone and hides (Mal'ta, c. 24 ka); hide tents", material: "mammoth bone, antler, hide, turf"}
+    tools:
+      - {role: hunting, items: ["spears with mammoth-ivory and rhinoceros-horn foreshafts (Yana, c. 31 ka)", "wedge-shaped microblade cores set in bone points (from c. 35 ka)", "mammoth, bison, reindeer, horse, hare and arctic fox"]}
+      - {role: processing, items: ["bone needles for fitted fur clothes", "end scrapers"]}
+    ornaments: ["ivory and bone beads and pendants", "carved ivory bird figures"]
+    art: ["ivory 'Venus' figurines (Mal'ta)", "engraved mammoth tusks"]
+    summary: "Siberian hunters of the cold steppe: tusk-roofed houses, fitted furs and microblades."
+    verification: memory
+    source: "Pitulko et al. 2004 Science 303:52 (Yana RHS); Raghavan et al. 2014 Nature 505:87 (Mal'ta); Mochanov (Dyuktai) — from memory except Yana, which arrivals.yaml marks checked."
+
+  - id: tibet_early
+    name: "Early stone industries of the Tibetan Plateau"
+    makers: ["H. sapiens"]
+    bbox: [[78, 27, 104, 36]]
+    from_ka_bp: 40
+    to_ka_bp: 11
+    shelter: {phrase: "open camps at 4,000-4,600 m; no structures recorded", material: "none recorded"}
+    tools:
+      - {role: hunting, items: ["flakes and blades struck from local stone"]}
+    ornaments: []
+    art: []
+    summary: "Very sparse: stone artefacts at high altitude from c. 40-30 ka."
+    verification: memory
+    source: "Zhang et al. 2018 Science 362:1049 (Nwya Devu) — from memory."
+
+  - id: incipient_jomon
+    name: "Incipient Jōmon (Japan)"
+    makers: ["H. sapiens"]
+    bbox: [[122, 24, 146, 46]]
+    from_ka_bp: 16
+    to_ka_bp: 11
+    shelter: {phrase: "pit dwellings and hide tents on river terraces and coasts", material: "wood, hide, earth"}
+    tools:
+      - {role: hunting, items: ["small stone points and microblades", "pit traps and, later, the bow for deer and boar"]}
+      - {role: fishing, items: ["fish and shellfish at the coast and rivers"]}
+      - {role: cooking, items: ["pottery, among the world's oldest (from c. 16 ka), used for boiling food"]}
+    ornaments: ["stone and shell beads"]
+    art: []
+    summary: "Japan's first potters, who were still hunters, fishers and gatherers."
+    verification: memory
+    source: "Habu 2004 Ancient Jomon of Japan (CUP) — from memory."
+
+  - id: japan_upper_palaeolithic
+    name: "Japanese Upper Palaeolithic"
+    makers: ["H. sapiens"]
+    bbox: [[122, 24, 146, 46]]
+    from_ka_bp: 38
+    to_ka_bp: 16
+    shelter: {phrase: "pit dwellings and hide tents on terraces; hunter camps in groups of huts", material: "wood, hide, earth"}
+    tools:
+      - {role: hunting, items: ["edge-ground stone axes (from c. 38 ka)", "pit traps for deer and boar", "microblade points (from c. 20 ka)"]}
+      - {role: fishing, items: ["fish and shellfish at the coast"]}
+    ornaments: ["stone and shell beads", "pierced teeth"]
+    art: []
+    summary: "Japan's first foragers, with some of the world's earliest ground-edge axes."
+    verification: memory
+    source: "Habu 2004 Ancient Jomon of Japan (CUP); Izuho — from memory."
+
+  - id: east_asia_terminal_pleistocene
+    name: "East Asian Terminal Pleistocene (microblades, early pottery)"
+    makers: ["H. sapiens"]
+    bbox: [[92, 18, 135, 52]]
+    from_ka_bp: 20
+    to_ka_bp: 11
+    shelter: {phrase: "cave and rock-shelter camps, open-air hearths", material: "stone, hide and hearth"}
+    tools:
+      - {role: hunting, items: ["microblades set in bone and wood", "deer, horse, gazelle and wild cattle"]}
+      - {role: cooking, items: ["pottery (Xianrendong, c. 20 ka; sooted by use over fire)"]}
+      - {role: processing, items: ["bone needles", "grinding stones"]}
+    ornaments: ["perforated shells and teeth", "beads"]
+    art: []
+    summary: "Foragers of China after the glacial peak, among the first in the world to make pottery."
+    verification: memory
+    source: "Wu et al. 2012 Science 336:1696 (Xianrendong pottery); Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319 — from memory."
+
+  - id: east_asia_upper_palaeolithic
+    name: "East Asian Upper Palaeolithic (Shuidonggou, Zhoukoudian Upper Cave)"
+    makers: ["H. sapiens"]
+    bbox: [[92, 18, 135, 52]]
+    from_ka_bp: 42
+    to_ka_bp: 20
+    shelter: {phrase: "cave and rock-shelter camps, open-air hearths", material: "stone, hide and hearth"}
+    tools:
+      - {role: hunting, items: ["blades and, from c. 29 ka, microblades set in bone and wood", "horse, gazelle, deer and wild cattle"]}
+      - {role: processing, items: ["bone needles", "grinding stones"]}
+    ornaments: ["perforated ostrich-eggshell beads (Shuidonggou)", "perforated shells and teeth", "ochre-dyed beads (Upper Cave)"]
+    art: []
+    summary: "Foragers of China from c. 40 ka, with blades, bone needles and eggshell beads."
+    verification: memory
+    source: "Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319; Fu et al. 2013 PNAS 110:2223 (Tianyuan) — from memory except the last."
+
+  # ---- South and Southeast Asia, Wallacea, Sahul -------------------------------------------
+  - id: south_asia_microlithic
+    name: "South Asian Late Palaeolithic and early microliths (Sri Lanka and India)"
+    makers: ["H. sapiens"]
+    bbox: [[60, 5, 92, 36]]
+    from_ka_bp: 48
+    to_ka_bp: 11
+    shelter: {phrase: "rock shelters and open camps; rainforest and grassland camps", material: "stone, brush"}
+    tools:
+      - {role: hunting, items: ["microliths, perhaps the tips of arrows (Fa-Hien Lena, from c. 48 ka)", "bone points for monkeys, squirrels and deer", "rainforest foraging"]}
+      - {role: gathering, items: ["plant processing; grindstones"]}
+    ornaments: ["shell and bone beads (Batadomba-lena, c. 36 ka)"]
+    art: []
+    summary: "Microlith-using rainforest foragers of Sri Lanka and India."
+    verification: memory
+    source: "Perera et al. 2019 PLOS ONE 14:e0222606 (Fa-Hien Lena, per arrivals.yaml); Langley et al. 2020 Sci Adv 6:eaba3831; Perera et al. 2011 J Hum Evol 61:254 (Batadomba-lena) — from memory."
+
+  - id: wallacea_early
+    name: "Sulawesi, Borneo and Timor: early maritime foragers"
+    makers: ["H. sapiens"]
+    bbox: [[95, -12, 126, 8]]
+    from_ka_bp: 60
+    to_ka_bp: 11
+    shelter: {phrase: "cave and rock-shelter camps; rainforest and coastal foragers", material: "stone, brush"}
+    tools:
+      - {role: hunting, items: ["spears; warty pig, anoa and small deer in Sulawesi", "poison-plant processing (Niah)"]}
+      - {role: fishing, items: ["shell fish-hooks and pelagic tuna fishing, c. 42-23 ka (Timor)"]}
+    ornaments: ["shell beads", "perforated shells"]
+    art: ["hand stencils (Sulawesi, c. 40 ka)", "painted warty pig (Sulawesi, c. 45 ka)", "hunting scene (Sulawesi, c. 44 ka)", "red cave paintings in Borneo, c. 40 ka"]
+    summary: "Some of the oldest known figurative art, made by early seafaring foragers on the way to Sahul."
+    verification: memory
+    source: "Aubert et al. 2014 Nature 514:223; Aubert et al. 2018 Nature 564:254; Aubert et al. 2019 Nature 576:442; Brumm et al. 2021 Sci Adv 7:eabd4648; O'Connor et al. 2011 Science 334:1117; Barker et al. 2007 J Hum Evol 52:243 — from memory."
+
+  - id: sea_mainland_late_pleistocene
+    name: "Late Pleistocene foragers of mainland Southeast Asia"
+    makers: ["H. sapiens"]
+    bbox: [[92, -2, 112, 28]]
+    from_ka_bp: 70
+    to_ka_bp: 11
+    shelter: {phrase: "cave and rock-shelter camps; rainforest camps", material: "stone, brush"}
+    tools:
+      - {role: hunting, items: ["flake and pebble tools", "bone points", "rainforest game and fish"]}
+    ornaments: []
+    art: []
+    summary: "Sparse record; flake industries and, later, the pebble-tool Hoabinhian."
+    verification: memory
+    source: "Demeter et al. 2012 PNAS 109:14375 (Tam Pa Ling, per arrivals.yaml); Hoabinhian studies — from memory."
+
+  - id: tasmania_ice_age
+    name: "Ice Age Tasmania (Kutikina, Warreen)"
+    makers: ["H. sapiens"]
+    bbox: [[143, -44, 149, -40]]
+    from_ka_bp: 35
+    to_ka_bp: 11
+    shelter: {phrase: "cave camps beside glacier-fed rivers, hearths and wind shelters", material: "stone, hide, hearth"}
+    tools:
+      - {role: hunting, items: ["red-necked wallaby as main game", "stone scrapers for hides", "bone points"]}
+      - {role: processing, items: ["hide scrapers for cold-weather clothing"]}
+    ornaments: []
+    art: ["handprints in some caves, dates uncertain"]
+    summary: "People living in the cold southern edge of the world at the Ice Age maximum."
+    verification: memory
+    source: "Cosgrove 1999 J World Prehist 13:357 (Late Pleistocene Tasmania) — from memory."
+
+  - id: sahul
+    name: "Sahul: Madjedbebe, Lake Mungo, the New Guinea highlands"
+    makers: ["H. sapiens"]
+    bbox: [[112, -45, 155, 0]]
+    from_ka_bp: 65
+    to_ka_bp: 11
+    shelter: {phrase: "rock shelters and open camps with hearths; highland camps; coastal shell middens", material: "stone, brush, hearth"}
+    tools:
+      - {role: hunting, items: ["spears and spear-throwers, kangaroo and wallaby", "edge-ground axes (from c. 65 ka at Madjedbebe, c. 49 ka in New Guinea)", "throwing sticks"]}
+      - {role: gathering, items: ["grindstones for seeds and roots (Madjedbebe, c. 65 ka)", "digging sticks", "nets for fish and small game"]}
+      - {role: processing, items: ["ground ochre, including reflective pigment"]}
+    ornaments: ["shell beads", "ochre body painting"]
+    art: ["ochre art, rock engravings and painted shelters, most of it hard to date"]
+    summary: "Australia and New Guinea's first people: ground-edge axes, seed grinding, ochre."
+    verification: memory
+    source: "Clarkson et al. 2017 Nature 547:306 (Madjedbebe; checked in arrivals.yaml); Bowler et al. 2003 Nature 421:837 (Lake Mungo); Summerhayes et al. 2010 Science 330:78 (New Guinea highlands, 49-44 ka); Hiscock 2008 Archaeology of Ancient Australia — from memory except Clarkson."
+
+  # ---- The Americas ------------------------------------------------------------------------
+  - id: beringian
+    name: "Beringian tradition (Alaska and Chukotka)"
+    makers: ["H. sapiens"]
+    bbox: [[-170, 55, -140, 72]]
+    from_ka_bp: 24
+    to_ka_bp: 11
+    shelter: {phrase: "tents and small houses with hearths on the steppe tundra", material: "hide, wood, bone"}
+    tools:
+      - {role: hunting, items: ["microblades set in bone points", "bison, elk, mammoth, caribou and waterfowl"]}
+      - {role: processing, items: ["hide scrapers", "bone and antler tools"]}
+    ornaments: ["bone and antler beads"]
+    art: []
+    summary: "Beringian foragers of the land bridge and Alaska before the Americas opened."
+    verification: memory
+    source: "Hamilton & Goebel 1999 in Ice Age People of North America; Moreno-Mayar et al. 2018 Nature 553:203 (per arrivals.yaml) — from memory."
+
+  - id: clovis
+    name: "Clovis (North America)"
+    makers: ["H. sapiens"]
+    bbox: [[-125, 15, -65, 55]]
+    from_ka_bp: 13.05
+    to_ka_bp: 12.75
+    shelter: {phrase: "open camps with hearths, kill-and-butchery sites; no house structures recorded", material: "hide and wood, not preserved"}
+    tools:
+      - {role: hunting, items: ["fluted stone spear points", "mammoth and mastodon, bison, deer and smaller game", "bone and ivory shaft straighteners"]}
+      - {role: processing, items: ["stone blades struck from large cores", "hide scrapers"]}
+    ornaments: ["ochre in burials (Anzick)"]
+    art: ["engraved stones and bones at a few sites"]
+    summary: "Fluted-point hunters of c. 13,000 years ago, who hunted mammoth."
+    verification: checked
+    source: "Waters & Stafford 2007 Science 315:1122 (Clovis c. 13.05-12.75 ka cal BP); Haynes 2002 The Early Settlement of North America; Rasmussen et al. 2014 Nature 506:225 (Anzick)."
+
+  - id: folsom_plano
+    name: "Folsom and Plano (North America)"
+    makers: ["H. sapiens"]
+    bbox: [[-125, 15, -65, 55]]
+    from_ka_bp: 12.9
+    to_ka_bp: 10
+    shelter: {phrase: "open camps near bison kills, hearths", material: "hide and wood, not preserved"}
+    tools:
+      - {role: hunting, items: ["fluted Folsom and later lanceolate points", "bison drives"]}
+      - {role: processing, items: ["hide scrapers", "stone blades"]}
+    ornaments: []
+    art: []
+    summary: "Bison hunters of the Great Plains after the mammoth was gone."
+    verification: memory
+    source: "Meltzer 2009 First Peoples in a New World (UC Press) — from memory."
+
+  - id: western_stemmed
+    name: "Western Stemmed tradition (Great Basin and Columbia Plateau)"
+    makers: ["H. sapiens"]
+    bbox: [[-125, 32, -105, 50]]
+    from_ka_bp: 16
+    to_ka_bp: 11
+    shelter: {phrase: "cave and lakeshore camps with hearths (Paisley Caves, Cooper's Ferry)", material: "stone, hide, hearth"}
+    tools:
+      - {role: hunting, items: ["stemmed stone points (Cooper's Ferry, c. 16 ka)", "camel, horse, bison, rabbit and waterfowl (Paisley Caves)"]}
+      - {role: gathering, items: ["wild plant seeds, ground in places", "twined fibre sandals and cordage (Paisley Caves)"]}
+    ornaments: []
+    art: []
+    summary: "Stemmed-point foragers of the interior West, living there before and beside Clovis."
+    verification: memory
+    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry); Jenkins et al. 2012 Science 337:223 (Paisley Caves) — from memory."
+
+  - id: pre_clovis
+    name: "Pre-Clovis (North America)"
+    makers: ["H. sapiens"]
+    bbox: [[-125, 15, -65, 55]]
+    from_ka_bp: 23
+    to_ka_bp: 13.05
+    shelter: {phrase: "camps with hearths and hide shelters; none preserved", material: "not preserved"}
+    tools:
+      - {role: hunting, items: ["stemmed and leaf-shaped points", "bifacial blades (Buttermilk Creek, c. 15.5 ka)"]}
+      - {role: gathering, items: ["plants and seeds, ground in places"]}
+    ornaments: []
+    art: []
+    summary: "The earliest well-dated Americans: White Sands footprints (c. 23-21 ka), Cooper's Ferry (c. 16 ka), Buttermilk Creek."
+    verification: checked
+    source: "Bennett et al. 2021 Science 373:1528 and Pigati et al. 2023 Science 382:73 (White Sands, checked in arrivals.yaml); Davis et al. 2019 Science 365:891 (Cooper's Ferry); Waters et al. 2011 Science 331:1599 (Buttermilk Creek) — last two from memory."
+
+  - id: south_america_early
+    name: "Early South America: Monte Verde, fishtail points, Lagoa Santa"
+    makers: ["H. sapiens"]
+    bbox: [[-82, -56, -34, 13]]
+    from_ka_bp: 15
+    to_ka_bp: 11
+    shelter: {phrase: "tent-like huts of wooden poles covered with hides, with hearths (Monte Verde, c. 14.5 ka); rock-shelter camps", material: "wood, hide, earth"}
+    tools:
+      - {role: hunting, items: ["fishtail and leaf-shaped points", "mastodon-like gomphotheres, guanaco, giant sloth, horse and small game"]}
+      - {role: gathering, items: ["many wild plants, including seaweed and medicinal plants (Monte Verde)", "digging sticks and wooden mortars"]}
+    ornaments: ["shell beads and pendants"]
+    art: ["rock-shelter paintings in Brazil and Colombia, mostly later"]
+    summary: "South America's first foragers, from Chile to Patagonia."
+    verification: memory
+    source: "Dillehay 2015 PLOS ONE 10:e0141923 (Monte Verde II, per arrivals.yaml); Dillehay 2008 The Settlement of the Americas — from memory."
+
+# Typical big game by Krapp BIOME4 class. A rough, general description of what foragers found there,
+# not a list of species at a place (the fauna ranges give those). Used beside the ranges, always.
+# Sources: Kelly 2013 The Lifeways of Hunter-Gatherers (CUP); Binford 2001 Constructing Frames of
+# Reference (UC Press) — both from memory; verification: memory.
+biome_prey:
+  verification: memory
+  source: "Kelly 2013 The Lifeways of Hunter-Gatherers; Binford 2001 Constructing Frames of Reference."
+  groups:
+    - {biomes: [1, 2], name: tropical forest, game: ["pigs", "small deer and antelope", "monkeys", "rodents", "fish and honey"]}
+    - {biomes: [3, 12, 13, 19], name: tropical savanna and woodland, game: ["antelope and zebra herds", "wild cattle and buffalo", "elephant and rhino (rarely)", "warthog and smaller game"]}
+    - {biomes: [4, 5, 6, 7, 8, 15, 16], name: temperate woodland, game: ["red and roe deer", "wild boar", "wild cattle", "hare and beaver", "nuts, fish and waterfowl"]}
+    - {biomes: [9, 10, 11, 17, 18], name: cold forest and taiga, game: ["elk or moose", "reindeer or caribou", "beaver, hare and grouse", "salmon and other river fish"]}
+    - {biomes: [14, 20, 22], name: grassland, steppe and steppe tundra, game: ["horse and wild ass", "bison, aurochs or other wild cattle", "saiga and gazelle", "mammoth where cold", "reindeer in the cold"]}
+    - {biomes: [21, 27], name: desert and barren, game: ["gazelle and wild ass near water", "ibex and sheep in the hills", "hare, lizards and seeds"]}
+    - {biomes: [23, 24, 25, 26], name: tundra, game: ["reindeer or caribou", "musk ox", "arctic hare and fox", "waterfowl and fish"]}

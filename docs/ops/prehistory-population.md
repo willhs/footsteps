@@ -21,7 +21,9 @@ rsyncs `data/tiles/prehistory/`; `scripts/smoke.sh` checks all 90), and `gridDat
 `lib/time.ts` (`PEOPLE_TOTALS`, `populationRangeAt`) turns it into the counter's range, e.g. "~1.9–7.4 million, modelled".
 Where it shows "modelled": counter and its note (top left), the timeline header chip and the pale people bars with a
 "modelled | HYDE, measured" boundary, the legend (with a link to research 0002), and the grounding panel (read per 0.5° block).
-"Imagine their day" is off before 10,000 BCE (the day API only knows HYDE-era places). Dots mode draws nothing for these years.
+"Imagine their day" and the portrait work for these years too: the anthropology atlas has a modelled record per 5° cell × 1,000-year era
+(`footstep-generator/anthropology/deep.py`, see its README), and the day card is labelled "Speculative · modelled people". Dots mode draws nothing for these years.
+A band is drawn only where a block holds about 540+ people (15 per HYDE cell), so before ~12,000 BCE clickable people are rare (e.g. around Lake Victoria and Sri Lanka at 20,000 BCE).
 
 ## Run
 

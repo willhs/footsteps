@@ -1,6 +1,6 @@
 # Anthropology atlas
 
-Basic facts about how people lived, per 5° cell × era, for the person portrait and the
+Basic facts about how people lived, per 5° cell × era (100,000 BCE–1900 CE), for the person portrait and the
 "Imagine their day" prompt. Served by the day API:
 
 ```
@@ -19,6 +19,9 @@ builds the data they read (`deploy/budgie/api/anthropology.json.gz`, committed, 
   1850 → 1800–1899). These are exactly the 30 HYDE years, 10,000 BCE–1900.
 - Coverage: 904 land cells (any HYDE people or land use in any era) × 30 eras. Open ocean and
   Antarctica return 404.
+- **Deep past:** 100,000–11,000 BCE, 90 more eras with the same 1,000-year buckets (`-11000` = 11,000 to 10,001 BCE),
+  over 1,415 5° cells that have land or modelled people in any of them (so the exposed Ice Age shelf is covered). See
+  [Before HYDE](#before-hyde-100000-11000-bce).
 
 ## Sources, in priority order
 
@@ -53,6 +56,38 @@ The task notes called D-PLACE CC-BY; the current D-PLACE datasets are CC BY-NC.
   API's SQLite (`anthro` table); data always wins over the model; polity is never model-filled.
 - **Confidence** (`derived`): high for a Seshat site in CE eras or a recent nearby ethnography;
   medium for CE eras with an analogue; low otherwise.
+
+## Before HYDE (100,000-11,000 BCE)
+
+Everyone is a forager. A record for these eras has `evidence: "modelled"`, `confidence: low`, and every
+field names its source; **`model` appears only where the day API's gap-fill filled a field** (clothing, skin and
+hair, diet, and anything the tables lack), never in the data. `deep.py` adds a `deep` section to
+`anthropology.json.gz` (`poetry run python footstep-generator/anthropology/deep.py`, ~20 s; a full `build.py` run
+does it too). Inputs are gitignored: habitat WebPs (`habitat_lookup.py`), modelled population WebPs
+(`prehistory_population.py`) and `data/fauna/fauna.json.gz` (`fauna/phylacine.py build`).
+
+| Field | Rule | Source |
+|---|---|---|
+| `subsistence` | `foraging` where H. sapiens is present or the model draws people; else `uninhabited` | Footsteps prehistory model |
+| `hominins` | H. sapiens `absent` / `arriving` / `established` against the region's central arrival date (`prehistory/arrivals.yaml`, with its early-late range and whether the citation was checked). Neanderthals, Denisovans and *H. floresiensis* listed where their box holds the cell and their last date is not yet passed; their toolkit is named, never given to the person | Footsteps prehistory model |
+| `technology`, `dwelling`, `tools_by_role`, `hair_adornment` (ornaments), `art` | the technocomplex in `deep_past.yaml` made by H. sapiens that holds the cell centre and overlaps the era most (ties: smaller box); others that overlap are named under "Also in this period". Each note says how the entry was checked | Footsteps technocomplex table |
+| `climate` | biome and annual mean temperature and rain, averaged over the cell's land at the 1 ka step inside the era; "Mostly under an ice sheet" where half the pixels are ice | Krapp 2021; Beyer 2020 |
+| `settlement` | `typical_settlement` for foragers from the modelled head count and land area | Footsteps prehistory model |
+| `prey` | large game and predators whose PHYLACINE range holds the cell (3 of its 25 one-degree cells) and not yet extinct there, most widespread first; plus the biome's typical game | PHYLACINE 1.2; Footsteps biome-prey table |
+
+`deep_past.yaml` carries 34 technocomplexes (Middle and Later Stone Age, Aterian, Iberomaurusian, Levantine
+Mousterian to Natufian, Mousterian, Aurignacian, Gravettian, Solutrean, Magdalenian, Epigravettian, Siberian, East Asian,
+Japanese, South Asian, Wallacean, Sahul, Clovis, pre-Clovis, Western Stemmed, South America and more). **Most are cited from memory**
+(`verification: memory`) and not yet checked against the papers; the record's note says so, and the UI must not present such a claim as sourced.
+Spans are regional and coarse. Clovis (c. 13,050-12,750 years ago) is shorter than one era, so it appears as "also in this period" beside the
+best fit.
+
+Choices and limits:
+- An era's hominin and culture logic uses the whole 1,000-year window; climate uses the 1 ka step inside it; people are the image at the era's first year.
+- The population model leaks a few people onto cells the arrival table calls empty (it assigns the nearest region to islands outside every box, e.g. the Azores).
+  The record says "foraging" there (a person is drawn) but marks the cell as a model artefact in the hominins note.
+- Fauna ranges are today's natural ranges, not Ice Age ranges: mammoths cannot stand south of where their modern-range raster put them, and extinction dates are mostly regional guesses (docs/ops/fauna.md).
+- Cells are assigned one arrival region by the cell centre.
 
 ## Rebuild
 

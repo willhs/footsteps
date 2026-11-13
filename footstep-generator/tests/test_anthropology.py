@@ -20,7 +20,8 @@ import build  # noqa: E402
 import day_api  # noqa: E402
 
 REAL = atlas.Atlas.load(API / "anthropology.json.gz")
-DATASETS = {atlas.HYDE, atlas.EA, atlas.TEOW, atlas.SESHAT}
+DATASETS = {atlas.HYDE, atlas.EA, atlas.TEOW, atlas.SESHAT, atlas.PREHISTORY, atlas.CULTURES, atlas.BIOME_PREY,
+            atlas.KRAPP, atlas.BEYER, atlas.PHYLACINE}
 
 FILL = {
     "dwelling": {"phrase": "hide tent", "material": "hides"},
@@ -49,13 +50,14 @@ def assert_record_shape(record: dict) -> None:
 # --- bucketing ------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("year, era", [(-10000, -10000), (-9999, -10000), (-2500, -3000), (-1, -1000),
-                                       (0, 0), (99, 0), (1850, 1800), (1900, 1900)])
+                                       (0, 0), (99, 0), (1850, 1800), (1900, 1900),
+                                       (-10001, -11000), (-11000, -11000), (-43500, -44000), (-100000, -100000)])
 def test_era_buckets_are_1000_years_bce_and_100_years_ce(year, era):
     assert atlas.era_of(year) == era
-    assert era in atlas.ERAS
+    assert era in atlas.ERAS or era in atlas.DEEP_ERAS
 
 
-@pytest.mark.parametrize("year", [-10001, 1901])
+@pytest.mark.parametrize("year", [-100001, 1901])
 def test_years_outside_the_data_are_refused(year):
     with pytest.raises(ValueError):
         atlas.era_of(year)

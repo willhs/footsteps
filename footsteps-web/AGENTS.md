@@ -47,6 +47,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   `/habitat/*.webp` images lazily. The "animals here" row (`lib/fauna.ts`, `hooks/useFauna.ts`) reads
   `/fauna/species.json` and one 30° block `/fauna/r_{row}_{col}.json` on first hover over it (`../footstep-generator/fauna/export_web.py`;
   copy `../data/tiles/fauna/` into `public/fauna/`). Up to 4 large animals, labelled modelled; none over sea or ice. Copy `../data/tiles/habitat/` into `public/habitat/` for local dev (docs/ops/habitat-lookup.md).
+  The card's top picture is an imagined, pre-painted scene (`lib/groundScene.ts` picks it from biome, date and way of life;
+  `public/ground/` holds the WebPs and `index.json`; only listed scenes show). See docs/ops/ground-view.md.
 - `components/ui/TimeBar.tsx`: time navigation, one fixed log-of-years-ago track. Its scale, key steps,
   typed-year parsing and speed-based fine drag live in `lib/timeScale.ts` (tested); the readout above it is
   `TimeReadout.tsx`. `?bar=old` still shows the previous two-strip `TimeNavigator.tsx` for comparison:

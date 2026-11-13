@@ -77,9 +77,20 @@ export function climateChange(
 
 /** A display class from HYDE land use (shares of a 0.5° cell), not evidence of what any one
  * group did. Thresholds are coarse: a 5% share of a 55 km cell is already ~150 km². */
-export function wayOfLife({ crop, grazing }: LandUse): string {
-  if (crop >= 0.05) return 'Farming';
-  if (grazing >= 0.1) return 'Herding and grazing';
-  if (crop + 0.35 * grazing >= 0.01) return 'Foraging, with a little farming or herding';
-  return 'Foraging';
+export type LifeKind = 'farming' | 'herding' | 'mostly-foraging' | 'foraging';
+
+export function lifeKind({ crop, grazing }: LandUse): LifeKind {
+  if (crop >= 0.05) return 'farming';
+  if (grazing >= 0.1) return 'herding';
+  if (crop + 0.35 * grazing >= 0.01) return 'mostly-foraging';
+  return 'foraging';
 }
+
+const LIFE_LABEL: Record<LifeKind, string> = {
+  farming: 'Farming',
+  herding: 'Herding and grazing',
+  'mostly-foraging': 'Foraging, with a little farming or herding',
+  foraging: 'Foraging',
+};
+
+export const wayOfLife = (use: LandUse): string => LIFE_LABEL[lifeKind(use)];

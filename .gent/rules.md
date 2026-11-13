@@ -32,6 +32,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/habitat_lookup.py`: Krapp biome + Beyer temperature/precipitation per 0.5° cell per 1 ka step, and HYDE land use
   per HYDE year, as small lossless WebPs in `data/tiles/habitat/` (served at `/habitat/`) for the hover card (on by default, `?hover=0` hides it).
   See `docs/ops/habitat-lookup.md`.
+- `footstep-generator/ground_images.py`: paints the hover card's imagined ground-view pictures (one 480 × 270 WebP per scene in
+  `footsteps-web/lib/groundScenes.json`, via OpenRouter, run under `op-scope`), committed in `footsteps-web/public/ground/` with `index.json`.
+  See `docs/ops/ground-view.md`.
 - `footstep-generator/fauna/phylacine.py`: PHYLACINE 1.2.1 present-natural ranges + a cited extinction table (`losses.py`) →
   `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; the anthropology atlas reads it for big game before 10,000 BCE (`anthropology/deep.py`).
   See `docs/ops/fauna.md`.

@@ -1,0 +1,100 @@
+{
+  "description": "The scenes of the hover card's ground view. Read by lib/groundScene.ts (which scene fits a spot) and by footstep-generator/ground_images.py (what to paint). Edit here, then regenerate the pictures: docs/ops/ground-view.md.",
+  "promptVersion": 1,
+  "template": "A painted landscape illustration seen from the ground at human eye level, wide 16:9 frame. Place: {place}. Time: {time}. {detail} Show no people, no animals, no text and no buildings, except what this description names. Soft natural light, muted colours, gentle painterly brush texture, not photorealistic.",
+  "landscapes": {
+    "ice": {
+      "place": "the edge of a vast continental ice sheet, a blue-white ice wall rising behind frozen gravel flats"
+    },
+    "tundra": {
+      "place": "open arctic tundra: low shrubs, lichen and moss over wet ground, small pools, a long cold horizon",
+      "biomes": [
+        "Shrub tundra",
+        "Dwarf shrub tundra",
+        "Prostrate shrub tundra",
+        "Cushion forb lichen moss tundra",
+        "Barren"
+      ]
+    },
+    "boreal": {
+      "place": "northern conifer forest and open woodland: spruce and larch, pale moss, birch at the clearings",
+      "biomes": [
+        "Cold mixed forest",
+        "Evergreen taiga/montane forest",
+        "Deciduous taiga/montane forest",
+        "Open conifer woodland",
+        "Boreal parkland"
+      ]
+    },
+    "temperate-forest": {
+      "place": "temperate woodland of oak, beech and pine with mossy ground and dappled light",
+      "biomes": [
+        "Temperate deciduous forest",
+        "Temperate conifer forest",
+        "Warm mixed forest",
+        "Cool mixed forest",
+        "Cool conifer forest"
+      ]
+    },
+    "steppe": {
+      "place": "wide grassland: wind-bent grasses and a few low shrubs rolling to a far horizon under a big sky",
+      "biomes": ["Temperate grassland", "Steppe tundra", "Temperate broadleaved savanna"]
+    },
+    "savanna": {
+      "place": "tropical savanna: tall dry grass, scattered flat-topped acacia-like trees, red earth, warm haze",
+      "biomes": [
+        "Tropical savanna",
+        "Tropical grassland",
+        "Tropical deciduous forest/woodland",
+        "Tropical xerophytic shrubland"
+      ]
+    },
+    "rainforest": {
+      "place": "dense tropical rainforest: layered green canopy, tall trunks, hanging vines, humid mist, a slow brown river",
+      "biomes": ["Tropical evergreen forest", "Tropical semi-deciduous forest"]
+    },
+    "desert": {
+      "place": "arid desert and dry shrubland: pale sand and stony ground, sparse thorny scrub, a hard bright sky",
+      "biomes": ["Desert", "Temperate xerophytic shrubland"]
+    },
+    "scrub": {
+      "place": "dry Mediterranean-type woodland: low evergreen oaks and aromatic shrubs on stony hills, bright dry air",
+      "biomes": ["Temperate sclerophyll woodland"]
+    }
+  },
+  "eras": {
+    "glacial": {
+      "time": "the last Ice Age, colder and drier than today, with a thin pale light"
+    },
+    "holocene": {
+      "time": "the warm period after the Ice Age, before farming reached this land"
+    },
+    "farming": {
+      "time": "the age of early farmers, in a land they have partly cleared"
+    },
+    "herding": {
+      "time": "the age of herders, in open grazing land"
+    }
+  },
+  "scenes": [
+    { "landscape": "ice", "era": "glacial", "detail": "Wind-scoured, bleak and silent." },
+    { "landscape": "tundra", "era": "glacial", "detail": "Patchy snow lies between frost-cracked ground and dwarf willow." },
+    { "landscape": "steppe", "era": "glacial", "detail": "Cold dry grass steppe with pale earth and sparse sedge, a vast open sky." },
+    { "landscape": "boreal", "era": "glacial", "detail": "Thin, stunted conifers with snow on the ground." },
+    { "landscape": "temperate-forest", "era": "glacial", "detail": "Sparse cold woodland of pine and birch with open grassy gaps." },
+    { "landscape": "savanna", "era": "glacial", "detail": "Dry, thin tree cover and short pale grass." },
+    { "landscape": "desert", "era": "glacial", "detail": "Dusty, windblown dunes and bare rock under a hazy sky." },
+    { "landscape": "tundra", "era": "holocene", "detail": "Short summer, green and brown, with flowers among the lichen." },
+    { "landscape": "boreal", "era": "holocene", "detail": "A still lake edge, with a thin plume of smoke far off between the trees." },
+    { "landscape": "temperate-forest", "era": "holocene", "detail": "A clearing by a stream, a thin plume of smoke rising far off between the trunks." },
+    { "landscape": "steppe", "era": "holocene", "detail": "Green-gold grass in the wind." },
+    { "landscape": "savanna", "era": "holocene", "detail": "Late afternoon, long shadows, a thin line of smoke on the horizon." },
+    { "landscape": "rainforest", "era": "holocene", "detail": "Shafts of light through the canopy." },
+    { "landscape": "desert", "era": "holocene", "detail": "A dry riverbed with a few green trees along it." },
+    { "landscape": "scrub", "era": "holocene", "detail": "Spring flowers between grey rocks." },
+    { "landscape": "temperate-forest", "era": "farming", "detail": "Small hand-tilled fields of grain in a forest clearing, a few low round thatched huts in the distance." },
+    { "landscape": "steppe", "era": "farming", "detail": "Patchwork fields of ripening grain on rolling land, a small village of low mud-brick houses far away." },
+    { "landscape": "savanna", "era": "farming", "detail": "Small millet fields among trees, a few round grass-roofed huts in the distance." },
+    { "landscape": "steppe", "era": "herding", "detail": "A wide pasture crossed by trodden paths, and a distant round felt tent with a thread of smoke. Cropped, grazed grass." }
+  ]
+}

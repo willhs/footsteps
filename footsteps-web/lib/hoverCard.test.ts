@@ -93,6 +93,16 @@ test('the card grows away from the nearer edges', () => {
   expect(cardAnchor(900, 700, 1000, 800)).toEqual({ right: 116, bottom: 116 });
 });
 
+test('the card goes above the cursor when it would not fit below', () => {
+  expect(cardAnchor(100, 300, 1000, 800)).toEqual({ left: 116, top: 316 });
+  expect(cardAnchor(100, 500, 1000, 800)).toEqual({ left: 116, bottom: 316 });
+});
+
+test('in a short window the card is pinned inside it', () => {
+  expect(cardAnchor(100, 310, 1000, 640)).toEqual({ left: 116, top: 272 });
+  expect(cardAnchor(100, 10, 1000, 300)).toEqual({ left: 116, top: 8 });
+});
+
 describe('lonLatAt', () => {
   // A flat 1 px per degree map, 360 px wide, origin at the top-left.
   const flat = {

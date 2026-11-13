@@ -1,7 +1,7 @@
 // What the hover card says for one spot at one year, and where it sits. Pure: the hook
 // gathers the inputs (cursor position, decoded lookups, the people grid), this decides the
 // words. Every row carries the kind of claim it is (docs/philosophy/vision.md).
-import { climateChange, wayOfLife, type HabitatCell, type LandUse } from './habitat';
+import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, type LifeKind } from './habitat';
 import { seaLevelLabel } from './climate';
 import type { Evidence } from './time';
 
@@ -76,6 +76,16 @@ function peopleRow(p: NonNullable<HoverCardInput['people']>): CardRow {
   return { id: 'people', text, detail: where, evidence: p.evidence };
 }
 
+/** HYDE's way of life, only where it counted people living here. Null before HYDE and where no one lives. */
+export function settledUse(i: Pick<HoverCardInput, 'people' | 'landUse'>): LandUse | null {
+  return i.people && i.people.evidence === 'measured' && i.people.count > 0 ? i.landUse : null;
+}
+
+export function settledLife(i: Pick<HoverCardInput, 'people' | 'landUse'>): LifeKind | null {
+  const use = settledUse(i);
+  return use && lifeKind(use);
+}
+
 export function hoverCardRows(i: HoverCardInput): CardRow[] {
   const rows: CardRow[] = [];
   if (i.habitat) {
@@ -86,11 +96,12 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   // Open sea with no one in it says nothing about people.
   const emptySea = i.habitat?.surface === 'sea' && (i.people?.count ?? 0) <= 0;
   if (i.people && !emptySea) rows.push(peopleRow(i.people));
-  if (i.people && i.people.evidence === 'measured' && i.people.count > 0 && i.landUse) {
+  const use = settledUse(i);
+  if (use) {
     rows.push({
       id: 'life',
-      text: wayOfLife(i.landUse),
-      detail: `${share(i.landUse.crop)} cropland, ${share(i.landUse.grazing)} grazing`,
+      text: wayOfLife(use),
+      detail: `${share(use.crop)} cropland, ${share(use.grazing)} grazing`,
       evidence: 'modelled',
     });
   }
@@ -100,12 +111,19 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   return rows;
 }
 
-/** Fixed-position anchor: the card grows away from the nearer edges, so it never needs measuring. */
+/** About as tall as the card gets (picture, caption, place and four rows; measured ~350 px), so it can be placed without measuring. */
+export const CARD_MAX_HEIGHT = 360;
+
+/**
+ * Fixed-position anchor. The card sits below the cursor when it fits there, above it when it fits
+ * there, else pinned inside the viewport (over the cursor, which it never blocks). It grows away from
+ * the nearer side edge.
+ */
 export function cardAnchor(x: number, y: number, vw: number, vh: number, gap = 16) {
-  return {
-    ...(x > vw / 2 ? { right: vw - x + gap } : { left: x + gap }),
-    ...(y > vh / 2 ? { bottom: vh - y + gap } : { top: y + gap }),
-  };
+  const horizontal = x > vw / 2 ? { right: vw - x + gap } : { left: x + gap };
+  if (vh - y - gap >= CARD_MAX_HEIGHT) return { ...horizontal, top: y + gap };
+  if (y - gap >= CARD_MAX_HEIGHT) return { ...horizontal, bottom: vh - y + gap };
+  return { ...horizontal, top: Math.max(gap / 2, Math.min(y + gap, vh - CARD_MAX_HEIGHT - gap / 2)) };
 }
 
 /** The two viewport calls `lonLatAt` needs (deck.gl's `Viewport` has both). */

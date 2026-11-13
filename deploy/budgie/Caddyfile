@@ -12,7 +12,7 @@
 	}
 
 	# Grid and terrain images are regenerated rarely; let repeat visits and Cloudflare reuse them.
-	@images path /grid/* /terrain/* /habitat/*
+	@images path /grid/* /terrain/* /habitat/* /ground/*
 	handle @images {
 		root * /srv/app
 		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800"

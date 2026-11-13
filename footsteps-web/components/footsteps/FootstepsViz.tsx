@@ -15,7 +15,7 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { hasPeopleData, nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
-import usePresenceLayers, { presenceFromUrl, type Presence } from '@/components/footsteps/hooks/usePresenceLayers';
+import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
 import { nearestDotTileYear } from '@/lib/constants';
@@ -90,12 +90,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [presence, setPresence] = useState<Presence>(presenceFromUrl);
   const { layers: gridLayers, grid, blend, loading } = useGridLayer({
     year,
     time,
     onTerrain: showTerrain,
-    glowHidden: presence.lights === 'fire',
+    // Firelight replaces the density glow.
+    glowHidden: true,
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,
@@ -111,18 +111,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
     enabled: renderMode === 'auto',
-    presence,
     time,
     view: viewState,
     far: blend.glow,
   });
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (presence.lights === 'classic') url.searchParams.set('lights', 'classic');
-    else url.searchParams.delete('lights');
-    window.history.replaceState(null, '', url);
-  }, [presence]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -319,11 +311,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           onColorSchemeChange={setColorScheme}
           showColorScheme={renderMode === 'dots'}
         >
-          {renderMode === 'auto' && (
-            <ControlRow label="Lights">
-              <PresencePicker presence={presence} onChange={setPresence} />
-            </ControlRow>
-          )}
           {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
           {debugModes && (
             <ControlRow label="Mode (debug)">
@@ -341,20 +328,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           )}
         </VizToggles>
       </div>
-    </div>
-  );
-}
-
-/** Prototype: compare ways of showing people (lights style). */
-function PresencePicker({ presence, onChange }: { presence: Presence; onChange: (p: Presence) => void }) {
-  return (
-    <div role="group" aria-label="How people are shown" className="ov-seg">
-      <button type="button" aria-pressed={presence.lights === 'fire'} className="ov-seg-btn"
-        title="Firelight: flickering hearths and settlements"
-        onClick={() => onChange({ ...presence, lights: 'fire' })}>Firelight</button>
-      <button type="button" aria-pressed={presence.lights === 'classic'} className="ov-seg-btn"
-        title="Classic glow: smooth density glow"
-        onClick={() => onChange({ ...presence, lights: 'classic' })}>Classic</button>
     </div>
   );
 }

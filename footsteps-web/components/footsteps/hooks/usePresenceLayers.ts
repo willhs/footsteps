@@ -1,25 +1,13 @@
 'use client';
 
-// Prototype presence styles over the population data, chosen in the viewer:
-// - lights: 'classic' keeps the per-cell glow / night lights; 'fire' draws
-//   flickering firelight sprites instead (FireLayer).
+// Firelight: people far out drawn as flickering fire sprites (FireLayer),
+// in place of the per-cell density glow.
 import { useEffect, useMemo, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { bracket } from '@/lib/time';
 import { TARGET_YEARS } from '@/lib/constants';
 import { loadGrid } from './gridLoader';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction } from '../layers/FireLayer';
-
-export type Presence = { lights: 'classic' | 'fire' };
-export const DEFAULT_PRESENCE: Presence = { lights: 'fire' };
-
-export function presenceFromUrl(): Presence {
-  if (typeof window === 'undefined') return DEFAULT_PRESENCE;
-  const q = new URLSearchParams(window.location.search);
-  return {
-    lights: q.get('lights') === 'classic' ? 'classic' : 'fire',
-  };
-}
 
 // Fire marks per data year, kept compact (positions, radius, rank) so every
 // year can stay in memory and scrubbing never waits once they are warm.
@@ -80,21 +68,19 @@ type View = { longitude: number; latitude: number; zoom: number };
 
 export default function usePresenceLayers({
   enabled,
-  presence,
   time,
   view,
   /** 0..1: how much the far-out look (glow) is showing; fires fade with it. */
   far,
 }: {
   enabled: boolean;
-  presence: Presence;
   time: number;
   view: View;
   far: number;
 }): { layers: LayersList; animating: boolean; waiting: [number, number] | null } {
   const { y0, y1, f } = bracket(time);
   const [pair, setPair] = useState<{ a: Built; b: Built } | null>(null);
-  const wanted = enabled && (presence.lights === 'fire');
+  const wanted = enabled;
   useEffect(() => {
     if (!wanted) return;
     let live = true;
@@ -128,7 +114,7 @@ export default function usePresenceLayers({
   );
 
   const layers: LayersList = [];
-  if (enabled && presence.lights === 'fire' && far > 0)
+  if (enabled && far > 0)
     fireLayers.forEach((l, i) =>
       // Held from another time while this one builds: dimmed, so it reads as
       // waiting rather than as the answer.

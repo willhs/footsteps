@@ -21,6 +21,25 @@ version: 1
 epoch: 1950   # ka BP is relative to this year CE
 
 regions:
+  # Islands that sit inside a big continental box below but were settled much later come FIRST.
+  - id: madagascar_indian_ocean
+    name: Madagascar and the western Indian Ocean islands
+    bbox: [43, -26, 58, -10]
+    arrival_ka_bp: {central: 2.0, early: 4.0, late: 1.0}
+    ramp_ka: 1
+    verification: memory
+    source: "Burney et al. 2004 J Archaeol Sci 31:1 (cut-marked bones ~2.3 ka); Dewar et al. 2013 PNAS 110:12583 (possible foragers ~10 ka, not accepted as settlement) -- both from memory."
+    notes: "After the model window, so empty throughout. Placed before `africa`, whose box would otherwise populate it from 100 ka."
+
+  - id: caribbean
+    name: Caribbean islands
+    bbox: [-85, 17.5, -59, 24]   # Greater Antilles and the northern Lesser Antilles; keeps Central America out
+    arrival_ka_bp: {central: 6.0, early: 7.0, late: 4.0}
+    ramp_ka: 1
+    verification: memory
+    source: "Wilson 2007 / Napolitano et al. 2019 Sci Adv 5:eaar7806 (earliest Antillean sites ~7-6 ka) -- memory."
+    notes: "After the model window, so empty throughout. Placed before `north_america`, whose box would otherwise populate it from 16 ka."
+
   - id: africa
     name: Africa (sub-Saharan, Maghreb, Nile valley)
     bbox: [-20, -35, 52, 37]

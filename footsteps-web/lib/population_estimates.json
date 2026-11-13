@@ -1,0 +1,949 @@
+{
+  "schemaVersion": 1,
+  "units": "persons",
+  "kind": "spread-across-estimates-not-confidence-interval",
+  "method": "Min lower/max upper at published comparison dates; geometrically interpolate envelope only in missing literature years; include HYDE 3.3 and app 3.5 totals; round outward to persons. No extrapolation.",
+  "sourcesPath": "../../docs/research/0005-world-population-estimates/sources.json",
+  "years": [
+    {
+      "year": -10000,
+      "low": 1000000,
+      "high": 10000000,
+      "lowFrom": [
+        {
+          "source": "thomlinson",
+          "year": -10000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "thomlinson",
+          "year": -10000
+        }
+      ],
+      "literatureAnchorYears": [
+        -10000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "thomlinson",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -9000,
+      "low": 2236067,
+      "high": 7071068,
+      "lowFrom": [
+        {
+          "source": "thomlinson",
+          "year": -10000
+        },
+        {
+          "source": "haub",
+          "year": -8000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "thomlinson",
+          "year": -10000
+        },
+        {
+          "source": "haub",
+          "year": -8000
+        }
+      ],
+      "literatureAnchorYears": [
+        -10000,
+        -8000
+      ],
+      "directSources": [
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -8000,
+      "low": 5000000,
+      "high": 7460000,
+      "lowFrom": [
+        {
+          "source": "haub",
+          "year": -8000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -8000
+        }
+      ],
+      "literatureAnchorYears": [
+        -8000
+      ],
+      "directSources": [
+        "haub",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -7000,
+      "low": 5000000,
+      "high": 9840000,
+      "lowFrom": [
+        {
+          "source": "haub",
+          "year": -8000
+        },
+        {
+          "source": "un-1973",
+          "year": -6500
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -7000
+        }
+      ],
+      "literatureAnchorYears": [
+        -8000,
+        -6500
+      ],
+      "directSources": [
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -6000,
+      "low": 5000000,
+      "high": 13540000,
+      "lowFrom": [
+        {
+          "source": "un-1973",
+          "year": -6500
+        },
+        {
+          "source": "mcevedy-jones",
+          "year": -5000
+        },
+        {
+          "source": "thomlinson",
+          "year": -5000
+        },
+        {
+          "source": "kremer",
+          "year": -5000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -6000
+        }
+      ],
+      "literatureAnchorYears": [
+        -6500,
+        -5000
+      ],
+      "directSources": [
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -5000,
+      "low": 5000000,
+      "high": 20000000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": -5000
+        },
+        {
+          "source": "thomlinson",
+          "year": -5000
+        },
+        {
+          "source": "kremer",
+          "year": -5000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "thomlinson",
+          "year": -5000
+        }
+      ],
+      "literatureAnchorYears": [
+        -5000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "thomlinson",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -4000,
+      "low": 7000000,
+      "high": 29460000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": -4000
+        },
+        {
+          "source": "kremer",
+          "year": -4000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -4000
+        }
+      ],
+      "literatureAnchorYears": [
+        -4000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -3000,
+      "low": 14000000,
+      "high": 45540000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": -3000
+        },
+        {
+          "source": "kremer",
+          "year": -3000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -3000
+        }
+      ],
+      "literatureAnchorYears": [
+        -3000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -2000,
+      "low": 27000000,
+      "high": 74430000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": -2000
+        },
+        {
+          "source": "kremer",
+          "year": -2000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -2000
+        }
+      ],
+      "literatureAnchorYears": [
+        -2000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": -1000,
+      "low": 50000000,
+      "high": 113420000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": -1000
+        },
+        {
+          "source": "kremer",
+          "year": -1000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": -1000
+        }
+      ],
+      "literatureAnchorYears": [
+        -1000
+      ],
+      "directSources": [
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 0,
+      "low": 170000000,
+      "high": 400000000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 0
+        },
+        {
+          "source": "kremer",
+          "year": 0
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "un-1973",
+          "year": 0
+        }
+      ],
+      "literatureAnchorYears": [
+        0
+      ],
+      "directSources": [
+        "biraben",
+        "durand",
+        "haub",
+        "mcevedy-jones",
+        "thomlinson",
+        "un-1973",
+        "un-1999",
+        "clark",
+        "maddison",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 100,
+      "low": 179722007,
+      "high": 320000000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 0
+        },
+        {
+          "source": "kremer",
+          "year": 0
+        },
+        {
+          "source": "mcevedy-jones",
+          "year": 200
+        },
+        {
+          "source": "kremer",
+          "year": 200
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "un-1973",
+          "year": 0
+        },
+        {
+          "source": "biraben",
+          "year": 200
+        }
+      ],
+      "literatureAnchorYears": [
+        0,
+        200
+      ],
+      "directSources": [
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 200,
+      "low": 190000000,
+      "high": 256000000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 200
+        },
+        {
+          "source": "kremer",
+          "year": 200
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "biraben",
+          "year": 200
+        }
+      ],
+      "literatureAnchorYears": [
+        200
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 300,
+      "low": 190000000,
+      "high": 233710000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 200
+        },
+        {
+          "source": "kremer",
+          "year": 200
+        },
+        {
+          "source": "mcevedy-jones",
+          "year": 400
+        },
+        {
+          "source": "kremer",
+          "year": 400
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 300
+        }
+      ],
+      "literatureAnchorYears": [
+        200,
+        400
+      ],
+      "directSources": [
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 400,
+      "low": 190000000,
+      "high": 247840000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 400
+        },
+        {
+          "source": "kremer",
+          "year": 400
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 400
+        }
+      ],
+      "literatureAnchorYears": [
+        400
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 500,
+      "low": 190000000,
+      "high": 259400000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 500
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 500
+        }
+      ],
+      "literatureAnchorYears": [
+        500
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 600,
+      "low": 200000000,
+      "high": 277640000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 600
+        },
+        {
+          "source": "kremer",
+          "year": 600
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 600
+        }
+      ],
+      "literatureAnchorYears": [
+        600
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 700,
+      "low": 207000000,
+      "high": 284360000,
+      "lowFrom": [
+        {
+          "source": "biraben",
+          "year": 700
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 700
+        }
+      ],
+      "literatureAnchorYears": [
+        700
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 800,
+      "low": 220000000,
+      "high": 291870000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 800
+        },
+        {
+          "source": "kremer",
+          "year": 800
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 800
+        }
+      ],
+      "literatureAnchorYears": [
+        800
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 900,
+      "low": 226000000,
+      "high": 317820000,
+      "lowFrom": [
+        {
+          "source": "biraben",
+          "year": 900
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 900
+        }
+      ],
+      "literatureAnchorYears": [
+        900
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1000,
+      "low": 254000000,
+      "high": 345000000,
+      "lowFrom": [
+        {
+          "source": "biraben",
+          "year": 1000
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "durand",
+          "year": 1000
+        }
+      ],
+      "literatureAnchorYears": [
+        1000
+      ],
+      "directSources": [
+        "biraben",
+        "durand",
+        "mcevedy-jones",
+        "un-1999",
+        "clark",
+        "maddison",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1100,
+      "low": 301000000,
+      "high": 407230000,
+      "lowFrom": [
+        {
+          "source": "biraben",
+          "year": 1100
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 1100
+        }
+      ],
+      "literatureAnchorYears": [
+        1100
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1200,
+      "low": 360000000,
+      "high": 455600000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 1200
+        },
+        {
+          "source": "kremer",
+          "year": 1200
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 1200
+        }
+      ],
+      "literatureAnchorYears": [
+        1200
+      ],
+      "directSources": [
+        "biraben",
+        "haub",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1300,
+      "low": 360000000,
+      "high": 467940000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 1300
+        },
+        {
+          "source": "kremer",
+          "year": 1300
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 1300
+        }
+      ],
+      "literatureAnchorYears": [
+        1300
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "thomlinson",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1400,
+      "low": 350000000,
+      "high": 453330000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 1400
+        },
+        {
+          "source": "kremer",
+          "year": 1400
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "hyde-3.5-app",
+          "year": 1400
+        }
+      ],
+      "literatureAnchorYears": [
+        1400
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1500,
+      "low": 425000000,
+      "high": 540000000,
+      "lowFrom": [
+        {
+          "source": "mcevedy-jones",
+          "year": 1500
+        },
+        {
+          "source": "kremer",
+          "year": 1500
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "durand",
+          "year": 1500
+        }
+      ],
+      "literatureAnchorYears": [
+        1500
+      ],
+      "directSources": [
+        "biraben",
+        "durand",
+        "mcevedy-jones",
+        "un-1999",
+        "clark",
+        "maddison",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1600,
+      "low": 516147616,
+      "high": 579000000,
+      "lowFrom": [
+        {
+          "source": "hyde-3.3",
+          "year": 1600
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "biraben",
+          "year": 1600
+        }
+      ],
+      "literatureAnchorYears": [
+        1600
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "maddison",
+        "kremer",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1700,
+      "low": 592000000,
+      "high": 679000000,
+      "lowFrom": [
+        {
+          "source": "hyde-3.2",
+          "year": 1700
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "biraben",
+          "year": 1700
+        }
+      ],
+      "literatureAnchorYears": [
+        1700
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "thomlinson",
+        "clark",
+        "maddison",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1800,
+      "low": 813000000,
+      "high": 1125000000,
+      "lowFrom": [
+        {
+          "source": "un-1973",
+          "year": 1800
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "un-1973",
+          "year": 1800
+        }
+      ],
+      "literatureAnchorYears": [
+        1800
+      ],
+      "directSources": [
+        "biraben",
+        "mcevedy-jones",
+        "thomlinson",
+        "un-1973",
+        "un-1999",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    },
+    {
+      "year": 1900,
+      "low": 1550000000,
+      "high": 1762000000,
+      "lowFrom": [
+        {
+          "source": "un-1973",
+          "year": 1900
+        }
+      ],
+      "highFrom": [
+        {
+          "source": "un-1973",
+          "year": 1900
+        }
+      ],
+      "literatureAnchorYears": [
+        1900
+      ],
+      "directSources": [
+        "biraben",
+        "durand",
+        "haub",
+        "mcevedy-jones",
+        "thomlinson",
+        "un-1973",
+        "un-1999",
+        "kremer",
+        "hyde-3.2",
+        "hyde-3.3",
+        "hyde-3.5-app"
+      ]
+    }
+  ]
+}

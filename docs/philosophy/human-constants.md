@@ -37,6 +37,8 @@ Each constant fits one of the vision's three kinds ([vision.md](vision.md)):
 - **In the details panel:** sourced facts for a clicked place and time, like religion, politics, food, groups and trade.
 - **Imagined:** a person's day, social life and archetypes, labelled speculative and grounded in the facts above.
 
+Ten mockups, one per constant, with a feasibility verdict each and a shortlist of three to build first: [design explorations](../design/explorations/index.md).
+
 ## Open questions
 
 - Which constants can carry real data at map scale, and which only work in a clicked person's story?

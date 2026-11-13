@@ -21,6 +21,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/terrain_image.py`: Krapp2021 biomes + Blue Marble colours + HYDE
   farmland → one ~200 KB Earth image per terrain year in `data/tiles/terrain/`, drawn
   cross-faded in terrain mode by `hooks/useTerrainLayers.ts`. See `docs/ops/terrain-images.md`.
+- `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
+  (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.

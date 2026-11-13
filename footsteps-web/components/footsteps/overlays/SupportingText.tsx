@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { hasPeopleData } from '@/lib/time';
+import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
 import { formatPopulation, formatYear } from '@/lib/format';
 
 const LOD_SUMMARY: Record<number, string> = {
@@ -205,6 +205,8 @@ function SupportingText({
     };
   }, [displayDotCount]);
 
+  // Before HYDE the total is the model's range, never a single figure.
+  const modelled = evidenceAt(year) === 'modelled';
   return (
     <div
       className="ov-panel ov-stats absolute z-30 px-3.5 py-3 sm:px-4"
@@ -221,9 +223,19 @@ function SupportingText({
       {/* Population: the headline number */}
       <div className="mt-0.5 whitespace-nowrap text-[22px] font-semibold leading-tight tracking-tight text-[var(--ov-text)] tabular-nums sm:text-2xl">
         <span className={`metric-value ${popFlash ? 'metric-flash' : ''}`}>
-          {hasPeopleData(year) ? formatPopulation(displayPopulation) : 'No estimate'}
+          {modelled
+            ? `~${populationRangeLabel(populationRangeAt(year))}`
+            : formatPopulation(displayPopulation)}
         </span>
       </div>
+      {modelled && (
+        <div
+          className="ov-note mt-0.5"
+          title="A model, not data: low to high world total from the literature. Where people sit follows plant productivity, climate and when people arrived."
+        >
+          modelled, not measured
+        </div>
+      )}
 
       {/* Progressive loading feedback */}
       {progressiveRenderStatus &&
@@ -246,12 +258,12 @@ function SupportingText({
           {/* LOD and tile cache only describe the Dots tiles (cacheSize > 0). */}
           {cacheSize > 0 && <> · {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}</>}
         </div>
-        {hasPeopleData(year) && <div>
+        <div>
           Dots drawn{' '}
           <span className={`metric-value ${dotsFlash ? 'metric-flash' : ''}`}>
             {displayDotCount.toLocaleString()}
           </span>
-        </div>}
+        </div>
         {cacheSize > 0 && <div>
           Cache:{' '}
           <span title="Tiles held in memory">{cacheStats.tiles}</span>{' '}tiles ·{' '}

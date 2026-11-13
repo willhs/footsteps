@@ -122,7 +122,7 @@ def model():
     return pp.Model(TABLE, climate=FlatClimate(), hyde=hyde, water=(zero, zero), land_fn=flat_land)
 
 
-@pytest.mark.parametrize("year", [-100_000, -75_000, -50_000, -30_000, -20_000, -13_000])
+@pytest.mark.parametrize("year", [-100_000, -75_000, -50_000, -30_000, -20_000, -14_000])
 def test_each_step_matches_the_curve_before_the_handover(model, year):
     s = model.step(year)
     assert s.hyde_weight == 0
@@ -149,11 +149,13 @@ def test_people_spread_east_as_the_arrival_dates_pass(model):
 def test_handover_converges_on_hyde_without_a_jump(model):
     hyde = model.hyde
     before, mid = model.step(-12_000), model.step(-11_000)
+    assert model.step(-14_000).hyde_weight == 0
     after = model.step(pp.HYDE_YEAR)
     assert after.hyde_weight == 1
     assert np.allclose(after.people, hyde)
-    assert mid.hyde_weight == pytest.approx(0.5)
-    assert mid.people.sum() == pytest.approx(0.5 * pp.world_totals(-11_000).central + 0.5 * hyde.sum())
+    assert before.hyde_weight == pytest.approx(0.5)
+    assert mid.hyde_weight == pytest.approx(0.75)
+    assert mid.people.sum() == pytest.approx(0.25 * pp.world_totals(-11_000).central + 0.75 * hyde.sum())
     # each step is closer to HYDE than the last, in total and cell by cell
     dist = lambda s: np.abs(s.people - hyde).sum()  # noqa: E731
     assert dist(before) > dist(mid) > dist(after) == 0
@@ -205,3 +207,15 @@ def test_real_totals_and_ice_sea_masks():
     assert s.people[(lat > 55) & (lon > -10) & (lon < 30)].sum() < 0.01 * s.people.sum()  # N Europe empty
     south_europe = (lat > 35) & (lat < 45) & (lon > -10) & (lon < 30)
     assert s.people[south_europe].sum() > 0  # the southern refugia hold people
+
+
+@REAL
+def test_real_handover_moves_people_no_faster_than_the_years_around_it():
+    """No visible jump: between 1,000-year images, the share of people who change place stays
+    under 60%. A 2,000-year blend moved 73% and 66% in its two steps; the model and HYDE
+    disagree about where, so the floor for a 4,000-year blend is ~35% a step (HYDE itself moves ~21%)."""
+    m = pp.Model(TABLE)
+    years = [-15_000, -14_000, -13_000, -12_000, -11_000, pp.HYDE_YEAR]
+    grids = [m.step(y).people for y in years]
+    moved = [np.abs(a - b).sum() / max(a.sum(), b.sum()) for a, b in zip(grids, grids[1:])]
+    assert max(moved) < 0.6, moved

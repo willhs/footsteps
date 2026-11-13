@@ -15,6 +15,14 @@ sync_grid() {
   ssh "$REMOTE" "mkdir -p $DEST/app/grid"
   rsync -az --include='humans_*.webp' --include='landuse_*.png' --exclude='*' \
     "$ROOT/data/tiles/grid/" "$REMOTE:$DEST/app/grid/"
+  # Modelled pre-HYDE people (footstep-generator/prehistory_population.py): 90 tiny
+  # WebPs named like the HYDE ones, so the app reads them from the same place.
+  if compgen -G "$ROOT/data/tiles/prehistory/humans_*.webp" >/dev/null; then
+    rsync -az --include='humans_*.webp' --exclude='*' \
+      "$ROOT/data/tiles/prehistory/" "$REMOTE:$DEST/app/grid/"
+  else
+    echo "warning: no modelled pre-HYDE images; people before 10,000 BCE will be missing (see docs/ops/prehistory-population.md)" >&2
+  fi
   # Population images used to be PNGs; drop the superseded ones.
   # find, not rm with a glob: budgie's zsh aborts on a glob with no matches.
   ssh "$REMOTE" "find $DEST/app/grid -name 'humans_*.png' -delete"

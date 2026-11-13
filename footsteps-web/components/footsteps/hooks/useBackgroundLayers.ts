@@ -3,16 +3,13 @@
 import { useState } from 'react';
 import { createSeaLayer, createContinentsLayer } from '@/components/footsteps/layers/backgroundLayers';
 import useTerrainLayers from './useTerrainLayers';
-import { hasPeopleData } from '@/lib/time';
 
 const ENABLE_CONTINENTS = (process.env.NEXT_PUBLIC_ENABLE_CONTINENTS || 'true') === 'true';
 
 /** Terrain on: the Earth of the year at `time`. Off: flat sea and land. */
 export default function useBackgroundLayers(time: number) {
   // Terrain is the default: the Earth of each era is part of the story.
-  const [terrainChosen, setShowTerrain] = useState(true);
-  // Before HYDE there are no people, so the Earth itself is the picture.
-  const showTerrain = terrainChosen || !hasPeopleData(time);
+  const [showTerrain, setShowTerrain] = useState(true);
   const terrainLayers = useTerrainLayers(time, showTerrain);
 
   const backgroundLayers = showTerrain

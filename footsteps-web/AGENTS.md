@@ -19,11 +19,16 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
   throttles requestAnimationFrame, so its fps numbers are meaningless.
+- The 90 modelled pre-HYDE images (100,000–11,000 BCE, 0.5°) come from `../footstep-generator/prehistory_population.py`
+  and load through the same path (`/grid/humans_{year}.webp`); `gridData.ts` decodes each as 6 × 6 cells of HYDE's grid so ids, glow
+  and the year morph line up. `lib/time.ts` splits people into `evidenceAt(time)`: `'measured'` (HYDE, from 10,000 BCE) or `'modelled'`;
+  modelled screens say so (counter range, legend, grounding panel, timeline), and 'imagine their day' is off for them.
+  Copy `../data/tiles/prehistory/humans_*.webp` into `public/grid/` for local dev.
 - The WebPs are produced by `../footstep-generator/grid_image.py` from local HYDE 3.5
   grids. Keep the log encoding, `LEVELS` and `MAX_PEOPLE` aligned with `gridData.ts`.
 - Dots uses PMTiles and HTTP Range requests to `/pmtiles/humans_{year}.pmtiles`
   in the budgie build. `lib/constants.ts` defines the 30 slider years
-  (10,000 BCE–1900 CE) and nine built Dots years; Dots snaps to the nearest one.
+  (10,000 BCE–1900 CE, HYDE; `PEOPLE_YEARS` adds the 90 modelled ones) and nine built Dots years; Dots snaps to the nearest one.
 - `components/ui/TimeSlider.tsx`: time navigation. Derive year assumptions from
   constants rather than hardcoding counts in tests.
 

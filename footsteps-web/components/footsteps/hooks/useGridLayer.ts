@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
-import { TARGET_YEARS } from '@/lib/constants';
+import { PEOPLE_YEARS } from '@/lib/constants';
 import { type GridData, type PointBuffers, type YearGrid } from './gridData';
 import { loadGrid, loadUnitMorph } from './gridLoader';
 import type { MorphPoints } from './unitMorph';
@@ -188,10 +188,10 @@ export default function useGridLayer({
           style === 'units' ? snapshot.units.length : snapshot.data.length,
         );
         setMetricsLoading(false);
-        const index = TARGET_YEARS.indexOf(year);
+        const index = PEOPLE_YEARS.indexOf(year);
         for (const neighbour of [
-          TARGET_YEARS[index - 1],
-          TARGET_YEARS[index + 1],
+          PEOPLE_YEARS[index - 1],
+          PEOPLE_YEARS[index + 1],
         ]) {
           if (neighbour !== undefined)
             void loadGrid(neighbour).catch((error) =>

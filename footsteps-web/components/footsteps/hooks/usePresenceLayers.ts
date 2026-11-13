@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { bracket } from '@/lib/time';
-import { TARGET_YEARS } from '@/lib/constants';
+import { PEOPLE_YEARS, TARGET_YEARS } from '@/lib/constants';
 import { loadGrid } from './gridLoader';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction } from '../layers/FireLayer';
 
@@ -15,7 +15,8 @@ type Built = { year: number; data: ReturnType<typeof fireData> };
 const built = new Map<number, Built>();
 const inFlight = new Map<number, Promise<Built>>();
 const deviceMemory = typeof navigator !== 'undefined' ? (navigator as { deviceMemory?: number }).deviceMemory : undefined;
-/** ~2.4 MB per year: all 31 years on a roomy device, a dozen on a small one. */
+/** ~2.4 MB per year: 31 years on a roomy device, a dozen on a small one. The warm-up
+ * picks the ones nearest the current time, so it never holds all of PEOPLE_YEARS. */
 const MAX_BUILT = deviceMemory !== undefined && deviceMemory < 8 ? 12 : TARGET_YEARS.length;
 
 function marksFor(year: number): Promise<Built> {
@@ -48,7 +49,7 @@ function warm(center: number) {
   if (warming) return;
   warming = true;
   const step = () => {
-    const next = [...TARGET_YEARS]
+    const next = [...PEOPLE_YEARS]
       .sort((a, b) => Math.abs(a - warmCenter) - Math.abs(b - warmCenter))
       .slice(0, MAX_BUILT)
       .find((y) => !built.has(y));

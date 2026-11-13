@@ -2,8 +2,9 @@
 
 An interactive globe of historical human population. Prioritise clear quantitative
 storytelling: pixels should communicate data, not decoration. The current data
-covers 10,000 BCE–1900 CE (30 years); the slider and terrain reach back to 100,000 BCE,
-with no people drawn before HYDE (`HYDE_MIN` in `lib/time.ts`). The present is aspirational.
+covers 10,000 BCE–1900 CE (30 years, measured: HYDE); the slider and terrain reach back to 100,000 BCE,
+and before HYDE (`HYDE_MIN` in `lib/time.ts`) the people are a labelled MODEL (`evidenceAt` is `'modelled'`,
+the counter shows a low–high range). The present is aspirational.
 Read [docs/philosophy/vision.md](docs/philosophy/vision.md) first: it is the one
 current vision (measured vs modelled vs imagined, and what Footsteps is not).
 
@@ -23,7 +24,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   cross-faded in terrain mode by `hooks/useTerrainLayers.ts`. See `docs/ops/terrain-images.md`.
 - `footstep-generator/prehistory_population.py`: a MODELLED world population (Tallavaara NPP fit, Beyer climate,
   arrival table, scaled to a literature curve, blended into HYDE) → one 0.5° WebP per 1,000 years, 100,000–11,000 BCE,
-  in `grid_image.py`'s encoding, plus `totals.json`. Not wired into the app. See `docs/ops/prehistory-population.md`.
+  in `grid_image.py`'s encoding, plus `totals.json` (also copied to `footsteps-web/public/prehistory_totals.json`, which `lib/time.ts`
+  imports for the counter's range). The app reads the WebPs through the same grid pipeline as HYDE's (`MODELLED_YEARS`, `PEOPLE_YEARS`
+  in `lib/constants.ts`; `gridData.ts` upsamples 0.5° to HYDE's 5′ cells). See `docs/ops/prehistory-population.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.

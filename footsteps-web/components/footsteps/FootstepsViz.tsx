@@ -13,12 +13,12 @@ import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overla
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
-import { hasPeopleData, nearestDataYear, populationAt } from '@/lib/time';
+import { evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
-import { nearestDotTileYear } from '@/lib/constants';
+import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 
@@ -144,11 +144,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const peopleView = renderMode === 'auto' || renderMode === 'units';
   const showGlowLegend = renderMode === 'auto' && blend.units < 0.5;
 
-  // HYDE starts at 10,000 BCE; before that the map shows Earth only.
-  const peopleOn = hasPeopleData(time);
+  // From 10,000 BCE people are HYDE's (measured); before that they are the model's.
+  const modelled = evidenceAt(Math.round(time)) === 'modelled';
   const layers: LayersList = [
     ...backgroundLayers,
-    ...(!peopleOn ? [] : renderMode === 'dots' ? humanLayers : [...gridLayers, ...presenceLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers]),
   ] as LayersList;
 
   return (
@@ -162,7 +162,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         // continuously only while either is on screen.
         animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating)}
         onClick={(info) => {
-          if (!peopleView || !peopleOn || !info.coordinate) return;
+          if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
           const person = info.layer?.id === 'people' ? (info.object as Person | undefined) : undefined;
           setSelectedPerson(person ?? null);
@@ -210,10 +210,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           top: 'calc(var(--ov-top) + 150px)',
         }}
       >
-        {peopleView && peopleOn && selectedPlace && (
+        {peopleView && selectedPlace && (
           <GroundingPanel
             facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
             place={{ lat: selectedPlace[1], lon: selectedPlace[0], year: Math.round(time) }}
+            modelled={modelled}
             group={
               selectedGroup && {
                 label: UNIT_KIND_LABEL[selectedGroup.kind] ?? 'A group',
@@ -228,7 +229,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 : null
             }
             day={
-              selectedPerson && selectedPlace && grid
+              // 'Imagine their day' is written from HYDE-era records only.
+              !modelled && selectedPerson && selectedPlace && grid
                 ? (() => {
                     const facts = groundingFacts(grid, year, ...selectedPlace);
                     return {
@@ -259,15 +261,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         )}
 
         {/* Legend: hidden while the details panel is open, which needs the height. */}
-        {!peopleOn ? (
-          <div className="ov-panel shrink-0 px-3.5 py-3">
-            <p className="ov-body">
-              No population data before 10,000 BCE, where HYDE starts. People were
-              here, but nobody has mapped how many or where, so the map shows Earth only.
-            </p>
-            {showTerrain && <TerrainNote />}
-          </div>
-        ) : peopleView && !selectedPlace ? (
+        {peopleView && !selectedPlace ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             {showGlowLegend ? (
               <p className="ov-body">
@@ -285,10 +279,22 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 {blend.pickable && <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>}
               </ul>
             )}
-            <p className="ov-note mt-1.5">
-              Head counts per ~10 km cell are HYDE estimates. Where bands and villages
-              sit inside a cell is illustrative, not known.
-            </p>
+            {modelled ? (
+              <p className="ov-note mt-1.5">
+                <strong className="font-semibold text-[var(--ov-amber)]">Modelled, not measured.</strong>{' '}
+                Where foragers would live if density followed plant productivity,
+                scaled to a published world total; no one has seen these people.
+                Bands and where they sit are illustrative.{' '}
+                <a href={MODEL_NOTES_URL} target="_blank" rel="noreferrer" className="pointer-events-auto underline">
+                  How it was made
+                </a>
+              </p>
+            ) : (
+              <p className="ov-note mt-1.5">
+                Head counts per ~10 km cell are HYDE estimates. Where bands and villages
+                sit inside a cell is illustrative, not known.
+              </p>
+            )}
             {showTerrain && <TerrainNote />}
           </div>
         ) : (

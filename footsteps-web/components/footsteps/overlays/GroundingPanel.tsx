@@ -7,6 +7,7 @@ import { CloseIcon } from '@/components/ui/icons';
 
 export default function GroundingPanel({
   facts,
+  modelled = false,
   group,
   person,
   day,
@@ -15,6 +16,8 @@ export default function GroundingPanel({
   onClose,
 }: {
   facts: GroundingFacts | null;
+  /** The year is before HYDE: counts are the model's, not measured. */
+  modelled?: boolean;
   /** The clicked mark, at close zoom: what it stands for, not where it really was. */
   group?: { label: string; people: number; placed: boolean } | null;
   /** A clicked individual (street-level zoom): imagined from the head count. */
@@ -51,7 +54,7 @@ export default function GroundingPanel({
               </div>
             </div>
             <p className="ov-note">
-              Imagined: the head count is a HYDE estimate; this person&apos;s age, role and place in
+              Imagined: the head count is {modelled ? 'modelled' : 'a HYDE estimate'}; this person&apos;s age, role and place in
               camp are drawn from a typical pre-modern population.
             </p>
             {day && <PersonDay request={day} />}
@@ -68,13 +71,13 @@ export default function GroundingPanel({
 
         {facts ? (
           <div className={person || group ? 'border-t border-[var(--ov-divider)] pt-3' : ''}>
-            <h3 className="ov-eyebrow mb-1">This ~10 km cell</h3>
+            <h3 className="ov-eyebrow mb-1">{modelled ? 'This ~55 km block, modelled' : 'This ~10 km cell'}</h3>
             <p className="ov-note mb-2 tabular-nums">
               {facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · centre{' '}
               {facts.latitude.toFixed(3)}°, {facts.longitude.toFixed(3)}°
             </p>
             <dl className="ov-kv ov-body">
-              <dt>People in cell</dt>
+              <dt>{modelled ? 'People in block' : 'People in cell'}</dt>
               <dd>≈ {count(facts.people)}</dd>
               <dt>3×3 neighbourhood</dt>
               <dd>≈ {count(facts.neighbourhoodPeople)}</dd>
@@ -83,8 +86,9 @@ export default function GroundingPanel({
             </dl>
             <p className="ov-body mt-3">{facts.confidence}</p>
             <p className="ov-note mt-2">
-              Counts are decoded HYDE estimates. Zero means no population recorded in this image, not
-              confirmed absence. Band/village placements are illustrative.
+              {modelled
+                ? 'Counts are the model\'s, not observations. Zero means the model puts no one here, not confirmed absence. Band placements are illustrative.'
+                : 'Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Band/village placements are illustrative.'}
             </p>
           </div>
         ) : (

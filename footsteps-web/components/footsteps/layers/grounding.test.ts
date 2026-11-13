@@ -36,3 +36,18 @@ test('confidence notes distinguish eras', () => {
   expect(groundingFacts(data, 1, 0, 0)?.confidence).toContain('Historical');
   expect(groundingFacts(data, 1800, 0, 0)?.confidence).toContain('recent');
 });
+
+test('before HYDE, counts are read per 0.5° block and labelled modelled', () => {
+  // 5′ cells (cellDeg 0.5/6) as the decoder makes them: width 4320. Put 2 people in each of the 36 cells of one block.
+  const cellDeg = 360 / 4320;
+  const entries: [number, number][] = [];
+  const blockRow = 120; // 0.5° block row => lat 90 - 120*0.5 .. : 30°N-29.5°N
+  const blockCol = 400; // lon -180 + 400*0.5 = 20°E
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) entries.push([(blockRow * 6 + i) * 4320 + blockCol * 6 + j, 2]);
+  const data = { ...grid(entries), cellDeg };
+  const facts = groundingFacts(data, -50000, 20.1, 29.9);
+  expect(facts).toMatchObject({ evidence: 'modelled', cellDeg: 0.5, people: 72, neighbourhoodPeople: 72, densityClass: 'band' });
+  expect(facts?.confidence).toContain('Modelled');
+  expect(groundingFacts(data, -50000, 20.1, 29.9)?.latitude).toBeCloseTo(29.75);
+  expect(groundingFacts(data, -9000, 20.1, 29.9)?.evidence).toBe('measured');
+});

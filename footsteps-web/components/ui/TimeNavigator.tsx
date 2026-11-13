@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TARGET_YEARS } from '@/lib/constants';
+import { PEOPLE_YEARS } from '@/lib/constants';
 import { seaLevelLabel } from '@/lib/climate';
 import { MOMENTS, type Moment } from '@/lib/moments';
 import {
@@ -13,9 +13,10 @@ import {
   calendarLabel,
   clampTime,
   dataStatus,
-  hasPeopleData,
+  evidenceAt,
   populationAt,
-  populationLabel,
+  populationRangeAt,
+  populationRangeLabel,
 } from '@/lib/time';
 
 /**
@@ -49,6 +50,7 @@ const FONT = '11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, 
 const COLORS = {
   bar: 'rgba(255,255,255,0.10)',
   people: 'rgba(242,181,107,0.55)',
+  modelled: 'rgba(242,181,107,0.26)',
   data: '#5fd4e8',
   tick: 'rgba(243,241,236,0.72)',
   tickDim: 'rgba(243,241,236,0.45)',
@@ -76,11 +78,12 @@ export function detailWindow(time: number, zoom: number): [number, number] {
 }
 
 function popHeight(t: number, bar: number) {
-  const p = populationAt(t);
-  if (p <= 0) return 0;
-  const v = (Math.log10(p) - 6.5) / 3;
+  const v = (Math.log10(populationAt(t)) - 5) / 4.5;
   return Math.max(0.08, Math.min(1, v)) * bar;
 }
+
+/** Bars are paler where people are modelled, solid where measured. */
+const peopleColor = (t: number) => (evidenceAt(t) === 'modelled' ? COLORS.modelled : COLORS.people);
 
 /** A round step (1, 2 or 5 × 10^k years) giving roughly `px` pixels between ticks. */
 function niceStep(yearsPerPx: number, px: number) {
@@ -186,9 +189,10 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     ctx.fillStyle = COLORS.bar;
     roundRect(ctx, 0, 0, w, OV_BAR, 3);
     ctx.fill();
-    ctx.fillStyle = COLORS.people;
-    for (let px = x(HYDE_MIN); px < w; px += 2) {
-      const ph = popHeight(Sinv(px / w), OV_BAR);
+    for (let px = 0; px < w; px += 2) {
+      const t = Sinv(px / w);
+      const ph = popHeight(t, OV_BAR);
+      ctx.fillStyle = peopleColor(t);
       ctx.fillRect(px, OV_BAR - ph, 2, ph);
     }
     let lastRight = -1e9;
@@ -241,11 +245,11 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     roundRect(ctx, 0, 0, w, DT_BAR, 4);
     ctx.fill();
     // people
-    ctx.fillStyle = COLORS.people;
     for (let px = 0; px < w; px += 2) {
       const t = lo + (px / w) * span;
-      if (t > TIME_MAX || !hasPeopleData(t)) continue;
+      if (t > TIME_MAX || t < TIME_MIN) continue;
       const ph = popHeight(t, DT_BAR);
+      ctx.fillStyle = peopleColor(t);
       ctx.fillRect(px, DT_BAR - ph, 2, ph);
     }
     // beyond either end of the timeline
@@ -260,7 +264,9 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = COLORS.tickDim;
-      if (bx > 120) ctx.fillText('no population data', bx - 6, DT_BAR / 2);
+      if (bx > 120) ctx.fillText('modelled', bx - 6, DT_BAR / 2);
+      ctx.textAlign = 'left';
+      if (w - bx > 120) ctx.fillText('HYDE, measured', bx + 6, DT_BAR / 2);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
     }
@@ -282,7 +288,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     }
     // data years
     ctx.fillStyle = COLORS.data;
-    for (const k of TARGET_YEARS) if (k >= lo && k <= hi) ctx.fillRect(x(k) - 1, 0, 2, 5);
+    for (const k of PEOPLE_YEARS) if (k >= lo && k <= hi) ctx.fillRect(x(k) - 1, 0, 2, 5);
     // needle: dashed cyan while the map is still catching up
     const cx = x(time);
     if (loading) {
@@ -376,7 +382,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     }
   };
 
-  const people = hasPeopleData(time);
+  const modelled = evidenceAt(Math.round(time)) === 'modelled'; // as the calendar label rounds
   const status = dataStatus(time);
   return (
     <div
@@ -393,12 +399,11 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
         >
           {seaLevelLabel(time)}
         </span>
-        {people ? (
-          <span className="text-[13px] text-[var(--ov-amber)] tabular-nums">~{populationLabel(populationAt(time))} people</span>
-        ) : (
-          <span className="text-[13px] text-[var(--ov-text-3)]">no population estimate</span>
-        )}
-        {loading && people ? (
+        <span className="text-[13px] text-[var(--ov-amber)] tabular-nums">
+          ~{populationRangeLabel(populationRangeAt(time))} people
+          {modelled && <span className="text-[var(--ov-text-3)]">, modelled</span>}
+        </span>
+        {loading ? (
           <span
             role="status"
             aria-live="polite"
@@ -410,12 +415,12 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
               ? `loading ${calendarLabel(loading[0])} data…`
               : `loading ${calendarLabel(loading[0])}–${calendarLabel(loading[1])} data…`}
           </span>
-        ) : !people ? (
+        ) : modelled ? (
           <span
             className="ov-chip self-center text-[var(--ov-text-3)]"
-            title="HYDE population data starts at 10,000 BCE. Earth is drawn every 1,000 years back to 100,000 BCE."
+            title="Before 10,000 BCE there is no HYDE data. People are a model: plant productivity, climate and when people arrived, scaled to a low-to-high world total from the literature. Drawn every 1,000 years."
           >
-            before HYDE data
+            modelled
           </span>
         ) : (
           <span

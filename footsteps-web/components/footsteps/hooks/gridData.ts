@@ -1,4 +1,5 @@
 import { buildUnits, type Units } from '../layers/units';
+import { TARGET_YEARS } from '@/lib/constants';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -44,6 +45,20 @@ export type YearGrid = {
   gridPoints: PointBuffers;
 };
 export type DecodedYearGrid = YearGrid & { units: Units };
+
+/** HYDE images are 4320 × 2160 (5′ cells). The modelled pre-HYDE images are
+ * 720 × 360 (0.5°); they are decoded as 6 × 6 blocks of 5′ cells so every year
+ * shares one cell grid: unit ids, the glow texture and the year morph all
+ * assume it. Each sub-cell takes an equal share of its block's people. */
+const HYDE_WIDTH = 4320;
+const isModelled = (year: number) => year < TARGET_YEARS[0];
+
+/** Level of a cell holding 1/`parts` of the people at `level`; never 0 (0 means empty). */
+function sharedLevel(level: number, parts: number) {
+  if (level === 0 || parts === 1) return level;
+  const people = Math.expm1((level / LEVELS) * LOG_MAX) / parts;
+  return Math.min(LEVELS, Math.max(1, Math.round((Math.log1p(people) / LOG_MAX) * LEVELS)));
+}
 
 export function gridUrl(year: number) {
   return `/grid/humans_${year}.webp`;
@@ -99,8 +114,11 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
     colorSpaceConversion: 'none',
     premultiplyAlpha: 'none',
   });
-  const { width: w, height: h } = bmp;
-  const canvas = new OffscreenCanvas(w, h);
+  const { width: sw, height: sh } = bmp;
+  const scale = isModelled(year) ? Math.round(HYDE_WIDTH / sw) : 1;
+  const w = sw * scale;
+  const h = sh * scale;
+  const canvas = new OffscreenCanvas(sw, sh);
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     bmp.close();
@@ -108,9 +126,16 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   }
   ctx.drawImage(bmp, 0, 0);
   bmp.close();
-  const px = ctx.getImageData(0, 0, w, h).data;
-  let length = 0;
-  for (let i = 0; i < w * h; i++) if (px[i * 4] | px[i * 4 + 1]) length++;
+  const px = ctx.getImageData(0, 0, sw, sh).data;
+  // Level of each source cell, then of each of its sub-cells.
+  const levels = new Uint16Array(sw * sh);
+  let occupied = 0;
+  for (let i = 0; i < sw * sh; i++) {
+    const level = (px[i * 4] << 8) | px[i * 4 + 1];
+    levels[i] = sharedLevel(level, scale * scale);
+    if (level) occupied++;
+  }
+  const length = occupied * scale * scale;
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
@@ -125,9 +150,9 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
+    const sourceRow = Math.floor(row / scale) * sw;
     for (let col = 0; col < w; col++) {
-      const offset = (row * w + col) * 4;
-      const value = (px[offset] << 8) | px[offset + 1];
+      const value = levels[sourceRow + Math.floor(col / scale)];
       if (!value) continue;
       if (row >= crop && row < h - crop)
         glow.data[(row - crop) * w + col] = Math.max(

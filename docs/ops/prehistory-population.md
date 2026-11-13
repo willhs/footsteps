@@ -13,9 +13,15 @@ says where a forager population of a published size would sit if density followe
 productivity, and nothing it draws has been seen in the ground. Any screen that shows
 it must say "modelled". Design and sources: [research 0002](../research/0002-pre-hyde-population-model/research.md).
 
-Not wired into the app yet. The images use `grid_image.py`'s encoding (`LEVELS`, `MAX_PEOPLE`)
-at 720 × 360 (0.5°) instead of 4320 × 2160; `gridData.ts` takes the cell size from the image
-width, so the same decoder reads them.
+**In the app.** The images use `grid_image.py`'s encoding (`LEVELS`, `MAX_PEOPLE`) at 720 × 360 (0.5°)
+instead of 4320 × 2160. They are published into the same `/grid/` directory as HYDE's (`scripts/deploy-budgie.sh`
+rsyncs `data/tiles/prehistory/`; `scripts/smoke.sh` checks all 90), and `gridData.ts` decodes each as 6 × 6 cells of HYDE's
+5′ grid, each sharing its block's people equally, so cell ids, the glow texture and the year morph work across 10,000 BCE.
+`totals.json` is also written to `footsteps-web/public/prehistory_totals.json` (a full default run only) and bundled:
+`lib/time.ts` (`PEOPLE_TOTALS`, `populationRangeAt`) turns it into the counter's range, e.g. "~1.9–7.4 million, modelled".
+Where it shows "modelled": counter and its note (top left), the timeline header chip and the pale people bars with a
+"modelled | HYDE, measured" boundary, the legend (with a link to research 0002), and the grounding panel (read per 0.5° block).
+"Imagine their day" is off before 10,000 BCE (the day API only knows HYDE-era places). Dots mode draws nothing for these years.
 
 ## Run
 
@@ -64,10 +70,17 @@ For each slider year (BP = 1950 − year), on the 0.5° grid of Krapp and Beyer 
    centre, else the nearest box. Density ramps 0 → 1 over `ramp_ka` after the region's central arrival
    date (`ramp_ka` 0 is a step). The mask is blurred by 1.5 cells so box edges are not rulers.
 7. **Scale.** One multiplier per step so the world total equals the central curve below.
-8. **Hand-over.** `weight = clip((year + 12000) / 2000, 0, 1)`; each cell is
+8. **Hand-over.** `weight = clip((year + 14000) / 4000, 0, 1)`; each cell is
    `(1 − weight) · model + weight · HYDE`, with HYDE's 10,000 BCE people summed 6 × 6 to 0.5°.
-   At 11,000 BCE it is half and half; at 10,000 BCE it is HYDE itself. The low and high totals
-   blend toward HYDE's total the same way, so the range closes at the join.
+   At 12,000 BCE it is half and half; at 10,000 BCE it is HYDE itself. The low and high totals
+   blend toward HYDE's total the same way, so the range closes at the join. The window starts at
+   14,000 BCE (the central Americas arrival), so HYDE's Americas never reach the map before people do.
+   It is 4,000 years because the model and HYDE disagree about *where* (below): a 2,000-year
+   blend moved 73% and 66% of the world's people between 1,000-year images (12→11 ka, 11→10 ka),
+   against 11–22% elsewhere. At 4,000 years the steps are 48, 52, 36 and 33%: smoother, but the
+   geography still visibly shifts (people thin out of Africa and thicken in the Americas) because the two
+   disagree. `test_real_handover_moves_people_no_faster_than_the_years_around_it` holds the maximum under 60%.
+   Measured by L1 distance between consecutive images, normalised by the larger total.
 
 Images show the **central** curve; low and high exist only in `totals.json`.
 
@@ -90,15 +103,15 @@ confidence interval. Every figure marked secondhand or synthesis needs its paper
 
 ## What the first run says
 
-- Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.56 M (11,000).
+- Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000).
   The model holds ~14% of the people the Tallavaara fit would put on every ice-free cell once
   everyone has arrived, so the scale step never asks for more than the fit allows.
 - Africa alone until the first exit; mainland Southeast Asia at 70 ka; Sahul at 50 ka; the Americas from 16 ka (all central dates).
 - At the last glacial maximum northern Europe is empty and the southern refugia (Iberia, Italy, the Balkans) hold people; this comes
   from the cold rule, not from the `refugia` list, which is documentation only.
-- Where it disagrees with HYDE (12,000 BCE, model at full weight against HYDE's 10,000 BCE grid):
+- Where it disagrees with HYDE (the pure model at 12,000 BCE, before the blend was lengthened to 14,000 BCE, against HYDE's 10,000 BCE grid):
   the same total (4.46 M vs 4.59 M) but different places: Africa 33% vs 8%, the Americas 20% vs 51%,
-  northern Asia 0.4% vs 4%. Between 12,000 and 10,000 BCE people therefore fade out of Africa and
+  northern Asia 0.4% vs 4%. Across the hand-over people therefore fade out of Africa and
   into the Americas on the map. The total is smooth; the geography is not. Either HYDE or this
   model is wrong about early-Holocene Africa and America, and nothing here settles which.
 

@@ -6,6 +6,19 @@ export const TARGET_YEARS = [
   1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900,
 ];
 
+// Modelled population images (footstep-generator/prehistory_population.py): every
+// 1,000 years from 100,000 BCE to 11,000 BCE, 0.5° cells. Same encoding and
+// URL scheme as the HYDE years; the decoder upsamples them to HYDE's cell size.
+// These are a MODEL, not data: every screen that shows them says "modelled".
+export const MODELLED_YEARS: readonly number[] = Array.from({ length: 90 }, (_, i) => -100000 + i * 1000);
+
+// Method, sources and limits of the modelled years (docs/research/0002).
+export const MODEL_NOTES_URL =
+  'https://github.com/willhs/footsteps/blob/main/docs/research/0002-pre-hyde-population-model/research.md';
+
+// Every year that has a population image: modelled, then measured (HYDE).
+export const PEOPLE_YEARS: readonly number[] = [...MODELLED_YEARS, ...TARGET_YEARS];
+
 // Years with pre-built dot tiles (Dots mode; ~10-40 min and ~0.7 GB each).
 // Dots mode shows the nearest of these for any slider year.
 export const DOT_TILE_YEARS = [

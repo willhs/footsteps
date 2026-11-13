@@ -48,12 +48,14 @@ BEYER = RAW / "beyer2020" / "LateQuaternary_Environment.nc"
 NATURAL_EARTH = RAW / "naturalearth"
 ARRIVALS = Path(__file__).resolve().parent / "prehistory" / "arrivals.yaml"
 OUT = ROOT / "data" / "tiles" / "prehistory"
+# The app imports the totals at build time (lib/time.ts), as it does climate_series.json.
+WEB_TOTALS = ROOT / "footsteps-web" / "public" / "prehistory_totals.json"
 
 NX, NY, CELL_DEG = 720, 360, 0.5  # same grid as Krapp and Beyer; row 0 = north
 BP_ZERO = 1950
 FIRST_YEAR, LAST_YEAR, STEP = -100_000, -11_000, 1000
 HYDE_YEAR = -10_000
-BLEND_START = -12_000  # model weight 1 here, 0 at HYDE_YEAR
+BLEND_START = -14_000  # model weight 1 here, 0 at HYDE_YEAR; 4 ka long so people move at most ~50% a step between images, not ~70%
 EDGE_BLUR_CELLS = 1.5  # softens the straight region edges of arrivals.yaml (~80 km)
 
 # Tallavaara et al. 2018, Data_analyses.pdf section 4.1: segmented fit of ln(people / 100 km2)
@@ -100,7 +102,7 @@ def world_totals(year: float) -> Totals:
 
 
 def hyde_weight(year: float) -> float:
-    """Share of HYDE in the blend: 0 at 12,000 BCE, 1 at 10,000 BCE."""
+    """Share of HYDE in the blend: 0 at 14,000 BCE, 1 at 10,000 BCE."""
     return float(np.clip((year - BLEND_START) / (HYDE_YEAR - BLEND_START), 0.0, 1.0))
 
 
@@ -424,7 +426,10 @@ def run(years: list[int], dates: str, out: Path, verify: bool) -> dict:
         "high": [round(s.totals.high) for s in rows],
         "hyde_weight": [round(s.hyde_weight, 3) for s in rows],
     }
-    (out / "totals.json").write_text(json.dumps(data, separators=(",", ":")) + "\n")
+    text = json.dumps(data, separators=(",", ":")) + "\n"
+    (out / "totals.json").write_text(text)
+    if out == OUT and years == list(range(FIRST_YEAR, LAST_YEAR + 1, STEP)):
+        WEB_TOTALS.write_text(text)  # only a full default run: a partial one would drop years
     return data
 
 

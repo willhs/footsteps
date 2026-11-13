@@ -33,6 +33,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/fauna/phylacine.py`: PHYLACINE 1.2.1 present-natural ranges + a cited extinction table (`losses.py`) →
   `data/fauna/fauna.json.gz`: large mammals per 1° cell per 1 ka step, 100,000 BCE–1900. A modelled dataset; not used by the app yet.
   See `docs/ops/fauna.md`.
+- `footstep-generator/anthropology/ethnography.py`: D-PLACE (Ethnographic Atlas, SCCS, Binford, TEOW, ecoClimate) → 1,404 societies with 25 variables
+  (`ethnography.json.gz`, committed) and `nearest_analogs`, the 3 most similar societies for a place, year and way of life, with a score and a plain
+  "the ethnographic present is not the past" caveat. Not used by the app or API yet. See `docs/ops/ethnography.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); not drawn yet. See its README and research 0003.
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.

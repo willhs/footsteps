@@ -4,6 +4,14 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] add | Ethnographic "nearest known analog" (D-PLACE)
+
+`footstep-generator/anthropology/ethnography.py`: Ethnographic Atlas + SCCS + Binford + TEOW biome + ecoClimate merged by `xd_id` into 1,404
+societies with 25 variables (`ethnography.json.gz`, 0.2 MB, committed), and `nearest_analogs` (3 most similar societies for a place, year and
+way of life; score from subsistence, distance, temperature, precipitation, biome). Licence is CC BY-NC, not CC BY as the task said. Extends the
+existing atlas (shares its zip reader and way-of-life rule) rather than duplicating it; not wired into the app or API. Method, limits and three
+sanity checks: [ethnography](ops/ethnography.md); which constants it grounds: [human-constants](philosophy/human-constants.md#what-d-place-can-ground).
+
 ## [2026-11-14] add | Large-animal ranges over time (fauna dataset)
 
 `footstep-generator/fauna/`: PHYLACINE 1.2.1 present-natural ranges (CC0, not CC BY as the task said) for 329 land

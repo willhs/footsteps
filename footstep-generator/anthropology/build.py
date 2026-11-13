@@ -74,8 +74,8 @@ SOURCES = {
 
 # --- download -------------------------------------------------------------------------------
 
-def fetch() -> None:
-    for path, url in DOWNLOADS.items():
+def fetch(downloads: dict[Path, str] = DOWNLOADS) -> None:
+    for path, url in downloads.items():
         if path.exists():
             print(f"have {path.relative_to(ROOT)}")
             continue

@@ -39,6 +39,27 @@ Each constant fits one of the vision's three kinds ([vision.md](vision.md)):
 
 Ten mockups, one per constant, with a feasibility verdict each and a shortlist of three to build first: [design explorations](../design/explorations/index.md).
 
+## What D-PLACE can ground
+
+[D-PLACE](../ops/ethnography.md) records how 1,404 societies lived, mostly 1850-1950, coded the same way so they can be compared. We turned 25 of its variables into an export and a "nearest known analog" for a place, year and way of life. It can show **what a way of life looked like somewhere**, never **what happened at this place**: the ethnographic present is not the past, and each coded value is a coarse category for one community.
+
+| Constant | What D-PLACE gives | How well |
+|---|---|---|
+| **Groups** | Community size, levels of authority above the community, descent, marital residence (about 1,150-1,270 societies each; community size 610); Binford camp sizes (293) | **Good.** The best-covered constant. Gives a believable band or village size and how nested it was, by way of life |
+| **Habitat** | Settlement pattern, house plan, walls and roof (about 1,100-1,200 societies each) | **Good.** Already used for dwellings in the atlas |
+| **Food, Gathering resources** | Share of food from gathering, hunting, fishing, herding, farming (all 1,404); crop type and farming intensity (about 1,200) | **Good for the mix, none for the meal.** Shares in 10-point bands; no dishes, seasons or famine |
+| **Animals** | Which domestic animals and whether they were milked (1,181) | **Partial.** Livestock only; wild prey and predators come from [fauna](../ops/fauna.md) |
+| **Politics and philosophy** | Levels of authority, class differences (about 1,100-1,150) | **Partial.** Says how hierarchical, not what people valued |
+| **Religion and ritual** | One variable: whether a high god existed and cared about morals (775) | **Weak.** One coarse code. Pulotu (Pacific) and Seshat would add depth; not ingested |
+| **War and conflict** | How often internal war and attacks on others happened (SCCS, about 160 societies) | **Weak but usable as a tone.** Three levels (continual, frequent, infrequent) for a small, well-described sample |
+| **Markets and trade** | How much of the food came from trade (SCCS, 93-183 societies) | **Weak.** Small sample, coarse. Seshat covers markets and money for states |
+| **Daily schedule** | Binford: mobile or settled, moves per year (258-334 foragers) | **Weak.** Seasonal rhythm for foragers only; no hours. Time-allocation studies would be the real source |
+| **Place, time, density** | Binford population density for 334 foragers | **Weak.** A sanity check for forager density, not a map |
+| **Climate** | A modelled 1900-1949 climate and a biome at each society | **Used for matching only**, not as climate data |
+| **Gender, Social activities, Archetypes** | Sex differences in tasks and games exist in the Atlas (EA044-054, EA035) | **Not ingested.** Gender especially needs careful handling (see below) |
+
+Verdict: a "nearest known analog" is feasible as a **details-panel fact** ("a society like this: the Kazakh, c. 1910") for Groups, Habitat, Food, Politics and, with caveats, War. It is not map data. See the three sanity checks and the limits in [ethnography](../ops/ethnography.md).
+
 ## Open questions
 
 - Which constants can carry real data at map scale, and which only work in a clicked person's story?

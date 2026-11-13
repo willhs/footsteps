@@ -69,7 +69,9 @@ API_ONLY=1 scripts/deploy-budgie.sh
 Changing the record's meaning for existing cells? Bump `VERSION` in `build.py`: the gap-fill
 cache key includes it, so old model answers are not reused.
 
-Not used yet: D-PLACE's Binford hunter-gatherer dataset (better forager detail for the deep past).
+Not in the atlas: D-PLACE's Binford hunter-gatherer and SCCS datasets. They are in a separate export with a
+similarity-scored "nearest known analog" (`ethnography.py`, `ethnography.json.gz`, not wired into the API); see
+[docs/ops/ethnography.md](../../docs/ops/ethnography.md).
 
 ## Life-course research priors (not integrated)
 

@@ -9,7 +9,7 @@ purpose: "Sources, method and regeneration of the global sea-level and temperatu
 `footstep-generator/climate_series.py` writes `footsteps-web/public/climate_series.json`
 (committed, ~3 KB): one value per slider year, the same years as `TERRAIN_YEARS`
 (every 1,000 years 100,000 BCE to 1000 BCE, then every 100 years 0 to 1900 CE). It feeds the
-sea-level and temperature readouts and the pre-HYDE population model. Nothing reads it yet.
+sea-level and temperature readouts and the pre-HYDE population model. `lib/climate.ts` reads it for the sea-level readout in the time panel; `lib/moments.ts` holds the named timeline moments.
 
 | Series | Source | Licence |
 |---|---|---|

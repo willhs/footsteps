@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TARGET_YEARS } from '@/lib/constants';
+import { seaLevelLabel } from '@/lib/climate';
+import { MOMENTS, type Moment } from '@/lib/moments';
 import {
   HYDE_MIN,
   NOW,
@@ -55,6 +57,7 @@ const COLORS = {
   windowFill: 'rgba(242,239,232,0.10)',
   cursor: '#f2efe8',
   beyond: 'rgba(0,0,0,0.25)',
+  moment: '#f2b56b',
 };
 
 // Overview: s in [0,1], left = deep past, right = latest data year.
@@ -139,6 +142,9 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
   const ovW = useCanvasWidth(ovRef);
   const dtW = useCanvasWidth(dtRef);
   const [zoom, setZoom] = useState(ZOOM_DEFAULT);
+  const [hoverMoment, setHoverMoment] = useState<Moment | null>(null);
+  const [pinnedMoment, setPinnedMoment] = useState<Moment | null>(null);
+  const note = hoverMoment ?? pinnedMoment;
 
   // Latest values for event handlers and the momentum loop.
   const timeRef = useRef(time);
@@ -200,6 +206,17 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
         ctx.fillText(label, cx, OV_BAR + 3);
         lastRight = cx + half;
       }
+    }
+    // named moments
+    ctx.fillStyle = COLORS.moment;
+    for (const m of MOMENTS) {
+      const mx = x(m.year);
+      ctx.beginPath();
+      ctx.moveTo(mx - 3, 0);
+      ctx.lineTo(mx + 3, 0);
+      ctx.lineTo(mx, 6);
+      ctx.closePath();
+      ctx.fill();
     }
     // detail window
     const x0 = Math.max(0, x(lo));
@@ -284,6 +301,21 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
     return clampTime(Sinv(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))));
   };
 
+  const momentAt = (e: React.PointerEvent<HTMLCanvasElement>): Moment | null => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - r.left;
+    let best: Moment | null = null;
+    let bestD = 9;
+    for (const m of MOMENTS) {
+      const d = Math.abs(S(m.year) * r.width - px);
+      if (d < bestD) {
+        best = m;
+        bestD = d;
+      }
+    }
+    return best;
+  };
+
   // Detail: drag pans the tape; release keeps a little momentum.
   const pan = useRef<{ x: number; last: number; v: number } | null>(null);
   const momentum = useRef(0);
@@ -355,6 +387,12 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
         <span className="text-[17px] font-semibold leading-tight text-[var(--ov-text)] tabular-nums">{agoLabel(time)}</span>
         <span className="text-[13px] text-[var(--ov-text-2)] tabular-nums">{calendarLabel(time)}</span>
+        <span
+          className="text-[13px] text-[var(--ov-data)] tabular-nums"
+          title="Global sea level relative to today. Spratt & Lisiecki v2 (2025), CC BY."
+        >
+          {seaLevelLabel(time)}
+        </span>
         {people ? (
           <span className="text-[13px] text-[var(--ov-amber)] tabular-nums">~{populationLabel(populationAt(time))} people</span>
         ) : (
@@ -390,6 +428,14 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
           </span>
         )}
       </div>
+      {note ? (
+        <p className="mb-1.5 text-[12px] leading-snug text-[var(--ov-text-2)]" data-testid="moment-note">
+          <span className="font-semibold text-[var(--ov-amber)]">
+            {note.label} · {agoLabel(note.year).replace(' years ago', '')} yrs ago:
+          </span>{' '}
+          {note.note} <span className="text-[var(--ov-text-3)]">({note.source})</span>
+        </p>
+      ) : null}
       <div
         tabIndex={0}
         role="slider"
@@ -410,11 +456,15 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
             e.currentTarget.setPointerCapture(e.pointerId);
             ovDragging.current = true;
             stopMomentum();
-            onChange(ovTimeAt(e));
+            const m = momentAt(e);
+            setPinnedMoment(m);
+            onChange(m ? clampTime(m.year) : ovTimeAt(e));
           }}
           onPointerMove={(e) => {
             if (ovDragging.current) onChange(ovTimeAt(e));
+            else setHoverMoment(e.pointerType === 'mouse' ? momentAt(e) : null);
           }}
+          onPointerLeave={() => setHoverMoment(null)}
           onPointerUp={() => (ovDragging.current = false)}
           onPointerCancel={() => (ovDragging.current = false)}
         />

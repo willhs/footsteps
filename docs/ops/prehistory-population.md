@@ -2,6 +2,7 @@
 id: prehistory-population
 type: reference
 purpose: "Method, sources, choices and limits of the modelled pre-HYDE population (100,000-11,000 BCE)"
+updated: 2026-11-14
 ---
 
 # Modelled population before HYDE
@@ -41,6 +42,28 @@ poetry run pytest footstep-generator/tests/test_prehistory_population.py -q     
 
 `--dates early|late` swaps the arrival column of `arrivals.yaml` (`central` by default); the
 documented alternatives (`alt`) are not wired to a switch.
+
+When regeneration runs in a worktree, copy its entire `data/tiles/prehistory/` directory
+into the main checkout before deploying from main. Compare SHA-256 hashes against the
+regeneration manifest; merging code does not copy these gitignored images.
+`SKIP_TILES=1 scripts/deploy-budgie.sh` publishes the app, population images and API
+without resending PMTiles. If image URLs are reused, purge those exact URLs in Cloudflare
+(Caching → Configuration → Custom Purge → URL, at most 30 per request), then compare
+the public response bytes with the regenerated files. The one-day image cache can otherwise
+serve the old population even after the origin files are replaced. Visitors with images
+already in their browser cache may also need to reload with the cache disabled.
+Run `scripts/smoke.sh https://footsteps.willhs.me` and the browser arrival check
+(`node footsteps-web/scripts/verify-prehistory-arrivals.mjs <base-url> <evidence-dir>`).
+
+The arrival corrections from commit `66b5c2d` were published on 2026-11-14: all 90
+regenerated images were copied into main, deployed to budgie, and their Cloudflare URLs
+purged. Public response SHA-256 hashes match the original regeneration manifest for
+every modelled year. The dependent anthropology atlas was deployed with the API.
+Live browser decoding confirmed empty Jerusalem/Lhasa/Kyushu checkpoints at 100,000
+and 50,000 BCE and populated checkpoints at 30,000 and 28,000 BCE. The browser script
+captured Grid, Units and Dots views, then exited nonzero because its development-only
+hydration-warning filter does not recognise production React error `#418` (the existing
+deep-link hydration issue noted in research 0009).
 
 ## Method
 

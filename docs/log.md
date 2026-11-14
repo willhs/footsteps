@@ -4,6 +4,16 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] update | Publish corrected prehistory arrival images
+
+Copied the 90 regenerated images from the arrival-fix worktree into main and deployed
+the app, data and dependent anthropology API to budgie. Refreshed those exact image
+URLs in Cloudflare; all 90 public image hashes match the regeneration manifest.
+Documented the worktree-copy and cache-refresh steps in the
+[prehistory operations reference](ops/prehistory-population.md#run). Live browser
+arrival assertions passed; its final console gate reports the existing React `#418`
+deep-link hydration errors.
+
 ## [2026-11-14] add | Sharp past coastlines when zoomed in
 
 `TerrainReliefLayer.ts` redraws land and sea near the coast from the elevation tiles at the year's sea level, from zoom 5.

@@ -123,18 +123,87 @@ export function meanHeight(heights: Float32Array): number {
 }
 
 /** Colour of the ground at a point, 0..255: water below the year's sea level, else the
- * year's Earth colour with sand on the shore, rock on steep slopes and snow above the snow line. */
-export function groundColour(h: number, slope: number, sea: number, lon: number, lat: number, ground: Ground, base = 0): Rgb {
-  if (h < sea) return mix(SHALLOW, DEEP, clamp01((sea - h) / 80));
+ * year's Earth colour with sand on a low shore, rock on steep slopes and snow above the snow line.
+ * `water`: the point is open water (default: below sea level). `shore`: open water is close by, so
+ * low ground there is beach (default true); inland low ground stays its own colour. */
+export function groundColour(
+  h: number,
+  slope: number,
+  sea: number,
+  lon: number,
+  lat: number,
+  ground: Ground,
+  base = 0,
+  water = h < sea,
+  shore = true,
+): Rgb {
+  if (water) return mix(SHALLOW, DEEP, clamp01((sea - h) / 80));
   let c = ground.colourAt(lon, lat);
   const biome = ground.biomeAt(lon, lat);
   if (biome === 28) return mix(c, SNOW, 0.8);
-  const above = h - sea;
-  c = mix(c, SAND, clamp01(1 - above / 6) * 0.85);
+  if (shore) c = mix(c, SAND, clamp01(1 - (h - sea) / 6) * 0.85);
   c = mix(c, ROCK, clamp01((slope - 0.35) / 0.5) * 0.6);
   const snow = snowLine(ground.tempAt(lon, lat), lat, base);
   c = mix(c, SNOW, clamp01((h - snow) / 250));
   return c;
+}
+
+/** Below-sea vertices that count as open water: a connected patch that reaches the tile edge or
+ * covers at least `minArea` vertices. Small inland dips (DEM noise, valley floors, polders) stay land. */
+export function openWater(below: Uint8Array, n: number, minArea = 60): Uint8Array {
+  const water = new Uint8Array(n * n);
+  const seen = new Uint8Array(n * n);
+  const stack: number[] = [];
+  const patch: number[] = [];
+  for (let start = 0; start < n * n; start++) {
+    if (!below[start] || seen[start]) continue;
+    patch.length = 0;
+    let edge = false;
+    stack.push(start);
+    seen[start] = 1;
+    while (stack.length) {
+      const v = stack.pop()!;
+      patch.push(v);
+      const i = v % n;
+      const j = (v - i) / n;
+      if (i === 0 || j === 0 || i === n - 1 || j === n - 1) edge = true;
+      for (const w of [i > 0 ? v - 1 : -1, i < n - 1 ? v + 1 : -1, j > 0 ? v - n : -1, j < n - 1 ? v + n : -1]) {
+        if (w >= 0 && below[w] && !seen[w]) {
+          seen[w] = 1;
+          stack.push(w);
+        }
+      }
+    }
+    if (edge || patch.length >= minArea) for (const v of patch) water[v] = 1;
+  }
+  return water;
+}
+
+/** Open water on a tile's vertex grid (`step` pixels apart): returns the grid size and the mask. */
+export function tileWater(heights: Float32Array, sea: number, step = 4): { n: number; water: Uint8Array } {
+  const size = 256;
+  const n = size / step + 1;
+  const below = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++)
+      below[j * n + i] = heights[Math.min(size - 1, j * step) * size + Math.min(size - 1, i * step)] < sea ? 1 : 0;
+  return { n, water: openWater(below, n) };
+}
+
+/** Vertices within `reach` grid steps of open water. */
+function nearWater(water: Uint8Array, n: number, reach = 2): Uint8Array {
+  const near = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      if (!water[j * n + i]) continue;
+      for (let dj = -reach; dj <= reach; dj++)
+        for (let di = -reach; di <= reach; di++) {
+          const a = i + di;
+          const b = j + dj;
+          if (a >= 0 && b >= 0 && a < n && b < n) near[b * n + a] = 1;
+        }
+    }
+  return near;
 }
 
 export type TerrainMesh = {
@@ -145,8 +214,8 @@ export type TerrainMesh = {
   indices: Uint32Array;
 };
 
-/** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Water is flat at
- * the sea level; heights are exaggerated by EXAGGERATION. */
+/** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
+ * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. */
 export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
@@ -160,18 +229,26 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   const dyM = ((north - south) / (n - 1)) * 110_540;
   const at = (px: number, py: number) => heights[Math.min(size - 1, Math.max(0, py)) * size + Math.min(size - 1, Math.max(0, px))];
   const base = meanHeight(heights);
+  // Heights per vertex, then which below-sea vertices are open water and which land is on its shore.
+  const hv = new Float32Array(n * n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) hv[j * n + i] = at(i * step, j * step);
+  const { water } = tileWater(heights, sea, step);
+  const shore = nearWater(water, n);
+  const surfaceAt = (i: number, j: number) => {
+    const v = Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i));
+    return water[v] ? sea : hv[v];
+  };
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
-      const px = i * step;
-      const py = j * step;
-      const h = at(px, py);
-      const surface = Math.max(h, sea);
+      const v = j * n + i;
+      const h = hv[v];
+      const wet = water[v] === 1;
+      const surface = surfaceAt(i, j);
       // Slope from neighbours, in metres per metre, on the drawn surface.
-      const hx = (Math.max(at(px + step, py), sea) - Math.max(at(px - step, py), sea)) / (2 * dxM);
-      const hy = (Math.max(at(px, py - step), sea) - Math.max(at(px, py + step), sea)) / (2 * dyM); // +y is north
+      const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j)) / (2 * dxM);
+      const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1)) / (2 * dyM); // +y is north
       const lon = west + ((east - west) * i) / (n - 1);
       const lat = north - ((north - south) * j) / (n - 1);
-      const v = j * n + i;
       positions[v * 3] = lon - west;
       positions[v * 3 + 1] = lat - south;
       positions[v * 3 + 2] = surface * EXAGGERATION;
@@ -181,13 +258,13 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       normals[v * 3] = nx / len;
       normals[v * 3 + 1] = ny / len;
       normals[v * 3 + 2] = 1 / len;
-      let c = groundColour(h, Math.hypot(hx, hy), sea, lon, lat, ground, base);
+      let c = groundColour(h, Math.hypot(hx, hy), sea, lon, lat, ground, base, wet, shore[v] === 1);
       // Baked hillshade (sun from the north-west, 45° up); water stays flat-lit.
       const lit = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
-      const shade = h < sea ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
+      const shade = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
       c = [c[0] * shade, c[1] * shade, c[2] * shade];
       // Small stable mottling so flat ground does not read as one blurred colour.
-      if (h >= sea) {
+      if (!wet) {
         const m = 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
         c = [c[0] * m, c[1] * m, c[2] * m];
       }
@@ -226,6 +303,8 @@ export function plantsForTile(
   const size = 256;
   const out: Plant[] = [];
   const base = meanHeight(heights);
+  const { n, water } = tileWater(heights, sea);
+  const wetAt = (px: number, py: number) => water[Math.round(py / 4) * n + Math.round(px / 4)] === 1;
   const [tx, ty, tz] = tile;
   const seed = Math.imul(tx, 73856093) ^ Math.imul(ty, 19349663) ^ Math.imul(tz, 83492791);
   for (let i = 0; i < candidates; i++) {
@@ -235,7 +314,7 @@ export function plantsForTile(
     const px = Math.min(size - 1, Math.floor(u * size));
     const py = Math.min(size - 1, Math.floor(w * size));
     const h = heights[py * size + px];
-    if (h < sea + 2) continue;
+    if (wetAt(px, py)) continue;
     const lon = bbox.west + (bbox.east - bbox.west) * u;
     const lat = bbox.north - (bbox.north - bbox.south) * w;
     const veg = VEGETATION[ground.biomeAt(lon, lat)];

@@ -3,6 +3,7 @@ import {
   EXAGGERATION,
   buildTerrainMesh,
   close3dParam,
+  openWater,
   groundColour,
   pitchForZoom,
   plantsForTile,
@@ -71,4 +72,37 @@ test('plants follow the biome: forest dense, desert bare, none in the sea', () =
   expect(plantsForTile(heightsOf(() => -10), bbox, [1, 2, 10], 0, flat(4))).toHaveLength(0);
   // Stable per tile.
   expect(plantsForTile(land, bbox, [1, 2, 10], 0, flat(4))).toEqual(forest);
+});
+
+test('a small inland dip below sea level stays land, with no beach', () => {
+  // Land at 3 m everywhere except a 3 × 3 pixel dip to -2 m in the middle, far from any sea.
+  const heights = heightsOf((x, y) => (Math.abs(x - 128) <= 4 && Math.abs(y - 128) <= 4 ? -2 : 3));
+  const mesh = buildTerrainMesh(heights, bbox, 0, flat());
+  const n = 256 / 4 + 1;
+  const mid = (32 * n + 32) * 3;
+  expect(mesh.positions[mid + 2]).toBeCloseTo(-2 * EXAGGERATION); // drawn at its own height, not as water
+  // Same colour family as the surrounding land (green-ish), not sand or water.
+  expect(mesh.colors[mid + 1]).toBeGreaterThan(mesh.colors[mid + 2]);
+  expect(plantsForTile(heights, bbox, [3, 3, 10], 0, flat(4)).length).toBeGreaterThan(500);
+});
+
+test('low ground beside open water is beach; the same height inland is not', () => {
+  // Sea in the west quarter, land at 2 m elsewhere.
+  const heights = heightsOf((x) => (x < 64 ? -30 : 2));
+  const mesh = buildTerrainMesh(heights, bbox, 0, flat());
+  const n = 256 / 4 + 1;
+  const shore = (32 * n + 17) * 3; // just east of the water's edge (x = 68 px)
+  const inland = (32 * n + 50) * 3; // x = 200 px
+  const sandiness = (o: number) => mesh.colors[o] - mesh.colors[o + 1]; // sand is red over green
+  expect(sandiness(shore)).toBeGreaterThan(sandiness(inland) + 0.05);
+});
+
+test('open water: patches reaching the edge or big enough; specks are not', () => {
+  const n = 20;
+  const below = new Uint8Array(n * n);
+  below[10 * n + 10] = 1; // a lone speck in the middle
+  for (let j = 0; j < n; j++) below[j * n] = 1; // a strip along the west edge
+  const water = openWater(below, n);
+  expect(water[10 * n + 10]).toBe(0);
+  expect(water[5 * n]).toBe(1);
 });

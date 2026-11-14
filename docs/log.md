@@ -4,6 +4,13 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] fix | 3D close-up: no inland beaches or speck pools
+
+Ground within 6 m of sea level was painted as beach everywhere, so inland valley floors showed pale sand patches, and
+single DEM cells below sea level showed as tiny pools. Now only below-sea patches that reach the tile edge or cover 60+
+vertices are open water (`openWater` in `lib/close3d.ts`); sand needs open water within two vertices; inland dips keep
+their height, colour and trees.
+
 ## [2026-11-15] add | Post-deploy smoke check with automatic rollback
 
 A bad image no longer stays live. After Watchtower rolls out a push, `deploy-budgie.yml` runs `scripts/smoke.sh --quick`

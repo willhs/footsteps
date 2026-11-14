@@ -4,6 +4,15 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] add | Close-up 3D prototype (?close3d=1)
+
+Zoomed in on the flat map, the camera tilts and the ground becomes a 3D landscape (`lib/close3d.ts`,
+`layers/Close3DLayer.ts`): Terrarium relief (×1.6), water flat at the year's sea level, the era image's colour with a
+baked hillshade, sand on the shore, rock on steep slopes and snow above a lapse-rate snow line, and low-poly plants by
+Krapp biome (dense forest, scattered savanna trees, bare desert). Checked: Kilimanjaro at 8,000 BCE (summit snow,
+montane forest on the wet side), Kent at 12,000 BCE (dry Channel), Corsica–Sardinia joined at 18,000 BCE, the Hoggar.
+Not yet: people sit at z = 0 (drawn on top), no sky or haze, globe mode unaffected. Behind a flag until it looks right.
+
 ## [2026-11-14] update | Push to main deploys the app
 
 Green CI on `main` now builds `ghcr.io/willhs/footsteps-web` (static export baked into Caddy, `deploy/budgie/web/Dockerfile`)

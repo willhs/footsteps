@@ -14,6 +14,7 @@ import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayer
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
+import { CLOSE3D_ZOOM, close3dParam, pitchForZoom } from '@/lib/close3d';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import GroundingPanel from './overlays/GroundingPanel';
@@ -89,7 +90,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time);
+  // ?close3d=1 (prototype): zoomed in, the map tilts into a 3D landscape (lib/close3d.ts).
+  const [close3dOn, setClose3dOn] = useState(false);
+  useEffect(() => setClose3dOn(close3dParam(window.location.search)), []);
+  const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
+  const deckViewState = close3dOn && !is3DMode ? { ...viewState, pitch: pitchForZoom(viewState.zoom) } : viewState;
+
+  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
     enabled: renderMode === 'dots',
@@ -198,7 +205,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     <div className="relative w-full h-full">
       <DeckGLView
         mode={is3DMode ? '3d' : '2d'}
-        viewState={viewState}
+        viewState={deckViewState}
         onViewStateChange={onViewStateChange}
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}
@@ -219,6 +226,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} />}
       {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
+      {close3d && (
+        <div
+          className="absolute left-1/2 top-4 -translate-x-1/2 ov-panel px-3 py-1.5 text-xs pointer-events-none"
+          data-testid="close3d-note"
+        >
+          3D close-up (prototype): relief and coast measured · plants imagined from the biome
+        </div>
+      )}
 
       {/* Data info overlay */}
       <SupportingText

@@ -11,6 +11,9 @@ const nextConfig = {
       '@deck.gl/core': require.resolve('@deck.gl/core'),
       '@deck.gl/layers': require.resolve('@deck.gl/layers'),
       '@deck.gl/react': require.resolve('@deck.gl/react'),
+      // One copy of luma.gl's shader assembler: an ESM-loaded deck.gl package gets an assembler
+      // without deck.gl's DECKGL_FILTER_* hooks and its shaders fail to compile.
+      '@deck.gl/mesh-layers': require.resolve('@deck.gl/mesh-layers'),
     };
 
     return config;

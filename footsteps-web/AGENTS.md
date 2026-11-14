@@ -27,6 +27,12 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   Portraits wait for the atlas (up to 2.5 seconds), then keep that illustration;
   late atlas responses cannot replace it. Day requests are scoped to the person.
 - `?mode=units|grid|dots` is a debug override and shows the mode button.
+- `?close3d=1` (prototype): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
+  draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
+  image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
+  placement and size are invented and the screen says so. `@deck.gl/mesh-layers` must stay aliased to its CommonJS
+  build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
+  pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
   throttles requestAnimationFrame, so its fps numbers are meaningless.

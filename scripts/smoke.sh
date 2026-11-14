@@ -2,8 +2,12 @@
 # Smoke-check a deployed Footsteps: the app loads and every year's PMTiles
 # archive really is PMTiles, and each grid (HYDE and modelled) and terrain image has the right file signature. Checks magic bytes, not status codes: a missing
 # object once came back as HTTP 206 with an XML error body, which passed.
-#   scripts/smoke.sh [base-url]
+#   scripts/smoke.sh [--quick] [base-url]
+# --quick checks one of each kind (app, day API, a PMTiles archive, a grid, terrain and habitat image): a handful
+# of requests, a few seconds. The deploy workflow runs it before deciding whether to roll back the new image.
 set -euo pipefail
+QUICK=0
+if [[ "${1:-}" == "--quick" ]]; then QUICK=1; shift; fi
 BASE="${1:-https://footsteps.willhs.me}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 years_of() { sed -n "/$1 = \\[/,/\\];/p" "$ROOT/footsteps-web/lib/constants.ts" | grep -v '//' | grep -oE -- '-?[0-9]+'; }
@@ -11,41 +15,50 @@ DOT_YEARS=$(years_of DOT_TILE_YEARS)
 YEARS=$(years_of TARGET_YEARS)
 # Modelled pre-HYDE people: MODELLED_YEARS in constants.ts (every 1,000 years, 100,000 to 11,000 BCE).
 MODELLED_YEARS=$(seq -100000 1000 -11000)
+HABITAT_LAST_BP=102
+if [[ $QUICK == 1 ]]; then
+  DOT_YEARS=$(echo "$DOT_YEARS" | head -1); YEARS=$(echo "$YEARS" | head -1)
+  MODELLED_YEARS=-100000; HABITAT_LAST_BP=0
+fi
 
-curl -fsS "$BASE/" | grep -q '<html' || { echo "FAIL app: $BASE/ is not HTML"; exit 1; }
+curl -fsS --max-time 15 "$BASE/" | grep -q '<html' || { echo "FAIL app: $BASE/ is not HTML"; exit 1; }
 echo "ok   app"
+# The day API, behind Caddy's /api proxy: a real atlas record (needs the API image's data files), not just a 200.
+curl -fsS --max-time 15 "$BASE/api/anthropology?lat=48.85&lon=2.35&year=0" | grep -q '"sources"' \
+  || { echo "FAIL api: /api/anthropology gave no atlas record"; exit 1; }
+echo "ok   api"
 
 fail=0
 for y in $DOT_YEARS; do
-  magic=$(curl -sS -r 0-6 -H 'Accept-Encoding: identity' "$BASE/pmtiles/humans_${y}.pmtiles" | head -c 7)
+  magic=$(curl -sS --max-time 20 -r 0-6 -H 'Accept-Encoding: identity' "$BASE/pmtiles/humans_${y}.pmtiles" | head -c 7)
   if [[ "$magic" == "PMTiles" ]]; then echo "ok   $y"; else echo "FAIL $y (got: ${magic:-nothing})"; fail=1; fi
 done
 for y in $YEARS; do
   # Read the whole response: head can cause curl SIGPIPE when Range is ignored.
   # humans_*.webp: "RIFF" size "WEBP" "VP8L" (lossless). landuse_*.png: PNG signature.
-  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/humans_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/humans_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   grid humans $y"; else echo "FAIL grid humans $y"; fail=1; fi
-  magic=$(curl -fsS -r 0-7 -H 'Accept-Encoding: identity' "$BASE/grid/landuse_${y}.png" | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-7 -H 'Accept-Encoding: identity' "$BASE/grid/landuse_${y}.png" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "$magic" == 89504e470d0a1a0a* ]]; then echo "ok   grid landuse $y"; else echo "FAIL grid landuse $y"; fail=1; fi
 done
 # Modelled people: same lossless WebP as the HYDE years, read from the same /grid/ path.
 for y in $MODELLED_YEARS; do
-  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/humans_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/humans_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   grid modelled $y"; else echo "FAIL grid modelled $y"; fail=1; fi
 done
 # Terrain (lossy WebP: "RIFF" size "WEBP" "VP8 "): every slider year plus the oldest.
 for y in -100000 $YEARS; do
-  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/earth_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/earth_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain $y"; else echo "FAIL terrain $y"; fail=1; fi
 done
 # Hover card lookups (footstep-generator/habitat_lookup.py): lossless WebP, one per
 # 1,000-year step (0..102 ka BP, habitat_meta.json maxKa) and one per HYDE year.
-for k in $(seq 0 102); do
-  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/bp_${k}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+for k in $(seq 0 $HABITAT_LAST_BP); do
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/bp_${k}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   habitat bp_$k"; else echo "FAIL habitat bp_$k"; fail=1; fi
 done
 for y in $YEARS; do
-  magic=$(curl -fsS -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/use_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/habitat/use_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   habitat use $y"; else echo "FAIL habitat use $y"; fail=1; fi
 done
 exit $fail

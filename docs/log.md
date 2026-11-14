@@ -4,6 +4,18 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] add | Post-deploy smoke check with automatic rollback
+
+A bad image no longer stays live. After Watchtower rolls out a push, `deploy-budgie.yml` runs `scripts/smoke.sh --quick`
+(app HTML, `/api/anthropology` returns an atlas record, one PMTiles archive, one grid/terrain/habitat image; ~15 s).
+Pass: both images are tagged `:good` in GHCR. Fail: the `rollback` job moves `:latest` back to the digest pinned before
+the deploy (`scripts/image-pins.sh`), Watchtower restores the old containers and never re-pulls the bad tag, the job
+confirms `/version.txt` changed and the quick smoke passes, and `notify-medic` pages as before (the run is red). The full
+smoke (every year's data) is its own `data` job: a data gap pages medic but does not roll back, because the old image
+would not fix it. CI cannot reach budgie, so the rollback is a registry retag rather than an SSH. Rehearsed with
+`scripts/rollback-drill.sh` on a local registry (good + bad image, dry run, real rollback, repeat run, missing digest);
+the live path itself was not forced against prod. Runbook: README "Rolling back".
+
 ## [2026-11-14] update | Close-up 3D on by default
 
 The tilted 3D landscape now shows for everyone from zoom 8 on the flat map; `?close3d=0` keeps it flat. The info

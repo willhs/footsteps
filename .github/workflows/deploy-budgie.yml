@@ -3,8 +3,11 @@ name: Deploy to budgie
 # Every green CI run on main ships: build the web (static app in Caddy) and API images, push them
 # to GHCR, and Watchtower on budgie pulls them within ~5 minutes (labels in
 # deploy/budgie/docker-compose.yml). Then wait until https://footsteps.willhs.me/version.txt shows
-# this commit and smoke-test the live site. Data (population, terrain, habitat, fauna, evidence,
-# PMTiles) is not in git and is still published by hand: GRID_ONLY=1 scripts/deploy-budgie.sh.
+# this commit and run the quick smoke (`live`). Pass: the images become `:good`. Fail: `rollback` points
+# `:latest` back at the pinned `:good` digest, so Watchtower puts the previous image back and does not
+# re-pull the bad one; medic is paged either way. `data` then runs the full smoke (data is not in git,
+# so a data gap pages medic but is not rolled back). Data (population, terrain, habitat, fauna, evidence,
+# PMTiles) is still published by hand: GRID_ONLY=1 scripts/deploy-budgie.sh. Runbook: README "Rolling back".
 on:
   workflow_run:
     workflows: [CI]
@@ -18,6 +21,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
+  WEB_IMAGE: ghcr.io/willhs/footsteps-web
+  API_IMAGE: ghcr.io/willhs/footsteps-api
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
@@ -27,6 +32,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      web_prev: ${{ steps.pin.outputs.web }}
+      api_prev: ${{ steps.pin.outputs.api }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +47,14 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Before :latest moves: the digest to roll back to (:good, else the current :latest).
+      - name: Pin the previous images
+        id: pin
+        run: |
+          echo "web=$(scripts/image-pins.sh pin "$WEB_IMAGE")" >> "$GITHUB_OUTPUT"
+          echo "api=$(scripts/image-pins.sh pin "$API_IMAGE")" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
 
       - name: Build and push web
         uses: docker/build-push-action@v6
@@ -64,9 +80,15 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,scope=api,mode=max
 
+  # Is the new image up and answering? Failing here rolls back. Keep it quick and about the image only.
   live:
     needs: images
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      skip: ${{ steps.wait.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,13 +112,82 @@ jobs:
           echo "::error::footsteps.willhs.me/version.txt never showed $SHA (is Watchtower watching footsteps-web?)"
           exit 1
 
-      - name: Smoke-test the live site
+      - name: Quick smoke (app, API, one tile, one image of each kind)
         if: steps.wait.outputs.skip != '1'
+        run: scripts/smoke.sh --quick https://footsteps.willhs.me
+
+      - uses: docker/login-action@v3
+        if: steps.wait.outputs.skip != '1'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This commit's images worked live: they are what a later bad deploy rolls back to.
+      - name: Mark these images good
+        if: steps.wait.outputs.skip != '1'
+        run: |
+          scripts/image-pins.sh promote "$WEB_IMAGE" "$SHA"
+          scripts/image-pins.sh promote "$API_IMAGE" "$SHA"
+
+  # The new image failed its quick smoke: put :latest back on the previous good digest. Watchtower then
+  # pulls that (the bad tag is no longer :latest, so it is not re-pulled). Done when the site serves
+  # another commit and the quick smoke passes. Fails (and pages medic) if it cannot.
+  rollback:
+    name: Roll back to the previous image
+    needs: [images, live]
+    if: failure() && needs.live.result == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point :latest back at the previous images
+        run: |
+          scripts/image-pins.sh rollback "$WEB_IMAGE=${{ needs.images.outputs.web_prev }}" "$API_IMAGE=${{ needs.images.outputs.api_prev }}"
+          echo "::warning::$SHA failed its post-deploy smoke; rolled :latest back to the previous images"
+          echo "Rolled back $SHA: \`:latest\` is back on the previous images, so Watchtower restores them." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for Watchtower to restore the previous image
+        run: |
+          for i in $(seq 1 40); do
+            live=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' https://footsteps.willhs.me/version.txt || true)
+            if [ -n "$live" ] && [ "$live" != "$SHA" ]; then echo "restored ($live) after ~$((i * 15))s"; exit 0; fi
+            echo "live: ${live:-none}; waiting"
+            sleep 15
+          done
+          echo "::error::footsteps.willhs.me still not serving a previous commit 10 min after the rollback"
+          exit 1
+
+      - name: Confirm the restored site is healthy
+        run: scripts/smoke.sh --quick https://footsteps.willhs.me
+
+  # Everything not in git (population, terrain, habitat PMTiles): a gap pages medic but is not an image problem.
+  data:
+    needs: live
+    if: needs.live.outputs.skip != '1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Full smoke of the live site
         run: scripts/smoke.sh https://footsteps.willhs.me
 
   # Page medic when a main deploy goes red (medic ADR 0003); medic de-dups on run_id. Best-effort.
   notify-medic:
-    needs: [images, live]
+    needs: [images, live, rollback, data]
     if: failure()
     runs-on: ubuntu-latest
     steps:

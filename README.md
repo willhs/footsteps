@@ -124,8 +124,34 @@ with HTTP Range support. `/healthz` is a simple server health response.
 - `ghcr.io/willhs/footsteps-api`: the day and anthropology API.
 
 Watchtower on budgie pulls both within about 5 minutes. The workflow then waits until
-https://footsteps.willhs.me/version.txt shows the commit, runs `scripts/smoke.sh`, and pages Medic if anything fails.
+https://footsteps.willhs.me/version.txt shows the commit and runs `scripts/smoke.sh --quick` (app, day API, one
+PMTiles archive, one image of each kind; ~15 s). If that passes, the images are tagged `:good`; if not, the workflow
+rolls back (below). A full `scripts/smoke.sh` then checks every year's data, and any red job pages Medic.
 So: push to `main`, and prod follows. Nothing needs this Mac or the home network.
+
+### Rolling back
+
+**Automatic.** When the quick smoke fails after a deploy, the `rollback` job in `deploy-budgie.yml` points
+`ghcr.io/willhs/footsteps-{web,api}:latest` back at the digests pinned before the deploy (`:good`, the last images that
+passed the quick smoke; the current `:latest` on a first run). Watchtower sees `:latest` change within ~5 minutes and
+recreates both containers on the old images. The bad build stays in GHCR as `:<sha>` only, so Watchtower never
+re-pulls it. The job then waits for `/version.txt` to show a different commit and re-runs the quick smoke, and Medic is
+paged whatever happens (the run is red). The fix is a new push to `main`: it deploys as usual and becomes `:good`
+once it passes. Missing data (population, terrain, PMTiles) fails only the full smoke, so it pages Medic but does not roll back.
+
+**By hand** (CI is down, or a bad deploy slipped past the smoke). Needs `docker login ghcr.io` with a token that can push packages:
+
+```bash
+scripts/image-pins.sh pin ghcr.io/willhs/footsteps-web                      # digest of :good (else :latest)
+scripts/image-pins.sh rollback ghcr.io/willhs/footsteps-web=sha256:<good> ghcr.io/willhs/footsteps-api=sha256:<good>
+# then wait ~5 minutes for Watchtower, or on budgie: docker compose pull && docker compose up -d   (in ~/projects/deep-footsteps/deploy/budgie)
+```
+
+To pin a specific old commit instead, use its tag: `docker buildx imagetools inspect ghcr.io/willhs/footsteps-web:<sha>`
+gives the digest. `DRY_RUN=1` on `rollback` only checks the digests exist and prints what would move.
+
+**Rehearse it** (no prod, no network beyond pulling `registry:2` once): `scripts/rollback-drill.sh` runs the same
+script against a throwaway local registry with a good and a bad image and checks `:latest` ends on the good one.
 
 **Data is published by hand.** Population, terrain, habitat, fauna and evidence images and PMTiles are not in git.
 They live on budgie under `deploy/budgie/app/<folder>` and `pmtiles/`, mounted over the image (`docker-compose.yml`):

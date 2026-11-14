@@ -1,8 +1,8 @@
 import { HYDE_MIN, TIME_MAX, TIME_MIN } from './time';
 import {
   BAR_LABELS,
-  FINE_GAIN,
   dragMove,
+  scrubLevel,
   dragStart,
   keyStep,
   parseYear,
@@ -95,29 +95,43 @@ describe('typed years', () => {
 describe('dragging', () => {
   const W = 400;
 
-  it('a quick drag keeps the needle under the finger (rough seek)', () => {
-    let d = dragStart(TIME_MIN, 0, 0);
-    for (let i = 1; i <= 10; i++) d = dragMove(d, i * 40, i * 16, W, (i * 40) / W);
+  it('on the bar the needle stays under the finger, whatever the speed', () => {
+    let d = dragStart(TIME_MIN, 0);
+    for (let i = 1; i <= 10; i++) d = dragMove(d, i * 40, 0, W, (i * 40) / W);
     expect(d.pos).toBeCloseTo(1, 2);
     expect(timeAt(d.pos)).toBeCloseTo(TIME_MAX, -1);
+    d = dragStart(timeAt(200 / W), 200); // a press puts the needle under the finger
+    for (let i = 1; i <= 20; i++) d = dragMove(d, 200 + i, 0, W, (200 + i) / W);
+    expect(d.pos).toBeCloseTo(220 / W, 3);
   });
 
-  it('a slow drag moves the needle a small fraction of the finger', () => {
+  it('off the bar the needle moves a fixed fraction of the finger', () => {
     const start = posAt(HYDE_MIN);
-    let d = dragStart(HYDE_MIN, 100, 0);
-    for (let i = 1; i <= 20; i++) d = dragMove(d, 100 + i, i * 50, W, start + i / W);
-    const moved = d.pos - start;
-    expect(moved).toBeGreaterThan(0);
-    expect(moved).toBeLessThan((20 / W) * FINE_GAIN * 1.5);
-    // a few years per pixel, not hundreds
+    let d = dragStart(HYDE_MIN, 100);
+    for (let i = 1; i <= 20; i++) d = dragMove(d, 100 + i, 60, W, start + i / W);
+    expect(d.gain).toBe(1 / 4);
+    expect(d.pos - start).toBeCloseTo(20 / W / 4, 6);
+    d = dragStart(HYDE_MIN, 100);
+    for (let i = 1; i <= 20; i++) d = dragMove(d, 100 + i, 200, W, start + i / W);
+    expect(d.gain).toBe(1 / 16);
     expect(timeAt(d.pos) - HYDE_MIN).toBeLessThan(400);
   });
 
-  it('after fine work, a fast move re-anchors to the finger', () => {
-    let d = dragStart(0, 200, 0);
-    for (let i = 1; i <= 30; i++) d = dragMove(d, 200 + i, i * 60, W, (200 + i) / W);
-    expect(Math.abs(d.pos - 230 / W)).toBeGreaterThan(0.03); // drifted
-    for (let i = 1; i <= 6; i++) d = dragMove(d, 230 - i * 30, 1800 + i * 16, W, (230 - i * 30) / W);
-    expect(d.pos).toBeCloseTo(50 / W, 2);
+  it('scrub levels step with distance off the bar', () => {
+    expect(scrubLevel(0).gain).toBe(1);
+    expect(scrubLevel(39).gain).toBe(1);
+    expect(scrubLevel(40).gain).toBe(1 / 4);
+    expect(scrubLevel(500).gain).toBe(1 / 16);
+  });
+
+  it('back on the bar after fine work, the needle eases back under the finger', () => {
+    let d = dragStart(0, 200);
+    for (let i = 1; i <= 30; i++) d = dragMove(d, 200 + i, 200, W, (200 + i) / W);
+    expect(Math.abs(d.pos - 230 / W)).toBeGreaterThan(0.03); // apart
+    const before = d.pos;
+    d = dragMove(d, 231, 0, W, 231 / W);
+    expect(Math.abs(d.pos - before)).toBeLessThan(0.01); // no jump
+    for (let i = 1; i <= 6; i++) d = dragMove(d, 231 - i * 30, 0, W, (231 - i * 30) / W);
+    expect(d.pos).toBeCloseTo(51 / W, 2);
   });
 });

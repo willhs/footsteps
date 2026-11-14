@@ -3,15 +3,24 @@ import { WayOfLife } from '@/lib/waysOfLife';
 
 const foragers = (n: number) => new Uint8Array(n).fill(WayOfLife.Forager);
 
-test('sparse cells never emit implausible groups; retained populations are conserved', () => {
+test('sparse cells hold whole bands now and then, keeping the expected head count', () => {
+  const n = 20000;
   const sparse = buildUnits(
-    new Uint32Array(Array.from({ length: 10000 }, (_, i) => i)),
-    new Float32Array(20000),
-    new Float32Array(10000).fill(0.1),
+    new Uint32Array(Array.from({ length: n }, (_, i) => i)),
+    new Float32Array(n * 2),
+    new Float32Array(n).fill(2), // forager land: ~2 people per 5' cell
     1 / 12,
-    foragers(10000),
+    foragers(n),
   );
-  expect(sparse.length).toBe(0);
+  // about one cell in 15 holds a band of 30, so the land is not empty close in
+  expect(sparse.length).toBeGreaterThan((n / 15) * 0.85);
+  expect(sparse.length).toBeLessThan((n / 15) * 1.15);
+  expect(Array.from(sparse.people).every((p) => p === 30)).toBe(true);
+  const shown = Array.from(sparse.people).reduce((a, b) => a + b, 0);
+  expect(Math.abs(shown - n * 2) / (n * 2)).toBeLessThan(0.15);
+});
+
+test('every group stands for at least 15 people; dense cells conserve their people', () => {
   const populations = [0.1, 0.49, 1, 2, 14.99, 15, 16, 29, 31, 44, 599];
   const ids = new Uint32Array(populations.map((_, i) => i));
   const result = buildUnits(
@@ -21,12 +30,12 @@ test('sparse cells never emit implausible groups; retained populations are conse
     1 / 12,
     foragers(populations.length),
   );
-  expect(result.length).toBeGreaterThan(0);
   expect(Array.from(result.people).every((p) => p >= 15)).toBe(true);
-  expect(Array.from(result.people).reduce((a, b) => a + b, 0)).toBeCloseTo(
-    15 + 16 + 29 + 31 + 44 + 599,
-    3,
-  );
+  const dense = Array.from(result.ids)
+    .map((id, j) => [Math.floor(id / 32), result.people[j]] as const)
+    .filter(([cell]) => populations[cell] >= 15)
+    .reduce((a, [, p]) => a + p, 0);
+  expect(dense).toBeCloseTo(15 + 16 + 29 + 31 + 44 + 599, 3);
 });
 
 test('persistent bands retain their seeded positions as the population grows or shrinks', () => {

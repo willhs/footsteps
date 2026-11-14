@@ -4,6 +4,15 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] fix | People stay visible close in; time bar scrub you can see; softer way-of-life colours
+
+- Cells under 15 people now hold one whole band/camp/village with probability people ÷ group size (seeded per cell) instead
+  of nothing. Firelight fades out over zoom 4.6–5.4, so thin forager land (most land before farming, and nearly every
+  modelled pre-HYDE cell, split 36 ways from 0.5°) went blank from zoom ~5.5. `layers/units.ts`.
+- Time bar drag: the needle stays under the finger on the bar; sliding up off the bar while dragging gives ¼ then 1/16
+  speed, with a label. Replaces the speed-sensitive gain, whose hidden mode felt random. `lib/timeScale.ts`.
+- Way-of-life colours back to one warm firelight family (cities stay cyan); kind of mark and the panel carry the way of life.
+
 ## [2026-11-14] add | "Imagine their day" grounded in the nearest recorded societies and measured hours
 
 `day_api.py` now puts the 3 nearest D-PLACE societies ("like the !Kung (recorded 1950s)") and measured adult hours (`time_use.yaml`, foraging and

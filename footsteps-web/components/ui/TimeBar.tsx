@@ -6,12 +6,12 @@ import { MOMENTS, type Moment } from '@/lib/moments';
 import { HYDE_MIN, TIME_MAX, TIME_MIN, agoLabel, calendarLabel, clampTime, evidenceAt, populationAt } from '@/lib/time';
 import {
   BAR_LABELS,
-  FINE_GAIN,
-  dragGain,
+  WHEEL_GAIN,
   dragMove,
   dragStart,
   parseYear,
   posAt,
+  scrubLevel,
   stepTime,
   timeAt,
   yearsPerPos,
@@ -23,7 +23,7 @@ import TimeReadout from './TimeReadout';
  * The time bar: one fixed track, 100,000 BCE to 1900, log of years ago (the deep
  * past compressed, recent history roomy). Rough by default, precise on demand:
  * - click or drag anywhere: the needle follows the pointer (one gesture spans all of it)
- * - drag slowly: the needle moves up to ~16x finer than the pointer (lib/timeScale.ts dragMove)
+ * - while dragging, slide up off the bar for 1/4 then 1/16 speed, labelled (lib/timeScale.ts dragMove)
  * - arrow keys step by round years (Shift or PageUp/PageDown for 10x), Home/End
  * - click the calendar year (or press Enter on the bar) and type a year
  * Quietly inside the track: the population curve (paler where modelled), the
@@ -225,7 +225,7 @@ function draw(
   ctx.strokeStyle = COLORS.knobRing;
   ctx.stroke();
   if (fine) {
-    // a thin ring says "fine control" while dragging slowly
+    // a thin ring says "fine control" while scrubbing off the bar
     ctx.beginPath();
     ctx.arc(cx, MID, 9, 0, Math.PI * 2);
     ctx.strokeStyle = COLORS.needle;
@@ -243,7 +243,8 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
 
   const [hover, setHover] = useState<{ x: number; moment: Moment | null } | null>(null);
   const [pinnedMoment, setPinnedMoment] = useState<Moment | null>(null);
-  const [fine, setFine] = useState(false);
+  const [scrub, setScrub] = useState<{ label: string } | null>(null); // set while dragging
+  const fine = !!scrub?.label;
   const [editing, setEditing] = useState<string | null>(null); // the typed text while editing
   const note = hover?.moment ?? pinnedMoment;
 
@@ -265,7 +266,7 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
       e.preventDefault();
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       const t = timeRef.current;
-      changeRef.current(clampTime(t + (d * FINE_GAIN * 2 * yearsPerPos(t)) / (el.clientWidth || 800)));
+      changeRef.current(clampTime(t + (d * WHEEL_GAIN * yearsPerPos(t)) / (el.clientWidth || 800)));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
@@ -273,7 +274,10 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
 
   const local = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    return { px: e.clientX - r.left, width: r.width };
+    // How far the pointer is above or below the track itself (0 while on it).
+    const y = e.clientY - r.top;
+    const offBar = Math.max(0, TOP - y, y - (TOP + BAR));
+    return { px: e.clientX - r.left, width: r.width, offBar };
   };
   const momentNear = (px: number, width: number, slop: number): Moment | null => {
     let best: Moment | null = null;
@@ -302,23 +306,24 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
     setPinnedMoment(m);
     setHover(null);
     if (start !== time) onChange(start);
-    drag.current = dragStart(start, e.clientX, e.timeStamp);
+    drag.current = dragStart(start, e.clientX);
   };
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const { px, width } = local(e);
+    const { px, width, offBar } = local(e);
     const d = drag.current;
     if (!d) {
       if (e.pointerType === 'mouse') setHover({ x: px, moment: momentNear(px, width, 7) });
       return;
     }
-    const next = dragMove(d, e.clientX, e.timeStamp, width, px / width);
+    const next = dragMove(d, e.clientX, offBar, width, px / width);
     drag.current = next;
-    setFine(dragGain(next.speed) < 0.3);
+    const label = scrubLevel(offBar).label;
+    if (label !== scrub?.label) setScrub({ label });
     if (next.pos !== d.pos) onChange(timeAt(next.pos));
   };
   const endDrag = () => {
     drag.current = null;
-    setFine(false);
+    setScrub(null);
   };
 
   const commitEdit = (text: string, keepOpen: boolean) => {
@@ -401,6 +406,16 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
         onKeyDown={onKeyDown}
         className="relative rounded focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ov-data)]"
       >
+        {scrub && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-full z-20 mb-1 -translate-x-1/2 whitespace-nowrap rounded border border-white/15 bg-[#15140f] px-2 py-0.5 text-[11px] text-[var(--ov-text)] shadow"
+            style={{ left: `clamp(48px, ${posAt(time) * 100}%, calc(100% - 48px))` }}
+            data-testid="scrub-label"
+          >
+            {scrub.label || '\u2191 slide up for finer'}
+          </div>
+        )}
         <canvas
           ref={canvasRef}
           data-testid="time-bar"

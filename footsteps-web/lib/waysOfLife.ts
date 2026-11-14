@@ -41,14 +41,15 @@ type Look = {
   rgb: readonly [number, number, number];
 };
 
-/** Hues are far apart on purpose: marks are a few pixels wide on a dark map.
+/** One warm firelight family on purpose: way of life is told mostly by the kind of
+ * mark (band, village, camp, city glow) and the details panel, not loud hues.
  * unitMorphVertex.ts reads a mark's kind from its colour, so the palette must
  * keep: Urban red < 0.5 (city), Forager and Herder green < 0.8 (they roam),
  * Farmer green ≥ 0.8 (settled). waysOfLife.test.ts pins this. */
 export const LOOKS: Record<WayOfLifeValue, Look> = {
-  [WayOfLife.Forager]: { name: 'Foragers', mark: 'band', rgb: [255, 176, 96] },
-  [WayOfLife.Farmer]: { name: 'Farmers', mark: 'village', rgb: [196, 236, 92] },
-  [WayOfLife.Herder]: { name: 'Herders', mark: 'camp', rgb: [255, 112, 150] },
+  [WayOfLife.Forager]: { name: 'Foragers', mark: 'band', rgb: [255, 190, 110] },
+  [WayOfLife.Farmer]: { name: 'Farmers', mark: 'village', rgb: [255, 225, 160] },
+  [WayOfLife.Herder]: { name: 'Herders', mark: 'camp', rgb: [255, 176, 120] },
   [WayOfLife.Urban]: { name: 'Towns and cities', mark: 'glow', rgb: [60, 230, 255] },
 };
 

@@ -20,8 +20,9 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`GridData.ways`); `FireLayer.ts` colours the far-out fires the same way, and the legend reads `LOOKS`.
   `unitMorphVertex.ts` reads a mark's kind from its colour, so `waysOfLife.test.ts` pins the palette.
   Copy `../data/tiles/grid/landuse_*.png` into `public/grid/` for local dev.
-- Unit marks represent at least 15 people; smaller cells still contribute to the
-  grid, glow and population totals but emit no group. Individual people use the
+- Unit marks represent at least 15 people. A cell under 15 holds one whole group
+  (band/camp/village size) with probability people ÷ group size, seeded per cell, so
+  thin forager land is not empty close in and expected head count stays right. Individual people use the
   nearer year-morph endpoint, skip absent groups, and include an adult per group.
   Portraits wait for the atlas (up to 2.5 seconds), then keep that illustration;
   late atlas responses cannot replace it. Day requests are scoped to the person.

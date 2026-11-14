@@ -63,10 +63,17 @@ function rng(seed: number) {
   };
 }
 
+function groupSize(kind: UnitKindValue) {
+  return kind === UnitKind.Village ? VILLAGE_SIZE : kind === UnitKind.Camp ? CAMP_SIZE : BAND_SIZE;
+}
+
 /** How many groups a cell of `people` holds, given the kind of group. */
 function groupCount(kind: UnitKindValue, people: number, r: number) {
   if (kind === UnitKind.Glow) return 1;
-  if (people < MIN_GROUP_PEOPLE) return 0;
+  // Too few for a group of its own: one band's range covers many cells, so a sparse
+  // cell holds a whole group with probability people / group size (expected people
+  // stay right, and the seed is per cell, so it stays put while scrubbing).
+  if (people < MIN_GROUP_PEOPLE) return r < people / groupSize(kind) ? 1 : 0;
   if (kind === UnitKind.Band) {
     const x = people / BAND_SIZE; // stochastic rounding: expected count is exact
     return Math.min(
@@ -118,7 +125,8 @@ export function buildUnits(
     const lat = positions[i * 2 + 1];
     const k = kinds[i] as UnitKindValue;
     const rand = rng(cellIds[i] * 2246822519 + 7);
-    const share = people[i] / count;
+    // A sparse cell's one group is a whole group, not the cell's few people.
+    const share = people[i] < MIN_GROUP_PEOPLE ? groupSize(k) : people[i] / count;
     for (let c = 0; c < count; c++) {
       const jitter = k === UnitKind.Glow ? 0 : 0.9;
       out.positions[j * 2] = lon + (rand() - 0.5) * cellDeg * jitter;

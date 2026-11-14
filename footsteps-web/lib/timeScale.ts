@@ -1,6 +1,6 @@
 // The time bar's fixed scale and the small rules for moving along it.
 // One track, log of years ago: the deep past is compressed, recent history roomy.
-// The scale never changes at runtime; precision comes from slow drags, keys or typing.
+// The scale never changes at runtime; precision comes from scrubbing off the bar, keys or typing.
 import { NOW, TIME_MAX, TIME_MIN, clampTime } from './time';
 
 /** Years-ago offset: larger keeps recent centuries from taking most of the bar. */
@@ -72,40 +72,47 @@ export function parseYear(text: string): number | null {
 }
 
 /**
- * A drag along the bar. The needle moves `gain` x the finger, where gain rises with
- * speed: a quick flick follows the finger (rough seek), a slow drag is ~16x finer.
- * At speed the needle also re-anchors to the finger, so after fine work a fast move
- * brings it back under the pointer.
+ * A drag along the bar. On the bar the needle stays under the finger (rough seek).
+ * Sliding the finger up or down off the bar, while still dragging, slows the needle
+ * to a fixed fraction of the finger: a visible, chosen mode rather than one guessed
+ * from speed. Back on the bar, the needle eases back under the finger as it moves.
  */
-export type Drag = { pos: number; x: number; t: number; speed: number };
+export type Drag = { pos: number; x: number; gain: number };
 
-export const FINE_GAIN = 0.06;
-const SLOW = 0.04; // px/ms: at or below this, full precision
-const FAST = 0.5; // px/ms: at or above this, 1:1 with the finger
+/** Speed levels by distance (px) off the bar: 1:1 on it, then 1/4, then 1/16. */
+export const SCRUB_LEVELS = [
+  { from: 0, gain: 1, label: '' },
+  { from: 40, gain: 1 / 4, label: '¼ speed' },
+  { from: 110, gain: 1 / 16, label: '1/16 speed' },
+] as const;
 
-export function dragGain(speed: number): number {
-  const u = Math.min(1, Math.max(0, (speed - SLOW) / (FAST - SLOW)));
-  const smooth = u * u * (3 - 2 * u);
-  return FINE_GAIN + (1 - FINE_GAIN) * smooth;
+export function scrubLevel(offBar: number) {
+  let level: (typeof SCRUB_LEVELS)[number] = SCRUB_LEVELS[0];
+  for (const l of SCRUB_LEVELS) if (offBar >= l.from) level = l;
+  return level;
 }
 
-export function dragStart(time: number, x: number, t: number): Drag {
-  return { pos: posAt(time), x, t, speed: 0 };
+export function dragStart(time: number, x: number): Drag {
+  return { pos: posAt(time), x, gain: 1 };
 }
 
-/** Next drag state for the pointer at `x` (px) at time `t` (ms); `fingerPos` is x on the bar (0..1). */
-export function dragMove(d: Drag, x: number, t: number, width: number, fingerPos: number): Drag {
+/**
+ * Next drag state for the pointer at `x` (px), `offBar` px above or below the bar;
+ * `fingerPos` is the finger's x on the bar (0..1).
+ */
+export function dragMove(d: Drag, x: number, offBar: number, width: number, fingerPos: number): Drag {
   const dx = x - d.x;
-  const dt = Math.max(1, t - d.t);
-  // Smooth the speed a little so one jittery event doesn't flip modes.
-  const speed = 0.6 * (Math.abs(dx) / dt) + 0.4 * d.speed;
-  const gain = dragGain(speed);
+  const { gain } = scrubLevel(offBar);
   let pos = d.pos + (dx / Math.max(1, width)) * gain;
-  // Pull back under the finger in proportion to how fast-and-far we moved.
-  const pull = gain > 0.5 ? 1 - Math.exp(-Math.abs(dx) * ((gain - 0.5) * 2) / 30) : 0;
-  pos += (fingerPos - pos) * pull;
-  return { pos: Math.min(1, Math.max(0, pos)), x, t, speed };
+  if (gain === 1) {
+    // Ease back under the finger over ~60px of movement (no jump after fine work).
+    pos += (fingerPos - pos) * Math.min(1, Math.abs(dx) / 60);
+  }
+  return { pos: Math.min(1, Math.max(0, pos)), x, gain };
 }
+
+/** Wheel/trackpad nudge, as a fraction of the bar per pixel of scroll. */
+export const WHEEL_GAIN = 0.12;
 
 /** The few labels under the bar. */
 export const BAR_LABELS: { time: number; text: string }[] = [

@@ -15,7 +15,7 @@ export type ViewBlend = {
   brightness: number; // alpha multiplier for bands and villages
   pickable: boolean; // close zoom: a click names the group under the cursor
   people: number; // street-level zoom: individual people (group marks fade out)
-  settle: number; // 1 = groups drift and breathe; 0 = still (close in)
+  settle: number; // 1 = groups breathe (fire flicker); 0 = still (close in)
   halo: number; // px: smallest fire sprite for a band or village
 };
 
@@ -49,7 +49,7 @@ function ramp(stops: [number, number][], zoom: number) {
 
 export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
   const minPx = ramp([[3, 0.35], [4.6, 1.0], [5.4, 1.5], [7, 3.2], [9, 5]], zoom);
-  // Close in, groups stop drifting: a mark should hold still under the cursor.
+  // Close in, groups stop flickering in size: a mark should hold still under the cursor.
   const settle = 1 - smoothstep(6, 8.5, zoom);
   // Match the far-out firelight sprites (FireLayer: 4-13 px) where they hand over.
   const halo = ramp([[4.6, 7], [7, 8], [9, 9]], zoom);

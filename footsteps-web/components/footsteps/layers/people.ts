@@ -154,7 +154,7 @@ export function describePerson(p: Person) {
   };
 }
 
-// --- layer: people wander a little around where they stand (GPU) ---
+// --- layer: people move around where they stand, at real-time walking speed (GPU) ---
 
 const peopleAnim = {
   name: 'peopleAnim',
@@ -168,11 +168,14 @@ const peopleAnim = {
 const wander = /* glsl */ `
   float h = fract(sin(dot(geometry.worldPosition.xy, vec2(12.9898, 78.233))) * 43758.5453);
   float t = peopleAnim.time;
-  // metres: a slow stroll around their spot, a few people further out
-  float reach = 6.0 + 20.0 * step(0.85, h);
+  // Real time, metres: most people stay at their spot (sitting, working: a small shuffle);
+  // about one in four walks a loop of up to ~25 m at an easy walking pace (~1 m/s).
+  float walker = step(0.75, h);
+  float reach = mix(0.6, 8.0 + 16.0 * fract(h * 7.0), walker);
+  float w = mix(0.3, (0.6 + 0.4 * fract(h * 13.0)) / reach, walker); // rad/s; speed ~ reach * w
   vec2 m = reach * vec2(
-    sin(t * (0.25 + 0.3 * h) + h * 6.2832) + 0.3 * sin(t * 1.7 + h * 21.0),
-    cos(t * (0.2 + 0.25 * h) + h * 3.7) + 0.3 * cos(t * 1.3 + h * 13.0)
+    sin(t * w + h * 6.2832),
+    cos(t * w * 0.8 + h * 3.7)
   );
   vec2 px = vec2(
     project_size_to_pixel(m.x, scatterplot.radiusUnits),

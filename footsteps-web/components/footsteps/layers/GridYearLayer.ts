@@ -29,7 +29,7 @@ type Props = {
   minPx: number; // unit marks only; grid points keep 0.5 px
   brightness: number;
   progress: number; // year morph, 0..1
-  settle?: number; // morph only: 1 = groups drift and breathe, 0 = still
+  settle?: number; // morph only: 1 = groups breathe (fire flicker), 0 = still
   halo?: number; // morph only: smallest fire sprite (px) for bands and villages
   pickable: boolean;
   onReady: () => void;

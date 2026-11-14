@@ -22,22 +22,14 @@ out float vSeed; // per-mark phase for the flicker
 out float vFire; // 1 = small, fire-like (halo, hot core, flicker); 0 = settled disc
 void main(void) {
   // Life: the kind is read from the colour (lib/waysOfLife.ts keeps the palette
-  // to this): bands and herding camps (green channel < 0.8) wander slowly around
-  // their camp, villages sway a little, everything breathes. Seeded by
-  // position, so each group keeps its own rhythm.
+  // to this). Groups stay where they are placed: the screen runs in real time, and
+  // a band walking a few km an hour does not move visibly at any zoom we draw it.
+  // Everything breathes (the fire), seeded by position so each group has its own rhythm.
   vec4 kindColor = instanceTargetFillColors;
   bool isCity = kindColor.r < 0.5;
-  bool isBand = !isCity && kindColor.g < 0.8; // mobile: foragers and herders
   float h = fract(sin(dot(instancePositions.xy, vec2(12.9898, 78.233))) * 43758.5453);
   float t = morph.time;
-  // Close in, groups settle where they are (morph.settle -> 0).
-  float roam = morph.settle * (isCity ? 0.0 : (isBand ? 0.014 : 0.003)); // degrees (~1.5 km / 0.3 km)
-  float w = isBand ? 0.18 + 0.12 * h : 0.35 + 0.2 * h;
-  vec2 drift = roam * vec2(
-    sin(t * w + h * 6.2832) + 0.4 * sin(t * w * 2.3 + h * 17.0),
-    cos(t * w * 0.8 + h * 4.0) + 0.4 * cos(t * w * 1.9 + h * 11.0)
-  );
-  vec3 livePosition = instancePositions + vec3(drift, 0.0);
+  vec3 livePosition = instancePositions;
   float breathe = 1.0 + morph.settle * (isCity ? 0.05 : 0.14) * sin(t * (0.9 + h) + h * 6.2832);
   geometry.worldPosition = livePosition;
   float radius = mix(instanceRadius, instanceTargetRadius, morph.progress) * breathe;

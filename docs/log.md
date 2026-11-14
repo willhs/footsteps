@@ -4,6 +4,13 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] update | People keep real-time pace; local sun time when zoomed in
+
+Bands and camps no longer drift around their spot (`unitMorphVertex.ts`): the old drift moved them ~1.5 km every ~20 s.
+Close in (`layers/people.ts`) most people stay put with a small shuffle and about one in four walks a loop of up to ~25 m
+at ~1 m/s. From zoom 7 the info panel shows the local sun time at the map centre right now (`lib/sunTime.ts`), since the
+close-up view runs on today's clock. Day/night lighting is still a separate idea.
+
 ## [2026-11-14] update | Fewer fires when there were fewer people
 
 The far-out firelight used ~150,000 marks every year, so 50,000 BCE (~1 M people, ~7 per fire) looked as full as

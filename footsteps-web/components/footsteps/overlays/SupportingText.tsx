@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
 import { formatPopulation, formatYear } from '@/lib/format';
+import { sunTimeLabel } from '@/lib/sunTime';
+import { ZOOM } from '../hooks/peopleView';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -22,7 +24,7 @@ interface Props {
   loading?: boolean;
   dotCount: number;
   totalPopulation: number;
-  viewState: { zoom: number };
+  viewState: { zoom: number; longitude?: number };
   lodLevel: number;
   lodEnabled: boolean; // Always true now (server-controlled)
   toggleLOD: () => void; // No-op for backward compatibility
@@ -32,6 +34,24 @@ interface Props {
   viewportBounds?: number[] | null; // For debugging viewport optimization
   is3DMode?: boolean; // For debugging which mode is active
   year: number; // Current year being rendered
+}
+
+/** Close in, the map runs on today's clock: the time of day where you are looking. */
+function SunTime({ lon }: { lon: number }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 20_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div
+      className="ov-note mt-1"
+      data-testid="sun-time"
+      title="Local sun time right now at the centre of the map (a sundial's reading, within ~15 minutes). Close in, people move in real time."
+    >
+      ☀ {sunTimeLabel(lon, now)}, local sun time
+    </div>
+  );
 }
 
 function SupportingText({
@@ -235,6 +255,10 @@ function SupportingText({
         >
           modelled, not measured
         </div>
+      )}
+
+      {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
+        <SunTime lon={viewState.longitude} />
       )}
 
       {/* Progressive loading feedback */}

@@ -58,8 +58,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.
 - `deploy/budgie/`: Caddy + Docker Compose, static app/grid and range-served PMTiles,
   bound to `127.0.0.1:5090` on budgie behind the Cloudflare Tunnel.
-- `scripts/deploy-budgie.sh`: builds and rsyncs to budgie, restarts Caddy, checks health
-  (`API_ONLY=1` for just the API container).
+- Deploy: green CI on `main` builds the web and API images (`.github/workflows/deploy-budgie.yml`, GHCR);
+  Watchtower on budgie pulls them, and the workflow smoke-tests prod. `scripts/deploy-budgie.sh` publishes the
+  data that is not in git (`GRID_ONLY=1` for data only, `API_ONLY=1` to pull the API now). It needs the home network.
 - `deploy/budgie/api/`: day API (`day_api.py`) and `GET /api/anthropology` (`atlas.py`), a sourced
   record per 5° cell × era, 100,000 BCE–1900, built by `footstep-generator/anthropology/` (see its README). Before
   10,000 BCE (`deep.py`) it is a modelled record: foragers only, arrival table, Neanderthals and Denisovans, a cited

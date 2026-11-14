@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Build the static app and push it (and any new tiles) to budgie.
-#   scripts/deploy-budgie.sh            # app + tiles
+# Code deploys itself: every green CI run on main builds the web and API images
+# (.github/workflows/deploy-budgie.yml) and Watchtower on budgie pulls them. This script
+# publishes what is not in git (data, PMTiles) and the compose file, then pulls the images now.
+#   scripts/deploy-budgie.sh            # compose + data + tiles, pull and restart
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
-#   GRID_ONLY=1 scripts/deploy-budgie.sh # publish generated grid + terrain images without rebuilding app
-#   API_ONLY=1 scripts/deploy-budgie.sh  # day + anthropology API container only
+#   GRID_ONLY=1 scripts/deploy-budgie.sh # data only: grid, terrain, habitat, fauna, evidence
+#   API_ONLY=1 scripts/deploy-budgie.sh  # pull and restart the day + anthropology API only
+# Images are built from main, so push first: this never ships uncommitted code.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="${REMOTE:-will@budgie}"
@@ -65,28 +68,19 @@ if [[ -n "${GRID_ONLY:-}" ]]; then
 fi
 # The day/anthropology API container only: no app build, no data sync.
 if [[ -n "${API_ONLY:-}" ]]; then
-  rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
-  rsync -az --delete --exclude=__pycache__ "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
-  ssh "$REMOTE" "cd $DEST && docker compose up -d --build api && for i in \$(seq 1 20); do curl -fsS http://127.0.0.1:5090/api/day/health && exit 0; sleep 1; done; exit 1"
+  rsync -az "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
+  ssh "$REMOTE" "cd $DEST && docker compose pull api && docker compose up -d api && for i in \$(seq 1 20); do curl -fsS http://127.0.0.1:5090/api/day/health && exit 0; sleep 1; done; exit 1"
   echo
   exit 0
 fi
 
-# Tiles are same-origin (/pmtiles), served by Caddy next to the app.
-(cd "$ROOT/footsteps-web" && NEXT_PUBLIC_CDN_HOST= NEXT_PUBLIC_PMTILES_DIRECT=false pnpm build)
-
-ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
-rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
-rsync -az --delete --exclude=__pycache__ "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
-# Data folders synced from data/ (above) or gitignored public/ copies are never deleted
-# by the app sync: a checkout without them must not wipe them on the server.
-rsync -az --delete --exclude=/pmtiles --exclude=/grid --exclude=/terrain --exclude=/prehistory \
-  --exclude=/habitat --exclude=/fauna --exclude=/evidence "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+ssh "$REMOTE" "mkdir -p $DEST/app/grid $DEST/app/terrain $DEST/app/habitat $DEST/app/fauna $DEST/app/evidence $DEST/pmtiles"
+rsync -az "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then
   rsync -az --include='humans_*.pmtiles' --exclude='*' "$TILES_DIR/" "$REMOTE:$DEST/pmtiles/"
 fi
-ssh "$REMOTE" "cd $DEST && docker compose up -d --build && docker compose restart web >/dev/null && for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:5090/healthz && exit 0; sleep 1; done; exit 1"
+ssh "$REMOTE" "cd $DEST && docker compose pull && docker compose up -d && for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS http://127.0.0.1:5090/healthz && exit 0; sleep 1; done; exit 1"
 echo
-echo "Deployed. Local check: ssh $REMOTE curl -sI http://127.0.0.1:5090/"
+echo "Deployed. Live commit: $(curl -fsS https://footsteps.willhs.me/version.txt)"

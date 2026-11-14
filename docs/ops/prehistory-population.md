@@ -46,8 +46,8 @@ documented alternatives (`alt`) are not wired to a switch.
 When regeneration runs in a worktree, copy its entire `data/tiles/prehistory/` directory
 into the main checkout before deploying from main. Compare SHA-256 hashes against the
 regeneration manifest; merging code does not copy these gitignored images.
-`SKIP_TILES=1 scripts/deploy-budgie.sh` publishes the app, population images and API
-without resending PMTiles. If image URLs are reused, purge those exact URLs in Cloudflare
+`GRID_ONLY=1 scripts/deploy-budgie.sh` publishes the population images (the app and API deploy themselves from `main`)
+and does not resend PMTiles. If image URLs are reused, purge those exact URLs in Cloudflare
 (Caching → Configuration → Custom Purge → URL, at most 30 per request), then compare
 the public response bytes with the regenerated files. The one-day image cache can otherwise
 serve the old population even after the origin files are replaced. Visitors with images

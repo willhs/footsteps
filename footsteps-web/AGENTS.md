@@ -81,6 +81,7 @@ for data already served as static assets. The images encode numeric values: pres
 their pixels (lossless only). Verify mode switching, slider scrubbing, population totals,
 and zoom behaviour in the browser when changing rendering or data loading.
 
-From the repository root, `scripts/deploy-budgie.sh` builds with same-origin data
-URLs and syncs app/grid/PMTiles to budgie. `SKIP_TILES=1` skips PMTiles only.
+Pushing to `main` deploys the app: green CI builds `deploy/budgie/web/Dockerfile` (same-origin data URLs)
+and Watchtower on budgie pulls it (README "Deployment"). `scripts/deploy-budgie.sh` publishes the data and PMTiles,
+which are not in git. `SKIP_TILES=1` skips PMTiles only.
 `scripts/smoke.sh [base-url]` checks HTML and data signatures, not rendered pixels.

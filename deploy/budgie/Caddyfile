@@ -23,6 +23,13 @@
 		reverse_proxy footsteps-api:8000
 	}
 
+	# Which commit is live; never cached (the deploy workflow polls it through Cloudflare).
+	handle /version.txt {
+		root * /srv/app
+		header Cache-Control "no-store"
+		file_server
+	}
+
 	handle /healthz {
 		respond "ok" 200
 	}

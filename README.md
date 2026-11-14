@@ -118,19 +118,30 @@ Cloudflare Tunnel, at https://footsteps.willhs.me. Caddy listens through Docker 
 `127.0.0.1:5090`, serves the app and `/grid/` images, and serves `/pmtiles/` archives
 with HTTP Range support. `/healthz` is a simple server health response.
 
+**Code deploys itself.** Every green CI run on `main` triggers
+`.github/workflows/deploy-budgie.yml`, which builds two images and pushes them to GHCR:
+- `ghcr.io/willhs/footsteps-web`: the static export baked into Caddy (`deploy/budgie/web/Dockerfile`).
+- `ghcr.io/willhs/footsteps-api`: the day and anthropology API.
+
+Watchtower on budgie pulls both within about 5 minutes. The workflow then waits until
+https://footsteps.willhs.me/version.txt shows the commit, runs `scripts/smoke.sh`, and pages Medic if anything fails.
+So: push to `main`, and prod follows. Nothing needs this Mac or the home network.
+
+**Data is published by hand.** Population, terrain, habitat, fauna and evidence images and PMTiles are not in git.
+They live on budgie under `deploy/budgie/app/<folder>` and `pmtiles/`, mounted over the image (`docker-compose.yml`):
+
 ```bash
-scripts/deploy-budgie.sh
+GRID_ONLY=1 scripts/deploy-budgie.sh       # data images only
+scripts/deploy-budgie.sh                   # compose file + data + PMTiles, then pull images now
+SKIP_TILES=1 scripts/deploy-budgie.sh      # same without PMTiles
+API_ONLY=1 scripts/deploy-budgie.sh        # pull and restart the API now
 scripts/smoke.sh https://footsteps.willhs.me
 ```
 
-Deployment requires SSH/rsync access to `will@budgie`, Docker Compose on the server,
-local `data/tiles/grid/` images, and (unless skipped) `data/tiles/humans/` archives.
-The script builds with same-origin data URLs, syncs `out/` and grid images, uploads
-PMTiles, then starts/restarts Caddy and checks health. Defaults to
-`~/projects/deep-footsteps/deploy/budgie` remotely; override `REMOTE`, `DEST`, or
-`TILES_DIR` when needed. `SKIP_TILES=1 scripts/deploy-budgie.sh` skips only PMTiles;
-grid images are still synced. App/grid rsync uses `--delete`, so prepare complete
-local outputs before deploying.
+These need SSH/rsync access to `will@budgie` (the home network). Defaults to
+`~/projects/deep-footsteps/deploy/budgie` remotely; override `REMOTE`, `DEST`, or `TILES_DIR` when needed.
+Data rsyncs only add and replace files, never delete. The script pulls images built from `main`, so push first.
+A change to `docker-compose.yml` itself needs one run of the script.
 
 The smoke script checks app HTML and file signatures for every configured grid
 and Dots year. It does not verify browser rendering. Build output is static;

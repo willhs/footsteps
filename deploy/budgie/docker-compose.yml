@@ -1,23 +1,33 @@
 # Lives at ~/projects/deep-footsteps/deploy/budgie on budgie.
-# App files: ./app (rsynced static export). Tiles: ./pmtiles (rsynced, not in git).
+# Code ships as images: .github/workflows/deploy-budgie.yml builds them on every green main and
+# Watchtower (label below) pulls them within ~5 minutes. The app (static export + Caddyfile) is
+# baked into footsteps-web. Data is not in git: it stays on budgie under ./app/<folder> and ./pmtiles
+# (published by scripts/deploy-budgie.sh) and is mounted over the image's /srv/app.
 services:
   web:
-    image: caddy:2.8-alpine
+    image: ghcr.io/willhs/footsteps-web:latest
     container_name: footsteps-web
     restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     ports:
       - "127.0.0.1:5090:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./app:/srv/app:ro
+      - ./app/grid:/srv/app/grid:ro
+      - ./app/terrain:/srv/app/terrain:ro
+      - ./app/habitat:/srv/app/habitat:ro
+      - ./app/fauna:/srv/app/fauna:ro
+      - ./app/evidence:/srv/app/evidence:ro
       - ./pmtiles:/srv/pmtiles:ro
 
   # "Imagine their day": Claude via OpenRouter, cached, daily-capped. OPENROUTER_API_KEY lives in
   # api.env on budgie (not in git); without it the API returns demo text.
   api:
-    build: ./api
+    image: ghcr.io/willhs/footsteps-api:latest
     container_name: footsteps-api
     restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     env_file:
       - path: ./api.env
         required: false

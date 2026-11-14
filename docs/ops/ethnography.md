@@ -148,7 +148,7 @@ and era always get the same societies, which keeps the day cache valid.
 - **Token budget.** The facts (user message) are held to `PROMPT_TOKEN_BUDGET` (2,000, estimated at 4 characters a token). Typical prompts are
   900-1,100 tokens; the largest modelled-era cells reach about 2,150 with three societies, so `fit_budget` drops the lowest-ranked society
   (keeping at least one) until it fits. A test samples 300 cells and eras.
-- Deploy: `API_ONLY=1 scripts/deploy-budgie.sh`. The Dockerfile copies `analogs.py`, `grounding.py`, `ethnography.json.gz` and `time_use.json`
+- Deploy: push to `main` (the API image is built by `.github/workflows/deploy-budgie.yml`). The Dockerfile copies `analogs.py`, `grounding.py`, `ethnography.json.gz` and `time_use.json`
   (a test checks the list). Old cached days are not served (`PROMPT_VERSION` 3).
 
 ## Limits

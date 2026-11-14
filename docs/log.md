@@ -4,6 +4,14 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] update | Push to main deploys the app
+
+Green CI on `main` now builds `ghcr.io/willhs/footsteps-web` (static export baked into Caddy, `deploy/budgie/web/Dockerfile`)
+and `ghcr.io/willhs/footsteps-api` (`.github/workflows/deploy-budgie.yml`). Watchtower on budgie pulls them, and the
+workflow waits for `/version.txt` to show the commit, smoke-tests prod and pages Medic on failure. Data and PMTiles stay
+on budgie (mounted over `/srv/app/<folder>`) and are still published with `scripts/deploy-budgie.sh`, which no longer builds
+the app. CI had been red on main since raw sea-level data went missing on the runner; that test now skips without it.
+
 ## [2026-11-14] update | People keep real-time pace; local sun time when zoomed in
 
 Bands and camps no longer drift around their spot (`unitMorphVertex.ts`): the old drift moved them ~1.5 km every ~20 s.

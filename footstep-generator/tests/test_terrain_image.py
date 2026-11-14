@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import climate_series
 import terrain_image as terrain
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,6 +29,7 @@ def test_step_bracket_uses_bp_from_1950():
     assert terrain.step_bracket(2000) == (0, 1000, 0.0)
 
 
+@pytest.mark.skipif(not climate_series.SPRATT.exists(), reason="data/raw/spratt2025 not downloaded")
 def test_sea_level_is_the_readout_series():
     # Coasts use the same capped Spratt series as the slider readout.
     assert terrain.sea_level(-19_000) < -100  # Last Glacial Maximum

@@ -1,0 +1,13 @@
+# Web image build context is the repository root (deploy/budgie/web/Dockerfile): send only what it copies.
+**/node_modules
+**/.next
+footsteps-web/out
+footsteps-web/public/grid
+footsteps-web/public/terrain
+footsteps-web/public/habitat
+footsteps-web/public/fauna
+footsteps-web/public/evidence
+footsteps-web/public/pmtiles
+data
+.git
+.manager

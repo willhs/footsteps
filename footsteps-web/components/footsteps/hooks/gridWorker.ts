@@ -14,12 +14,14 @@ export type GridReply =
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
 type Request =
+  | { settlements: boolean }
   | { year: number }
   | { id: string; fromYear: number; toYear: number; region: Region };
 type Endpoint = { units: Units; width: number };
 // Retain only compact unit endpoints in the worker; render buffers transfer to
 // the UI. This cache is independent of the UI's five decoded snapshots.
 const units = new Map<number, Endpoint>();
+let settlements = false;
 function remember(year: number, source: Endpoint) {
   units.delete(year);
   units.set(year, source);
@@ -34,7 +36,7 @@ function endpoint(snapshot: DecodedYearGrid): Endpoint {
 async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
-  const snapshot = await decodeYearGrid(year);
+  const snapshot = await decodeYearGrid(year, settlements);
   remember(year, endpoint(snapshot));
   return endpoint(snapshot);
 }
@@ -44,12 +46,18 @@ function buffers(arrays: ArrayBufferView[]) {
   );
 }
 self.onmessage = ({ data }: MessageEvent<Request>) => {
+  if ('settlements' in data) {
+    settlements = data.settlements;
+    units.clear();
+    return;
+  }
   if ('id' in data) {
     void Promise.all([endpoints(data.fromYear), endpoints(data.toYear)])
       .then(([from, to]) => {
         const morph = buildUnitMorph(
           sliceUnits(from.units, from.width, data.region),
           sliceUnits(to.units, to.width, data.region),
+          settlements,
         );
         self.postMessage(
           { id: data.id, morph } satisfies GridReply,
@@ -72,7 +80,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year)
+  void decodeYearGrid(year, settlements)
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [

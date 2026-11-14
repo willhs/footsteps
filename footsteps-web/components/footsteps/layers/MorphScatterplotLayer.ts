@@ -57,6 +57,7 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
   initializeState() {
     super.initializeState();
     this.getAttributeManager()!.addInstanced({
+      instanceMobility: { size: 2, accessor: 'getMobility', defaultValue: [1, 1] },
       instanceTargetRadius: {
         size: 1,
         accessor: 'getTargetRadius',

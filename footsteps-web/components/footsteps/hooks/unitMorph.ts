@@ -12,6 +12,7 @@ export type MorphPoints = PointBuffers & {
   attributes: PointBuffers['attributes'] & {
     getTargetRadius: { value: Float32Array; size: 1 };
     getTargetFillColor: { value: Uint8ClampedArray; size: 4 };
+    getMobility: { value: Float32Array; size: 2 };
   };
   /** CPU-only endpoint populations; zero means absent at that endpoint. */
   info: { kind: Uint8Array; people: Float32Array; fromPeople: Float32Array };
@@ -22,14 +23,17 @@ export function isMorphPoints(
   return 'getTargetRadius' in points.attributes;
 }
 
-function radius(kind: number, people: number) {
-  return kind === UnitKind.Band
+function radius(kind: number, people: number, settlements: boolean) {
+  const base = kind === UnitKind.Band
     ? 600
     : kind === UnitKind.Village
       ? 1500
       : kind === UnitKind.Camp
         ? 900
         : Math.min(Math.sqrt(people) * 45, 30_000);
+  if (!settlements || kind === UnitKind.Glow) return base;
+  const typical = kind === UnitKind.Band ? 30 : kind === UnitKind.Camp ? 60 : 300;
+  return base * Math.max(0.05, Math.min(4, Math.sqrt(people / typical)));
 }
 
 /** A mark's colour is its way of life's (lib/waysOfLife.ts); alpha sets its weight. */
@@ -58,7 +62,7 @@ function color(
 /** Merge sorted stable unit IDs. Persistent marks occupy one vertex instance;
  * missing endpoints use alpha zero, with radii and colours interpolated on GPU.
  */
-export function buildUnitMorph(from: Units, to: Units): MorphPoints {
+export function buildUnitMorph(from: Units, to: Units, settlements = false): MorphPoints {
   let a = 0;
   let b = 0;
   let length = 0;
@@ -74,6 +78,7 @@ export function buildUnitMorph(from: Units, to: Units): MorphPoints {
   const targetRadii = new Float32Array(length);
   const colors = new Uint8ClampedArray(length * 4);
   const targetColors = new Uint8ClampedArray(length * 4);
+  const mobility = new Float32Array(length * 2);
   const kinds = new Uint8Array(length);
   const people = new Float32Array(length);
   const fromPeople = new Float32Array(length);
@@ -91,13 +96,15 @@ export function buildUnitMorph(from: Units, to: Units): MorphPoints {
     const newPeople = hasNew ? to.people[b] : from.people[a];
     positions[i * 2] = source.positions[index * 2];
     positions[i * 2 + 1] = source.positions[index * 2 + 1];
-    radii[i] = radius(kind, oldPeople);
-    targetRadii[i] = radius(kind, newPeople);
+    radii[i] = radius(kind, oldPeople, settlements);
+    targetRadii[i] = radius(kind, newPeople, settlements);
     color(colors, i, kind, oldPeople, hasOld);
     color(targetColors, i, kind, newPeople, hasNew);
     kinds[i] = hasNew ? to.kind[b] : kind;
     people[i] = hasNew ? newPeople : 0;
     fromPeople[i] = hasOld ? oldPeople : 0;
+    mobility[i * 2] = hasOld ? (from.mobility?.[a] ?? 1) : (to.mobility?.[b] ?? 1);
+    mobility[i * 2 + 1] = hasNew ? (to.mobility?.[b] ?? 1) : (from.mobility?.[a] ?? 1);
     if (hasOld) a++;
     if (hasNew) b++;
   }
@@ -109,6 +116,7 @@ export function buildUnitMorph(from: Units, to: Units): MorphPoints {
       getFillColor: { value: colors, size: 4 },
       getTargetRadius: { value: targetRadii, size: 1 },
       getTargetFillColor: { value: targetColors, size: 4 },
+      getMobility: { value: mobility, size: 2 },
     },
     info: { kind: kinds, people, fromPeople },
   };

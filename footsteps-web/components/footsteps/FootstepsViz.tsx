@@ -80,6 +80,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const [renderMode, setRenderMode] = useState<PeopleMode>(initialRenderMode);
   const [debugModes] = useState(() => modeParam() !== null);
+  const [settlements, setSettlements] = useState(false);
+  useEffect(() => setSettlements(new URLSearchParams(window.location.search).get('settlements') === '1'), []);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -317,6 +319,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         )}
 
         {/* Legend: hidden while the details panel is open, which needs the height. */}
+        {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
+          <div className="absolute left-4 top-20 z-10 max-w-xs rounded bg-black/80 p-3 text-xs text-white">
+            <strong>Settlement experiment · modelled</strong>
+            <p>Named cities use local population budgets. Group sizes and clusters are scenarios from ethnographic analogs, not known settlements.</p>
+            <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
+          </div>
+        )}
         {peopleView && !selectedPlace ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">

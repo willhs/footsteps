@@ -3,6 +3,8 @@ import useGridLayer, { loadGrid } from './useGridLayer';
 import type { Units } from '../layers/units';
 
 // Exercise the hook's layer inputs without requiring WebGL in jsdom.
+// TextLayer pulls an ESM-only font dependency; the default (unflagged) path never builds city layers.
+jest.mock('../layers/cityLayers', () => ({ __esModule: true, cityLayers: () => [] }));
 jest.mock('../layers/people', () => ({
   __esModule: true,
   peopleForGroups: () => [],

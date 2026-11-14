@@ -1,6 +1,9 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
+import { allocateCities, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
+import { buildSettlementUnits } from '../layers/settlementUnits';
+import { habitatStep, habitatUrl } from '@/lib/habitat';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -31,6 +34,7 @@ export type YearGrid = {
   data: GridData;
   units: Pick<Units, 'length' | 'counts'>;
   gridPoints: PointBuffers;
+  cities?: AllocatedCity[];
 };
 export type DecodedYearGrid = YearGrid & { units: Units };
 
@@ -111,8 +115,12 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
+  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null },
 ): DecodedYearGrid {
-  const units = buildUnits(
+  const allocation = settlement ? allocateCities(data, settlement.catalog.cities, year) : null;
+  const units = settlement && allocation
+    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat)
+    : buildUnits(
     data.cellIds,
     data.positions,
     data.people,
@@ -131,10 +139,22 @@ export function prepareYearGrid(
     data,
     units,
     gridPoints: points(data.positions, gridRadii, gridColors),
+    ...(allocation ? { cities: allocation.cities } : {}),
   };
 }
 
-export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
+let settlementCatalog: Promise<SettlementCatalog> | undefined;
+async function loadSettlementCatalog() {
+  if (!settlementCatalog) settlementCatalog = fetch('/settlements.json').then(async (response) => {
+    if (!response.ok) throw new Error(`Settlements: HTTP ${response.status}`);
+    const catalog: SettlementCatalog = await response.json();
+    if (catalog.version !== 1) throw new Error('Unsupported settlement catalog');
+    return catalog;
+  }).catch((error) => { settlementCatalog = undefined; throw error; });
+  return settlementCatalog;
+}
+
+export async function decodeYearGrid(year: number, settlements = false): Promise<DecodedYearGrid> {
   const [{ width: sw, height: sh, data: px }, landUse] = await Promise.all([
     readPixels(gridUrl(year), `Grid ${year}`),
     readLandUse(year),
@@ -182,5 +202,9 @@ export async function decodeYearGrid(year: number): Promise<DecodedYearGrid> {
   return prepareYearGrid(
     year,
     { length, positions, people, cellIds, ways, cellDeg, total },
+    settlements ? {
+      catalog: await loadSettlementCatalog(),
+      habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
+    } : undefined,
   );
 }

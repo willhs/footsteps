@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
+import { blendCities, type AllocatedCity } from '@/lib/settlements';
+import { cityLayers as buildCityLayers } from '../layers/cityLayers';
 import { PEOPLE_YEARS } from '@/lib/constants';
 import { type GridData, type PointBuffers, type YearGrid } from './gridData';
 import { loadGrid, loadUnitMorph } from './gridLoader';
@@ -97,6 +99,8 @@ export default function useGridLayer({
     y1: number;
     region: Region;
     data: MorphPoints;
+    citiesFrom: AllocatedCity[];
+    citiesTo: AllocatedCity[];
   } | null>(null);
   useEffect(() => {
     if (!unitsContinuous) {
@@ -104,9 +108,9 @@ export default function useGridLayer({
       return;
     }
     let live = true;
-    loadUnitMorph(y0, y1, region)
-      .then((data) => {
-        if (live) setMorphScene({ y0, y1, region, data });
+    Promise.all([loadUnitMorph(y0, y1, region), loadGrid(y0), loadGrid(y1)])
+      .then(([data, from, to]) => {
+        if (live) setMorphScene({ y0, y1, region, data, citiesFrom: from.cities ?? [], citiesTo: to.cities ?? [] });
       })
       .catch((error) => console.warn('[grid] failed to morph', y0, y1, error));
     return () => {
@@ -310,6 +314,13 @@ export default function useGridLayer({
     () => (people ? new PeopleLayer({ id: 'people', data: people }) : null),
     [people],
   );
+  const cityLayers = useMemo(() => {
+    const cities = (unitsContinuous && morphScene
+      ? blendCities(morphScene.citiesFrom, morphScene.citiesTo, morphProgress)
+      : grid?.cities ?? []).filter((city) => city.people > 0);
+    if (!enabled || style !== 'units' || !cities.length) return [];
+    return buildCityLayers(cities, blend.units, view.zoom);
+  }, [grid, enabled, style, blend.units, view.zoom, unitsContinuous, morphScene, morphProgress]);
   const layerList = useMemo(() => {
     if (!enabled) return [];
     if (unitsContinuous) {
@@ -390,7 +401,7 @@ export default function useGridLayer({
       morphScene.region === region
     );
   return {
-    layers: layerList,
+    layers: [...layerList, ...cityLayers],
     grid: enabled && grid?.year === year ? grid.data : null,
     blend,
     loading: unitsWaiting ? [y0, y1] : null,

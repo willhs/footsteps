@@ -49,6 +49,8 @@ export type Units = {
   kind: Uint8Array; // UnitKind
   ids: Uint32Array; // cell * 32 + kind slot + ordinal; sorted for decoded grids
   counts: [bands: number, villages: number, glows: number, camps: number];
+  /** Experiment only: relative residential movement; zero is semi-settled. */
+  mobility?: Float32Array;
 };
 
 // Small deterministic PRNG (mulberry32) so placement is stable per cell.

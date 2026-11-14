@@ -11,6 +11,7 @@ in float instanceRadius;
 in float instanceTargetRadius;
 in vec4 instanceFillColors;
 in vec4 instanceTargetFillColors;
+in vec2 instanceMobility;
 in vec3 instancePickingColors;
 out vec4 vFillColor;
 out vec4 vLineColor;

@@ -61,34 +61,38 @@ catalog, pure allocation, opt-in integration, browser proof. Preserve default pa
 
 ## Phase 1: Research and catalog
 
-- [ ] Write research 0011 with source URLs, NAS inventory and limitations.
-- [ ] Add reproducible catalog generator using Reba and nearest_analogs, with provenance.
-- [ ] Produce committed compact static catalog and inspect sample records.
+- [x] Write research 0011 with source URLs, NAS inventory and limitations.
+- [x] Add reproducible catalog generator using Reba and nearest_analogs, with provenance.
+- [x] Produce committed compact static catalog and inspect sample records.
 
 ## Phase 2: Allocation and rendering
 
-- [ ] Implement pure city debits and deterministic long-tailed regional group allocations.
-- [ ] Add behavior tests for conservation, overlapping cities, missing dates, stable IDs and regional/climate differences.
-- [ ] Wire the page-lifetime flag through the worker; render named cities and a modelled legend.
-- [ ] Document the flag, regeneration and scope in an ops note.
+- [x] Implement pure city debits and deterministic long-tailed regional group allocations.
+- [x] Add behavior tests for conservation, overlapping cities, missing dates, stable IDs and regional/climate differences.
+- [x] Wire the page-lifetime flag through the worker; render named cities and a modelled legend.
+- [x] Document the flag, regeneration and scope in an ops note.
 
 ## Phase 3: Verify
 
-- [ ] Run frontend lint, tsc and Jest; Python pytest for processing changes; static build.
-- [ ] Drive real data across experiment, default, Grid and Dots; capture screenshots outside git.
-- [ ] Check p3k14c and named-site consistency without claiming site counts validate group sizes.
-- [ ] Blast radius: prove default path and sorted IDs/morph slicing with executable tests.
+- [x] Run frontend lint, tsc and Jest; Python pytest for processing changes; static build.
+- [x] Drive real data across experiment, default, Grid and Dots; capture screenshots outside git.
+- [x] Check p3k14c and named-site consistency without claiming site counts validate group sizes.
+- [x] Blast radius: prove default path and sorted IDs/morph slicing with executable tests.
 
 ## Phase 4: Wrap (commit & finalize)
 
-- [ ] Update research, decisions and docs to match final behaviour.
-- [ ] Run `git diff --check`, commit implementation and report check results in Manager envelope.
+- [x] Update research, decisions and docs to match final behaviour.
+- [x] Run `git diff --check`, commit implementation and report check results in Manager envelope.
 - [ ] [HUMAN] Compare on production after merge.
 
 ## Documentation Updates
 
-- [ ] Add settlement research and ops references; document scientific limits and flag.
+- [x] Add settlement research and ops references; document scientific limits and flag.
 
 ## Verification results
 
-Pending implementation.
+- Jest: 32 suites / 182+ tests pass after moving city layers to `layers/cityLayers.ts` (TextLayer's ESM font dep broke `useGridLayer.test.ts`; the test now mocks it).
+- `tsc --noEmit` and lint: clean (warnings only, pre-existing).
+- pytest: settlement tests pass; 2 unrelated failures (`test_terrain_image.py::test_sea_level_is_the_readout_series`, `test_vectorization_performance.py::...::test_vectorized_array_operations`).
+- Browser (real data, `next dev`): Rome and Capua drawn as named cities at 100 CE with nearby cells drained; default Units unchanged; Ohalo II forager scene renders with the label; Grid and Dots show no label. Hydration mismatches appear in every scene including the unflagged default.
+- Static build: `pnpm --dir footsteps-web build` passes.

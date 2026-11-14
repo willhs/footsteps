@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-14T04:00:00Z	premise	Preserve the baseline and add an opt-in allocation model	Existing groups already use variable equal shares; sparse totals are only conserved in expectation	footsteps-web/components/footsteps/layers/units.ts	confirmed
+2026-11-14T04:01:00Z	design	Allocate city budgets over a whole year before viewport slicing	Overlapping viewport requests must not debit population twice	footsteps-web/components/footsteps/hooks/unitRegion.ts	planned
+2026-11-14T04:02:00Z	sources	Keep storage unknown	Binford export has sizes and moves but no storage observations	footstep-generator/anthropology/ethnography.py	confirmed

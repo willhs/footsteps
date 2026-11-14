@@ -48,6 +48,7 @@ function hoverParam(): boolean {
 function evidenceParam(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('evidence') === '1';
 }
+const NOTES_KEY = 'footsteps.legendNotes';
 const LEGEND: WayOfLifeValue[] = [WayOfLife.Forager, WayOfLife.Farmer, WayOfLife.Herder, WayOfLife.Urban];
 // The model has no land use: everyone before HYDE is drawn as a forager.
 const MODELLED_LEGEND: WayOfLifeValue[] = [WayOfLife.Forager];
@@ -106,6 +107,19 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   });
 
   const [hoverCard] = useState(hoverParam);
+  // The legend's notes start folded (they took a third of a phone screen); the choice is remembered.
+  const [notesOpen, setNotesOpenState] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(NOTES_KEY) === '1') setNotesOpenState(true);
+    } catch {}
+  }, []);
+  const setNotesOpen = (open: boolean) => {
+    setNotesOpenState(open);
+    try {
+      localStorage.setItem(NOTES_KEY, open ? '1' : '0');
+    } catch {}
+  };
   const unprojectRef = useRef<Unproject | null>(null);
   const { point: hoverPoint, bind: hoverBind } = useHoverPoint({
     enabled: hoverCard,
@@ -311,9 +325,18 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>
               )}
             </ul>
-            {modelled ? (
+            <button
+              type="button"
+              onClick={() => setNotesOpen(!notesOpen)}
+              aria-expanded={notesOpen}
+              className="ov-note pointer-events-auto mt-1 flex items-center gap-1 text-[var(--ov-text-3)] hover:text-[var(--ov-text)]"
+              data-testid="notes-toggle"
+            >
+              {modelled && <strong className="mr-1 font-semibold text-[var(--ov-amber)]">Modelled, not measured.</strong>}
+              {notesOpen ? 'Hide notes ▴' : 'About the data ▾'}
+            </button>
+            {!notesOpen ? null : modelled ? (
               <p className="ov-note mt-1.5">
-                <strong className="font-semibold text-[var(--ov-amber)]">Modelled, not measured.</strong>{' '}
                 Where foragers would live if density followed plant productivity,
                 scaled to a published world total; no one has seen these people.
                 The model has no land use, so all are drawn as foragers. Where
@@ -330,13 +353,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 is illustrative.
               </p>
             )}
-            {evidenceOn && (
+            {notesOpen && evidenceOn && (
               <p className="ov-note mt-1.5">
                 <span style={{ color: '#78a0ff' }}>●</span> Dated sites (radiocarbon, p3k14c): where people definitely were.
                 Few sites means few excavations, not few people.
               </p>
             )}
-            {showTerrain && <TerrainNote />}
+            {notesOpen && showTerrain && <TerrainNote />}
           </div>
         ) : (
           !peopleView && showTerrain && (

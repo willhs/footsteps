@@ -4,6 +4,13 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] update | Fewer fires when there were fewer people
+
+The far-out firelight used ~150,000 marks every year, so 50,000 BCE (~1 M people, ~7 per fire) looked as full as
+1900 (~1.6 B, ~10,000 per fire). `fireBudget` in `layers/FireLayer.ts` now scales the marks by the square root of the
+world total (full budget at 1.6 B): ~3,800 marks of ~260 people at 1 M, ~8,000 at 10,000 BCE. The deep past reads thin
+and 1900 bunches around Lake Victoria, the highlands and coasts. Units (closer in) were already one mark per band or village.
+
 ## [2026-11-14] update | Publish corrected prehistory arrival images
 
 Copied the 90 regenerated images from the arrival-fix worktree into main and deployed

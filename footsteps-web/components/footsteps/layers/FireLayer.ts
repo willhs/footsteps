@@ -4,7 +4,9 @@
 //
 // Marks are built once per data year with a random rank each; a zoom-driven
 // threshold shows a fraction of them, so the number on screen stays roughly
-// constant as you zoom (more, smaller-share marks as you go in). Placement in a
+// constant as you zoom (more, smaller-share marks as you go in). How many marks a
+// year gets follows its world population (fireBudget), so the deep past, with a
+// thousand times fewer people than 1900, does not look as full. Placement in a
 // cell is invented but stable per cell.
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
@@ -21,8 +23,17 @@ export type FireMarks = {
   color: Uint8ClampedArray; // r, g, b, a per mark: its cell's way of life
 };
 
-/** Marks across the whole world per year. */
+/** Marks across the whole world at FULL_PEOPLE (about 1900). */
 export const FIRE_BUDGET = 150_000;
+/** World total at which the full budget is used. */
+export const FULL_PEOPLE = 1.6e9;
+
+/** Marks for a world of `total` people: square-root scaled, so a thinly peopled past
+ * looks thin (1 M people: ~3,800 marks of ~260 people each) while every year keeps
+ * enough marks to show where people were. One fire per person at most. */
+export function fireBudget(total: number) {
+  return Math.max(1, Math.round(Math.min(total, FIRE_BUDGET * Math.sqrt(Math.min(1, total / FULL_PEOPLE)))));
+}
 const MAX_PER_CELL = 12;
 const LOG_MAX = Math.log1p(5_000_000);
 /** Fire colour per WayOfLife value. */
@@ -39,7 +50,7 @@ function rng(seed: number) {
   };
 }
 
-export function buildFireMarks(year: number, grid: GridData, budget = FIRE_BUDGET): FireMarks {
+export function buildFireMarks(year: number, grid: GridData, budget = fireBudget(grid.total)): FireMarks {
   const per = Math.max(1, grid.total / budget);
   const n = grid.length;
   const counts = new Uint8Array(n);

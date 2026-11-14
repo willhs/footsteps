@@ -1,5 +1,5 @@
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class { static defaultProps: Record<string, unknown> = {}; } }));
-import { buildFireMarks } from './FireLayer';
+import { buildFireMarks, fireBudget, FIRE_BUDGET } from './FireLayer';
 import { LOOKS, WayOfLife } from '@/lib/waysOfLife';
 import type { GridData } from '../hooks/gridData';
 
@@ -21,4 +21,12 @@ test('each fire takes the colour of its cell\'s way of life', () => {
   for (let i = 0; i < marks.length; i++) seen.add(Array.from(marks.color.slice(i * 4, i * 4 + 3)).join());
   expect(seen).toEqual(new Set(ways.map((w) => LOOKS[w].rgb.join())));
   for (let i = 0; i < marks.length; i++) expect(marks.color[i * 4 + 3]).toBe(255);
+});
+
+test('fewer people make fewer fires, square-root scaled', () => {
+  expect(fireBudget(1.6e9)).toBe(FIRE_BUDGET);
+  expect(fireBudget(5e9)).toBe(FIRE_BUDGET);
+  // 1,600 times fewer people: 40 times fewer fires, each standing for 40 times fewer people
+  expect(fireBudget(1e6)).toBe(Math.round(FIRE_BUDGET / 40));
+  expect(fireBudget(0)).toBe(1);
 });

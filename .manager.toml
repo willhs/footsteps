@@ -1,0 +1,17 @@
+# Manager per-project settings. See manager/docs/design/adr/0015-project-settings-file.md
+#
+# docs_fragments: jobs write docs/log.d/<job-id>.md instead of editing
+# docs/log.md; the land step stitches it in. Every job inserted at the top of
+# log.md, so two jobs conflicted on it by construction (agent-experience scan
+# 2026-11-15, ax-006). There is no docs/index.md, so there is no index.d/.
+docs_fragments = true
+
+# bootstrap: provision the gitignored deps a fresh worktree lacks, once, before
+# the first phase. Without it the poetry venv is empty, footsteps-web has no
+# node_modules or playwright chromium, and data/ (gitignored whole) is absent, so
+# tests that need data/raw/spratt2025 failed and were explained away as
+# pre-existing (agent-experience scan 2026-11-15, ax-005).
+#   data/raw: symlinked from the main checkout (the inputs are read-only and big);
+#             data/tiles and the other outputs stay per-worktree.
+# The 5 minute bootstrap cap applies; a failure is logged and never fails the job.
+bootstrap = "main=$(git worktree list --porcelain | sed -n '1s/^worktree //p'); mkdir -p data && { [ -e data/raw ] || ln -s $main/data/raw data/raw; }; poetry install --no-interaction; pnpm --dir footsteps-web install --frozen-lockfile && pnpm --dir footsteps-web exec playwright install chromium"

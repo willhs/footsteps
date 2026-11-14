@@ -105,6 +105,16 @@ This follows the image's Spratt/Krapp coast and ice overrides at its existing
 resolution. It is a colour-derived mask, not a new exact land classification.
 Modern bed topography is an approximation for past terrain, especially under ice.
 
+**Sharp past coasts (2026-11-14).** From zoom 5 (full by 6.5) the relief layer redraws land
+and sea near the Earth image's coast from the elevation tiles at the year's global sea level
+(`seaLevelAt`, the readout's number): about 2 km per pixel at zoom 6 instead of the image's
+~20 km. Only within ~3 image pixels of a coast; land and sea colours come from the nearby
+image pixels. Guards: ground more than ~60–120 m above sea level never turns image water into
+land (lakes stay); ice is left alone; off when sea level is within ~1.5–4 m of today (polders
+and deltas sit below 0 m, and today's coast gains little); off in the Caspian and Dead Sea
+boxes (inland water below sea level). Modern elevation stands in for past ground: no
+isostasy, sediment or erosion, so it is the global sea level on today's terrain.
+
 Fine, world-anchored grain fades in over zoom 6–8, with derivative filtering to
 avoid subpixel shimmer. Sand/grass/forest-like classes are inferred from era
 colour, **not** a high-resolution biome map; this grain is illustrative and does

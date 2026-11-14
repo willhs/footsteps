@@ -4,6 +4,12 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] add | Sharp past coastlines when zoomed in
+
+`TerrainReliefLayer.ts` redraws land and sea near the coast from the elevation tiles at the year's sea level, from zoom 5.
+Ice-age Corsica–Sardinia and Bass Strait now have crisp shores instead of the 20 km image blur. Guards and limits:
+[terrain images](ops/terrain-images.md#high-zoom-relief-2026-11-14).
+
 ## [2026-11-14] fix | People stay visible close in; time bar scrub you can see; softer way-of-life colours
 
 - Cells under 15 people now hold one whole band/camp/village with probability people ÷ group size (seeded per cell) instead

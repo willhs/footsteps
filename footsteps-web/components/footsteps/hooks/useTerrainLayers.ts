@@ -5,7 +5,8 @@ import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
 import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { TERRAIN_YEARS } from '@/lib/constants';
 import { clampTime, terrainBracket } from '@/lib/time';
-import TerrainReliefLayer from '../layers/TerrainReliefLayer';
+import { seaLevelAt } from '@/lib/climate';
+import TerrainReliefLayer, { TERRAIN_DESATURATE, TERRAIN_TINT } from '../layers/TerrainReliefLayer';
 
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
@@ -16,8 +17,8 @@ const TERRAIN_VERSION = 3;
 const terrainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
-const TINT: [number, number, number] = [230, 230, 235];
-const DESATURATE = 0.1;
+const TINT = TERRAIN_TINT;
+const DESATURATE = TERRAIN_DESATURATE;
 const COAST_COLOUR: [number, number, number, number] = [255, 255, 255, 46];
 
 const bitmaps = new Map<number, ImageBitmap>();
@@ -152,7 +153,7 @@ export default function useTerrainLayers(time: number, enabled: boolean): Layer[
       }),
     );
   }
-  layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f }));
+  layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));
   if (coast.length) {
     layers.push(
       new PathLayer<[number, number][]>({

@@ -27,7 +27,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   Portraits wait for the atlas (up to 2.5 seconds), then keep that illustration;
   late atlas responses cannot replace it. Day requests are scoped to the person.
 - `?mode=units|grid|dots` is a debug override and shows the mode button.
-- `?close3d=1` (prototype): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
+- Close-up 3D (default; `?close3d=0` keeps the map flat): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
   draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
   image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
   placement and size are invented and the screen says so. `@deck.gl/mesh-layers` must stay aliased to its CommonJS

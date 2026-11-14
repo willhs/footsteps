@@ -4,6 +4,11 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-14] update | Close-up 3D on by default
+
+The tilted 3D landscape now shows for everyone from zoom 8 on the flat map; `?close3d=0` keeps it flat. The info
+panel says "3D: ground measured, plants imagined" while it is on (the earlier top-centre note collided with the panels).
+
 ## [2026-11-14] add | Close-up 3D prototype (?close3d=1)
 
 Zoomed in on the flat map, the camera tilts and the ground becomes a 3D landscape (`lib/close3d.ts`,

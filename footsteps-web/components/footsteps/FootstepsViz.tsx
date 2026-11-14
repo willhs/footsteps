@@ -90,7 +90,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  // ?close3d=1 (prototype): zoomed in, the map tilts into a 3D landscape (lib/close3d.ts).
+  // Zoomed in, the map tilts into a 3D landscape (lib/close3d.ts); ?close3d=0 keeps it flat.
   const [close3dOn, setClose3dOn] = useState(false);
   useEffect(() => setClose3dOn(close3dParam(window.location.search)), []);
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
@@ -226,14 +226,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} />}
       {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
-      {close3d && (
-        <div
-          className="absolute left-1/2 top-4 -translate-x-1/2 ov-panel px-3 py-1.5 text-xs pointer-events-none"
-          data-testid="close3d-note"
-        >
-          3D close-up (prototype): relief and coast measured · plants imagined from the biome
-        </div>
-      )}
 
       {/* Data info overlay */}
       <SupportingText
@@ -246,6 +238,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         dotCount={featureCount}
         totalPopulation={renderMode === 'dots' ? totalPopulation : populationAt(time)}
         viewState={viewState}
+        close3d={close3d}
         lodLevel={stableLODLevel}
         lodEnabled={false}
         toggleLOD={() => {}}

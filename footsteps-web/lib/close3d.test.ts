@@ -24,6 +24,7 @@ const heightsOf = (f: (x: number, y: number) => number) => {
 };
 
 test('the flag and the tilt', () => {
+  expect(close3dParam('')).toBe(true);
   expect(close3dParam('?close3d=1')).toBe(true);
   expect(close3dParam('?close3d=0')).toBe(false);
   expect(pitchForZoom(6)).toBe(0);

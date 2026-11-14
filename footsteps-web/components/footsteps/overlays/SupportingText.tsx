@@ -34,6 +34,7 @@ interface Props {
   viewportBounds?: number[] | null; // For debugging viewport optimization
   is3DMode?: boolean; // For debugging which mode is active
   year: number; // Current year being rendered
+  close3d?: boolean; // the tilted 3D close-up is on screen
 }
 
 /** Close in, the map runs on today's clock: the time of day where you are looking. */
@@ -63,6 +64,7 @@ function SupportingText({
   cacheSize,
   progressiveRenderStatus,
   year,
+  close3d = false,
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -259,6 +261,15 @@ function SupportingText({
 
       {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
         <SunTime lon={viewState.longitude} />
+      )}
+      {close3d && (
+        <div
+          className="ov-note mt-0.5"
+          data-testid="close3d-note"
+          title="Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Each plant mark stands for many plants of the year's biome, placed and sized by hand."
+        >
+          3D: ground measured, plants imagined
+        </div>
       )}
 
       {/* Progressive loading feedback */}

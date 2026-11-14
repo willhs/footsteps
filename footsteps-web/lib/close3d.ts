@@ -1,4 +1,4 @@
-// Close-up 3D (prototype, ?close3d=1): zoomed in, the map tilts and the ground becomes a
+// Close-up 3D (on by default, ?close3d=0 turns it off): zoomed in, the map tilts and the ground becomes a
 // landscape. Relief is measured (AWS Terrarium elevation tiles), the coast is the year's sea
 // level (lib/climate.ts), colour is the year's Earth image (terrain_image.py) and the
 // vegetation type follows the year's Krapp biome per 0.5° cell (habitat lookups). Where each
@@ -13,8 +13,9 @@ const CLOSE3D_FULL_ZOOM = 10;
 /** Relief is drawn this many times taller than it is, so hills read from above. */
 export const EXAGGERATION = 1.6;
 
+/** On unless the URL says ?close3d=0. */
 export function close3dParam(search: string): boolean {
-  return new URLSearchParams(search).get('close3d') === '1';
+  return new URLSearchParams(search).get('close3d') !== '0';
 }
 
 /** Camera tilt for a zoom: flat until CLOSE3D_ZOOM, CLOSE3D_PITCH by CLOSE3D_FULL_ZOOM. */

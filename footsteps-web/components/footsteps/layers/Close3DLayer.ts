@@ -1,4 +1,4 @@
-// Close-up 3D landscape (prototype, ?close3d=1): one ground mesh per Terrarium elevation tile,
+// Close-up 3D landscape (default when zoomed in; ?close3d=0 turns it off): one ground mesh per Terrarium elevation tile,
 // coloured and planted from the year's data (lib/close3d.ts), drawn under a tilted camera.
 import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer } from '@deck.gl/geo-layers';

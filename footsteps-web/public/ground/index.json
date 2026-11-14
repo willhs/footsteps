@@ -1,0 +1,28 @@
+{
+ "version": 1,
+ "kind": "imagined",
+ "model": "google/gemini-3.1-flash-lite-image",
+ "promptVersion": 1,
+ "scenes": [
+  "boreal-glacial",
+  "boreal-holocene",
+  "desert-glacial",
+  "desert-holocene",
+  "ice-glacial",
+  "rainforest-holocene",
+  "savanna-farming",
+  "savanna-glacial",
+  "savanna-holocene",
+  "scrub-holocene",
+  "steppe-farming",
+  "steppe-glacial",
+  "steppe-herding",
+  "steppe-holocene",
+  "temperate-forest-farming",
+  "temperate-forest-glacial",
+  "temperate-forest-holocene",
+  "tundra-glacial",
+  "tundra-holocene"
+ ],
+ "bytes": 426896
+}

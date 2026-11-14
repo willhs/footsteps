@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useDebouncedFlag from '@/components/footsteps/hooks/useDebouncedFlag';
 import parseInitialViewState, {
   type ViewState,
@@ -19,14 +19,19 @@ type BasicViewState = {
 };
 
 export default function useGlobeViewState() {
-  // Read optional initial state from URL query on first mount for QA/debug convenience
-  // Example: ?lat=28.6&lon=77.2&zoom=8
+  // Use the same initial state for static HTML and the first client render.
   const [viewState, setViewState] = useState<ViewState>(() =>
-    parseInitialViewState(
-      typeof window !== 'undefined' ? window.location.search : '',
-    ),
+    parseInitialViewState(),
   );
   const viewStateRef = useRef<ViewState>(viewState);
+
+  // Apply optional QA/deep-link state after hydration. Example:
+  // ?lat=28.6&lon=77.2&zoom=8
+  useLayoutEffect(() => {
+    const initial = parseInitialViewState(window.location.search);
+    viewStateRef.current = initial;
+    setViewState(initial);
+  }, []);
 
   const [isZooming, triggerZoom] = useDebouncedFlag(800);
   const [isPanning, triggerPan] = useDebouncedFlag(600);

@@ -16,7 +16,7 @@ const WARM_ROWS: ReadonlySet<CardRow['id']> = new Set(['people', 'life']);
 /**
  * A small card that follows the cursor: the habitat, climate, people and way of life at the
  * slider's year. Each row says whether it is measured or modelled. People are the only warm colour.
- * Rendered only with ?hover=1.
+ * On by default; ?hover=0 turns it off.
  */
 export default function HoverCard({
   point,

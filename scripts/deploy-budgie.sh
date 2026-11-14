@@ -40,7 +40,7 @@ sync_grid() {
     rsync -az --include='bp_*.webp' --include='use_*.webp' --exclude='*' \
       "$ROOT/data/tiles/habitat/" "$REMOTE:$DEST/app/habitat/"
   else
-    echo "warning: no local habitat lookups; ?hover=1 will show no habitat (see docs/ops/habitat-lookup.md)" >&2
+    echo "warning: no local habitat lookups; the hover card will show no habitat (see docs/ops/habitat-lookup.md)" >&2
   fi
   # Hover card animals: 47 small region blocks + species.json (footstep-generator/fauna/export_web.py)
   if [[ -f "$ROOT/data/tiles/fauna/species.json" ]]; then
@@ -48,7 +48,15 @@ sync_grid() {
     rsync -az --include='r_*.json' --include='species.json' --exclude='*' \
       "$ROOT/data/tiles/fauna/" "$REMOTE:$DEST/app/fauna/"
   else
-    echo "warning: no local fauna files; ?hover=1 will show no animals (see docs/ops/fauna.md)" >&2
+    echo "warning: no local fauna files; the hover card will show no animals (see docs/ops/fauna.md)" >&2
+  fi
+  # Dated sites for ?evidence=1 (footstep-generator/evidence/), copied into public/evidence/
+  if compgen -G "$ROOT/footsteps-web/public/evidence/*.json.gz" >/dev/null; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/evidence"
+    rsync -az --include='*.json.gz' --exclude='*' \
+      "$ROOT/footsteps-web/public/evidence/" "$REMOTE:$DEST/app/evidence/"
+  else
+    echo "warning: no footsteps-web/public/evidence; ?evidence=1 will show no sites" >&2
   fi
 }
 if [[ -n "${GRID_ONLY:-}" ]]; then
@@ -70,7 +78,10 @@ fi
 ssh "$REMOTE" "mkdir -p $DEST/app $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/Caddyfile" "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 rsync -az --delete --exclude=__pycache__ "$ROOT/deploy/budgie/api/" "$REMOTE:$DEST/api/"
-rsync -az --delete --exclude=/pmtiles --exclude=/grid --exclude=/terrain "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
+# Data folders synced from data/ (above) or gitignored public/ copies are never deleted
+# by the app sync: a checkout without them must not wipe them on the server.
+rsync -az --delete --exclude=/pmtiles --exclude=/grid --exclude=/terrain --exclude=/prehistory \
+  --exclude=/habitat --exclude=/fauna --exclude=/evidence "$ROOT/footsteps-web/out/" "$REMOTE:$DEST/app/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid
 if [[ -z "${SKIP_TILES:-}" ]]; then

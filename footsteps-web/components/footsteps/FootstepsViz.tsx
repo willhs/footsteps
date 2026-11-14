@@ -39,9 +39,10 @@ function initialRenderMode(): PeopleMode {
   const m = modeParam();
   return PEOPLE_MODES.includes(m as PeopleMode) ? (m as PeopleMode) : DEFAULT_RENDER_MODE;
 }
-// ?hover=1 turns on the hover card (habitat, climate and people under the cursor). Off by default.
+// The hover card (habitat, climate, animals and people under the cursor) is on by default;
+// ?hover=0 turns it off.
 function hoverParam(): boolean {
-  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') === '1';
+  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') !== '0';
 }
 // ?evidence=1 draws dated archaeological sites as cool marks (experiment). Off by default.
 function evidenceParam(): boolean {

@@ -6,14 +6,14 @@ purpose: "Sources, encoding, regeneration and limits of the hover card's habitat
 
 # Habitat lookup (the hover card)
 
-`?hover=1` on the web map shows a small card that follows the cursor: what that spot
+The web map shows a small card that follows the cursor: what that spot
 was like at the slider's year. It is off by default. Desktop only (a precise pointer that
 can hover), never while a mouse button is down, and one update per animation frame. It is
 also hidden while the view zooms or pans, and re-aimed when it settles.
 
 `footstep-generator/habitat_lookup.py` packs the data it needs, per 0.5° cell, into small
 lossless WebPs under `data/tiles/habitat/` (gitignored, served at `/habitat/`). Nothing is
-fetched until the cursor first rests on the map with `?hover=1`.
+fetched until the cursor first rests on the map (`?hover=0` turns the card off).
 
 ## What the card says, and what kind of claim each line is
 

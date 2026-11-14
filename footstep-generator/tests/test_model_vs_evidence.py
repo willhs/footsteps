@@ -25,12 +25,12 @@ def test_region_assignment_is_the_models_rule():
     assert (mine == theirs[rows.ravel(), cols.ravel()]).all()
 
 
-def test_first_match_means_africa_box_takes_the_levant():
-    """Documents the finding in research 0009: africa is listed before levant_arabia."""
+def test_levant_override_precedes_africa_on_the_evidence_side():
+    """Evidence and regenerated people must use the corrected Levant region."""
     regions = mve.load_regions()
     ids = [r.id for r in regions]
     jerusalem = mve.assign(regions, np.array([31.8]), np.array([35.2]))[0]
-    assert ids[jerusalem] == "africa"
+    assert ids[jerusalem] == "levant_arabia"
 
 
 def test_date_bin_mass_sums_to_one_inside_the_bins_and_splits_intervals():

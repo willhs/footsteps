@@ -181,6 +181,7 @@ def evidence_curves(d: pd.DataFrame, n_regions: int, centres: np.ndarray) -> dic
 
 
 CHECKPOINTS = [  # (place, lon, lat): where a reader would expect a region, and what the box rule gives
+    ("Sicily", 15.1, 36.7), ("Managua, Nicaragua", -86.3, 12.1), ("Ust'-Ishim", 71.2, 57.7),
     ("Jerusalem", 35.2, 31.8), ("Ucagizli Cave, Hatay", 36.1, 36.2), ("Riyadh", 46.7, 24.7), ("Tehran", 51.4, 35.7),
     ("Lhasa", 91.1, 29.7), ("Xiahe, Gansu", 102.5, 35.0), ("Qinghai Lake", 100.0, 37.0), ("Kunming", 102.7, 25.0),
     ("Guilin", 110.3, 25.3), ("Yuchanyan, Hunan", 111.4, 25.5), ("Beijing", 116.4, 40.0), ("Fukuoka, Kyushu", 130.4, 33.6),
@@ -240,7 +241,7 @@ def intended_box_series(d: pd.DataFrame, centres: np.ndarray) -> list[dict]:
 
 
 def japan_country(d: pd.DataFrame) -> dict:
-    """Evidence for the Japanese islands proper (by p3k14c country), since the `japan` box also holds the Russian Far East."""
+    """Evidence for all Japanese islands by country, across their separate arrival boxes."""
     g = d[d.country == "Japan"]
     top = g.sort_values("cal_median", ascending=False).drop_duplicates("site_id").head(3)
     return {"dates": int(len(g)), "sites": int(g.site_id.nunique()),

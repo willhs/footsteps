@@ -7,6 +7,11 @@ date: 2026-11-14
 
 # The modelled population against radiocarbon evidence, region by region
 
+**Update, 2026-11-14:** the original analysis and tables below record the pre-fix baseline.
+P1, P2 and P4 have now been applied, together with P9's post-blur arrival mask (not its HYDE-blend
+change). The **After the region corrections** section reports the regenerated state; `results.json`
+and all five charts now use that state. The original findings remain here as the before comparison.
+
 ## Question
 
 [Research 0002](../0002-pre-hyde-population-model/research.md) built the pre-HYDE people (`prehistory_population.py`, arrival table `prehistory/arrivals.yaml`): productivity × dispersal, scaled to a published world curve. [Research 0003](../0003-p3k14c-earliest-dates-by-region/research.md) ingested p3k14c and listed the earliest dates. For each of the 20 arrival-table regions, from about 50 ka BP to the hand-over to HYDE: does the modelled population have the same **timing** and **relative shape** as the dated sites, and where does it not? This note proposes model changes; **it changes nothing in the model.**
@@ -167,7 +172,9 @@ Chart 1 compares each region's share of the world, model against evidence. The t
 
 ## Proposed model changes
 
-None have been applied. Each says what to change, why, the confidence, and what would settle it.
+These proposals were written against the original baseline. P1, P2 and P4 are now applied; P9's
+arrival-mask part is also applied. All other proposals remain unchanged. Each says what to change,
+why, the confidence, and what would settle it.
 
 | # | Change | Evidence | Confidence | Effect |
 |---|---|---|---|---|
@@ -183,6 +190,62 @@ None have been applied. Each says what to change, why, the confidence, and what 
 | P10 | **Get evidence that can test the unconstrained rows.** ROAD (CC BY-SA; Africa and Eurasia 3 Ma-20 ka) for south Asia, Levant, Siberia and the Altai; AustArch (Australia, plus Pleistocene sites) or the literature for Sahul; the Niah and Tam Pa Ling papers for Island/mainland Southeast Asia (which also resolves the 70 ka date). Add a hominin attribution column so Neanderthal sites stop counting. | Sections 2, 3 | n/a | Needed before any of P3, P4, or P5's non-European weights can be tightened |
 
 Ordering by value: P1 and P2 are bugs against the table's own text and should go first; P5 changes the story the map tells at the glacial maximum, for west Europe; P3 and P4 are the best-supported date changes; P6, P8 and P9 are tuning.
+
+## After the region corrections (2026-11-14)
+
+Regenerated all **90** modelled images, 100,000–11,000 BCE, with `prehistory_population.py --verify`;
+10,000 BCE remains the separate measured HYDE image. Both totals files were rewritten and are
+byte-for-byte unchanged: regional placement changes, world curve scaling and low/high ranges do not.
+Re-ran `model_vs_evidence.py` with the same 151,732 qualifying dates. All charts and `results.json`
+now use 27 ordered region boxes. The tables above remain the original baseline.
+
+| Checkpoint | Before | After | Central arrival ka BP |
+|---|---|---|---|
+| Jerusalem | `africa` | `levant_arabia` | 50 |
+| Riyadh | `africa` | `south_arabia` | 50 |
+| Lhasa | `south_asia` | `tibetan_plateau` | 38 |
+| Fukuoka, Kyushu | `east_asia` | `japan` | 38 |
+| Sapporo | `japan` | `japan_hokkaido` | 38 |
+| Vladivostok | `east_asia` | `east_asia_far_east` | 42 |
+| Ust'-Ishim | `not previously sampled` | `siberia_arctic` | 40 |
+| Gibraltar | `africa` | `europe_south_iberia` | 45 |
+| Sicily | `not previously sampled` | `europe_sicily` | 45 |
+| Tegucigalpa, Honduras | `pacific_remote` | `central_america` | 16 |
+| Managua, Nicaragua | `not previously sampled` | `central_america` | 16 |
+
+Japan uses separate Honshu/Kyushu/Shikoku, Hokkaido and Ryukyu boxes; an explicit continental
+Far East box prevents nearest-box assignment of Sakhalin back to Japan. Honduras/Nicaragua use
+North America's 16 ka date. Levant early-exit pulses remain the documented, unused alternative;
+the central run models continuous occupation from 50 ka BP.
+
+| Region | Central / ramp ka | Model first ≥2% of peak, ka BP | Evidence onset, ka BP | Ever-populated cells before blend |
+|---|---|---|---|---|
+| `levant_arabia` | 50 / 3 | 48.95 | 42.95 | 885 |
+| `south_arabia` | 50 / 3 | 48.95 | none | 869 |
+| `tibetan_plateau` | 38 / 8 | 37.95 | none | 1026 |
+| `japan` | 38 / 3 | 37.95 | none | 176 |
+| `japan_hokkaido` | 38 / 3 | 37.95 | none | 56 |
+| `japan_ryukyu` | 38 / 3 | 37.95 | none | 54 |
+| `siberia_arctic` | 40 / 8 | 37.95 | 40.95 | 613 |
+
+Tibet now owns populated cells (previously **0**, now **1,026** before the blend). Siberia's
+central arrival/ramp is **40 / 8 ka**, with early 45 and late 28 unchanged. Its ≥2%-of-peak onset
+is 37.95 ka BP, later than the table's first nonzero ramp stage because habitat and peak size matter.
+West Europe's LGM model ratio is still **1.49**, against **0.87 raw / 0.55 corrected** evidence:
+P5's shape disagreement remains, and no regional multiplier was added.
+
+The first checkpoint population checks after reordering still found blur leakage at Jerusalem
+(1.93 synthetic people at 50,000 BCE). Clamping the blurred mask to cells after their arrival
+eliminates that leak in every pure-model image. This applies only P9's arrival-mask part;
+late-island leakage from the subsequent HYDE blend remains a separate proposal.
+The dependent anthropology atlas's `deep` section was also regenerated so its region indices,
+dates and population summaries agree with the images; its other sections are unchanged.
+
+Browser verification covers 100,000, 50,000 and 30,000 BCE, plus 28,000 BCE after Tibet's full
+ramp (30,000 BCE = 31.95 ka BP is still in the ramp). The reproducible browser check is
+`footsteps-web/scripts/verify-prehistory-arrivals.mjs`: it reads served WebP levels and captures
+Jerusalem/Lhasa views, plus Units and Dots. Existing deep-link hydration warnings are retained in
+its report; the arrival checks do not change that frontend issue.
 
 ## What we don't know
 

@@ -388,3 +388,11 @@ def test_committed_deep_section_has_one_row_per_era_in_every_cell():
         assert all(0 <= i <= 100 for i in cell["ice"])
         for sid, last_ka, count in cell.get("fauna", []):
             assert 0 <= sid < len(DEEP["species"]) and 0 <= last_ka <= 102 and 3 <= count <= 25
+
+
+def test_committed_deep_regions_follow_the_arrival_table():
+    """The API's stored region indices must refer to the same ordered table as the people model."""
+    fields = ("id", "bbox", "arrival_ka_bp")
+    assert [{k: r[k] for k in fields} for r in DEEP["regions"]] == [
+        {k: r[k] for k in fields} for r in ARRIVALS["regions"]
+    ]

@@ -40,6 +40,46 @@ regions:
     source: "Wilson 2007 / Napolitano et al. 2019 Sci Adv 5:eaar7806 (earliest Antillean sites ~7-6 ka) -- memory."
     notes: "After the model window, so empty throughout. Placed before `north_america`, whose box would otherwise populate it from 16 ka."
 
+  - id: levant_arabia
+    name: Levant, Mesopotamia and north Arabia (early, non-lasting exits)
+    bbox: [34, 29, 60, 38]
+    arrival_ka_bp: {central: 50, early: 120, late: 47}
+    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+    ramp_ka: 3
+    verification: memory
+    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
+    notes: "Central date is the start of continuous occupation tied to the main exit. Early date is the first pulse."
+
+  - id: south_arabia
+    name: South Arabia
+    bbox: [41, 12, 60, 29]
+    arrival_ka_bp: {central: 50, early: 120, late: 47}
+    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+    ramp_ka: 3
+    verification: memory
+    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
+    notes: "Same continuous-occupation date as the Levant. Separate box keeps northeast Africa in Africa; early-exit pulses remain an unused alt scenario."
+
+  - id: europe_south_iberia
+    name: Southern Iberia
+    bbox: [-10, 35, -1, 37]
+    arrival_ka_bp: {central: 45, early: 54, late: 41}
+    alt: {ka_bp: 54, note: "Grotte Mandrin, France, a sapiens-attributed tooth and Neronian layer at ~54 ka (Slimak et al. 2022 Sci Adv 8:eabj9496); a short pulse that did not persist."}
+    ramp_ka: 3
+    verification: checked
+    source: "Hajdinjak et al. 2021 Nature 592:253 (Bacho Kiro IUP, 45.9-42.6 ka, confirmed in this pass); Fu et al. 2014 Nature 514:445 (Ust'-Ishim ~45 ka); Higham et al. 2014 Nature 512:306 (Neanderthal end 41.0-39.3 ka cal BP, Uluzzian overlap 2.6-5.4 ka, confirmed)."
+    notes: "European date override before the Africa box; not evidence of African occupation in Iberia."
+
+  - id: europe_sicily
+    name: Sicily
+    bbox: [12, 36, 16, 38]
+    arrival_ka_bp: {central: 45, early: 54, late: 41}
+    alt: {ka_bp: 54, note: "Grotte Mandrin, France, a sapiens-attributed tooth and Neronian layer at ~54 ka (Slimak et al. 2022 Sci Adv 8:eabj9496); a short pulse that did not persist."}
+    ramp_ka: 3
+    verification: checked
+    source: "Hajdinjak et al. 2021 Nature 592:253 (Bacho Kiro IUP, 45.9-42.6 ka, confirmed in this pass); Fu et al. 2014 Nature 514:445 (Ust'-Ishim ~45 ka); Higham et al. 2014 Nature 512:306 (Neanderthal end 41.0-39.3 ka cal BP, Uluzzian overlap 2.6-5.4 ka, confirmed)."
+    notes: "European date override before the Africa box; the land mask selects the island."
+
   - id: africa
     name: Africa (sub-Saharan, Maghreb, Nile valley)
     bbox: [-20, -35, 52, 37]
@@ -49,15 +89,45 @@ regions:
     source: "Hublin et al. 2017 Nature 546:289 (Jebel Irhoud ~315 ka, 'earliest H. sapiens'); Richter et al. 2017 Nature 546:293. Whole region occupied for the entire model window."
     notes: "Present from before the model start (100 ka BP). Treated as populated throughout."
 
-  - id: levant_arabia
-    name: Levant and Arabian Peninsula (early, non-lasting exits)
-    bbox: [32, 12, 60, 38]
-    arrival_ka_bp: {central: 50, early: 120, late: 47}
-    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+  - id: tibetan_plateau
+    name: Tibetan Plateau (>3,000 m)
+    bbox: [78, 27, 104, 36]
+    arrival_ka_bp: {central: 38, early: 160, late: 30}
+    alt: {ka_bp: 160, note: "The Xiahe mandible (Denisovan, >=160 ka) shows hominin presence, not H. sapiens. Sapiens on the plateau: Nwya Devu ~40 ka (Zhang et al. 2018 Science 362:1049, memory); Chusang handprints 226-169 ka revised to ~20 ka."}
+    ramp_ka: 8
+    verification: memory
+    source: "Chen et al. 2019 Nature 569:409 (Xiahe, confirmed); Zhang et al. 2018 Science 362:1049 (Nwya Devu, memory)."
+    notes: "Slow ramp: high-altitude hypoxia and cold. Central is for sapiens; the Denisovan record is under other_hominins."
+
+  - id: japan
+    name: Japan (Honshu, Kyushu and Shikoku)
+    bbox: [129.5, 30, 142, 41.5]
+    arrival_ka_bp: {central: 38, early: 38, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
     ramp_ka: 3
     verification: memory
-    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
-    notes: "Central date is the start of continuous occupation tied to the main exit. Early date is the first pulse."
+    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
+    notes: "Central 38 ka is the tool-based figure from the research note; bones imply 36-32 ka."
+
+  - id: japan_hokkaido
+    name: Japan (Hokkaido)
+    bbox: [139.5, 41.5, 146, 45.5]
+    arrival_ka_bp: {central: 38, early: 38, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    ramp_ka: 3
+    verification: memory
+    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
+    notes: "Same dates as the main Japanese islands; separate box excludes Primorye and Sakhalin."
+
+  - id: japan_ryukyu
+    name: Japan (Ryukyu)
+    bbox: [123, 24, 130, 30]
+    arrival_ka_bp: {central: 38, early: 38, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    ramp_ka: 3
+    verification: memory
+    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
+    notes: "Same dates as the main Japanese islands; separate southern island chain box."
 
   - id: south_asia
     name: South Asia (India, Sri Lanka, Pakistan, Nepal)
@@ -130,12 +200,22 @@ regions:
   - id: siberia_arctic
     name: Northern Siberia and the Arctic fringe
     bbox: [60, 56, 180, 78]
-    arrival_ka_bp: {central: 32, early: 45, late: 28}
+    arrival_ka_bp: {central: 40, early: 45, late: 28}
     alt: {ka_bp: 45, note: "Early dates (Mamontovaya Kurya ~40 ka, Pitulko et al. 2016 Quat Sci Rev) are weakly supported."}
+    ramp_ka: 8
+    verification: checked
+    source: "Fu et al. 2014 Nature 514:445 (Ust'-Ishim, 43-47 ka, confirmed in the original table); Pitulko et al. 2004 Science 303:52 (Yana RHS, ~70 N, before the LGM); Sikora et al. 2019 Nature 570:182 (Yana RHS 31.6 ka cal BP, confirmed in this pass)."
+    notes: "Central 40 ka with a slow 8 ka ramp: Ust'-Ishim lies in this box; Yana marks dense occupation, not the first person. Occupation likely retreated south in the coldest stretch; handled by the cold limit in habitat_rules, not by the arrival date."
+
+  - id: east_asia_far_east
+    name: East Asia (Primorye and Sakhalin)
+    bbox: [130, 41.5, 150, 56]
+    arrival_ka_bp: {central: 42, early: 80, late: 38}
+    alt: {ka_bp: 80, note: "Daoxian, Hunan (Liu et al. 2015 Nature 526:696, 80-120 ka) -- widely doubted as secure sapiens attribution to the date."}
     ramp_ka: 4
     verification: checked
-    source: "Pitulko et al. 2004 Science 303:52 (Yana RHS, ~70 N, before the LGM); Sikora et al. 2019 Nature 570:182 (Yana RHS 31.6 ka cal BP, confirmed in this pass)."
-    notes: "Occupation likely retreated south in the coldest stretch; handled by the cold limit in habitat_rules, not by the arrival date."
+    source: "Fu et al. 2013 PNAS 110:2223 (Tianyuan, ~40 ka, confirmed in this pass)."
+    notes: "Continental East Asian dates outside the earlier Hokkaido override. Explicit coverage prevents nearest-box assignment back to Japan."
 
   - id: east_asia
     name: East Asia (China, Korea, Mongolia south of 50 N)
@@ -147,26 +227,6 @@ regions:
     source: "Fu et al. 2013 PNAS 110:2223 (Tianyuan, ~40 ka, confirmed in this pass)."
     notes: "40 ka is first securely dated and genomic, not first occupation; probably earlier via the South/Southeast Asian route."
 
-  - id: japan
-    name: Japanese archipelago (Honshu, Kyushu, Shikoku, Hokkaido, Ryukyu)
-    bbox: [122, 24, 146, 46]
-    arrival_ka_bp: {central: 38, early: 38, late: 32}
-    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
-    ramp_ka: 3
-    verification: memory
-    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
-    notes: "Central 38 ka is the tool-based figure from the research note; bones imply 36-32 ka."
-
-  - id: tibetan_plateau
-    name: Tibetan Plateau (>3,000 m)
-    bbox: [78, 27, 104, 36]
-    arrival_ka_bp: {central: 38, early: 160, late: 30}
-    alt: {ka_bp: 160, note: "The Xiahe mandible (Denisovan, >=160 ka) shows hominin presence, not H. sapiens. Sapiens on the plateau: Nwya Devu ~40 ka (Zhang et al. 2018 Science 362:1049, memory); Chusang handprints 226-169 ka revised to ~20 ka."}
-    ramp_ka: 8
-    verification: memory
-    source: "Chen et al. 2019 Nature 569:409 (Xiahe, confirmed); Zhang et al. 2018 Science 362:1049 (Nwya Devu, memory)."
-    notes: "Slow ramp: high-altitude hypoxia and cold. Central is for sapiens; the Denisovan record is under other_hominins."
-
   - id: beringia
     name: Beringia (Chukotka, Alaska, exposed shelf)
     bbox: [-170, 55, -140, 72]
@@ -176,6 +236,16 @@ regions:
     verification: memory
     source: "Moreno-Mayar et al. 2018 Nature 553:203; Bourgeon et al. 2017 -- both from memory."
     notes: "Treated as a staging area before the Americas."
+
+  - id: central_america
+    name: Honduras and Nicaragua
+    bbox: [-90, 10, -83, 17.5]
+    arrival_ka_bp: {central: 16, early: 23, late: 14.5}
+    alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
+    ramp_ka: 3
+    verification: checked
+    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry, Idaho, ~16 ka, memory); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
+    notes: "North American arrival and ramp extended through Honduras and Nicaragua; prevents assignment to the late-settled Pacific catch-all."
 
   - id: north_america
     name: North America (south of the ice, plus Mexico)

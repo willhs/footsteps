@@ -87,6 +87,30 @@ def test_every_cell_has_a_region_and_known_places_land_in_the_right_one():
     assert region(19, -155) == "pacific_remote"  # Hawaii
 
 
+@pytest.mark.parametrize("place,lat,lon,expected", [
+    ("Jerusalem", 31.8, 35.2, "levant_arabia"),
+    ("Riyadh", 24.7, 46.7, "south_arabia"),
+    ("Cairo", 30.0, 31.2, "africa"),
+    ("Lhasa", 29.7, 91.1, "tibetan_plateau"),
+    ("Xiahe", 35.0, 102.5, "tibetan_plateau"),
+    ("Kyushu", 33.6, 130.4, "japan"),
+    ("Sapporo", 43.1, 141.3, "japan_hokkaido"),
+    ("Okinawa", 26.2, 127.7, "japan_ryukyu"),
+    ("Vladivostok", 43.1, 132.0, "east_asia_far_east"),
+    ("Sakhalin", 47.0, 142.7, "east_asia_far_east"),
+    ("Ust'-Ishim", 57.7, 71.2, "siberia_arctic"),
+    ("Gibraltar", 36.1, -5.4, "europe_south_iberia"),
+    ("Sicily", 36.7, 15.1, "europe_sicily"),
+    ("Honduras", 14.1, -87.2, "central_america"),
+    ("Nicaragua", 12.1, -86.3, "central_america"),
+])
+def test_arrival_checkpoint_regions(place, lat, lon, expected):
+    regions = TABLE["regions"]
+    idx = pp.assign_regions([r["bbox"] for r in regions])
+    row, col = int((90 - lat) / pp.CELL_DEG), int((lon + 180) / pp.CELL_DEG)
+    assert regions[idx[row, col]]["id"] == expected, place
+
+
 def test_coast_and_ecotone_flags():
     land = np.zeros((6, 8))
     land[1:5, 1:7] = 1.0
@@ -128,6 +152,18 @@ def test_each_step_matches_the_curve_before_the_handover(model, year):
     assert s.hyde_weight == 0
     assert s.people.sum() == pytest.approx(pp.world_totals(year).central, rel=1e-9)
     assert s.totals.central == pytest.approx(s.people.sum(), rel=1e-9)
+
+
+@pytest.mark.parametrize("lat,lon,before,after", [
+    (31.8, 35.2, -50_000, -40_000),
+    (29.7, 91.1, -40_000, -28_000),
+    (33.6, 130.4, -40_000, -30_000),
+    (57.7, 71.2, -40_000, -36_000),
+])
+def test_checkpoint_people_appear_after_their_arrival(model, lat, lon, before, after):
+    cell = int((90 - lat) / pp.CELL_DEG), int((lon + 180) / pp.CELL_DEG)
+    assert model.step(before).people[cell] == 0
+    assert model.step(after).people[cell] > 0
 
 
 def test_only_africa_is_populated_at_100_ka(model):

@@ -367,7 +367,9 @@ class Model:
     def step(self, year: int) -> Step:
         potential, _ = self.potential_and_climate(year)
         occ = occupancy(age_ka(year), self.arrival[self.region_index], self.ramp_ka[self.region_index])
-        occ = np.clip(terrain_image.blur(occ, EDGE_BLUR_CELLS), 0.0, 1.0)
+        arrived = occ > 0
+        # Soften density within occupied regions without leaking across an arrival frontier.
+        occ = np.where(arrived, np.clip(terrain_image.blur(occ, EDGE_BLUR_CELLS), 0.0, 1.0), 0.0)
         raw = potential * occ
         if raw.sum() <= 0:
             raise ValueError(f"{year}: nobody can live anywhere in the model")

@@ -70,7 +70,12 @@ For each slider year (BP = 1950 − year), on the 0.5° grid of Krapp and Beyer 
    exposed at low sea level counts as land.
 6. **Who was there.** Each cell belongs to the first `arrivals.yaml` region whose box holds its
    centre, else the nearest box. Density ramps 0 → 1 over `ramp_ka` after the region's central arrival
-   date (`ramp_ka` 0 is a step). The mask is blurred by 1.5 cells so box edges are not rulers.
+   date (`ramp_ka` 0 is a step). The mask is blurred by 1.5 cells so box edges are not rulers,
+   then zeroed in cells whose region has not arrived. Smoothing must not create an early arrival.
+   Specific boxes precede their continental boxes: Levant/north Arabia and south Arabia before Africa,
+   southern Iberia/Sicily before Africa, Tibet before South/East Asia, and the Japanese island boxes
+   before East Asia. Primorye/Sakhalin explicitly use continental East Asian dates; Honduras/Nicaragua
+   use North America's dates. Siberia's central onset is 40 ka BP with an 8 ka ramp (research 0009 P4).
 7. **Scale.** One multiplier per step so the world total equals the central curve below.
 8. **Hand-over.** `weight = clip((year + 14000) / 4000, 0, 1)`; each cell is
    `(1 − weight) · model + weight · HYDE`, with HYDE's 10,000 BCE people summed 6 × 6 to 0.5°.
@@ -131,6 +136,11 @@ confidence interval. Every figure marked secondhand or synthesis needs its paper
 - **NPP fit transfer.** Trained on recent foragers at present-day CO₂. No CO₂ term, no biodiversity or pathogen term.
 - **Not compared yet** with Timmermann & Friedrich 2016 (CC BY-NC); research 0002 step 7.
 - Sea-level uncertainty (±5 m) and Krapp's 0.5° land mask make coasts soft; exposed shelf is only as good as Krapp's mask.
+
+Arrival-mask clamping does not alter the HYDE hand-over: after 14,000 BCE the blend can still put
+people in late-settled islands (research 0009 P9's separate blend issue). The world curve and counter
+ranges are unchanged by the region corrections. A full run rewrites both copies of `totals.json`
+with the same values. The default interval has **90** images; 10,000 BCE is the separate measured HYDE image.
 
 ## Sources
 

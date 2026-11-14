@@ -117,7 +117,9 @@ def test_pack_landuse_means_each_block():
 
 def test_smoke_checks_every_step():
     smoke = (ROOT / "scripts/smoke.sh").read_text()
-    assert f"seq 0 {hl.MAX_KA}" in smoke and "habitat/bp_" in smoke and "habitat/use_" in smoke
+    # The full smoke walks every step; --quick narrows HABITAT_LAST_BP to 0.
+    assert f"HABITAT_LAST_BP={hl.MAX_KA}" in smoke and "seq 0 $HABITAT_LAST_BP" in smoke
+    assert "habitat/bp_" in smoke and "habitat/use_" in smoke
 
 
 @pytest.mark.skipif(not HAVE_INPUTS, reason="needs data/raw krapp2021 and beyer2020")

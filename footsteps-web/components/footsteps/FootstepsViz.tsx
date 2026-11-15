@@ -239,7 +239,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
-          const person = info.layer?.id === 'people' ? (info.object as Person | undefined) : undefined;
+          const person = info.layer?.id?.startsWith('people') ? (info.object as Person | undefined) : undefined;
           setSelectedPerson(person ?? null);
           const group = info.object as { kind: number; people: number } | undefined;
           setSelectedGroup(!person && group && typeof group.kind === 'number' ? group : null);

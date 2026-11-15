@@ -20,8 +20,8 @@ import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
 import {
   PeopleLayer,
-  peopleForGroups,
-  type GroupInView,
+  peopleForMorph,
+  type MorphGroupInView,
 } from '../layers/people';
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
@@ -293,28 +293,32 @@ export default function useGridLayer({
   const boundsKey = bounds
     ? [bounds.west, bounds.south, bounds.east, bounds.north].map(snap).join()
     : '';
-  const peopleAtTarget = morphProgress >= 0.5;
   const people = useMemo(() => {
     if (!peopleOn || !morphScene || !bounds) return null;
     const pad = 0.05;
     const { west, south, east, north } = bounds;
     const pos = morphScene.data.attributes.getPosition.value;
-    const { kind } = morphScene.data.info;
-    const counts = peopleAtTarget
-      ? morphScene.data.info.people
-      : morphScene.data.info.fromPeople;
-    const groups: GroupInView[] = [];
+    const { kind, people: to, fromPeople: from } = morphScene.data.info;
+    const groups: MorphGroupInView[] = [];
     for (let i = 0; i < kind.length; i++) {
       const lon = pos[i * 2];
       const lat = pos[i * 2 + 1];
       if (lon < west - pad || lon > east + pad || lat < south - pad || lat > north + pad) continue;
-      if (counts[i] > 0) groups.push({ lon, lat, kind: kind[i], people: counts[i] });
+      if (from[i] > 0 || to[i] > 0) groups.push({ lon, lat, kind: kind[i], from: from[i], to: to[i] });
     }
-    return peopleForGroups(groups);
+    return peopleForMorph(groups);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleOn, morphScene, boundsKey, peopleAtTarget]);
-  const peopleLayer = useMemo(
-    () => (people ? new PeopleLayer({ id: 'people', data: people }) : null),
+  }, [peopleOn, morphScene, boundsKey]);
+  // Three layers share the people; only their opacity follows the year fraction, so
+  // scrubbing changes uniforms and never rebuilds them. A group's people at both
+  // years stay put; the ones that leave or arrive fade out or in.
+  const peopleLayers = useMemo(
+    () =>
+      people
+        ? (['steady', 'leaving', 'entering'] as const).map(
+            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: people[part] }),
+          )
+        : [],
     [people],
   );
   const cityLayers = useMemo(() => {
@@ -342,14 +346,12 @@ export default function useGridLayer({
               }),
             ]
           : []),
-        ...(peopleLayer
-          ? [
-              peopleLayer.clone({
-                opacity: blend.people,
-                visible: blend.people > 0,
-              }),
-            ]
-          : []),
+        ...peopleLayers.map((layer, part) =>
+          layer.clone({
+            opacity: blend.people * (part === 0 ? 1 : part === 1 ? 1 - morphProgress : morphProgress),
+            visible: blend.people > 0 && (part === 0 || (part === 1 ? morphProgress < 1 : morphProgress > 0)),
+          }),
+        ),
       ];
     }
     const markList = layers.map(({ snapshot, layer }) => {
@@ -382,7 +384,7 @@ export default function useGridLayer({
     unitsContinuous,
     morphLayer,
     morphProgress,
-    peopleLayer,
+    peopleLayers,
     blend.people,
     layers,
     frames,

@@ -7,7 +7,7 @@ import type { Units } from '../layers/units';
 jest.mock('../layers/cityLayers', () => ({ __esModule: true, cityLayers: () => [] }));
 jest.mock('../layers/people', () => ({
   __esModule: true,
-  peopleForGroups: () => [],
+  peopleForMorph: () => ({ steady: [], leaving: [], entering: [] }),
   PeopleLayer: class {
     props: Record<string, unknown>;
     constructor(props: Record<string, unknown>) {

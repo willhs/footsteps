@@ -1,6 +1,6 @@
 // Generation only; the layer class needs WebGL and is not imported here.
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
-import { describePerson, peopleForGroups, MAX_PER_GROUP } from './people';
+import { describePerson, peopleForGroups, peopleForMorph, MAX_PER_GROUP } from './people';
 import { UnitKind } from './units';
 
 describe('people from head counts', () => {
@@ -68,5 +68,51 @@ describe('people from head counts', () => {
     const d = describePerson(peopleForGroups([band])[0]);
     expect(d.title).toMatch(/^(A girl|A boy|A woman|A man), about \d+$/);
     expect(d.detail).toMatch(/in a band of about 31 people\.$/);
+  });
+});
+
+describe('people between two data years', () => {
+  const at = { lon: 35.5, lat: 32.1 };
+  const count = (m: ReturnType<typeof peopleForMorph>) => [m.steady, m.leaving, m.entering].map((p) => p.length);
+  const key = (p: { position: [number, number]; age: number }) => `${p.position}|${p.age}`;
+
+  it('keeps the people a group already has when it grows or shrinks; only the difference fades', () => {
+    const grow = peopleForMorph([{ ...at, kind: UnitKind.Band, from: 40, to: 100 }]);
+    expect(count(grow)).toEqual([40, 0, 60]);
+    const shrink = peopleForMorph([{ ...at, kind: UnitKind.Band, from: 100, to: 40 }]);
+    expect(count(shrink)).toEqual([40, 60, 0]);
+    // the same 40 stand in the same places whichever way the years run
+    expect(grow.steady.map(key)).toEqual(shrink.steady.map(key));
+    // ...and are the first 40 of the larger group
+    expect(peopleForGroups([{ ...at, kind: UnitKind.Band, people: 100 }]).slice(0, 40).map(key)).toEqual(
+      grow.steady.map(key),
+    );
+  });
+
+  it('cross-fades a way-of-life change: the old kind leaves, the new kind enters', () => {
+    const change = peopleForMorph([
+      { ...at, kind: UnitKind.Band, from: 30, to: 0 },
+      { ...at, kind: UnitKind.Village, from: 0, to: 300 },
+    ]);
+    expect(count(change)).toEqual([0, 30, 160]);
+    expect(change.leaving.every((p) => p.groupKind === UnitKind.Band)).toBe(true);
+    expect(change.entering.every((p) => p.groupKind === UnitKind.Village)).toBe(true);
+  });
+
+  it('draws a group dropping below the sparse threshold as leaving, never as a pop', () => {
+    expect(count(peopleForMorph([{ ...at, kind: UnitKind.Band, from: 30, to: 5 }]))).toEqual([0, 30, 0]);
+  });
+
+  it('at either end of the year fraction shows exactly the people of that year', () => {
+    const groups = [
+      { ...at, kind: UnitKind.Band, from: 40, to: 100 },
+      { lon: 31.2, lat: 30, kind: UnitKind.Village, from: 0, to: 600 },
+      { lon: 10, lat: 50, kind: UnitKind.Camp, from: 90, to: 0 },
+    ];
+    const m = peopleForMorph(groups);
+    const early = peopleForGroups(groups.map((g) => ({ ...g, people: g.from })));
+    const late = peopleForGroups(groups.map((g) => ({ ...g, people: g.to })));
+    expect(m.steady.length + m.leaving.length).toBe(early.length);
+    expect(m.steady.length + m.entering.length).toBe(late.length);
   });
 });

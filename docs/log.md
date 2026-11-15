@@ -4,6 +4,12 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] update | People fade between data years; kind changes already cross-faded
+
+Checked "marks pop when a cell's way of life changes between data years": the continuous-time Units morph (`unitMorph.ts`) already handles it. A kind change gives different mark ids (kind slot is in the id), so the old kind fades out and the new one fades in over the year fraction, the glow/village urban threshold included. Browser frame diffs at world, Europe and zoom 9 (6000 BCE to 1900) show no step at data-year boundaries. Population totals are untouched (1300 CE still 468M).
+
+The one hard switch left was the street-level people layer (zoom 11.5+): it swapped the `fromPeople` set for the `people` set at year fraction 0.5. `peopleForMorph` (`layers/people.ts`) now splits the people into steady, leaving and entering sets (person i never depends on the group's size, so a group that grows keeps the people it had), drawn as three `PeopleLayer`s whose opacity follows the fraction (`hooks/useGridLayer.ts`). Evidence: the job workspace `evidence/` folder (not committed). Separate, pre-existing: in the tilted 3D close-up at zoom 13 no people draw at all (same on eeecb90).
+
 ## [2026-11-15] create | Live day/night and seasonal settlement scenarios
 
 Added an off-by-default day/night control with live mean-solar shading across map,

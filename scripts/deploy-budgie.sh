@@ -81,7 +81,7 @@ if [[ -n "${API_ONLY:-}" ]]; then
   exit 0
 fi
 
-ssh "$REMOTE" "mkdir -p $DEST/app/grid $DEST/app/terrain $DEST/app/habitat $DEST/app/fauna $DEST/app/evidence $DEST/pmtiles"
+ssh "$REMOTE" "mkdir -p $DEST/app/grid $DEST/app/terrain $DEST/app/habitat $DEST/app/fauna $DEST/app/evidence $DEST/app/food $DEST/pmtiles"
 rsync -az "$ROOT/deploy/budgie/docker-compose.yml" "$REMOTE:$DEST/"
 # Units/Grid: one ~1 MB WebP per year (footstep-generator/grid_image.py)
 sync_grid

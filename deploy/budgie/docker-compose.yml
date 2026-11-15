@@ -18,6 +18,7 @@ services:
       - ./app/habitat:/srv/app/habitat:ro
       - ./app/fauna:/srv/app/fauna:ro
       - ./app/evidence:/srv/app/evidence:ro
+      - ./app/food:/srv/app/food:ro
       - ./pmtiles:/srv/pmtiles:ro
 
   # "Imagine their day": Claude via OpenRouter, cached, daily-capped. OPENROUTER_API_KEY lives in

@@ -4,6 +4,32 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] fix | Publish the opt-in food lookup
+
+The row, lazy loader, wording tests, browser verifier, and data sync already landed in
+8e5b01a. This follow-up builds the ignored data, copies it into the main checkout,
+and publishes it from the job workspace with `GRID_ONLY=1`. Initial public fetch
+returned HTTP 404 despite successful sync: Compose omitted the food directory.
+Add the read-only `/srv/app/food` mount, matching fauna and habitat, and apply the
+Compose file to budgie's web service.
+
+Exact commands from the job checkout (habitat inputs remain in the main checkout):
+
+```bash
+FOOTSTEPS_DATA=/Users/will/projects/deep-footsteps/data poetry run python footstep-generator/food/build.py --out data/food
+poetry run python footstep-generator/food/export_web.py --input data/food/food.json.gz
+mkdir -p /Users/will/projects/deep-footsteps/data/food /Users/will/projects/deep-footsteps/footsteps-web/public/food
+cp data/food/food.json.gz /Users/will/projects/deep-footsteps/data/food/food.json.gz
+cp footsteps-web/public/food/food.json /Users/will/projects/deep-footsteps/footsteps-web/public/food/food.json
+ln -s /Users/will/projects/deep-footsteps/data/tiles data/tiles
+GRID_ONLY=1 scripts/deploy-budgie.sh
+rsync -az deploy/budgie/docker-compose.yml will@budgie:projects/deep-footsteps/deploy/budgie/
+ssh -o BatchMode=yes will@budgie 'cd projects/deep-footsteps/deploy/budgie && docker compose up -d --no-deps web'
+```
+
+The tiles symlink is only needed in a fresh job checkout; all outputs stay ignored.
+No application source or UI changes are needed for this follow-up.
+
 ## [2026-11-15] update | Opt-in food hover row
 
 Added `?food=1` with lazy loading, up to four possible foods, individual confidence

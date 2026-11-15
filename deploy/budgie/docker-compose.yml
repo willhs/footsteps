@@ -17,6 +17,7 @@ services:
       - ./app/terrain:/srv/app/terrain:ro
       - ./app/habitat:/srv/app/habitat:ro
       - ./app/fauna:/srv/app/fauna:ro
+      - ./app/food:/srv/app/food:ro
       - ./app/evidence:/srv/app/evidence:ro
       - ./app/food:/srv/app/food:ro
       - ./pmtiles:/srv/pmtiles:ro

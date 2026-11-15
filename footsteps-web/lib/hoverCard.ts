@@ -3,10 +3,11 @@
 // words. Every row carries the kind of claim it is (docs/philosophy/vision.md).
 import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, type LifeKind } from './habitat';
 import { seaLevelLabel } from './climate';
+import type { FoodItem } from './food';
 import type { Evidence } from './time';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'animals';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'animals' | 'food';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -19,6 +20,7 @@ export type HoverCardInput = {
   habitat: HabitatCell | null;
   /** Up to four notable large animals (lib/fauna.ts); null while loading, empty when none are modelled here. */
   animals?: string[] | null;
+  food?: FoodItem[] | null;
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
@@ -108,6 +110,14 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   if (i.animals?.length && i.habitat && i.habitat.surface === 'land') {
     rows.push({ id: 'animals', text: i.animals.join(', '), detail: 'animals here, natural range', evidence: 'modelled' });
   }
+  if (i.food?.length && i.habitat?.surface === 'land') {
+    rows.push({
+      id: 'food',
+      text: `Food here: ${i.food.slice(0, 4).map((f) => `${f.name} (${f.confidence}${f.checked ? ', checked summary' : ', recalled'})`).join('; ')}`,
+      detail: 'possible foods · 5° model, not a measured diet',
+      evidence: 'modelled',
+    });
+  }
   return rows;
 }
 
@@ -119,11 +129,11 @@ export const CARD_MAX_HEIGHT = 360;
  * there, else pinned inside the viewport (over the cursor, which it never blocks). It grows away from
  * the nearer side edge.
  */
-export function cardAnchor(x: number, y: number, vw: number, vh: number, gap = 16) {
+export function cardAnchor(x: number, y: number, vw: number, vh: number, gap = 16, maxHeight = CARD_MAX_HEIGHT) {
   const horizontal = x > vw / 2 ? { right: vw - x + gap } : { left: x + gap };
-  if (vh - y - gap >= CARD_MAX_HEIGHT) return { ...horizontal, top: y + gap };
-  if (y - gap >= CARD_MAX_HEIGHT) return { ...horizontal, bottom: vh - y + gap };
-  return { ...horizontal, top: Math.max(gap / 2, Math.min(y + gap, vh - CARD_MAX_HEIGHT - gap / 2)) };
+  if (vh - y - gap >= maxHeight) return { ...horizontal, top: y + gap };
+  if (y - gap >= maxHeight) return { ...horizontal, bottom: vh - y + gap };
+  return { ...horizontal, top: Math.max(gap / 2, Math.min(y + gap, vh - maxHeight - gap / 2)) };
 }
 
 /** The two viewport calls `lonLatAt` needs (deck.gl's `Viewport` has both). */

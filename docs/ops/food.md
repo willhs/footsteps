@@ -1,7 +1,7 @@
 ---
 id: food
 type: reference
-purpose: "Method, outputs and limits of the food-over-time lookup (cited domestication table + spread fronts + HYDE land use + forager staples); not wired into the app"
+purpose: "Method, outputs and limits of the food-over-time lookup (cited domestication table + spread fronts + HYDE land use + forager staples); opt-in hover row"
 ---
 
 # Food over time: which domesticates were around each place
@@ -9,14 +9,16 @@ purpose: "Method, outputs and limits of the food-over-time lookup (cited domesti
 Food is one of the human constants ([human-constants](../philosophy/human-constants.md)). The atlas has one "staple
 crop" from the ethnographic present. This dataset adds a time-aware view: for a 5° cell and an era, which crops and
 domestic animals could be there, whether HYDE sees any farming, and what foragers lived on where it does not.
-It is **modelled from a hand-compiled, cited table**, and **nothing in the app reads it yet**.
+It is **modelled from a hand-compiled, cited table**, and the hover card reads it only with **`?food=1`**.
 Code: `footstep-generator/food/`. Tests: `footstep-generator/tests/test_food.py`. Findings: [research 0008](../research/0008-food-over-time/research.md).
 
 ```bash
 poetry install
 poetry run python footstep-generator/food/build.py            # -> data/food/food.json.gz (35 KB) + claims.csv; ~5 s
 poetry run python footstep-generator/food/build.py check      # probes (wheat in the Levant, maize not in Europe ...)
-FOOTSTEPS_DATA=/path/to/checkout/data poetry run python footstep-generator/food/build.py   # a worktree has no data/
+FOOTSTEPS_DATA=/Users/will/projects/deep-footsteps/data poetry run python footstep-generator/food/build.py --out data/food
+poetry run python footstep-generator/food/export_web.py --input data/food/food.json.gz
+# Writes footsteps-web/public/food/food.json (gitignored, ~272 KB).
 poetry run pytest footstep-generator/tests/test_food.py -q
 ```
 
@@ -98,3 +100,26 @@ present it also checks sample places and that fewer than 10% of HYDE-cropland ce
   the other fibre crops; yak, reindeer, ducks and geese, cat, silkworm, honeybee. See research 0008.
 - **Licences.** The cited table is facts and short citations. Derived cells use HYDE 3.5 (CC BY 3.0) and Krapp 2021
   (CC BY 4.0); credit both if shown.
+
+## Opt-in hover row
+
+`?food=1` fetches `/food/food.json?v=1` on first hover. Up to four possible foods,
+with two crops and two food animals preferred, carry individual confidence and
+“recalled” or “checked summary” labels; the whole row is modelled. Availability
+comes from the arrival table, not HYDE's farming gate: early Levantine farming
+is otherwise hidden by HYDE's sparse cropland. Presence does not establish a staple diet.
+Dogs are excluded. Without domesticates, and always before 10,000 BCE, the current
+hovered Krapp biome supplies broad forager foods, all low confidence and recalled.
+No row appears over sea or ice, while loading, or when the lookup is unavailable.
+
+After merge, copy the generated file and publish from the main checkout:
+
+```bash
+mkdir -p /Users/will/projects/deep-footsteps/footsteps-web/public/food
+cp footsteps-web/public/food/food.json /Users/will/projects/deep-footsteps/footsteps-web/public/food/food.json
+cd /Users/will/projects/deep-footsteps
+GRID_ONLY=1 scripts/deploy-budgie.sh
+```
+
+The deploy sync preserves server files and skips absent local exports. Raw food
+and web exports stay uncommitted. The default card neither loads nor shows food.

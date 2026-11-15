@@ -7,7 +7,7 @@
 
 Inputs: `data/tiles/habitat/bp_{ka}.webp` (Krapp biome, for the modal biome and coast per era) and
 `use_{year}.webp` (HYDE cropland and grazing shares), both made by `habitat_lookup.py`. Output is
-git-ignored. Nothing in the app reads it. See docs/ops/food.md and docs/research/0008-food-over-time.
+git-ignored. The opt-in ?food=1 hover row reads export_web.py output. See docs/ops/food.md and docs/research/0008-food-over-time.
 
 Per cell (land at any era), the file holds:
     first   taxon id -> index of the first era at which the diffusion claims put it there

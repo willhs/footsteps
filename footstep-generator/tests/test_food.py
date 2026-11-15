@@ -490,3 +490,21 @@ def test_real_hyde_cropland_is_mostly_covered_by_a_crop_claim_from_the_year_zero
     farmed = [c for c in real["cells"].values() if int(c["crop"][e]) > 0]
     bare = [c for c in farmed if not any(f <= e and kinds[t] == "crop" for t, f in c["first"].items())]
     assert len(bare) / len(farmed) < 0.10, f"{len(bare)} of {len(farmed)} HYDE-cropland cells have no crop claimed"
+
+
+def test_web_export_keeps_arrivals_confidence_and_checked():
+    from food.export_web import export
+    d = {
+        'eras': [-10000, -8000], 'licence': 'test',
+        'taxa': [build.taxon_json(crops.CROPS[0])],
+        'cells': {'30,35': {'first': {crops.CROPS[0].id: 1}}},
+        'biome_names': {'22': 'Steppe'},
+        'foragers': {'biomes': {'22': {'plants': ['grass seeds'], 'animals': ['bison'], 'plant_weight': 'low'}}},
+    }
+    web = export(d)
+    arrival, confidence, checked = web['cells']['30,35'][crops.CROPS[0].id]
+    assert arrival == 1
+    assert confidence == lookup._claim_confidence(d['taxa'][0], 30, 35)
+    assert isinstance(checked, bool)
+    assert web['biomes']['Steppe']['plants'] == ['grass seeds']
+    assert 'claims' not in web['taxa'][0]

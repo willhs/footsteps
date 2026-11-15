@@ -4,6 +4,16 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] update | Opt-in food hover row
+
+Added `?food=1` with lazy loading, up to four possible foods, individual confidence
+and recalled/checked-summary labels, and biome-only forager foods before HYDE.
+Updated the food runbook and agent rules with export and after-merge publishing
+commands. The exporter keeps raw claims out of the web payload; deployment preserves
+server food files. Availability is used rather than HYDE's sparse early farming
+mask, with an explicit warning that this is not a measured diet. Default card
+wording and network requests are unchanged (browser evidence).
+
 ## [2026-11-15] update | People fade between data years; kind changes already cross-faded
 
 Checked "marks pop when a cell's way of life changes between data years": the continuous-time Units morph (`unitMorph.ts`) already handles it. A kind change gives different mark ids (kind slot is in the id), so the old kind fades out and the new one fades in over the year fraction, the glow/village urban threshold included. Browser frame diffs at world, Europe and zoom 9 (6000 BCE to 1900) show no step at data-year boundaries. Population totals are untouched (1300 CE still 468M).

@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
+import useFood from '../hooks/useFood';
+import { foodHere } from '@/lib/food';
 import useFauna from '../hooks/useFauna';
 import useGroundIndex from '../hooks/useGroundIndex';
 import { groundingFacts } from '../layers/grounding';
@@ -67,6 +69,7 @@ export default function HoverCard({
   grid: GridData | null;
 }) {
   const lookups = useHabitatLookups(point !== null, time, year >= HYDE_MIN ? year : null);
+  const food = useFood(point !== null);
   const fauna = useFauna(point, time);
   const ground = useGroundIndex(point !== null);
   const { rows, view } = useMemo(() => {
@@ -81,7 +84,7 @@ export default function HoverCard({
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     };
     return {
-      rows: hoverCardRows(input),
+      rows: hoverCardRows({ ...input, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:
         year >= HYDE_MIN && !(input.landUse && input.people)
@@ -93,14 +96,14 @@ export default function HoverCard({
               peopleModelled: input.people?.evidence === 'modelled' && input.people.count > 0,
             }),
     };
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food]);
 
   if (!point) return null;
   return (
     <div
       role="tooltip"
       className="ov-panel pointer-events-none fixed z-40 w-[232px] !px-3 !py-2.5"
-      style={cardAnchor(point.x, point.y, window.innerWidth, window.innerHeight)}
+      style={cardAnchor(point.x, point.y, window.innerWidth, window.innerHeight, 16, rows.some((row) => row.id === 'food') ? 720 : undefined)}
     >
       {view && ground?.scenes.includes(view.scene) && <GroundPicture view={view} version={ground.version} />}
       <p className="ov-debug">{formatPlace(point.lon, point.lat)}</p>

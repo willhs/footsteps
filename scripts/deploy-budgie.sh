@@ -4,7 +4,7 @@
 # publishes what is not in git (data, PMTiles) and the compose file, then pulls the images now.
 #   scripts/deploy-budgie.sh            # compose + data + tiles, pull and restart
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
-#   GRID_ONLY=1 scripts/deploy-budgie.sh # data only: grid, terrain, habitat, fauna, evidence
+#   GRID_ONLY=1 scripts/deploy-budgie.sh # data only: grid, terrain, habitat, fauna, food, evidence
 #   API_ONLY=1 scripts/deploy-budgie.sh  # pull and restart the day + anthropology API only
 # Images are built from main, so push first: this never ships uncommitted code.
 set -euo pipefail
@@ -52,6 +52,13 @@ sync_grid() {
       "$ROOT/data/tiles/fauna/" "$REMOTE:$DEST/app/fauna/"
   else
     echo "warning: no local fauna files; the hover card will show no animals (see docs/ops/fauna.md)" >&2
+  fi
+  # Opt-in food row. Preserve server files when no local export exists; never delete.
+  if [[ -f "$ROOT/footsteps-web/public/food/food.json" ]]; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/food"
+    rsync -az "$ROOT/footsteps-web/public/food/food.json" "$REMOTE:$DEST/app/food/"
+  else
+    echo "warning: no local food export; ?food=1 will show no food (see docs/ops/food.md)" >&2
   fi
   # Dated sites for ?evidence=1 (footstep-generator/evidence/), copied into public/evidence/
   if compgen -G "$ROOT/footsteps-web/public/evidence/*.json.gz" >/dev/null; then

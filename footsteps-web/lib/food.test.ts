@@ -1,0 +1,52 @@
+import { foodEnabled, foodHere, type FoodData } from './food';
+import { hoverCardRows } from './hoverCard';
+import type { HabitatCell } from './habitat';
+
+const habitat: HabitatCell = { surface: 'land', biome: 'Steppe', tempC: -5, precipMm: 200 };
+const data: FoodData = {
+  version: 1, eras: [-10000, -8000, -3000],
+  taxa: [
+    { id: 'wheat', name: 'wheat', kind: 'crop' }, { id: 'barley', name: 'barley', kind: 'crop' },
+    { id: 'maize', name: 'maize', kind: 'crop' }, { id: 'goat', name: 'goats', kind: 'animal' },
+  ],
+  cells: {
+    '30,35': { wheat: [1, 'high', true], barley: [1, 'medium', false], goat: [1, 'low', false] },
+    '15,-100': { maize: [2, 'medium', false] },
+  },
+  biomes: { Steppe: { plants: ['grass seeds', 'roots'], animals: ['horse', 'bison', 'reindeer'], plant_weight: 'low' } },
+};
+const input = { time: -8000, habitat, today: null, people: null, landUse: null };
+
+test('only food=1 opts in', () => {
+  for (const query of ['', '?food=0', '?food=true']) expect(foodEnabled(query)).toBe(false);
+  expect(foodEnabled('?mode=grid&food=1')).toBe(true);
+});
+
+test('Levant: names, per-item confidence, recalled dates and modelled label', () => {
+  const food = foodHere(data, 36, 33, -8000, habitat);
+  expect(food.map((f) => f.name)).toEqual(['wheat', 'barley', 'goats']);
+  expect(hoverCardRows({ ...input, food }).find((r) => r.id === 'food')).toEqual({
+    id: 'food', text: 'Food here: wheat (high, checked summary); barley (medium, recalled); goats (low, recalled)',
+    detail: 'possible foods · 5° model, not a measured diet', evidence: 'modelled',
+  });
+});
+
+test('Mexico: maize appears at the snapshot, never before it', () => {
+  expect(foodHere(data, -99, 18, -3000, habitat)[0].name).toBe('maize');
+  expect(foodHere(data, -99, 18, -3001, habitat).some((f) => f.name === 'maize')).toBe(false);
+});
+
+test('deep Europe uses current biome only, with four low-confidence forager staples', () => {
+  const food = foodHere(data, 36, 33, -20000, habitat);
+  expect(food.map((f) => f.name)).toEqual(['horse', 'bison', 'grass seeds', 'roots']);
+  expect(food.every((f) => f.confidence === 'low' && !f.checked)).toBe(true);
+});
+
+test('default, loading, missing biome, sea and ice omit the row', () => {
+  expect(hoverCardRows(input).some((r) => r.id === 'food')).toBe(false);
+  expect(foodHere(data, 0, 0, -20000, { ...habitat, biome: null })).toEqual([]);
+  for (const surface of ['sea', 'ice'] as const) {
+    expect(foodHere(data, 36, 33, -8000, { ...habitat, surface })).toEqual([]);
+    expect(hoverCardRows({ ...input, habitat: { ...habitat, surface }, food: [{ name: 'wheat', confidence: 'low', checked: false }] }).some((r) => r.id === 'food')).toBe(false);
+  }
+});

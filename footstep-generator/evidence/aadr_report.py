@@ -21,6 +21,9 @@ from evidence import aadr
 from evidence import regions as reg
 
 TOP = 5
+# arrivals.yaml splits Europe and Siberia into several boxes; the bias figures want them whole.
+EUROPE = tuple(i for i in reg.REGION_IDS if i.startswith("europe"))
+SIBERIA = ("siberia_arctic", "central_asia_siberia_south")
 HOLOCENE_START_BP = 11_700
 # (label, oldest BP exclusive of the next era, youngest BP). Upper edge inclusive, lower exclusive.
 ERAS: tuple[tuple[str, float, float], ...] = (
@@ -74,7 +77,7 @@ def _oldest_per_site(d: pd.DataFrame) -> pd.DataFrame:
 def report(r: pd.DataFrame, stats: dict) -> dict:
     u = usable(r)
     u = u.assign(era=era_of(u.date_bp))
-    regions = [*reg.REGION_IDS, reg.OTHER]
+    regions = list(reg.REGION_IDS)
     out: dict = {"stats": stats, "regions": {}}
 
     for region in regions:
@@ -96,16 +99,16 @@ def report(r: pd.DataFrame, stats: dict) -> dict:
         "direct_by_era": {label: int(((u.era == label) & (u.date_type == "direct")).sum()) for label, _, _ in ERAS},
     }
     out["bias"] = {
-        "europe_share": float((u.region == "europe").mean()) if n else 0.0,
+        "europe_share": float(u.region.isin(EUROPE).mean()) if n else 0.0,
         "holocene_share": float((u.date_bp < HOLOCENE_START_BP).mean()) if n else 0.0,
         "younger_than_5ka_share": float((u.date_bp < 5_000).mean()) if n else 0.0,
         "older_than_12ka": int((u.date_bp >= 12_000).sum()),
-        "older_than_12ka_europe": int(((u.date_bp >= 12_000) & (u.region == "europe")).sum()),
+        "older_than_12ka_europe": int(((u.date_bp >= 12_000) & u.region.isin(EUROPE)).sum()),
         "older_than_12ka_outside_europe_and_siberia": int(
-            ((u.date_bp >= 12_000) & ~u.region.isin(["europe", "siberia_arctic"])).sum()
+            ((u.date_bp >= 12_000) & ~u.region.isin([*EUROPE, *SIBERIA])).sum()
         ),
         "regions_without_a_pre_12ka_sample": [
-            x for x in regions if x != reg.OTHER and not ((u.region == x) & (u.date_bp >= 12_000)).any()
+            x for x in regions if not ((u.region == x) & (u.date_bp >= 12_000)).any()
         ],
         "conflicting_dates_left_out": int(((r.range_src == "conflict") & (r.hominin == "sapiens")).sum()),
     }
@@ -144,7 +147,7 @@ def render_markdown(rep: dict, source_name: str) -> str:
         f"{st['dropped_present_day']:,} present-day, {st['dropped_no_coordinates_or_date']:,} unlocated, "
         f"{st['dropped_duplicate_libraries']:,} repeat libraries of the same individual, "
         f"{bias['conflicting_dates_left_out']:,} whose own date and range disagree).",
-        f"- **Europe-heavy:** {_pct(bias['europe_share'])} of them are in Europe (the arrival table's `europe` region).",
+        f"- **Europe-heavy:** {_pct(bias['europe_share'])} of them are in Europe (the arrival table's `europe_*` regions).",
         f"- **Holocene-heavy:** {_pct(bias['holocene_share'])} are younger than 11.7 ka and "
         f"{_pct(bias['younger_than_5ka_share'])} younger than 5 ka. Only {bias['older_than_12ka']:,} are older than 12 ka "
         f"({bias['older_than_12ka_europe']:,} of those in Europe; "
@@ -165,23 +168,19 @@ def render_markdown(rep: dict, source_name: str) -> str:
         "| Region | " + " | ".join(e for e, _, _ in ERAS) + " | All |",
         "|---|" + "---|" * (len(ERAS) + 1),
     ]
-    for region in [*reg.REGIONS, None]:
-        rid = region.id if region else reg.OTHER
-        name = region.name if region else "Other (Anatolia, Central Asia, Pacific...)"
-        e = rep["regions"][rid]
-        lines.append(f"| {name} | " + " | ".join(str(e["by_era"][era]) for era, _, _ in ERAS) + f" | {e['samples']:,} |")
+    for region in reg.REGIONS:
+        e = rep["regions"][region.id]
+        lines.append(f"| {region.name} | " + " | ".join(str(e["by_era"][era]) for era, _, _ in ERAS) + f" | {e['samples']:,} |")
 
     lines += ["", "## Earliest samples per arrival-table region", ""]
     head = "| Site | Place dp | Genetic ID | Dated by | Mean cal BP (95% range) | Group | Assessment | First publication |"
     sep = "|---|---|---|---|---|---|---|---|"
     for region in reg.REGIONS:
         e = rep["regions"][region.id]
-        lo, hi = region.table_ka if region.table_ka else (0, 0)
-        table = "no date" if not region.table_ka else f"{lo} ka" if lo == hi else f"{lo}-{hi} ka"
         lines += [
             f"### {region.name}",
             "",
-            f"- Arrival table (research 0002): {table}. {region.table_note}",
+            f"- Arrival table (arrivals.yaml): {region.arrival_text}. {region.notes}",
             f"- {e['samples']:,} samples ({e['direct']:,} direct-dated).",
         ]
         if not e["oldest"]:
@@ -195,10 +194,6 @@ def render_markdown(rep: dict, source_name: str) -> str:
         lines.append("")
 
     lines += [
-        "### Other (not in the arrival table)",
-        "",
-        f"{rep['regions'][reg.OTHER]['samples']:,} samples (Anatolia, the Caucasus, Central Asia, Pacific islands).",
-        "",
         "## Neanderthals and Denisovans in the table",
         "",
         "Kept out of everything above. AADR carries these genomes; their dates are mostly broad.",

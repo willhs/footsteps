@@ -17,7 +17,7 @@ Needs numpy and pandas. Everything under `data/` is git-ignored: rebuild, do not
 | File | Job |
 |---|---|
 | `calibrate.py` | Pure calibration: curve + (14C age, error) arrays -> 95.4% HPD intervals, median, status |
-| `regions.py` | The arrival-table regions, their coarse extents and the table's values (there is no `arrivals.yaml` yet; this is where the region list lives) |
+| `regions.py` | The regions: loads `../prehistory/arrivals.yaml` (ids, boxes, arrival dates) and assigns points by the model's own rule (first box holding the point, else the nearest). Nothing is copied: edit the yaml |
 | `p3k14c.py` | Parse and clean the CSV, calibrate, group dates into sites, export, CLI |
 | `report.py` | Earliest qualifying dates per region |
 
@@ -106,14 +106,27 @@ centroid place), `d` date mean, `sd`, `r` = [old, young] 95.4% range (all cal BP
   Filter on `q` if you need clean genomes. A group the curators label `DontUse` is left out of the report.
 - **Attribution:** AADR includes Neanderthals and Denisovans. `h` marks them (an explicit list of groups); they are
   kept out of every sapiens figure. All other samples are Homo sapiens by the table's own group labels.
-- **Regions:** AADR has a country, not a continent. `COUNTRY_CONTINENT` maps it (Russia is split at 60 E) and the
-  coarse boxes in `regions.py` do the rest. A country the table does not know ends up in `other` and is listed in
-  `meta.counts.unmapped_countries`; the real-table test fails on one, so add it.
+- **Regions:** the `arrivals.yaml` boxes (`regions.py`) place a sample by its coordinates; the export's `rg` is the
+  region id current when it was built, so a consumer after a yaml change re-assigns from `la`/`lo` (`arrival_check.py`
+  does). AADR has a country, not a continent: `COUNTRY_CONTINENT` (Russia split at 60 E) no longer places anything,
+  it only flags a country the table does not know in `meta.counts.unmapped_countries`; the real-table test fails on one.
 - **Place:** coordinates are the locality's, as published. Many are a site; some are a district centroid (`dp` 0-1).
 - **Bias, plainly:** 68% of usable samples are in Europe and 99% are younger than 11.7 ka. Only 116 are older than
   12 ka. The record cannot test the arrival rows for Sahul, Japan, South Asia or the Tibetan plateau, and none of it
   is older than about 46 ka. Absence is not evidence of empty land.
 - **Counts are effort, not people.** A sample dates one skeleton. Never sum samples into a population.
+
+## Arrival check
+
+`arrival_check.py` puts, per `arrivals.yaml` region, the modelled central/early/late arrival beside the earliest
+p3k14c date (any material, and charcoal only) and the earliest direct-dated AADR sapiens sample, and flags the regions
+where evidence is older than the model's `early` bound. It only reports. The p3k14c half reads
+`docs/research/0009-model-vs-evidence/results.json` (re-run `model_vs_evidence.py` to refresh it); the AADR half
+reads `data/evidence/aadr_samples.json.gz`. Findings: [research 0010](../../docs/research/0010-aadr-ancient-dna-samples-by-region/research.md).
+
+```bash
+python footstep-generator/evidence/arrival_check.py [--out DIR]
+```
 
 ## Model against evidence
 

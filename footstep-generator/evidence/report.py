@@ -69,7 +69,7 @@ def _row(r: pd.Series) -> dict:
 def earliest_by_region(d: pd.DataFrame) -> dict[str, dict]:
     q = qualifying(d)
     out: dict[str, dict] = {}
-    for region in [*reg.REGION_IDS, reg.OTHER]:
+    for region in reg.REGION_IDS:
         all_r, q_r = d[d.region == region], q[q.region == region]
         ranked = q_r.sort_values("cal_median", ascending=False)
         single = ranked.drop_duplicates("site_id").head(TOP)
@@ -112,12 +112,10 @@ def render_markdown(evidence: dict[str, dict]) -> str:
     lines = []
     for region in reg.REGIONS:
         e = evidence[region.id]
-        lo, hi = region.table_ka if region.table_ka else (0, 0)
-        table = "no date" if not region.table_ka else f"{lo} ka" if lo == hi else f"{lo}-{hi} ka"
         lines += [
             f"### {region.name}",
             "",
-            f"- Arrival table (research 0002): {table}. {region.table_note}",
+            f"- Arrival table (arrivals.yaml): {region.arrival_text}. {region.notes}",
             f"- Dates in region: {e['dates_all']:,} ({e['dates_local']:,} locally placed, "
             f"{e['dates_province_level']:,} province or county level); qualifying: {e['dates_qualifying']:,}.",
         ]

@@ -182,27 +182,27 @@ def test_dedupe_counts_individuals_whose_libraries_disagree(tmp_path):
     assert aadr.dedupe(aadr.parse(p)[0])[2] == 1
 
 
-def test_regions_follow_the_arrival_table_boxes_and_continents(tmp_path):
+def test_regions_follow_the_arrivals_yaml_boxes(tmp_path):
     p = write_anno(tmp_path / "t.anno", [
         rec("EU.AG", country="Germany", lat="50.7", lon="11.6"),
         rec("TY.AG", country="China", lat="39.4", lon="115.5"),
-        rec("MA.AG", country="Russia", lat="51.4", lon="84.7"),  # Altai: Asia, Siberia box
+        rec("MA.AG", country="Russia", lat="51.4", lon="84.7"),  # Altai: south of the Siberia box
         rec("PNG.AG", country="Papua New Guinea", lat="-4.3", lon="152.2"),
         rec("TZ.AG", country="Tanzania", lat="-7.6", lon="35.0"),
         rec("CL.AG", country="Chile", lat="-31.9", lon="-71.5"),
-        rec("TR.AG", country="Turkey", lat="40.5", lon="31.0"),  # Anatolia is not in the table
+        rec("TR.AG", country="Turkey", lat="40.5", lon="31.0"),  # no Anatolia box: first box holding it
     ])
     r, stats = aadr.ingest(p)
     assert dict(zip(r.id, r.region)) == {
-        "EU.AG": "europe", "TY.AG": "east_asia", "MA.AG": "siberia_arctic", "PNG.AG": "sahul",
-        "TZ.AG": "africa", "CL.AG": "americas", "TR.AG": reg.OTHER,
+        "EU.AG": "europe_west", "TY.AG": "east_asia", "MA.AG": "central_asia_siberia_south", "PNG.AG": "sahul",
+        "TZ.AG": "africa", "CL.AG": "south_america", "TR.AG": "europe_east_steppe",
     }
     assert stats["unmapped_countries"] == []
 
 
 def test_unmapped_country_is_reported_not_silently_placed(tmp_path):
     r, stats = aadr.ingest(write_anno(tmp_path / "t.anno", [rec(country="Atlantis")]))
-    assert stats["unmapped_countries"] == ["Atlantis"] and r.region.iloc[0] == reg.OTHER
+    assert stats["unmapped_countries"] == ["Atlantis"] and r.region.iloc[0] in reg.REGION_IDS
 
 
 # --- export --------------------------------------------------------------------------------------
@@ -225,7 +225,7 @@ def test_export_round_trip_keeps_fields_and_marks_what_is_unusual(tmp_path):
     by_id = {s["id"]: s for s in doc["samples"]}
     a = by_id["A.AG"]
     assert (a["d"], a["sd"], a["r"], a["t"], a["rg"], a["c"], a["g"]) == (
-        5000, 50, [5050, 4850], "d", "europe", "Germany", "Germany_N")
+        5000, 50, [5050, 4850], "d", "europe_west", "Germany", "Germany_N")
     assert "h" not in a and "rs" not in a  # only written when unusual
     assert by_id["N.DG"]["h"] == "neanderthal" and by_id["N.DG"]["rs"] == "mean_sd"
     assert [s["la"] for s in doc["samples"]] == sorted(s["la"] for s in doc["samples"])  # stable order
@@ -256,7 +256,7 @@ def test_oldest_per_site_lists_one_sample_per_site_oldest_first_and_direct_apart
         rec("Dir.AG", loc="Cave B", mean="7000", sd="50", full="5100-4900 BCE", lat="49.0"),
         rec("Pol.AG", loc="Cave C", country="Poland", mean="6000", sd="50", full="4100-3900 BCE", lat="52.0", lon="18.0"),
     ], tmp_path)
-    rep = aadr_report.report(r, stats)["regions"]["europe"]
+    rep = aadr_report.report(r, stats)["regions"]["europe_west"]
     assert [s["id"] for s in rep["oldest"]] == ["Old1.AG", "Dir.AG", "Pol.AG"]
     assert [s["id"] for s in rep["oldest_direct"]] == ["Old2.AG", "Dir.AG", "Pol.AG"]
     assert rep["samples"] == 4 and rep["direct"] == 3
@@ -285,7 +285,7 @@ def test_bias_says_how_europe_and_holocene_heavy_the_samples_are(tmp_path):
     assert rep["bias"]["older_than_12ka"] == 2 and rep["bias"]["older_than_12ka_europe"] == 1
     assert "japan" in rep["bias"]["regions_without_a_pre_12ka_sample"]
     text = aadr_report.render_markdown(rep, "t.anno")
-    assert "Europe-heavy" in text and "Holocene-heavy" in text and "### Europe" in text
+    assert "Europe-heavy" in text and "Holocene-heavy" in text and "### " + reg.REGIONS[0].name in text
     assert "Neanderthals and Denisovans" in text
 
 
@@ -306,7 +306,7 @@ def test_real_table_has_the_shape_the_parser_assumes():
     assert r.id.is_unique and r.individual.is_unique
     assert len(r) > 15_000 and r.date_bp.between(0, 200_000).all()
     assert (r.old >= r.young).all() and (r.young > -100).all()  # a few ranges run past 1950 CE
-    assert r.region.isin([*reg.REGION_IDS, reg.OTHER]).all()
+    assert r.region.isin(reg.REGION_IDS).all()
     assert set(r.hominin) >= {"sapiens", "neanderthal", "denisovan"}
     assert (r.range_src == "anno").mean() > 0.95  # the table's own ranges read, with few exceptions
     ust = r[r.id == "Ust_Ishim.DG"].iloc[0]  # the classic 45 ka anchor: direct date, Siberia

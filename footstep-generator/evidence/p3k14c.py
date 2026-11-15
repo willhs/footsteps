@@ -183,7 +183,7 @@ def parse(csv_path: Path) -> tuple[pd.DataFrame, IngestStats]:
     d["carbon_source"] = [
         carbon_source(m, t).value for m, t in zip(d.material, d.taxa)
     ]
-    d["region"] = reg.assign_regions(d.lat.values, d.lon.values, d.continent.values)
+    d["region"] = reg.assign_regions(d.lat.values, d.lon.values)
     stats["dates"] = len(d)
     return d.reset_index(drop=True), stats
 

@@ -22,20 +22,18 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yaml
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE.parent))
 
 import grid_image  # noqa: E402
+from evidence import regions as regions_mod  # noqa: E402
 
-ARRIVALS = HERE.parent / "prehistory" / "arrivals.yaml"
 DATES = ROOT / "data" / "evidence" / "p3k14c_dates.csv.gz"
 PREHISTORY = ROOT / "data" / "tiles" / "prehistory"
 HYDE_10K = ROOT / "data" / "tiles" / "grid" / "humans_-10000.webp"
@@ -61,35 +59,9 @@ MODEL_PRESENT_SHARE = 0.02  # a region "has people" from the first bin holding t
 WELL_SAMPLED_SITES = 100  # qualifying sites in the region older than 12 ka: below this "no evidence" is not a test
 
 
-@dataclass(frozen=True)
-class Region:
-    id: str
-    name: str
-    bbox: tuple[float, float, float, float]  # west, south, east, north
-    central: float
-    early: float
-    late: float
-    ramp_ka: float
-    verification: str
-
-
-def load_regions(path: Path = ARRIVALS) -> list[Region]:
-    table = yaml.safe_load(path.read_text())
-    return [Region(r["id"], r["name"], tuple(r["bbox"]), r["arrival_ka_bp"]["central"],
-                   r["arrival_ka_bp"]["early"], r["arrival_ka_bp"]["late"], r["ramp_ka"], r["verification"])
-            for r in table["regions"]]
-
-
-def assign(regions: list[Region], lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
-    """Region index per point: the model's rule (prehistory_population.assign_regions): first bbox
-    holding the point, else the nearest bbox; ties (distance 0) go to the first region."""
-    dist = []
-    for r in regions:
-        west, south, east, north = r.bbox
-        dx = np.maximum(np.maximum(west - lon, lon - east), 0.0)
-        dy = np.maximum(np.maximum(south - lat, lat - north), 0.0)
-        dist.append(dx * dx + dy * dy)
-    return np.argmin(np.stack(dist), axis=0)
+Region = regions_mod.Region
+load_regions = regions_mod.load_regions
+assign = regions_mod.assign  # first box holding the point, else the nearest: the model's rule
 
 
 # --- model -----------------------------------------------------------------------------------

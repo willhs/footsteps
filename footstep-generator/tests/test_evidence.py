@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evidence import calibrate as cal  # noqa: E402
 from evidence import p3k14c as p3  # noqa: E402
 from evidence import regions as reg  # noqa: E402
+import prehistory_population as pp  # noqa: E402
 from evidence import report  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -93,29 +94,40 @@ def test_text_repair_and_normalisation():
     assert p3.norm_method(float("nan")) == "unknown"
 
 
-def test_regions_first_match_wins_and_uses_continent():
-    pts = {
-        "japan": (35.7, 139.7, "Asia"),
-        "levant_arabia": (32.0, 35.0, "Asia"),
-        "sahul": (-33.9, 151.2, "Australia"),
-        "africa": (-26.0, 28.0, "Africa"),
-        "europe": (48.8, 2.3, "Europe"),
-        "americas": (40.0, -100.0, "North America"),
-        "east_asia": (34.0, 108.0, "Asia"),
-        "tibetan_plateau": (32.0, 90.0, "Asia"),
-        reg.OTHER: (40.0, 70.0, "Asia"),
-    }
-    got = reg.assign_regions(
-        np.array([v[0] for v in pts.values()]),
-        np.array([v[1] for v in pts.values()]),
-        np.array([v[2] for v in pts.values()]),
-    )
-    assert dict(zip(pts, got)) == {k: k for k in pts}
-
-
-def test_every_table_region_has_an_id_and_unique_ids():
+def test_evidence_regions_are_the_arrival_tables_regions():
+    """One source of truth: same ids, order, boxes and arrival dates as the model reads."""
+    table = pp.load_table()["regions"]
+    assert list(reg.REGION_IDS) == [r["id"] for r in table]
     assert len(set(reg.REGION_IDS)) == len(reg.REGION_IDS)
-    assert {"africa", "europe", "americas", "sahul", "japan"} <= set(reg.REGION_IDS)
+    for mine, theirs in zip(reg.REGIONS, table):
+        assert mine.bbox == tuple(theirs["bbox"])
+        assert (mine.central, mine.early, mine.late) == (
+            theirs["arrival_ka_bp"]["central"], theirs["arrival_ka_bp"]["early"], theirs["arrival_ka_bp"]["late"])
+
+
+def test_evidence_assignment_is_the_models_rule_on_the_model_grid():
+    lon, lat = np.meshgrid(pp.grid_lons()[::7], pp.grid_lats()[::7])
+    mine = reg.assign_regions(lat.ravel(), lon.ravel())
+    theirs = pp.assign_regions([r["bbox"] for r in pp.load_table()["regions"]])
+    rows, cols = np.meshgrid(np.arange(0, 360, 7), np.arange(0, 720, 7), indexing="ij")
+    assert list(mine) == [reg.REGION_IDS[i] for i in theirs[rows.ravel(), cols.ravel()]]
+
+
+def test_regions_first_match_wins_else_nearest_box():
+    pts = {
+        "japan": (35.7, 139.7),
+        "levant_arabia": (32.0, 35.0),
+        "sahul": (-33.9, 151.2),
+        "africa": (-26.0, 28.0),
+        "europe_west": (48.8, 2.3),
+        "north_america": (40.0, -100.0),
+        "east_asia": (34.0, 108.0),
+        "tibetan_plateau": (32.0, 90.0),
+        "siberia_arctic": (57.7, 71.2),
+        "greenland_arctic_canada": (85.0, 0.0),  # inside no box: the nearest box takes it, never "other"
+    }
+    got = reg.assign_regions(np.array([v[0] for v in pts.values()]), np.array([v[1] for v in pts.values()]))
+    assert dict(zip(pts, got)) == {k: k for k in pts}
 
 
 CSV_HEADER = "LabID,Age,Error,Material,Taxa,d13C,Method,Long,Lat,LocAccuracy,Period,SiteID,SiteName,Country,Province,Continent,Source,Reference\n"
@@ -158,7 +170,7 @@ def test_parse_rejects_a_csv_without_the_expected_columns(tmp_path):
 def dates_frame(rows: list[dict]) -> pd.DataFrame:
     base = dict(
         site_name="", country="X", acc=2, lat=10.0, lon=10.0, source="S", reference="R",
-        material="charcoal", method="AMS", carbon_source="terrestrial", region="europe",
+        material="charcoal", method="AMS", carbon_source="terrestrial", region="europe_west",
         status="ok", err=50, age=5000, lab_id="L", cal_old=5800, cal_young=5600, cal_median=5700,
     )
     d = pd.DataFrame([{**base, **r} for r in rows])
@@ -232,7 +244,7 @@ def test_report_ranks_by_third_oldest_and_excludes_unusable_dates():
     )
     d = dates_frame(rows)
     d["site_id"] = d.lab_id.str.replace(r"\d+$", "", regex=True)
-    ev = report.earliest_by_region(d)["europe"]
+    ev = report.earliest_by_region(d)["europe_west"]
     assert [r["site"] for r in ev["single"]][:3] == ["Pair", "Outlier", "Steady"]
     assert [r["site"] for r in ev["corroborated"]] == ["Steady", "Outlier"]
     assert ev["corroborated"][0]["third_oldest_median_cal_bp"] == 28000

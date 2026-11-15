@@ -58,6 +58,82 @@ AADR lists thousands of ancient individuals with a date and a place. After inges
 5. **The table has its own errors.** 75 sapiens samples carry a range and a mean that disagree by centuries to millennia (for example a "50 BCE - 150 CE" range with a mean of 900 BP). They are exported but marked `rs: conflict` and left out of every report. A consumer that ignores that flag would use dates the table contradicts.
 6. **A sample is not a population.** Counts follow where labs have dug, sequenced and been permitted to (and where DNA survives), so a count must never be read as a head count. Place precision varies too: some localities are centroids (the export's `dp` is the decimal places of the coarser coordinate).
 
+## Arrival-date check against the model (arrivals.yaml regions)
+
+`footstep-generator/evidence/arrival_check.py` (job 588ac654, 2026-11-15). Finding 3's table above grouped samples by the
+older coarse boxes; since this check the evidence code uses the model's own regions (`prehistory/arrivals.yaml`, one source
+of truth: `regions.py` loads it, `tests/test_evidence.py` pins the region set, order, boxes and dates to the yaml). The table
+below is by those 27 regions.
+
+**What is compared.** The model's `central` arrival and its `early`-`late` range (ka BP), the earliest qualifying p3k14c date
+(any material, and charcoal only), and the earliest *direct-dated* usable Homo sapiens AADR sample (AADR mean, cal BP). A
+region is flagged `>` when the evidence is older than the model's `early` bound. Evidence younger than `central` is not a
+disagreement (no sample is not no person) and is not flagged.
+
+**Which half could be built.** Both. AADR was read from the main checkout's `data/evidence/aadr_samples.json.gz` (v66.p1, 17,540
+individuals; its stored `rg` region ids predate the yaml boxes, so every sample is re-assigned from its coordinates). The raw p3k14c
+dates file (`data/evidence/p3k14c_dates.csv.gz`) is **not on this machine**, so the p3k14c half is not recomputed: it reads the
+`earliest` rows of [research 0009](../0009-model-vs-evidence/results.json), which `model_vs_evidence.py` wrote from the full dates file with the same
+yaml boxes (the region list in that file equals the yaml's, tested) and the same qualifying filter as research 0003. Re-run that
+script on a machine with the dates to refresh it. "3rd-oldest site" is the date of the third-oldest *site* in the region (a repeat, not a one-off).
+
+| Region | Central | Early-late | Sourced | Earliest p3k14c, any material (ka) | Earliest p3k14c, charcoal (ka) | Earliest direct AADR sapiens (ka) | Evidence older than `early` |
+|---|---|---|---|---|---|---|---|
+| madagascar_indian_ocean | 2 | 4-1 | memory | none | none | none | - |
+| caribbean | 6 | 7-4 | memory | none | none | 3.2: Canimar Abajo (Cuba) | - |
+| levant_arabia | 50 | 120-47 | memory | 44.2: Udoli Samoty (Turkey) (3rd-oldest site 43.1) | 44.2: Udoli Samoty (Turkey) | 13.3: Raqefet Cave (Israel) | - |
+| south_arabia | 50 | 120-47 | memory | 29.9: Site 203-207 (Saudi Arabia) (3rd-oldest site 11.1) | 8.5: Khuzma as-Shumlya Rockshelters (Yemen) | 5.2: Shah Tepe (Iran) | - |
+| europe_south_iberia | 45 | 54-41 | checked | 50.6: Gorham's Cave (Gibraltar) (3rd-oldest site 46.5) | 50.6: Gorham's Cave (Gibraltar) | 7.6: Ifri Ouberrid (Morocco) | - |
+| europe_sicily | 45 | 54-41 | checked | 15.3: Giurgiu - Malu Rosu (Italy) (3rd-oldest site 11.0) | 10.7: Vallone inferno (Italy) | 13.4: San Teodoro (Italy) | - |
+| africa | 300 | 315-200 | memory | 53.9: Spitzkloof A (South Africa) (3rd-oldest site 48.5) | 51.8: Border Cave (South Africa) | 15.4: Pınarbaşı (Turkey) | - |
+| tibetan_plateau | 38 | 160-30 | memory | 6.7: Layihai (China) (3rd-oldest site 5.9) | 6.7: Layihai (China) | 5.0: Zongri (China) | - |
+| japan | 38 | 38-32 | memory | 8.3: Mamiana (Japan) (3rd-oldest site 7.7) | 8.3: Mamiana (Japan) | 8.8: Kamikuroiwa Rock Shelter (Japan) | - |
+| japan_hokkaido | 38 | 38-32 | memory | 8.3: Ishikura (Japan) (3rd-oldest site 8.1) | 8.3: Ishikura (Japan) | 0.8: Hamanaka 2 (Japan) | - |
+| japan_ryukyu | 38 | 38-32 | memory | none | none | 2.8: Nagabaka (Japan) | - |
+| south_asia | 48 | 74-45 | checked | 7.2: Mahadaha (India) (3rd-oldest site 6.5) | 6.5: Sheri Khan Tarakai 3 (Pakistan) | 5.1: Shahr-i Sokhta (Iran) | - |
+| southeast_asia_mainland | 70 | 86-46 | checked | 34.0: Longtanshan (China) (3rd-oldest site 19.6) | 34.0: Longtanshan (China) | 11.5: Longlin Cave (China) | - |
+| island_se_asia_wallacea | 60 | 70-46 | memory | none | none | 0.8: Liang Bua (Indonesia) | - |
+| sahul | 50 | 65-47 | checked | 11.5: Wombeyan Caves #1 (Australia) (3rd-oldest site 11.4) | 11.5: Wombeyan Caves #1 (Australia) | 3.6: Reber-Rakival (Papua New Guinea) | - |
+| europe_west | 45 | 54-41 | checked | 53.8: Esquilleu (Spain) (3rd-oldest site 53.4) | 53.6: Esquilleu (Spain) | 45.4: Bacho-Kiro Cave (Bulgaria) | - |
+| europe_east_steppe | 45 | 47-40 | memory | 50.7 **>**: Tischoferhohle (Russian Federation) (3rd-oldest site 45.3) | 50.7 **>**: Tischoferhohle (Russian Federation) | 38.1: Kostenki (Russia) | p3k14c, p3k14c charcoal |
+| central_asia_siberia_south | 45 | 47-40 | checked | 53.4 **>**: Chagyrskaya (Russian Federation) (3rd-oldest site 45.8) | 45.8: Kara-Bom (Russian Federation) | 34.9: Salkhit (Mongolia) | p3k14c |
+| siberia_arctic | 40 | 45-28 | checked | 47.0 **>**: Bunge-Toll 1885 (Russian Federation) (3rd-oldest site 44.3) | 39.2: Ust-Kova (Russian Federation) | 44.4: Ust'-Ishim (Russia) | p3k14c |
+| east_asia_far_east | 42 | 80-38 | checked | 37.7: Geographical Society Cave (Russian Federation) (3rd-oldest site 35.5) | 23.4: Ogonki V (Russian Federation) | 7.7: Devil's-Gate-Cave (Russia) | - |
+| east_asia | 42 | 80-38 | checked | 45.6: Xujiacheng (China) (3rd-oldest site 41.3) | 45.3: Xiaogushan (China) | 39.6: Tianyuan Cave (China) | - |
+| beringia | 24 | 30-20 | memory | 51.1 **>**: O- (CARD) (Canada) (3rd-oldest site 45.5) | 23.0: Dry Creek (USA) | 10.4: On Your Knees Cave (USA) | p3k14c |
+| central_america | 16 | 23-14.5 | checked | 11.4: El Gigante (Honduras) (3rd-oldest site 5.3) | 11.4: El Gigante (Honduras) | 9.5: Mayahak Cab Pek (Belize) | - |
+| north_america | 16 | 23-14.5 | checked | 53.4 **>**: Hillsborough Mastodon (Canada) (3rd-oldest site 46.8) | 42.2 **>**: Jim Pitts (USA) | 12.7: Anzick Ranch (USA) | p3k14c, p3k14c charcoal |
+| south_america | 15 | 18-14 | memory | 17.4: Muaco Site (Venezuela) (3rd-oldest site 16.9) | 16.9: Rancho Peludo (Venezuela) | 11.9: Los Rieles (Chile) | - |
+| greenland_arctic_canada | 4.5 | 5-4 | memory | 44.3 **>**: North Head (Canada) (3rd-oldest site 40.4) | 22.6 **>**: Iceberg (Canada) | 3.9: Qeqertasussuk (Greenland) | p3k14c, p3k14c charcoal |
+| pacific_remote | 3.5 | 3.5-1 | memory | 10.6 **>**: Casita de Piedra (Panama) (3rd-oldest site 1.0) | 10.6 **>**: Casita de Piedra (Panama) | 3.0: Teouma (Vanuatu) | p3k14c, p3k14c charcoal |
+
+### Reading
+
+- **AADR never predates the model's early bound, in any region.** Where AADR speaks about the early range it sits inside the model's
+  early-late range (Europe west 45.4 ka at Bacho Kiro in 41-54; Siberia 44.4 ka Ust'-Ishim in 28-45; East Asia 39.6 ka Tianyuan in 38-80), so nothing in it
+  contradicts the model. It is silent (nothing older than 12 ka) for Sahul, South Asia, Japan, the Tibetan plateau, southeast Asia and Wallacea, and
+  nothing older than 15.4 ka for Africa or the Levant, so those rows stay untested by DNA, as finding 3 said.
+- **Seven regions are flagged, all by p3k14c only** (`europe_east_steppe`, `central_asia_siberia_south`, `siberia_arctic`, `beringia`,
+  `north_america`, `greenland_arctic_canada`, `pacific_remote`). None looks like a settled case for moving an arrival date; each is one of:
+  - *A non-human or unattributed old date.* p3k14c holds megafauna, wood and Neanderthal-era caves and attributes nothing to a
+    hominin. `north_america` 53.4 ka is a mastodon site (Hillsborough) and `beringia` 51.1 ka an unnamed Canadian record; the
+    `north_america` charcoal minimum (42.2 ka, Jim Pitts) is also not human-attributed; `beringia`'s charcoal figure (23.0 ka, Dry Creek) is inside its bound. `central_asia_siberia_south` 53.4 ka is Chagyrskaya, a Neanderthal cave in the Altai,
+    and its charcoal figure (45.8 ka, Kara-Bom) is inside the early bound. `siberia_arctic` 47.0 ka (Bunge-Toll) is 2 ka over the bound and its charcoal figure (39.2 ka) is under it.
+  - *A box that covers more than its name.* `greenland_arctic_canada` (5-4 ka) has a box from 56 N and 125 W to 10 W, which takes in the Canadian interior, so its
+    44.3 ka and 22.6 ka dates are Pleistocene Canada, not Arctic settlement. `pacific_remote` is the last, catch-all box: a Panama site (west of 82 W,
+    south of 10 N) falls outside both `central_america` (lat 10 N and up) and `south_america` (west edge 82 W), so Casita de Piedra
+    (10.6 ka) is assigned to a region the model fills only from 3.5 ka. That one is a **real model gap**: the model draws no
+    people in western Panama before 3.5 ka while a dated site exists at 10.6 ka. The box edge is the cause.
+  - *A record that looks mislocated.* `europe_east_steppe` 50.7 ka is "Tischoferhohle", labelled Russian Federation in p3k14c; the name
+    is that of an Alpine cave (unverified), so it is probably a mislocated cave-bear or Neanderthal-era record. The region's third-oldest site (45.3 ka) is inside its bound.
+- **Corroborated evidence (third-oldest site) beats the early bound in three regions only:** `north_america` (46.8 against 23),
+  `beringia` (45.5 against 30) and `greenland_arctic_canada` (40.4 against 5). All three come from the same cause, Pleistocene
+  dates in North America that are not human occupation; they are not a case for a 45 ka peopling of the Americas.
+- **Not changed.** No value in `arrivals.yaml` and no model code moved. Research 0009's proposals (P3, P5) are untouched; the
+  `pacific_remote`/Panama box edge and the `greenland_arctic_canada` extent are new items for Will to consider next to them.
+- **Box artefacts the table also shows (not flagged).** `africa`'s box reaches Anatolia (its "earliest AADR" is Pınarbaşı, Turkey, 15.4 ka),
+  and `europe_south_iberia` takes Moroccan coast sites. They hide nothing here but muddle a per-region reading.
+
 ## Decisions
 
 | Choice | Why |
@@ -70,6 +146,6 @@ AADR lists thousands of ancient individuals with a date and a place. After inges
 
 ## Open
 
-- The arrival-table boxes (`regions.py`) are coarse; they put eastern Iran and Turkmenistan in South Asia and southern Anatolia in Levant and Arabia. Fix them when the arrival table becomes a real file.
+- ~~The arrival-table boxes (`regions.py`) are coarse.~~ Done: `regions.py` now loads `arrivals.yaml` (see the arrival-date check). The yaml boxes are still coarse in places (Anatolia falls in `africa`; see above).
 - `Context` dates (half of all samples) are archaeologists' ranges for a layer. A stricter use should lean on direct dates only; the reports give both.
-- Not wired into the app or the model. The next step is the "sources nearby" panel and an arrival-date check against both sources.
+- Not wired into the app or the model. The arrival-date check against both sources is done (above). What is left is the "sources nearby" panel. The export on disk and on budgie still carries the old `rg` region ids until it is rebuilt from the raw `.anno`; nothing in the app reads `rg`.

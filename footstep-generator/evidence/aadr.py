@@ -11,7 +11,7 @@ Data shape (one direction of flow, each stage a pure function over a DataFrame):
 
     .anno row --parse--> Sample (one row per library: located, dated, not present-day)
               --dedupe--> one row per Individual ID (the best-assessed library)
-              --region--> + continent and arrival-table region id
+              --region--> + arrival-table region id (arrivals.yaml boxes) and continent (a sanity label)
     Sample = one ancient individual. Its date is a cal BP mean plus a 95.4% range (`old` >= `young`),
     `date_type` says how it was dated (direct radiocarbon, archaeological context, kinship tethering) and
     `hominin` says who (sapiens, neanderthal, denisovan, or their hybrid).
@@ -166,8 +166,8 @@ def resolve_range(full: str, mean: float, sd: float) -> tuple[int, int, str]:
 
 # --- place ---------------------------------------------------------------------------------------
 
-# AADR gives a country, not a continent. This is the continent label the arrival-table regions
-# need (regions.py filters on p3k14c's continent names). Russia is split at 60E below.
+# AADR gives a country, not a continent. This label no longer places a sample in a region (the
+# arrivals.yaml boxes do, regions.py); it only catches a country this table does not know. Russia is split at 60E below.
 _C = {
     "Europe": "Hungary|United Kingdom|Austria|Italy|Germany|Spain|Denmark|France|Poland|Czechia|Belgium|Ukraine"
     "|Sweden|Croatia|Serbia|Romania|Greece|Bulgaria|Netherlands|Portugal|Norway|Slovakia|Ireland|Estonia|Moldova"
@@ -269,7 +269,7 @@ def dedupe(r: pd.DataFrame) -> tuple[pd.DataFrame, int, int]:
 def assign_regions(r: pd.DataFrame) -> pd.DataFrame:
     r = r.copy()
     r["continent"] = [continent_of(c, lon) for c, lon in zip(r.country, r.lon)]
-    r["region"] = reg.assign_regions(r.lat.to_numpy(), r.lon.to_numpy(), r.continent.to_numpy())
+    r["region"] = reg.assign_regions(r.lat.to_numpy(), r.lon.to_numpy())
     return r
 
 

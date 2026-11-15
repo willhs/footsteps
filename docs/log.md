@@ -4,6 +4,21 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] feature | Evidence code reads arrivals.yaml; per-region arrival-date check
+
+`footstep-generator/evidence/regions.py` no longer carries its own 11 coarse boxes: it loads `prehistory/arrivals.yaml` (27
+regions) and assigns points by the model's rule (first box holding the point, else the nearest), so p3k14c, AADR, both reports
+and `model_vs_evidence.py` share one region list. `tests/test_evidence.py` pins the region set, order, boxes and arrival dates to the
+yaml and the assignment to `prehistory_population.assign_regions`. Continent no longer places anything (the `other` bucket is gone;
+the AADR export's `rg` ids on disk are from the old boxes until it is rebuilt, and nothing reads them).
+
+New `evidence/arrival_check.py` (+ `tests/test_arrival_check.py`): per region, modelled central/early/late arrival against the earliest
+p3k14c date (any material and charcoal) and the earliest direct-dated AADR sapiens sample, flagging evidence older than `early`.
+Result in research 0010: AADR never predates the early bound; seven regions are flagged by p3k14c only, mostly non-human or
+unattributed old dates and over-wide boxes, with one real model gap (a Panama site at 10.6 ka falls in `pacific_remote` because of the
+`central_america`/`south_america` box edges). The raw p3k14c dates were not on the machine, so that half reads research 0009's
+`results.json` (same boxes and filter). No change to `arrivals.yaml` values or the model.
+
 ## [2026-11-15] chore | Publish ancient-DNA evidence data
 
 The feature already landed in `9294765`. Copied the existing 381,520-byte AADR export

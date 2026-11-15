@@ -82,6 +82,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         }
         const { mesh, plants } = b;
         const ground3d = new SimpleMeshLayer<{ p: [number, number, number] }>({
+          ...this.getSubLayerProps({ id: `${props.id}-ground` }),
           id: `${props.id}-ground`,
           data: [{ p: [bbox.west, bbox.south, 0] }],
           getPosition: (d) => d.p,
@@ -107,6 +108,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           const [w, h] = TREE_PX[kind];
           layers.push(
             new SimpleMeshLayer<Plant>({
+              ...this.getSubLayerProps({ id: `${props.id}-${kind}` }),
               id: `${props.id}-${kind}`,
               data: these,
               mesh: kind === 'conifer' ? MESHES.cone : MESHES.blob,

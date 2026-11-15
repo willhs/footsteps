@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import type { LayersList } from '@deck.gl/core';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
@@ -27,6 +27,13 @@ import HoverCard from './overlays/HoverCard';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
 import EvidenceTooltip from './overlays/EvidenceTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
+import useSolarClock from './hooks/useSolarClock';
+import NightExtension from './layers/NightExtension';
+import { sunPosition } from '@/lib/sunTime';
+import type { Season } from '@/lib/seasons';
+import ToggleButton from '@/components/ui/ToggleButton';
+
+const NIGHT = new NightExtension();
 
 // The look follows zoom ('auto'). ?mode=units|grid|dots is a debug override
 // and also reveals the mode button.
@@ -81,7 +88,15 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [renderMode, setRenderMode] = useState<PeopleMode>(initialRenderMode);
   const [debugModes] = useState(() => modeParam() !== null);
   const [settlements, setSettlements] = useState(false);
-  useEffect(() => setSettlements(new URLSearchParams(window.location.search).get('settlements') === '1'), []);
+  const [seasonsEnabled, setSeasonsEnabled] = useState(false);
+  const [season, setSeason] = useState<Season>('off');
+  const [nightOn, setNightOn] = useState(false);
+  const now = useSolarClock();
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSeasonsEnabled(params.get('seasons') === '1');
+    setSettlements(params.get('settlements') === '1' || params.get('seasons') === '1');
+  }, []);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
@@ -99,6 +114,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const deckViewState = close3dOn && !is3DMode ? { ...viewState, pitch: pitchForZoom(viewState.zoom) } : viewState;
 
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
+  const shadedBackground = useMemo(() => {
+    const nightSun = nightOn ? sunPosition(now) : null;
+    const props = { extensions: [NIGHT], nightSun };
+    return backgroundLayers.map(layer => layer.clone(props));
+  }, [backgroundLayers, nightOn, now]);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
     enabled: renderMode === 'dots',
@@ -155,6 +175,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         ? undefined
         : { width: window.innerWidth, height: window.innerHeight },
     globe: is3DMode,
+    season,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -198,7 +219,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // From 10,000 BCE people are HYDE's (measured); before that they are the model's.
   const modelled = evidenceAt(Math.round(time)) === 'modelled';
   const layers: LayersList = [
-    ...backgroundLayers,
+    ...shadedBackground,
     ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers]),
     ...evidence.layers,
   ] as LayersList;
@@ -255,6 +276,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         viewportBounds={null}
         is3DMode={is3DMode}
         year={Math.round(time)}
+        now={now}
       />
 
       {/* Bottom-left stack: details panel above the legend, both above the timeline. */}
@@ -324,6 +346,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             <strong>Settlement experiment · modelled</strong>
             <p>Named cities use local population budgets. Group sizes and clusters are scenarios from ethnographic analogs, not known settlements.</p>
             <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
+            {season !== 'off' && <p>Seasonal rounds · modelled ({season === 'june' ? 'June' : 'December'}). Nearby mobile foragers gather in local winter; herders shift pastures within their cell. Latitude sets the contrast. Sites, territories and timing are illustrative; head counts stay the same.</p>}
           </div>
         )}
         {peopleView && !selectedPlace ? (
@@ -398,6 +421,22 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           onColorSchemeChange={setColorScheme}
           showColorScheme={renderMode === 'dots'}
         >
+          <ControlRow label="Day / night">
+            <ToggleButton pressed={nightOn} onClick={() => setNightOn(on => !on)} label="Day/night shading" title="Shade Earth's night side using today's UTC clock; independent of the historical year">
+              {nightOn ? 'On · live sun' : 'Off'}
+            </ToggleButton>
+          </ControlRow>
+          {seasonsEnabled && peopleView && (
+            <ControlRow label="Season · modelled">
+              <div className="ov-seg" role="group" aria-label="Seasonal scenario">
+                {(['off', 'june', 'december'] as const).map(value => (
+                  <ToggleButton key={value} pressed={season === value} onClick={() => setSeason(value)} label={`Season ${value}`}>
+                    {{ off: 'Off', june: 'Jun', december: 'Dec' }[value]}
+                  </ToggleButton>
+                ))}
+              </div>
+            </ControlRow>
+          )}
           {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
           {debugModes && (
             <ControlRow label="Mode (debug)">

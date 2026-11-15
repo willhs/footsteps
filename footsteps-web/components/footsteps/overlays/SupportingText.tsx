@@ -24,7 +24,8 @@ interface Props {
   loading?: boolean;
   dotCount: number;
   totalPopulation: number;
-  viewState: { zoom: number; longitude?: number };
+  viewState: { zoom: number; longitude?: number; latitude?: number };
+  now: Date;
   lodLevel: number;
   lodEnabled: boolean; // Always true now (server-controlled)
   toggleLOD: () => void; // No-op for backward compatibility
@@ -38,19 +39,14 @@ interface Props {
 }
 
 /** Close in, the map runs on today's clock: the time of day where you are looking. */
-function SunTime({ lon }: { lon: number }) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 20_000);
-    return () => window.clearInterval(id);
-  }, []);
+function SunTime({ lon, lat, now }: { lon: number; lat?: number; now: Date }) {
   return (
     <div
       className="ov-note mt-1"
       data-testid="sun-time"
       title="Local sun time right now at the centre of the map (a sundial's reading, within ~15 minutes). Close in, people move in real time."
     >
-      ☀ {sunTimeLabel(lon, now)}, local sun time
+      ☀ {sunTimeLabel(lon, now, lat)}, local sun time
     </div>
   );
 }
@@ -65,6 +61,7 @@ function SupportingText({
   progressiveRenderStatus,
   year,
   close3d = false,
+  now,
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -260,7 +257,7 @@ function SupportingText({
       )}
 
       {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
-        <SunTime lon={viewState.longitude} />
+        <SunTime lon={viewState.longitude} lat={viewState.latitude} now={now} />
       )}
       {close3d && (
         <div

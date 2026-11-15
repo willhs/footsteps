@@ -46,7 +46,7 @@ function color(
 ) {
   const offset = index * 4;
   colors.set(LOOKS[WAY_OF_KIND[kind as keyof typeof WAY_OF_KIND]].rgb, offset);
-  colors[offset + 3] = !present
+  colors[offset + 3] = !present || people <= 0
     ? 0
     : kind === UnitKind.Band
       ? BAND_ALPHA

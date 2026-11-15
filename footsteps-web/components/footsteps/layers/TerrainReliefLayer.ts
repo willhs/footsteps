@@ -240,6 +240,7 @@ export default class TerrainReliefLayer extends CompositeLayer<TerrainSurface> {
         const { west, south, east, north } = props.tile.bbox;
         const { x, y, z } = props.tile.index;
         return new ReliefBitmapLayer({
+          ...this.getSubLayerProps({ id: props.id }),
           id: props.id,
           image: props.data,
           textureParameters: { minFilter: 'linear', magFilter: 'linear' },

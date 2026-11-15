@@ -6,6 +6,7 @@ import {
 import { buildUnitMorph, type MorphPoints } from './unitMorph';
 import type { Units } from '../layers/units';
 import { sliceUnits, type Region } from './unitRegion';
+import { seasonalRegion, seasonalUnits, type Season } from '@/lib/seasons';
 
 declare const self: DedicatedWorkerGlobalScope;
 export type GridReply =
@@ -16,7 +17,7 @@ export type GridReply =
 type Request =
   | { settlements: boolean }
   | { year: number }
-  | { id: string; fromYear: number; toYear: number; region: Region };
+  | { id: string; fromYear: number; toYear: number; region: Region; season: Season };
 type Endpoint = { units: Units; width: number };
 // Retain only compact unit endpoints in the worker; render buffers transfer to
 // the UI. This cache is independent of the UI's five decoded snapshots.
@@ -54,9 +55,10 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
   if ('id' in data) {
     void Promise.all([endpoints(data.fromYear), endpoints(data.toYear)])
       .then(([from, to]) => {
+        const region = data.season === 'off' ? data.region : seasonalRegion(data.region);
         const morph = buildUnitMorph(
-          sliceUnits(from.units, from.width, data.region),
-          sliceUnits(to.units, to.width, data.region),
+          seasonalUnits(sliceUnits(from.units, from.width, region), from.width, data.season),
+          seasonalUnits(sliceUnits(to.units, to.width, region), to.width, data.season),
           settlements,
         );
         self.postMessage(

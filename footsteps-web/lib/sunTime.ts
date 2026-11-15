@@ -10,6 +10,28 @@ export function sunHours(lon: number, now: Date): number {
   return (((utc + lon / 15) % 24) + 24) % 24;
 }
 
+export type SunPosition = { longitude: number; declination: number };
+
+/** Mean solar position: deliberately omits equation of time, like sunHours.
+ * Declination uses NOAA's annual Fourier approximation (radians, day of year):
+ * https://www.gml.noaa.gov/grad/solcalc/solareqns.PDF */
+export function sunPosition(now: Date): SunPosition {
+  const day = (now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 1)) / 86400000;
+  const leap = new Date(Date.UTC(now.getUTCFullYear(), 1, 29)).getUTCMonth() === 1;
+  const gamma = 2 * Math.PI * (day - 0.5) / (leap ? 366 : 365);
+  const declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+    - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
+    - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+  return { longitude: 180 - sunHours(0, now) * 15, declination: declination * 180 / Math.PI };
+}
+
+/** Sine of the solar altitude: zero is the geometric terminator. */
+export function solarAltitude(lon: number, lat: number, sun: SunPosition): number {
+  const rad = Math.PI / 180;
+  return Math.sin(lat * rad) * Math.sin(sun.declination * rad)
+    + Math.cos(lat * rad) * Math.cos(sun.declination * rad) * Math.cos((lon - sun.longitude) * rad);
+}
+
 /** Rough part of the day, from the sun's local hour (equinox-like; ignores latitude and season). */
 export function partOfDay(hours: number): string {
   if (hours < 5) return 'night';
@@ -22,11 +44,14 @@ export function partOfDay(hours: number): string {
 }
 
 /** e.g. "3:40 pm · afternoon". */
-export function sunTimeLabel(lon: number, now: Date): string {
+export function sunTimeLabel(lon: number, now: Date, lat?: number): string {
   const h = sunHours(lon, now);
   const total = Math.round(h * 60) % 1440;
   const hh = Math.floor(total / 60);
   const mm = total % 60;
   const h12 = hh % 12 === 0 ? 12 : hh % 12;
-  return `${h12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'} · ${partOfDay(h)}`;
+  const altitude = lat === undefined ? null : solarAltitude(lon, lat, sunPosition(now));
+  const part = altitude === null ? partOfDay(h) : altitude < -0.104528 ? 'night'
+    : altitude < 0 ? (h < 12 ? 'dawn' : 'dusk') : 'daylight';
+  return `${h12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'am' : 'pm'} · ${part}`;
 }

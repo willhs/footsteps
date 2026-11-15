@@ -16,6 +16,7 @@ import {
 } from './peopleView';
 import useYearCrossfade from './useYearCrossfade';
 import { bracket } from '@/lib/time';
+import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
 import {
   PeopleLayer,
@@ -48,6 +49,7 @@ export default function useGridLayer({
   view = { longitude: 0, latitude: 0, zoom: 1 },
   size = { width: 1440, height: 900 },
   globe = false,
+  season = 'off',
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -60,6 +62,7 @@ export default function useGridLayer({
   view?: View;
   size?: { width: number; height: number };
   globe?: boolean;
+  season?: Season;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -108,7 +111,7 @@ export default function useGridLayer({
       return;
     }
     let live = true;
-    Promise.all([loadUnitMorph(y0, y1, region), loadGrid(y0), loadGrid(y1)])
+    Promise.all([loadUnitMorph(y0, y1, region, season), loadGrid(y0), loadGrid(y1)])
       .then(([data, from, to]) => {
         if (live) setMorphScene({ y0, y1, region, data, citiesFrom: from.cities ?? [], citiesTo: to.cities ?? [] });
       })
@@ -116,7 +119,7 @@ export default function useGridLayer({
     return () => {
       live = false;
     };
-  }, [unitsContinuous, y0, y1, region]);
+  }, [unitsContinuous, y0, y1, region, season]);
   const morphLayer = useMemo(
     () =>
       morphScene

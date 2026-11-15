@@ -4,6 +4,14 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] create | Live day/night and seasonal settlement scenarios
+
+Added an off-by-default day/night control with live mean-solar shading across map,
+globe and close-up terrain, sharing its instant with a latitude-aware sun clock.
+`?seasons=1` enables modelled June/December gathering and herder pasture scenarios
+using settlement mobility, conserving cell populations. See
+[settlement operations](ops/settlements.md) for limits and the repeatable browser check.
+
 ## [2026-11-15] fix | 3D close-up: no inland beaches or speck pools
 
 Ground within 6 m of sea level was painted as beach everywhere, so inland valley floors showed pale sand patches, and

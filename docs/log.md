@@ -4,6 +4,24 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] chore | Publish ancient-DNA evidence data
+
+The feature already landed in `9294765`. Copied the existing 381,520-byte AADR export
+from the implementation workspace into the main checkout's `data/evidence/` and
+`footsteps-web/public/evidence/`, then published with
+`GRID_ONLY=1 bash /Users/will/projects/deep-footsteps/scripts/deploy-budgie.sh`.
+The public `/evidence/aadr_samples.json.gz` matches the built file byte for byte
+(SHA-256 `c71555b4b73fd3a1a4c164b1a38cd551c2f7f9d0f80fefbb765af3ee58360e3b`).
+No data files are committed. Rebuild from the repository root with:
+
+```bash
+poetry run python footstep-generator/evidence/aadr.py fetch
+poetry run python footstep-generator/evidence/aadr.py build
+mkdir -p footsteps-web/public/evidence
+cp data/evidence/aadr_samples.json.gz footsteps-web/public/evidence/
+GRID_ONLY=1 bash scripts/deploy-budgie.sh
+```
+
 ## [2026-11-15] add | Ancient-DNA evidence marks
 
 Behind `?evidence=1`, AADR individuals appear as cyan diamonds beside the blue

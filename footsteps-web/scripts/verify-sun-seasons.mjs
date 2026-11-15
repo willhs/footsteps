@@ -148,8 +148,7 @@ try {
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   await browser.close();
 }
-// Existing dev-only hydration warnings are recorded separately from rendering defects.
-const defects = errors.filter(error => !/hydration|hydrated|server rendered HTML|Minified React error #418/i.test(error));
-assert.deepEqual(defects, []);
+// Hydration mismatches (dev warning or prod #418) count as errors like any other.
+assert.deepEqual(errors, []);
 assert.deepEqual(warnings, []);
-console.log(`Verified ${results.length} real-data scene results; ${errors.length} existing hydration messages recorded in browser.json`);
+console.log(`Verified ${results.length} real-data scene results with no browser errors`);

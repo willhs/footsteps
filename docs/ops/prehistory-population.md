@@ -63,7 +63,8 @@ Live browser decoding confirmed empty Jerusalem/Lhasa/Kyushu checkpoints at 100,
 and 50,000 BCE and populated checkpoints at 30,000 and 28,000 BCE. The browser script
 captured Grid, Units and Dots views, then exited nonzero because its development-only
 hydration-warning filter does not recognise production React error `#418` (the existing
-deep-link hydration issue noted in research 0009).
+deep-link hydration issue noted in research 0009). Fixed 15 Nov 2026: the hydration error is gone
+and the script no longer filters any error, so it exits 0 against `next dev` and a production build.
 
 ## Method
 

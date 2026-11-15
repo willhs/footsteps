@@ -96,6 +96,7 @@ pnpm --dir footsteps-web dev
 node footsteps-web/scripts/verify-settlements.mjs http://localhost:4444 /abs/evidence/dir
 ```
 
-Captures Rome (flag on/off), Ohalo II at 21,000 BCE, and Grid/Dots with the flag. In `next dev`
-React reports hydration mismatches on every scene, flagged or not, in legend and terrain-note
-markup this experiment does not touch, so the script exits non-zero there; read `browser.json`.
+Captures Rome (flag on/off), Ohalo II at 21,000 BCE, and Grid/Dots with the flag. It exits 0
+against both `next dev` and a production build. (Until 15 Nov 2026 every `?mode=` deep link threw a
+React hydration error, because `FootstepsViz` read the query string in its first render; it now
+applies URL and cookie state after mount.) Any hydration error now fails the script.

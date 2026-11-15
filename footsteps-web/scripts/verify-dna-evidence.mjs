@@ -66,10 +66,7 @@ try {
     path.join(out, 'browser.json'),
     JSON.stringify({ rows, requests, errors }, null, 2),
   );
-  const unexpected = errors.filter(
-    (e) => !e.startsWith('Hydration failed because'),
-  );
-  assert.deepEqual(unexpected, []);
+  assert.deepEqual(errors, []);
   console.log(
     'PASS: default makes no evidence requests; opt-in loads AADR; screenshots saved.',
   );

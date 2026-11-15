@@ -18,12 +18,8 @@ const demRequests = [];
 const failedRequests = [];
 page.on('requestfailed', (r) => failedRequests.push({ url: r.url(), failure: r.failure() }));
 const logs = [];
-const knownHydrationErrors = [];
-page.on('pageerror', (e) => {
-  // Existing URL view-state SSR mismatch; retain it explicitly in evidence.
-  if (/Minified React error #418|Hydration failed/.test(e.message)) knownHydrationErrors.push(e.message);
-  else errors.push(e.message);
-});
+// A hydration mismatch (prod: React error #418, dev: "Hydration failed") is a real error.
+page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => {
   logs.push(m.text());
   if (m.type() === 'error') {
@@ -101,7 +97,7 @@ async function oldBarScrub(origin) {
   });
   return { ...timing, years };
 }
-const results = { scenes: [], errors, navigationErrors, knownHydrationErrors, logs, demRequests, failedRequests, dataOrigin: process.env.DATA_ORIGIN ?? 'local' };
+const results = { scenes: [], errors, navigationErrors, logs, demRequests, failedRequests, dataOrigin: process.env.DATA_ORIGIN ?? 'local' };
 try {
   for (const time of [-20000, 1500]) {
     for (const zoom of [6, 8, 10]) {

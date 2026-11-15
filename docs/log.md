@@ -4,6 +4,20 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] fix | React hydration error #418 on `?mode=` deep links
+
+Reproduced first: in `next dev` and a production build a plain load was already clean (the task's
+"every scene" was too broad), but any deep link with `?mode=` threw "Hydration failed" / React
+error #418. Cause: `FootstepsViz` read `window.location.search` and the view-mode cookie inside
+`useState` initialisers (`renderMode`, `debugModes`, `hoverCard`, `is3DMode`), so the first client
+render differed from the static HTML. The "About the data" fold and `TerrainNote` were not at fault
+(the fold already applied its stored state after mount). All four now start at the server's values
+and take the URL/cookie value in the mount effect; the 3D cookie is written from the toggle handler
+instead of an effect (which would have overwritten the cookie before it was read). The verify
+scripts (`verify-prehistory-arrivals`, `-dna-evidence`, `-sun-seasons`, `-terrain`) no longer filter
+hydration errors. Both `verify-prehistory-arrivals.mjs` and `verify-settlements.mjs` exit 0 against
+`next dev` and a production build.
+
 ## [2026-11-15] feature | Evidence code reads arrivals.yaml; per-region arrival-date check
 
 `footstep-generator/evidence/regions.py` no longer carries its own 11 coarse boxes: it loads `prehistory/arrivals.yaml` (27

@@ -43,7 +43,7 @@ function modeParam(): string | null {
   if (typeof window === 'undefined') return null;
   return new URLSearchParams(window.location.search).get('mode');
 }
-function initialRenderMode(): PeopleMode {
+function renderModeFromUrl(): PeopleMode {
   const m = modeParam();
   return PEOPLE_MODES.includes(m as PeopleMode) ? (m as PeopleMode) : DEFAULT_RENDER_MODE;
 }
@@ -82,11 +82,18 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const year = nearestDataYear(time);
   const setTooltipData = useTooltipOverlay();
 
-  const [is3DMode, setIs3DMode] = useState(() => getViewMode());
+  // Everything the browser alone knows (query string, cookie) is applied after mount: the static HTML
+  // and the first client render both use these defaults, or React throws hydration error #418.
+  const [is3DMode, setIs3DMode] = useState(false);
+  const changeViewMode = (is3D: boolean) => {
+    setIs3DMode(is3D);
+    setViewMode(is3D);
+  };
   const [colorScheme, setColorScheme] = useState<ColorScheme>(DEFAULT_COLOURSCHEME);
 
-  const [renderMode, setRenderMode] = useState<PeopleMode>(initialRenderMode);
-  const [debugModes] = useState(() => modeParam() !== null);
+  const [renderMode, setRenderMode] = useState<PeopleMode>(DEFAULT_RENDER_MODE);
+  const [debugModes, setDebugModes] = useState(false);
+  const [hoverCard, setHoverCard] = useState(true);
   const [settlements, setSettlements] = useState(false);
   const [seasonsEnabled, setSeasonsEnabled] = useState(false);
   const [season, setSeason] = useState<Season>('off');
@@ -96,6 +103,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     const params = new URLSearchParams(window.location.search);
     setSeasonsEnabled(params.get('seasons') === '1');
     setSettlements(params.get('settlements') === '1' || params.get('seasons') === '1');
+    setRenderMode(renderModeFromUrl());
+    setDebugModes(modeParam() !== null);
+    setHoverCard(hoverParam());
+    setIs3DMode(getViewMode());
   }, []);
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
@@ -135,7 +146,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     setTooltipData,
   });
 
-  const [hoverCard] = useState(hoverParam);
   // The legend's notes start folded (they took a third of a phone screen); the choice is remembered.
   const [notesOpen, setNotesOpenState] = useState(false);
   useEffect(() => {
@@ -200,10 +210,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   useEffect(() => {
     onLoadingChange?.(loadingKey ? (loadingKey.split(',').map(Number) as [number, number]) : null);
   }, [loadingKey, onLoadingChange]);
-
-  useEffect(() => {
-    setViewMode(is3DMode);
-  }, [is3DMode]);
 
   // Reset metrics when year changes
   useEffect(() => {
@@ -415,7 +421,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
       <div className="absolute z-30" style={{ top: 'var(--ov-top)', right: 'var(--ov-right)' }}>
         <VizToggles
           is3DMode={is3DMode}
-          onModeChange={setIs3DMode}
+          onModeChange={changeViewMode}
           showTerrain={showTerrain}
           onToggle={setShowTerrain}
           colorScheme={colorScheme}

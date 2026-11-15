@@ -58,12 +58,9 @@ try {
     await page.waitForTimeout(3000);
     await page.screenshot({ path: path.join(out, `Lhasa--30000-${mode}.png`) });
   }
-  // Deep-link hydration warnings in SupportingText predate these data changes.
-  // Keep them in the evidence; this check targets arrival data and rendering failures.
-  const unexpected = errors.filter((message) => !message.startsWith('Hydration failed because'));
+  // Every deep link above must hydrate cleanly (dev: "Hydration failed", prod: React error #418).
   await fs.writeFile(path.join(out, 'browser-arrivals.json'), JSON.stringify({ rows, errors }, null, 2));
-  assert.deepEqual(unexpected, [], 'Unexpected browser runtime errors');
-  console.log(`Recorded ${errors.length} existing deep-link hydration warnings in browser-arrivals.json.`);
+  assert.deepEqual(errors, [], 'Unexpected browser runtime errors');
   console.log('PASS: 100,000/50,000 BCE checkpoints empty; 30,000/28,000 BCE Jerusalem/Lhasa/Kyushu populated; Grid/Units/Dots screenshots saved.');
 } finally {
   await browser.close();

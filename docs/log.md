@@ -4,6 +4,20 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-15] add | Ancient-DNA evidence marks
+
+Behind `?evidence=1`, AADR individuals appear as cyan diamonds beside the blue
+radiocarbon circles. Both datasets use the same range fade and spatial bins,
+but load independently. DNA hover identifies measured evidence, place, date range,
+hominin (including the Neanderthal–Denisovan hybrid), publication and dating/location
+caveats. The default view does not request AADR. Data remains gitignored; build and
+copy commands are in `footstep-generator/evidence/README.md`.
+
+Verified real-data Europe screenshots at 40,000 BCE and 3,000 BCE, plus modern-human
+and Neanderthal hover at 40,000 BCE and the default Units view. Dots was explicitly
+excluded by the operator because no local PMTiles are available. Added mark-logic
+and tooltip tests and a repeatable browser verification script.
+
 ## [2026-11-15] fix | Publish the opt-in food lookup
 
 The row, lazy loader, wording tests, browser verifier, and data sync already landed in

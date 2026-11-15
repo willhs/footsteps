@@ -1,10 +1,11 @@
 // Dated sites as map marks for the experimental ?evidence=1 layer.
 // Pure functions: which sites show at a year, how strongly, and how they bunch up when zoomed out.
 import type { EvidenceDoc } from '@/lib/evidence';
+import type { AadrDoc } from '@/lib/aadr';
 
 /** Sites with a calibrated range, as flat arrays so a filter pass over ~20k sites stays cheap while scrubbing. */
-export interface PreparedSites {
-  doc: EvidenceDoc;
+export interface PreparedSites<T = EvidenceDoc> {
+  doc: T;
   /** Index into doc.sites for each prepared row. */
   index: Int32Array;
   lon: Float32Array;
@@ -60,20 +61,35 @@ export interface EvidenceMark {
   site: number;
 }
 
-export function marksAt(p: PreparedSites, year: number, zoom: number): EvidenceMark[] {
+export function marksAt(
+  p: PreparedSites<unknown>,
+  year: number,
+  zoom: number,
+): EvidenceMark[] {
   const w = fadeWindow(year);
   const bin = binDegrees(zoom);
   const out: EvidenceMark[] = [];
-  const bins = new Map<number, { sx: number; sy: number; n: number; a: number; site: number }>();
+  const bins = new Map<
+    number,
+    { sx: number; sy: number; n: number; a: number; site: number }
+  >();
   for (let k = 0; k < p.from.length; k++) {
     const d = Math.max(p.from[k] - year, year - p.to[k], 0);
     if (d >= w) continue;
     const alpha = 1 - d / w;
     if (!bin) {
-      out.push({ lon: p.lon[k], lat: p.lat[k], alpha, count: 1, site: p.index[k] });
+      out.push({
+        lon: p.lon[k],
+        lat: p.lat[k],
+        alpha,
+        count: 1,
+        site: p.index[k],
+      });
       continue;
     }
-    const key = Math.floor((p.lat[k] + 90) / bin) * 100000 + Math.floor((p.lon[k] + 180) / bin);
+    const key =
+      Math.floor((p.lat[k] + 90) / bin) * 100000 +
+      Math.floor((p.lon[k] + 180) / bin);
     const b = bins.get(key);
     if (b) {
       b.sx += p.lon[k];
@@ -81,11 +97,23 @@ export function marksAt(p: PreparedSites, year: number, zoom: number): EvidenceM
       b.n++;
       if (alpha > b.a) b.a = alpha;
     } else {
-      bins.set(key, { sx: p.lon[k], sy: p.lat[k], n: 1, a: alpha, site: p.index[k] });
+      bins.set(key, {
+        sx: p.lon[k],
+        sy: p.lat[k],
+        n: 1,
+        a: alpha,
+        site: p.index[k],
+      });
     }
   }
   for (const b of bins.values()) {
-    out.push({ lon: b.sx / b.n, lat: b.sy / b.n, alpha: b.a, count: b.n, site: b.n === 1 ? b.site : -1 });
+    out.push({
+      lon: b.sx / b.n,
+      lat: b.sy / b.n,
+      alpha: b.a,
+      count: b.n,
+      site: b.n === 1 ? b.site : -1,
+    });
   }
   return out;
 }
@@ -93,4 +121,16 @@ export function marksAt(p: PreparedSites, year: number, zoom: number): EvidenceM
 /** Mark radius in pixels: a single site is a dot; a bunch grows with the log of its count. */
 export function markRadius(count: number): number {
   return count <= 1 ? 2.5 : Math.min(9, 2.5 + 1.5 * Math.log2(count));
+}
+
+/** DNA individuals use the same calendar conversion, fading and spatial bins as dated sites. */
+export function prepareSamples(doc: AadrDoc): PreparedSites<AadrDoc> {
+  return {
+    doc,
+    index: Int32Array.from(doc.samples, (_, i) => i),
+    lon: Float32Array.from(doc.samples, (s) => s.lo),
+    lat: Float32Array.from(doc.samples, (s) => s.la),
+    from: Float32Array.from(doc.samples, (s) => 1950 - s.r[0]),
+    to: Float32Array.from(doc.samples, (s) => 1950 - s.r[1]),
+  };
 }

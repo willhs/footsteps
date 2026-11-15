@@ -247,7 +247,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         }}
       />
 
-      {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} />}
+      {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
       {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
 
       {/* Data info overlay */}
@@ -395,8 +395,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             )}
             {notesOpen && evidenceOn && (
               <p className="ov-note mt-1.5">
-                <span style={{ color: '#78a0ff' }}>●</span> Dated sites (radiocarbon, p3k14c): where people definitely were.
-                Few sites means few excavations, not few people.
+                <span style={{ color: '#78a0ff' }}>●</span> Dated sites (radiocarbon, p3k14c).
+                <span style={{ color: '#50ebd7' }}> ◆</span> Ancient-DNA individuals (AADR). Measured evidence; dates and locations have uncertainty.
+                Counts reflect excavations and sampling, not population.
               </p>
             )}
             {notesOpen && showTerrain && <TerrainNote />}

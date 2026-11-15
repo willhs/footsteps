@@ -62,11 +62,16 @@ A second kind of dated evidence: ancient individuals from the Allen Ancient DNA 
 Reich Lab; annotation table only, no genotypes; CC0 1.0, Harvard Dataverse doi:10.7910/DVN/FFIDCW).
 Each row is one skeleton with a date and a place, so it is direct evidence of a person, where a
 radiocarbon date can be a tree. Findings: [research 0010](../../docs/research/0010-aadr-ancient-dna-samples-by-region/research.md).
-Not wired into the app.
+Drawn behind `?evidence=1` as cyan diamonds beside the blue radiocarbon circles. Both kinds use
+the same time fade and zoom bins; DNA hover shows the locality, range, hominin and publication.
+Dates from context, rounded coordinates, and estimated or conflicting ranges are labelled.
+This is measured evidence of individuals, not a population count.
 
 ```bash
 python footstep-generator/evidence/aadr.py fetch     # newest *_1240K.aadr.PUB.anno (13 MB, md5-checked) -> data/raw/aadr/
 python footstep-generator/evidence/aadr.py build     # -> data/evidence/aadr_samples.json.gz (about 0.4 MB, a second)
+mkdir -p footsteps-web/public/evidence
+cp data/evidence/aadr_samples.json.gz footsteps-web/public/evidence/
 python footstep-generator/evidence/aadr.py report    # -> data/evidence/aadr_report.md
 python -m pytest footstep-generator/tests/test_aadr.py -q
 ```

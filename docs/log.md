@@ -4,6 +4,15 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-18] feature | Other kinds of human on the map
+
+Neanderthals, Denisovans, *H. floresiensis* and *H. luzonensis* are drawn before ~30,000 BCE: approximate lavender ranges,
+24 key dated sites with tooltips (find, age, source, "recalled" flag) and names with "last seen about N years ago", fading
+out between each species' earliest and latest last dates (`lib/otherHumans.ts`, `hooks/useOtherHumansLayer.ts`,
+`overlays/OtherHumansTooltip.tsx`). On by default with a View panel switch; `?humans=0` starts it off. The legend says the
+ranges are approximate whenever they show. `TextLayer` drew nothing because deck.gl's CJS build wrapped `@mapbox/tiny-sdf`
+wrongly; a webpack alias to `lib/shims/tinySdf.cjs` fixes it (and the `?settlements=1` city names). See `docs/ops/other-humans.md`.
+
 ## [2026-11-15] fix | React hydration error #418 on `?mode=` deep links
 
 Reproduced first: in `next dev` and a production build a plain load was already clean (the task's

@@ -26,6 +26,8 @@ import { cssRgb, LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife'
 import HoverCard from './overlays/HoverCard';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
 import EvidenceTooltip from './overlays/EvidenceTooltip';
+import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLayer';
+import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 import useSolarClock from './hooks/useSolarClock';
 import NightExtension from './layers/NightExtension';
@@ -170,6 +172,15 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [evidenceOn, setEvidenceOn] = useState(false);
   useEffect(() => setEvidenceOn(evidenceParam()), []);
   const evidence = useEvidenceLayer({ enabled: evidenceOn, time, zoom: viewState.zoom });
+  // Other kinds of human (Neanderthals, Denisovans, ...): on by default; ?humans=0 or the View panel turns it off.
+  const [otherHumansOn, setOtherHumansOn] = useState(true);
+  useEffect(() => setOtherHumansOn(new URLSearchParams(window.location.search).get('humans') !== '0'), []);
+  const otherHumans = useOtherHumansLayer({
+    enabled: otherHumansOn,
+    time,
+    zoom: viewState.zoom,
+    globeCenter: is3DMode ? [viewState.longitude, viewState.latitude] : null,
+  });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
@@ -226,8 +237,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const modelled = evidenceAt(Math.round(time)) === 'modelled';
   const layers: LayersList = [
     ...shadedBackground,
+    ...otherHumans.below,
     ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers]),
     ...evidence.layers,
+    ...otherHumans.above,
   ] as LayersList;
 
   return (
@@ -254,6 +267,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
       />
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
+      <OtherHumansTooltip hover={otherHumans.hover} />
       {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
 
       {/* Data info overlay */}
@@ -406,6 +420,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 Counts reflect excavations and sampling, not population.
               </p>
             )}
+            {otherHumans.shown && (
+              <p className="ov-note mt-1">
+                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>▢</span> Other kinds of human ·
+                approximate ranges drawn around known fossils and DNA, not measured territories.
+                {notesOpen && ' Dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. The faint area east of Borneo is hinted only by Denisovan DNA in Papuans today.'}
+              </p>
+            )}
             {notesOpen && showTerrain && <TerrainNote />}
           </div>
         ) : (
@@ -431,6 +452,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           <ControlRow label="Day / night">
             <ToggleButton pressed={nightOn} onClick={() => setNightOn(on => !on)} label="Day/night shading" title="Shade Earth's night side using today's UTC clock; independent of the historical year">
               {nightOn ? 'On · live sun' : 'Off'}
+            </ToggleButton>
+          </ControlRow>
+          <ControlRow label="Other humans">
+            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: approximate ranges and key dated sites, until each was last seen">
+              {otherHumansOn ? 'On' : 'Off'}
             </ToggleButton>
           </ControlRow>
           {seasonsEnabled && peopleView && (

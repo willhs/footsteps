@@ -10,6 +10,13 @@ I want to show where humans were at any point in time in history, ideally as far
 
 It should be an instantiation of the avilable data on history - that is it should always show where humans were at any time, ideally down to every human on earth, performance permitting. The aim is to be as accurate as possible as we integrate with more data sets / anthropology data.
 
+### Inspiration: the Marauder's Map
+
+The Marauder's Map from the Harry Potter films is a touchstone for the close-up view: a living map where every person is
+a pair of inked footprints that steps, pauses and wanders in real time, each print fading as the next foot lands. When
+you zoom in far enough to see individuals, Footsteps aims for that feeling: you are watching people go about their
+day, not dots. The name fits: footsteps of time. (Their footwear and movements are imagined; see `lib/footwear.ts`.)
+
 ### Design Principles
 
 #### Core Principle: Data-Driven Minimalism

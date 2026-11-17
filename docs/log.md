@@ -4,6 +4,18 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-18] feature | People as walking footprints
+
+Zoomed in to individual people, each one is now a pair of footprints instead of a dot, inspired by the Marauder's Map
+(`docs/philosophy/design-philosophy.md`). On the real clock a person walks (a new print every ~0.7 m step, the older
+prints fading as the next foot lands) or stands with both feet together; about three in ten walk a lot, the rest
+mostly stand and take a few steps now and then. The prints lie on the ground (tilt with the close-up 3D view) and draw
+over its raised ground. Far out a walker steps almost on the spot; the stride shows only when zoomed right in, because
+positions stay real-time and real-size. Footwear is imagined per person from era, latitude and way of life
+(`lib/footwear.ts`, recalled sources): barefoot before ~40,000 years ago and for small children, hide wraps in cold
+country, sandals for warm-country farmers after Fort Rock (~10,500 years ago), stitched shoes with a heel for Eurasian
+villagers from 1 CE. Four print shapes (`layers/people.ts`); the person card names it.
+
 ## [2026-11-18] feature | Other kinds of human on the map
 
 Neanderthals, Denisovans, *H. floresiensis* and *H. luzonensis* are drawn before ~30,000 BCE: approximate lavender ranges,

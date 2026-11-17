@@ -12,7 +12,7 @@ const person: Person = {
   groupKind: 0,
   groupPeople: 30,
   color: [0, 0, 0, 255],
-  radius: 6,
+  radius: 6, footwear: 0,
 };
 
 beforeEach(() => jest.useFakeTimers());

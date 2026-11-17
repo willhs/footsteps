@@ -8,6 +8,7 @@ jest.mock('../layers/cityLayers', () => ({ __esModule: true, cityLayers: () => [
 jest.mock('../layers/people', () => ({
   __esModule: true,
   peopleForMorph: () => ({ steady: [], leaving: [], entering: [] }),
+  footprintData: (people: unknown[]) => people,
   PeopleLayer: class {
     props: Record<string, unknown>;
     constructor(props: Record<string, unknown>) {

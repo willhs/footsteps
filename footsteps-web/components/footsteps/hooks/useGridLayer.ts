@@ -20,6 +20,7 @@ import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
 import {
   PeopleLayer,
+  footprintData,
   peopleForMorph,
   type MorphGroupInView,
 } from '../layers/people';
@@ -306,7 +307,7 @@ export default function useGridLayer({
       if (lon < west - pad || lon > east + pad || lat < south - pad || lat > north + pad) continue;
       if (from[i] > 0 || to[i] > 0) groups.push({ lon, lat, kind: kind[i], from: from[i], to: to[i] });
     }
-    return peopleForMorph(groups);
+    return peopleForMorph(groups, morphScene.y1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peopleOn, morphScene, boundsKey]);
   // Three layers share the people; only their opacity follows the year fraction, so
@@ -316,7 +317,7 @@ export default function useGridLayer({
     () =>
       people
         ? (['steady', 'leaving', 'entering'] as const).map(
-            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: people[part] }),
+            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]) }),
           )
         : [],
     [people],

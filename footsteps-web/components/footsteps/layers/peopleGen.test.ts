@@ -1,6 +1,6 @@
 // Generation only; the layer class needs WebGL and is not imported here.
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
-import { describePerson, peopleForGroups, peopleForMorph, MAX_PER_GROUP } from './people';
+import { describePerson, footprintData, peopleForGroups, peopleForMorph, MAX_PER_GROUP, PRINTS } from './people';
 import { UnitKind } from './units';
 
 describe('people from head counts', () => {
@@ -67,7 +67,7 @@ describe('people from head counts', () => {
   it('describes a person plainly', () => {
     const d = describePerson(peopleForGroups([band])[0]);
     expect(d.title).toMatch(/^(A girl|A boy|A woman|A man), about \d+$/);
-    expect(d.detail).toMatch(/in a band of about 31 people\.$/);
+    expect(d.detail).toMatch(/in a band of about 31 people\. Footprints: [a-z ]+ \(imagined from era and climate\)\.$/);
   });
 });
 
@@ -114,5 +114,14 @@ describe('people between two data years', () => {
     const late = peopleForGroups(groups.map((g) => ({ ...g, people: g.to })));
     expect(m.steady.length + m.leaving.length).toBe(early.length);
     expect(m.steady.length + m.entering.length).toBe(late.length);
+  });
+});
+
+describe('footprints', () => {
+  it('gives each person PRINTS entries, person-major, that pick back to the person', () => {
+    const people = peopleForGroups([{ lon: 10, lat: 45, kind: UnitKind.Band, people: 5 }]);
+    const prints = footprintData(people);
+    expect(prints).toHaveLength(people.length * PRINTS);
+    prints.forEach((p, i) => expect(p).toBe(people[Math.floor(i / PRINTS)]));
   });
 });

@@ -422,7 +422,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             )}
             {otherHumans.shown && (
               <p className="ov-note mt-1">
-                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>▢</span> Other kinds of human ·
+                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>■</span> Other kinds of human ·
                 approximate ranges drawn around known fossils and DNA, not measured territories.
                 {notesOpen && ' Dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. The faint area east of Borneo is hinted only by Denisovan DNA in Papuans today.'}
               </p>

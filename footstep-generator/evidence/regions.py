@@ -31,7 +31,7 @@ class Region:
     early: float
     late: float
     ramp_ka: float
-    verification: str  # "checked" or "memory" (see the yaml header)
+    verification: str  # "checked" or "could_not_verify" (see the yaml header)
     notes: str
 
     @property

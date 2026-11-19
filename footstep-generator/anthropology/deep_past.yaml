@@ -11,11 +11,15 @@
 #   shelter     {phrase, material}: what archaeologists found people living in or under
 #   tools       [{role, items}]; ornaments; art: what is recorded, as short phrases
 #   summary     one line shown with the name
-#   verification  checked = key claim confirmed against the paper's abstract or a reliable summary;
-#                 memory  = citation and claim written from memory, NOT yet checked against the paper.
-#                 The atlas passes this on in each field's note; a `memory` entry must not be
-#                 presented as sourced.
-#   source      the papers or books behind the entry
+#   verification  checked          = the cited papers exist (DOI in `source`) and the key claim (the span and the
+#                                    dated finds) was confirmed against the paper's abstract or full text;
+#                 could_not_verify = the key claim could not be confirmed.
+#                 Both may carry `could_not_verify`: a sentence naming what no paper was found for (for a
+#                 `could_not_verify` entry it is required and says why). The atlas shows it in each field's note.
+#                 No entry is left as `memory` (the 2026-11-19 pass; docs/research/0013-arrivals-deep-past-source-check).
+#                 Abstract-level means the abstract (Europe PMC, Crossref, publisher page); full text was not read
+#                 except where `source` says so.
+#   source      the papers or books behind the entry, with DOIs
 # Selection (atlas.py): of the entries holding the cell centre, those overlapping the era; the one
 # overlapping the most wins, the one with the smaller box on a tie (then the earlier in this file).
 #
@@ -31,7 +35,7 @@ cultures:
     makers: ["H. sapiens"]
     bbox: [[-17, 18, 35, 37]]
     from_ka_bp: 145
-    to_ka_bp: 30
+    to_ka_bp: 40
     shelter: {phrase: "caves and rock shelters with hearths", material: "stone and hearth, no built walls recorded"}
     tools:
       - {role: hunting, items: ["tanged stone points, probably hafted spear or dart tips", "side scrapers"]}
@@ -39,14 +43,15 @@ cultures:
     ornaments: ["perforated sea-shell beads (Taforalt, c. 82 ka)", "ochre"]
     art: []
     summary: "Tanged points and shell beads across the Maghreb and Sahara, long before Europe's Upper Palaeolithic."
-    verification: memory
-    source: "Bouzouggar et al. 2007 PNAS 104:9964 (Grotte des Pigeons, Taforalt: shell beads c. 82 ka); Scerri 2013 Quat Int 300:111 (the Aterian, from memory)."
+    verification: checked
+    could_not_verify: "The hide-and-wood use of scrapers, hafting of the points and the cave-with-hearths wording are general descriptions with no paper behind them here; Scerri 2013's abstract was not reachable. The old radiocarbon end of ~24.5 ka is discounted (the best-dated tanged material ends 57-40 ka), so the span now ends at 40 rather than 30."
+    source: "Bouzouggar et al. 2007 PNAS 104:9964 (doi:10.1073/pnas.0703877104; Taforalt shell beads c. 82 ka); Richter et al. 2010 J Hum Evol 59:672 (doi:10.1016/j.jhevol.2010.07.024; Ifri n'Ammar: earliest tanged layer 145 ka by TL, a later layer with ornaments 83.3 ka); Scerri 2013 Quat Int 300:111 (doi:10.1016/j.quaint.2012.09.008)."
 
   - id: iberomaurusian
     name: "Iberomaurusian (Maghreb, Late Stone Age)"
     makers: ["H. sapiens"]
     bbox: [[-17, 28, 12, 37]]
-    from_ka_bp: 25
+    from_ka_bp: 22
     to_ka_bp: 11
     shelter: {phrase: "cave camps near the coast and uplands; large cemeteries at Taforalt", material: "stone and hearth"}
     tools:
@@ -54,31 +59,33 @@ cultures:
       - {role: gathering, items: ["grinding stones for acorns, pine nuts and wild plants", "land snail collecting"]}
     ornaments: ["perforated shells", "pierced animal teeth"]
     art: ["engraved and painted pebbles are rare"]
-    summary: "Backed-bladelet foragers of the Maghreb, c. 25-11 ka, who ground acorns and buried their dead in cave cemeteries."
-    verification: memory
-    source: "Taforalt (Morocco) excavations; Humphrey et al. 2014 Quat Sci Rev, Barton et al. — both from memory."
+    summary: "Backed-bladelet foragers of the Maghreb, c. 22-11 ka, who ground acorns and buried their dead in cave cemeteries."
+    verification: checked
+    could_not_verify: "No source found for Barbary sheep and gazelle as main game, land snail collecting, the ornaments or the rare painted pebbles. Taforalt's start is ~21-22 ka (Barton et al. 2013, from a search summary of the abstract); other Maghreb sites may start earlier (up to ~25 ka), which was not checked."
+    source: "Humphrey et al. 2014 PNAS 111:954 (doi:10.1073/pnas.1318176111; Grotte des Pigeons, Taforalt: a cemetery, acorns and pine nuts processed 15-13.7 cal ka BP); Barton et al. 2013 J Hum Evol 65:266 (doi:10.1016/j.jhevol.2013.06.003; 54 AMS dates, earliest Iberomaurusian at Taforalt >= 21.16 cal ka BP). An earlier note cited Humphrey 2014 as Quat Sci Rev; it is PNAS."
 
   - id: africa_msa
     name: "Middle Stone Age (Africa)"
     makers: ["H. sapiens"]
     bbox: [[-20, -35, 52, 37]]
-    from_ka_bp: 300
+    from_ka_bp: 320
     to_ka_bp: 40
     shelter: {phrase: "caves, rock shelters and open camps with hearths; grass and sedge bedding laid on the floor", material: "stone, hearth, plant bedding"}
     tools:
-      - {role: hunting, items: ["stone-tipped spears", "small stone points, perhaps arrow tips after 60 ka", "heat-treated stone for sharper flakes"]}
+      - {role: hunting, items: ["stone-tipped spears", "small stone points, perhaps arrow tips from c. 64 ka", "heat-treated stone for sharper flakes"]}
       - {role: processing, items: ["bone awls and points", "ochre grinding stones", "ochre-and-resin glue for hafting"]}
     ornaments: ["shell beads strung from Nassarius snails (Blombos, c. 75 ka)", "ochre"]
     art: ["engraved ochre (Blombos, c. 77 ka)", "ochre crayon drawing on stone (Blombos, c. 73 ka)", "engraved ostrich eggshell (Diepkloof, c. 60 ka)"]
     summary: "The Middle Stone Age of the first Homo sapiens: hafted points, shell beads, engraved ochre."
-    verification: memory
-    source: "McBrearty & Brooks 2000 J Hum Evol 39:453; Henshilwood et al. 2002 Science 295:1278 (Blombos); Henshilwood et al. 2018 Nature 562:115; Texier et al. 2010 PNAS 107:6180 (Diepkloof); Wadley et al. 2011 Science 334:1388 (Sibudu bedding); Brown et al. 2012 Nature 491:590 (heat treatment) — from memory."
+    verification: checked
+    could_not_verify: "No paper was found for stone-tipped spears and bone awls and points as general descriptions; the text of McBrearty & Brooks 2000 was not read for MSA claims. The end at 40 ka is a round cut-off (the MSA persists later in places)."
+    source: "McBrearty & Brooks 2000 J Hum Evol 39:453 (doi:10.1006/jhev.2000.0435); Brooks et al. 2018 Science 360:90 (doi:10.1126/science.aao2646; earliest MSA with pigment and prepared cores at Olorgesailie, >= 295 to ~320 ka); Henshilwood et al. 2002 Science 295:1278 (doi:10.1126/science.1067575; Blombos engraved ochre c. 77 ka); Henshilwood et al. 2018 Nature 562:115 (doi:10.1038/s41586-018-0514-3; ochre crayon drawing 73 ka); d'Errico et al. 2005 J Hum Evol 48:3 (doi:10.1016/j.jhevol.2004.09.002; Blombos Nassarius beads ~75 ka); Texier et al. 2010 PNAS 107:6180 (doi:10.1073/pnas.0913047107; Diepkloof ~60 ka); Wadley et al. 2011 Science 334:1388 (doi:10.1126/science.1213317; Sibudu bedding); Wadley et al. 2009 PNAS 106:9590 (doi:10.1073/pnas.0900957106; compound adhesive); Brown et al. 2012 Nature 491:590 (doi:10.1038/nature11660; heat treatment ~71 ka); Lombard & Phillipson 2010 Antiquity 84:635 (doi:10.1017/S0003598X00100134; bow and arrow ~64 ka)."
 
   - id: africa_lsa
     name: "Later Stone Age (Africa)"
     makers: ["H. sapiens"]
     bbox: [[-20, -35, 52, 28]]
-    from_ka_bp: 40
+    from_ka_bp: 44
     to_ka_bp: 11
     shelter: {phrase: "rock shelters and open-air camps with hearths and windbreaks", material: "stone, brush and hide"}
     tools:
@@ -86,10 +93,11 @@ cultures:
       - {role: gathering, items: ["digging sticks weighted with bored stones", "ostrich eggshell water containers"]}
       - {role: processing, items: ["bone needles and awls", "tiny stone scrapers and backed blades (microliths)"]}
     ornaments: ["ostrich eggshell beads", "pierced shells and teeth"]
-    art: ["painted slabs (Apollo 11 Cave, Namibia, c. 27 ka)", "rock engravings and paintings, mostly later and hard to date"]
-    summary: "Microlith foragers of the Later Stone Age: bows, ostrich eggshell beads, bone needles. Start dates run from c. 50 ka in East Africa to c. 20 ka in the south."
-    verification: memory
-    source: "Mitchell 2002 The Archaeology of Southern Africa (CUP); Ambrose 1998 J Hum Evol 34:623; Wendt 1976 (Apollo 11 slabs) — from memory."
+    art: ["painted slabs (Apollo 11 Cave, Namibia, c. 27-25 ka, radiocarbon years)", "rock engravings and paintings, mostly later and hard to date"]
+    summary: "Microlith foragers of the Later Stone Age: bows, ostrich eggshell beads, bone needles. The earliest dated start is c. 44-42 ka at Border Cave; other regions start later."
+    verification: checked
+    could_not_verify: "Ambrose 1998 (doi:10.1006/jasc.1997.0277, East African LSA chronology) abstract was not reachable, and no source was found for later starts in other regions (an earlier note said c. 20 ka in the south; Border Cave contradicts it). Snares, traps and water containers have no paper here. The Apollo 11 dates are radiocarbon years, not calibrated."
+    source: "Villa et al. 2012 PNAS 109:13208 (doi:10.1073/pnas.1202629109; Border Cave LSA from 44-42 cal ka BP: ostrich eggshell beads, bone arrowheads, bored stones, digging sticks, microliths hafted with pitch); Ambrose 1998 J Archaeol Sci 25:377 (doi:10.1006/jasc.1997.0277); Wendt 1976 S Afr Archaeol Bull 31:5 (doi:10.2307/3888265; Apollo 11 painted slabs, 27.5-25.5 ka BP, from a secondary summary); Vogelsang et al. 2010 J Afr Archaeol 8:185 (doi:10.3213/1612-1651-10170). An earlier note cited Ambrose 1998 as J Hum Evol 34:623, which is the Toba paper, and Mitchell 2002, a book with no checkable page."
 
   # ---- Levant and Arabia -------------------------------------------------------------------
   - id: levant_epipalaeolithic
@@ -97,16 +105,17 @@ cultures:
     makers: ["H. sapiens"]
     bbox: [[32, 28, 45, 38]]
     from_ka_bp: 23
-    to_ka_bp: 11.7
-    shelter: {phrase: "from mobile camps to the first year-round stone-footed round huts of the Natufian (c. 14.5 ka on)", material: "stone footings, brush and hides"}
+    to_ka_bp: 11.5
+    shelter: {phrase: "from mobile camps and brush huts (Ohalo II, c. 23 ka) to the first stone-footed round huts of the Natufian (c. 15-11.5 ka)", material: "stone footings, brush and hides"}
     tools:
       - {role: hunting, items: ["tiny geometric stone blades set in spears and arrows", "gazelle as main game"]}
       - {role: gathering, items: ["grinding stones and mortars", "sickle blades with gloss from cutting wild cereals"]}
     ornaments: ["dentalium shell beads", "bone and stone pendants"]
     art: ["small carved animal figures in stone and bone (Natufian)"]
     summary: "Kebaran camps and the Natufian base camps of the Levant, where foragers began living in one place and harvesting wild grain."
-    verification: memory
-    source: "Bar-Yosef 1998 Evol Anthropol 6:159 (The Natufian culture in the Levant) — from memory."
+    verification: checked
+    could_not_verify: "Bar-Yosef 1998's abstract was behind a 403 page; no source was checked for stone-footed huts, dentalium beads, sickle gloss or the carved figures. The Natufian date is the 15-11.5 ka of Grosman et al.; an earlier '14.5 ka' (sedentary phase) was not confirmed."
+    source: "Maher, Richter & Stock 2012 Evol Anthropol 21:69 (doi:10.1002/evan.21307; Epipalaeolithic c. 23,000-11,500 cal BP); Nadel et al. 2004 PNAS 101:6821 (doi:10.1073/pnas.0308557101; Ohalo II brush huts, hearth and grass bedding, 23 ka); Grosman, Munro & Belfer-Cohen 2008 PNAS 105:17665 (doi:10.1073/pnas.0806030105; Natufian 15,000-11,500 cal BP); Bar-Yosef 1998 Evol Anthropol 6:159 (doi:10.1002/(SICI)1520-6505(1998)6:5<159::AID-EVAN4>3.0.CO;2-7)."
 
   - id: levant_upper_palaeolithic
     name: "Early Ahmarian and Levantine Aurignacian"
@@ -116,13 +125,14 @@ cultures:
     to_ka_bp: 23
     shelter: {phrase: "cave and rock-shelter camps with hearths", material: "stone and hearth"}
     tools:
-      - {role: hunting, items: ["narrow stone blades and points (Ahmarian), set in spears", "gazelle, fallow deer and wild cattle"]}
+      - {role: hunting, items: ["narrow stone blades and points (Ahmarian), set in spears", "mountain gazelle and fallow deer"]}
       - {role: processing, items: ["bone points and awls", "end scrapers"]}
     ornaments: ["perforated marine shells", "bone and antler pendants"]
     art: []
     summary: "The Upper Palaeolithic of the Levant, with blade technology like Europe's earliest."
-    verification: memory
-    source: "Bar-Yosef 2007 (Levantine Upper Palaeolithic) — from memory; Boker Tachtit / Ksar Akil."
+    verification: checked
+    could_not_verify: "The span runs to 23 ka so it meets the Epipalaeolithic, but the dated Ahmarian and Levantine Aurignacian layers end c. 40-30 ka (Richter 2020; Shemer 2024). No source was found for bone and antler pendants or bone points and awls. 'Wild cattle' was dropped: the Manot Cave fauna (Yeshurun 2021) has none."
+    source: "Boaretto et al. 2021 PNAS 118:e2014657118 (doi:10.1073/pnas.2014657118; Boker Tachtit early phase 50-49 ka, Initial Upper Palaeolithic ~50 ka, Ahmarian of the Mediterranean zone 47-44 ka); Douka et al. 2013 PLoS ONE 8:e72931 (doi:10.1371/journal.pone.0072931; Ksar Akil Bayesian dating, 42.4-39.2 ka cal BP layers); Kuhn et al. 2001 PNAS 98:7641 (doi:10.1073/pnas.121590798; marine shell beads at Ksar 'Akil and Ucagizli, 41-43 ka cal). An earlier note cited an unspecified 'Bar-Yosef 2007', which could not be tied to a paper."
 
   - id: levant_middle_palaeolithic
     name: "Levantine Mousterian (Middle Palaeolithic)"
@@ -134,11 +144,12 @@ cultures:
     tools:
       - {role: hunting, items: ["Levallois flakes and points, perhaps hafted as spear tips"]}
       - {role: processing, items: ["side scrapers", "ochre"]}
-    ornaments: ["perforated Nassarius shells (Skhul and Qafzeh, c. 100-90 ka)"]
-    art: ["ochre pieces and burials with grave goods (Qafzeh, c. 100 ka)"]
+    ornaments: ["perforated Nassarius shells (Skhul, c. 100-135 ka)", "strung Glycymeris shells with ochre (Qafzeh, c. 92 ka)"]
+    art: ["ochre pieces selected for colour (Qafzeh, c. 92 ka)", "burials (Qafzeh)"]
     summary: "Mousterian toolkit shared by early Homo sapiens (Skhul, Qafzeh) and Neanderthals in the Levant."
-    verification: memory
-    source: "Vanhaeren et al. 2006 Science 312:1785 (shell beads); Hovers et al. 2003 Curr Anthropol 44:491 (Qafzeh ochre); Hershkovitz et al. 2018 Science 359:456 (Misliya) — from memory."
+    verification: checked
+    could_not_verify: "The 250 ka start and the Neanderthals as makers (Tabun, Kebara) were not checked here; Misliya (177-194 ka, sapiens) is the oldest dated Levantine find. 'Burials with grave goods' was cut to 'burials': the Qafzeh paper confirms graves, not grave goods. A 2020 PLoS ONE paper (doi:10.1371/journal.pone.0234924) reportedly dates the Qafzeh shells to ~120 ka; it was not read."
+    source: "Vanhaeren et al. 2006 Science 312:1785 (doi:10.1126/science.1128139; Nassarius shells at Skhul and Oued Djebbana); Bar-Yosef Mayer et al. 2009 J Hum Evol 56:307 (doi:10.1016/j.jhevol.2008.10.005; Qafzeh ~92 ka: perforated Glycymeris shells, ochre, graves); Hovers et al. 2003 Curr Anthropol 44:491 (doi:10.1086/375869; Qafzeh ochre ~92 ka); Hershkovitz et al. 2018 Science 359:456 (doi:10.1126/science.aap8369; Misliya 177-194 ka). An earlier note put the Qafzeh ornaments as Nassarius at 100-90 ka; they are Glycymeris at ~92 ka."
 
   # ---- Europe ------------------------------------------------------------------------------
   - id: solutrean
@@ -152,10 +163,11 @@ cultures:
       - {role: hunting, items: ["finely pressure-flaked laurel-leaf and shouldered points", "spear-throwers", "red deer, horse and ibex as main game"]}
       - {role: processing, items: ["bone needles with eyes, for sewing close-fitting clothes", "end scrapers"]}
     ornaments: ["pierced shells and animal teeth"]
-    art: ["engraved and painted caves and plaques (Parpalló, Spain)"]
-    summary: "Solutrean hunters of the last glacial peak, with the best-made stone points and the first eyed needles."
-    verification: memory
-    source: "Straus 2000 (The Solutrean of Iberia and France) and Zilhão; Parpalló plaques — from memory."
+    art: ["engraved and painted plaques (Parpalló, Spain; Solutrean and Magdalenian layers)"]
+    summary: "Solutrean hunters of the last glacial peak, with the best-made stone points and western Europe's first eyed needles."
+    verification: checked
+    could_not_verify: "No dating paper was found for the Parpalló plaques; pressure flaking, spear-throwers, the game list, end scrapers and ornaments have no paper here. Eyed needles are older in Siberia (Denisova, ~40 ka) and Kostenki (~30 ka), so 'first' is for western Europe only."
+    source: "Cascalheira & Bicho 2015 PLoS ONE 10:e0137308 (doi:10.1371/journal.pone.0137308; Bayesian chronology of 13 southern Iberian sequences, Solutrean ~25-19 cal ka BP, from the abstract and a search snippet); Gilligan et al. 2024 Sci Adv 10:eadp2887 (doi:10.1126/sciadv.adp2887; eyed needles first at Denisova ~40 ka, in western Europe with the Solutrean)."
 
   - id: magdalenian
     name: "Magdalenian (western and central Europe)"
@@ -170,8 +182,9 @@ cultures:
     ornaments: ["pierced shells and animal teeth", "ivory and jet pendants"]
     art: ["painted and engraved caves (Lascaux, Altamira, Niaux)", "carved antler and ivory figures"]
     summary: "Magdalenian reindeer and horse hunters, famous for cave paintings and carved antler."
-    verification: memory
-    source: "Straus 1992 Iberia Before the Iberians; Bahn & Vertut 1997 Journey Through the Ice Age — from memory."
+    verification: could_not_verify
+    could_not_verify: "The 20-14 ka span rests on a search snippet of Miller 2012 (earliest Magdalenian-related dates ~20-19 cal ka BP, the Bolling-Allerod to ~12.9 ka); its text and the antler, shelter, game and ornament claims were not read. Pike et al. 2012 dates 11 Spanish caves but could not be matched to Altamira's Magdalenian layers, Lascaux or Niaux (Lascaux sits near the Solutrean-Magdalenian boundary)."
+    source: "Miller 2012 Quat Int 272-273:209 (doi:10.1016/j.quaint.2012.05.034; Northwest Magdalenian expansion); Pike et al. 2012 Science 336:1409 (doi:10.1126/science.1219957; U-series dates of Spanish cave art). An earlier note cited Straus 1992 and Bahn & Vertut 1997, books with no checkable page."
 
   - id: azilian
     name: "Azilian and Late Epigravettian (Late Glacial Europe)"
@@ -186,14 +199,15 @@ cultures:
     ornaments: ["pierced shells and teeth"]
     art: ["painted pebbles (Azilian)"]
     summary: "Late Glacial foragers of the warming West, after the Magdalenian."
-    verification: memory
-    source: "Straus; Mas d'Azil painted pebbles — from memory."
+    verification: could_not_verify
+    could_not_verify: "No dated paper was found for the Azilian's tools, fish gorges or the Mas d'Azil painted pebbles (many pebbles in old collections are forgeries). Sources disagree on its dates: 14-12 ka (French Ministry of Culture), 12.5-10 ka BP uncalibrated (Wikipedia), 11-9.5 ka for the pebbles (British Museum); the 14-11 ka span is a loose compromise. The earlier citation 'Straus' had no year."
+    source: "No checkable source. Candidate not yet read: 'Azilian pebbles in British collections: a reexamination' (Proc Prehist Soc)."
 
   - id: epigravettian
     name: "Epigravettian (Italy, Balkans, Black Sea)"
     makers: ["H. sapiens"]
     bbox: [[8, 36, 42, 52]]
-    from_ka_bp: 22
+    from_ka_bp: 25
     to_ka_bp: 11
     shelter: {phrase: "cave and rock-shelter camps; tents and, on the plains, huts built of mammoth bones", material: "hide, wood, bone, stone"}
     tools:
@@ -202,15 +216,16 @@ cultures:
     ornaments: ["pierced shells", "beads"]
     art: ["engraved bones and stones (Grotta Romanelli, Italy)"]
     summary: "Southern Europe's refuge foragers through the Ice Age maximum and after."
-    verification: memory
-    source: "Mussi 2002 Earliest Italy; Soffer 1985 The Upper Paleolithic of the Central Russian Plain — from memory."
+    verification: checked
+    could_not_verify: "Grotta Romanelli's engraved pieces have no date (its layer E bone is ~13.4-13.2 cal ka BP, Calcagnile et al. 2019, no DOI found); the game, needles, scrapers, ornaments and shelters have no paper here. The start moved from 22 to 25 ka: Ruiz-Redondo's Early Epigravettian begins ~26-25 ka in the Adriatic region. Mammoth-bone huts belong to Ukraine (Mezhirich), inside this box."
+    source: "Ruiz-Redondo et al. 2022 Quat Sci Rev 276:107319 (doi:10.1016/j.quascirev.2021.107319; 278 dates at 66 sites: Gravettian ~35-34 to 26-25 ka, Early Epigravettian ~26-25 to 18.1-17.6, Late ~17.6-17.1 to 11.9-11.6 cal ka BP); Chu, Shydlovskyi & Maier 2025 Open Res Eur 5:198 (doi:10.12688/openreseurope.20112.1; Mezhirich mammoth-bone structure 4, 18,248-17,764 cal BP). An earlier note cited Mussi 2002 and Soffer 1985, books with no checkable page."
 
   - id: gravettian
     name: "Gravettian (Europe)"
     makers: ["H. sapiens"]
     bbox: [[-10, 36, 42, 56]]
-    from_ka_bp: 33
-    to_ka_bp: 22
+    from_ka_bp: 34
+    to_ka_bp: 25
     shelter: {phrase: "tents and huts of hide over wooden or mammoth-bone frames on the plains, caves in the west", material: "hide, wood, bone"}
     tools:
       - {role: hunting, items: ["small backed blades and points set in spears", "nets and cord (traces on clay)", "mammoth, reindeer and horse as main game"]}
@@ -218,8 +233,9 @@ cultures:
     ornaments: ["beads of ivory, shell and teeth, sewn on clothes and caps (Sunghir)", "pierced animal teeth"]
     art: ["'Venus' figurines of ivory, stone and baked clay", "hand stencils in caves (Gargas)"]
     summary: "Gravettian mammoth hunters of the Ice Age plains: figurines, beaded clothing, cord and nets."
-    verification: memory
-    source: "Soffer et al. 2000 Curr Anthropol 41:511 (cordage and nets); Sikora et al. 2017 Science 358:659 (Sunghir burials, c. 34 ka); Pidoplichko 1998 (mammoth-bone dwellings) — from memory."
+    verification: checked
+    could_not_verify: "The Gargas hand stencils are not firmly dated (a bone in a wall crack is ~27 ka); I confirmed Soffer et al. 2000's title (textiles, basketry, cordage and nets) but not its cordage-on-clay detail. Sikora 2017 gives Sunghir's date (~34 ka), not the bead details. The span was 33-22 ka; the dated Gravettian runs ~35-34 to 26-25 ka (Ruiz-Redondo 2022, Adriatic only; no western dating paper was found), so it is now 34-25."
+    source: "Soffer, Adovasio & Hyland 2000 Curr Anthropol 41:511 (doi:10.1086/317381); Sikora et al. 2017 Science 358:659 (doi:10.1126/science.aao1807; Sunghir ~34 ka); Revedin et al. 2010 PNAS 107:18815 (doi:10.1073/pnas.1006993107; starch on grinding tools at Bilancino, Kostenki 16, Pavlov VI, from ~30 ka); Ruiz-Redondo et al. 2022 (doi:10.1016/j.quascirev.2021.107319); Pidoplichko 1998 Upper Palaeolithic Dwellings of Mammoth Bones in the Ukraine, BAR Int Ser 712 (doi:10.30861/9780860549499; a book, not read)."
 
   - id: aurignacian
     name: "Aurignacian (Europe)"
@@ -232,10 +248,11 @@ cultures:
       - {role: hunting, items: ["split-base antler points on spears", "horse, reindeer, red deer and bison"]}
       - {role: processing, items: ["bone awls and needles", "carinated scrapers and burins"]}
     ornaments: ["thousands of ivory and shell beads, many made in a few set shapes", "pierced teeth"]
-    art: ["ivory figurines: the Lion-human of Hohlenstein-Stadel, the Hohle Fels woman", "bone and ivory flutes (Hohle Fels)", "cave paintings (Chauvet, c. 36 ka)"]
+    art: ["ivory figurines: the Lion-human of Hohlenstein-Stadel, the Hohle Fels woman", "bone and ivory flutes (Hohle Fels)", "cave paintings (Chauvet, first phase c. 37-33.5 ka)"]
     summary: "Europe's first Homo sapiens culture: carved ivory, bone flutes and the oldest cave paintings."
-    verification: memory
-    source: "Conard 2009 Nature 459:248 (Hohle Fels figurine); Conard, Malina & Münzel 2009 Nature 460:737 (flutes); Higham et al. 2011 Nature 479:521 (Aurignacian dating) — from memory."
+    verification: checked
+    could_not_verify: "The bead, point, game and scraper details have no paper here, and the Lion-human's attribution was not read. The Early Aurignacian start (~43-42 ka cal BP at Geissenkloesterle) was not seen in the abstract. 'The oldest cave paintings' is no longer true: Sulawesi and Borneo art is older (see the Wallacean entry), and Iberian art older than 64.8 ka is Neanderthal (see the Mousterian entry); read it as Europe's oldest sapiens art."
+    source: "Conard 2009 Nature 459:248 (doi:10.1038/nature07995; Hohle Fels figurine, basal Aurignacian, >= 35,000 cal BP); Conard, Malina & Muenzel 2009 Nature 460:737 (doi:10.1038/nature08169; flutes, >35,000 cal BP); Higham et al. 2012 J Hum Evol 62:664 (doi:10.1016/j.jhevol.2012.03.003; Geissenkloesterle ultrafiltration radiocarbon chronology); Quiles et al. 2016 PNAS 113:4670 (doi:10.1073/pnas.1523158113; Chauvet: two phases of human activity, 37-33.5 and 31-28 ka). An earlier note cited Higham 2011 Nature 479:521 for Aurignacian dating; that paper is Kent's Cavern."
 
   - id: initial_upper_palaeolithic
     name: "Initial Upper Palaeolithic (Bacho Kiro, Uluzzian and kin)"
@@ -251,7 +268,7 @@ cultures:
     art: []
     summary: "The first Homo sapiens in Europe, overlapping the last Neanderthals."
     verification: checked
-    source: "Hajdinjak et al. 2021 Nature 592:253 (Bacho Kiro, 45.9-42.6 ka); Hublin et al. 2020 Nature 581:299; Benazzi et al. 2011 Nature 479:525 (Uluzzian) — checked against arrivals.yaml."
+    source: "Hajdinjak et al. 2021 Nature 592:253 (doi:10.1038/s41586-021-03335-3; Bacho Kiro, 45.9-42.6 ka); Hublin et al. 2020 Nature 581:299 (doi:10.1038/s41586-020-2259-z); Benazzi et al. 2011 Nature 479:525 (doi:10.1038/nature10617; Grotta del Cavallo Uluzzian, ~45-43 cal ka BP) — checked against arrivals.yaml."
 
   - id: east_europe_upper_palaeolithic
     name: "Eastern European Upper Palaeolithic (Kostenki, Sungir, Mezhirich)"
@@ -259,15 +276,16 @@ cultures:
     bbox: [[30, 40, 60, 62]]
     from_ka_bp: 45
     to_ka_bp: 11
-    shelter: {phrase: "tents and round huts framed with mammoth bones, with hearths and storage pits (Mezhirich, c. 15 ka)", material: "mammoth bone, hide"}
+    shelter: {phrase: "tents and round huts framed with mammoth bones, with hearths and storage pits (Mezhirich, c. 18 ka cal BP)", material: "mammoth bone, hide"}
     tools:
       - {role: hunting, items: ["spears with ivory and bone points", "mammoth, horse, reindeer and bison", "arctic fox and hare trapped for fur"]}
-      - {role: processing, items: ["bone and ivory needles for tailored clothes", "ground stone"]}
+      - {role: processing, items: ["bone and ivory needles for tailored clothes (eyed needle, Kostenki 15, c. 30 ka)", "ground stone"]}
     ornaments: ["thousands of mammoth-ivory beads sewn on clothes and caps (Sunghir, c. 34 ka)", "shell and amber pendants"]
     art: ["carved ivory animals and 'Venus' figurines (Kostenki)", "painted and incised mammoth-bone items (Mezhirich)"]
     summary: "Mammoth-steppe hunters of the Russian Plain: bone huts, beaded clothing, ivory art."
-    verification: memory
-    source: "Sikora et al. 2017 Science 358:659; Pidoplichko 1998 Upper Palaeolithic Dwellings of Mammoth Bones in the Ukraine; Soffer 1985 — from memory."
+    verification: checked
+    could_not_verify: "The Kostenki Venus figurines, the painted Mezhirich bones, the fur-trapping and the shell and amber pendants have no paper here; Pidoplichko 1998 is a book (not read). Sikora 2017 gives the Sunghir date, not the beads. Mezhirich was 'c. 15 ka'; the new dating (earlier ~14.5 ka BP figures likely used scavenged bone) is c. 18 ka cal BP."
+    source: "Anikovich et al. 2007 Science 315:223 (doi:10.1126/science.1133376; Kostenki sites 45,000-42,000 years ago); Sikora et al. 2017 Science 358:659 (doi:10.1126/science.aao1807; Sunghir ~34 ka); Chu, Shydlovskyi & Maier 2025 Open Res Eur 5:198 (doi:10.12688/openreseurope.20112.1; Mezhirich, 18,248-17,764 cal BP); Gilligan et al. 2024 Sci Adv 10:eadp2887 (doi:10.1126/sciadv.adp2887; Kostenki-15 eyed needle ~30 ka); Pidoplichko 1998 BAR Int Ser 712 (doi:10.30861/9780860549499). Soffer 1985 (a book) was dropped."
 
   # ---- Neanderthal toolkits (not for a clicked person; labelled as another hominin's) -------
   - id: mousterian
@@ -280,11 +298,12 @@ cultures:
     tools:
       - {role: hunting, items: ["wooden spears, some tipped with stone points or hardened in fire", "horse, reindeer, red deer and bison"]}
       - {role: processing, items: ["side scrapers", "Levallois flakes", "handaxes in places", "birch-tar glue for hafting"]}
-    ornaments: ["perforated and painted shells, ochre (Cueva de los Aviones, c. 115-120 ka)", "eagle talons"]
-    art: ["hand stencils and red lines in Spanish caves, dated older than 64 ka"]
+    ornaments: ["perforated and painted shells, ochre (Cueva de los Aviones, c. 50 ka)", "eagle talons"]
+    art: ["hand stencils and red lines in Spanish caves, dated older than 64.8 ka"]
     summary: "The stone-tool tradition of the Neanderthals across Europe and western Asia."
-    verification: memory
-    source: "Hoffmann et al. 2018 Science 359:912 (cave art older than 64.8 ka); Zilhão et al. 2010 PNAS 107:1023 (shell ornaments); Jaubert et al. 2016 Nature 534:111 (Bruniquel); Higham et al. 2014 Nature 512:306 — from memory except the last."
+    verification: checked
+    could_not_verify: "Eagle talons, birch-tar glue, fire-hardened spears and the game list have no paper checked here. The 300 ka start is a round Middle Palaeolithic umbrella. Cueva de los Aviones was 'c. 115-120 ka'; Zilhao 2010 says 'as early as approximately 50,000 years ago'."
+    source: "Hoffmann et al. 2018 Science 359:912 (doi:10.1126/science.aap7778; U-Th minimum ages: cave art in Iberia older than 64.8 ka, so Neanderthal authorship); Zilhao et al. 2010 PNAS 107:1023 (doi:10.1073/pnas.0914088107; Cueva de los Aviones and Anton shell ornaments, as early as ~50 ka); Jaubert et al. 2016 Nature 534:111 (doi:10.1038/nature18291; Bruniquel stalagmite rings, 176.5 +/- 2.1 ka); Higham et al. 2014 Nature 512:306 (doi:10.1038/nature13621; Mousterian ends 41,030-39,260 cal BP). Abstracts read for all four."
 
   - id: denisovan_altai
     name: "Middle Palaeolithic and Initial Upper Palaeolithic of Denisova Cave (Denisovan)"
@@ -298,8 +317,9 @@ cultures:
     ornaments: ["bracelet of polished chlorite, c. 40 ka (Denisova Cave, maker unsure)", "beads and pendants of bone, ivory and shell"]
     art: []
     summary: "What the cave where Denisovans were first identified held; who made which layer is still argued."
-    verification: memory
-    source: "Douka et al. 2019 Nature 565:640 (Denisova Cave chronology); Derevianko — from memory."
+    verification: checked
+    could_not_verify: "The bracelet's ~40 ka date comes from 2015 press reports, not Derevianko et al. 2008 (doi:10.1016/j.aeae.2008.07.002), which describes it from layer 11.1 with non-local chlorite; the ornament papers (Shunkov et al. 2020, doi:10.1016/j.quaint.2020.07.027; Shunkov, Fedorchenko & Kozlikin 2024, doi:10.17746/1563-0110.2023.51.4.003-014) were not read for dates or contents. The stone and bone point descriptions have no paper here. Denisovan fossils at the cave reach back to ~195 ka (Douka); this entry is only the late window, and its 45 ka end sits before the ~40 ka needle and bracelet layers."
+    source: "Douka et al. 2019 Nature 565:640 (doi:10.1038/s41586-018-0870-z; Denisova Cave chronology: Denisovans from ~195 ka, youngest Denisovan 52-76 ka, oldest Neanderthals 80-140 ka); Derevianko, Shunkov & Volkov 2008 Archaeol Ethnol Anthropol Eurasia 34(2):13 (doi:10.1016/j.aeae.2008.07.002; the bracelet)."
 
   # ---- Siberia, Central and East Asia ------------------------------------------------------
   - id: siberian_upper_palaeolithic
@@ -310,13 +330,14 @@ cultures:
     to_ka_bp: 11
     shelter: {phrase: "semi-subterranean houses roofed with mammoth tusk, bone and hides (Mal'ta, c. 24 ka); hide tents", material: "mammoth bone, antler, hide, turf"}
     tools:
-      - {role: hunting, items: ["spears with mammoth-ivory and rhinoceros-horn foreshafts (Yana, c. 31 ka)", "wedge-shaped microblade cores set in bone points (from c. 35 ka)", "mammoth, bison, reindeer, horse, hare and arctic fox"]}
+      - {role: hunting, items: ["spears with mammoth-ivory and rhinoceros-horn foreshafts (Yana, c. 31 ka)", "wedge-shaped microblade cores set in bone points (Altai claimed c. 35-28 ka, widespread by c. 25 ka)", "mammoth, bison, reindeer, horse, hare and arctic fox"]}
       - {role: processing, items: ["bone needles for fitted fur clothes", "end scrapers"]}
     ornaments: ["ivory and bone beads and pendants", "carved ivory bird figures"]
     art: ["ivory 'Venus' figurines (Mal'ta)", "engraved mammoth tusks"]
     summary: "Siberian hunters of the cold steppe: tusk-roofed houses, fitted furs and microblades."
-    verification: memory
-    source: "Pitulko et al. 2004 Science 303:52 (Yana RHS); Raghavan et al. 2014 Nature 505:87 (Mal'ta); Mochanov (Dyuktai) — from memory except Yana, which arrivals.yaml marks checked."
+    verification: checked
+    could_not_verify: "Mal'ta's houses at c. 24 ka and its figurines, the carved ivory birds and engraved tusks: 24 ka is the burial date of the Mal'ta child (Raghavan 2014, a genome paper that says nothing of houses), and the Mal'ta-Buret' culture runs ~24-15 ka; secondary sources only. Microblade origins are contested (Gomez Coutouly 2018, doi:10.1017/RDC.2018.30, puts pressure microblades at ~30-25 cal ka in the Far East). Yana's ~31 ka is a calibration of ~27 ka 14C; Pitulko 2012 gives Yana's beads and needles at ~28 ka 14C. Mochanov (Dyuktai) could not be checked."
+    source: "Pitulko et al. 2004 Science 303:52 (doi:10.1126/science.1085219; Yana RHS, mammoth and rhinoceros foreshafts, ~27 ka 14C); Pitulko et al. 2012 Antiquity 86:642 (doi:10.1017/S0003598X00047827; Yana beads, pendants, needles); Raghavan et al. 2014 Nature 505:87 (doi:10.1038/nature12736; Mal'ta child MA-1, ~24 ka); Vasil'ev et al. 2002 Radiocarbon 44:503 (doi:10.1017/S0033822200031878; Dyuktai age debate, earliest southern Siberian modern humans 43-39 ka 14C)."
 
   - id: tibet_early
     name: "Early stone industries of the Tibetan Plateau"
@@ -324,14 +345,15 @@ cultures:
     bbox: [[78, 27, 104, 36]]
     from_ka_bp: 40
     to_ka_bp: 11
-    shelter: {phrase: "open camps at 4,000-4,600 m; no structures recorded", material: "none recorded"}
+    shelter: {phrase: "an open-air site at about 4,600 m (Nwya Devu); no structures recorded", material: "none recorded"}
     tools:
-      - {role: hunting, items: ["flakes and blades struck from local stone"]}
+      - {role: hunting, items: ["blades struck from local stone"]}
     ornaments: []
     art: []
     summary: "Very sparse: stone artefacts at high altitude from c. 40-30 ka."
-    verification: memory
-    source: "Zhang et al. 2018 Science 362:1049 (Nwya Devu) — from memory."
+    verification: checked
+    could_not_verify: "Ge et al. 2023 (doi:10.1007/s11430-022-1225-7) redates Nwya Devu to intermittent occupation over the past 45 ka; only its title was read. Nwya Devu has no hominin bones, so 'H. sapiens' is inferred. Nothing was checked for the 11 ka end."
+    source: "Zhang et al. 2018 Science 362:1049 (doi:10.1126/science.aat8824; Nwya Devu, ~4,600 m, 40-30 ka, blade assemblage). 'Open camps at 4,000-4,600 m' in an earlier note was unsupported."
 
   - id: incipient_jomon
     name: "Incipient Jōmon (Japan)"
@@ -347,8 +369,9 @@ cultures:
     ornaments: ["stone and shell beads"]
     art: []
     summary: "Japan's first potters, who were still hunters, fishers and gatherers."
-    verification: memory
-    source: "Habu 2004 Ancient Jomon of Japan (CUP) — from memory."
+    verification: checked
+    could_not_verify: "No paper found for pit dwellings, pit traps, the bow, or the stone and shell beads. Keally et al. 2004's dates (pottery ~16.75-15.7 cal ka) are from a search snippet. Habu 2004 (a book) was dropped."
+    source: "Craig et al. 2013 Nature 496:351 (doi:10.1038/nature12109; Incipient Jomon pottery ~15-11.8 cal ka BP, lipids show freshwater and marine foods cooked in it); Keally et al. 2004 Radiocarbon 46:345 (doi:10.1017/S0033822200039643; Japanese pottery from ~16 cal ka)."
 
   - id: japan_upper_palaeolithic
     name: "Japanese Upper Palaeolithic"
@@ -363,8 +386,9 @@ cultures:
     ornaments: ["stone and shell beads", "pierced teeth"]
     art: []
     summary: "Japan's first foragers, with some of the world's earliest ground-edge axes."
-    verification: memory
-    source: "Habu 2004 Ancient Jomon of Japan (CUP); Izuho — from memory."
+    verification: checked
+    could_not_verify: "Tsutsumi 2012's abstract was not retrievable (edge-ground axes at the start of the Early Upper Palaeolithic, ~38 cal ka, via Nakazawa 2017's full text and secondary summaries). Microblades 'from c. 20 ka' rest on a search summary of Gomez Coutouly 2018 (first Japanese assemblages ~21-19 ka). No source found for pit dwellings, hide tents, pit traps, the beads or pierced teeth."
+    source: "Nakazawa 2017 Curr Anthropol 58(S17):S539 (doi:10.1086/694447; full text read: trapezoids, knife-shaped tools and edge-ground axes appear 40,000-38,000 years ago, citing Izuho & Kaifu 2015); Tsutsumi 2012 Quat Int 248:70 (doi:10.1016/j.quaint.2011.01.030; MIS3 edge-ground axes); Gomez Coutouly 2018 Radiocarbon 60:821 (doi:10.1017/RDC.2018.30)."
 
   - id: east_asia_terminal_pleistocene
     name: "East Asian Terminal Pleistocene (microblades, early pottery)"
@@ -380,8 +404,9 @@ cultures:
     ornaments: ["perforated shells and teeth", "beads"]
     art: []
     summary: "Foragers of China after the glacial peak, among the first in the world to make pottery."
-    verification: memory
-    source: "Wu et al. 2012 Science 336:1696 (Xianrendong pottery); Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319 — from memory."
+    verification: checked
+    could_not_verify: "Bar-Yosef & Wang 2012's abstract was only partly visible and supports no specific claim here; bone needles, grinding stones, the game list, microblade hafting and the ornaments have no paper checked."
+    source: "Wu et al. 2012 Science 336:1696 (doi:10.1126/science.1218643; Xianrendong pottery 20-19 cal ka, used by mobile foragers, possibly for cooking); Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319 (doi:10.1146/annurev-anthro-092611-145832); Craig et al. 2013 Nature 496:351 (doi:10.1038/nature12109; East Asian pottery 20-12 ka)."
 
   - id: east_asia_upper_palaeolithic
     name: "East Asian Upper Palaeolithic (Shuidonggou, Zhoukoudian Upper Cave)"
@@ -396,8 +421,9 @@ cultures:
     ornaments: ["perforated ostrich-eggshell beads (Shuidonggou)", "perforated shells and teeth", "ochre-dyed beads (Upper Cave)"]
     art: []
     summary: "Foragers of China from c. 40 ka, with blades, bone needles and eggshell beads."
-    verification: memory
-    source: "Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319; Fu et al. 2013 PNAS 110:2223 (Tianyuan) — from memory except the last."
+    verification: checked
+    could_not_verify: "Microblades 'from c. 29 ka' were not confirmed (Qu et al. 2013, doi:10.1007/s10814-012-9059-4, is the review to read; only a snippet was seen). Bone needles, grinding stones and the game list have no paper here. Zhoukoudian Upper Cave has a minimum age of 35.1-33.5 ka (Li 2018), later than this entry's 42 ka start, which comes from Tianyuan (~40 ka) and Shuidonggou 1 (43-40 cal ka)."
+    source: "Fu et al. 2013 PNAS 110:2223 (doi:10.1073/pnas.1221359110; Tianyuan Cave individual, ~40 ka; not Upper Cave); Peng et al. 2020 PLoS ONE 15:e0232682 (doi:10.1371/journal.pone.0232682; Shuidonggou 2 ostrich eggshell and freshwater shell beads, phases 43-35 and 35-28 cal ka); Morgan et al. 2014 Radiocarbon 56:165 (doi:10.2458/56.16270; Shuidonggou 1 initial Upper Palaeolithic 40-43 cal ka); Li et al. 2018 J Hum Evol 121:170 (doi:10.1016/j.jhevol.2018.02.011; Upper Cave minimum age 35.1-33.5 ka); d'Errico et al. 2021 J Hum Evol 161:103088 (doi:10.1016/j.jhevol.2021.103088; Upper Cave ornaments and ochre); Bar-Yosef & Wang 2012 Annu Rev Anthropol 41:319 (doi:10.1146/annurev-anthro-092611-145832)."
 
   # ---- South and Southeast Asia, Wallacea, Sahul -------------------------------------------
   - id: south_asia_microlithic
@@ -413,8 +439,9 @@ cultures:
     ornaments: ["shell and bone beads (Batadomba-lena, c. 36 ka)"]
     art: []
     summary: "Microlith-using rainforest foragers of Sri Lanka and India."
-    verification: memory
-    source: "Perera et al. 2019 PLOS ONE 14:e0222606 (Fa-Hien Lena, per arrivals.yaml); Langley et al. 2020 Sci Adv 6:eaba3831; Perera et al. 2011 J Hum Evol 61:254 (Batadomba-lena) — from memory."
+    verification: checked
+    could_not_verify: "Everything checked is from Sri Lanka (Fa-Hien Lena, Batadomba-lena); nothing covers mainland India. Batadomba-lena's marine-shell beads are in the abstract, but 'bone points' and 'grindstones' were not found there. Wedage 2019 (Nat Commun) was seen as a snippet only."
+    source: "Wedage et al. 2019 PLoS ONE 14:e0222606 (doi:10.1371/journal.pone.0222606; Fa-Hien Lena microliths 48-45 cal ka BP); Wedage et al. 2019 Nat Commun 10:739 (doi:10.1038/s41467-019-08623-1; rainforest hunting of monkeys and squirrels ~45 ka); Langley et al. 2020 Sci Adv 6:eaba3831 (doi:10.1126/sciadv.aba3831; bow-and-arrow toolkit ~48 ka); Perera et al. 2011 J Hum Evol 61:254 (doi:10.1016/j.jhevol.2011.04.001; Batadomba-lena from ~36 cal ka, marine shell beads from the start). An earlier note attributed the PLoS ONE paper to Perera."
 
   - id: wallacea_early
     name: "Sulawesi, Borneo and Timor: early maritime foragers"
@@ -425,12 +452,13 @@ cultures:
     shelter: {phrase: "cave and rock-shelter camps; rainforest and coastal foragers", material: "stone, brush"}
     tools:
       - {role: hunting, items: ["spears; warty pig, anoa and small deer in Sulawesi", "poison-plant processing (Niah)"]}
-      - {role: fishing, items: ["shell fish-hooks and pelagic tuna fishing, c. 42-23 ka (Timor)"]}
+      - {role: fishing, items: ["pelagic fishing from c. 42 ka and shell fish-hooks from c. 23 ka (Timor)"]}
     ornaments: ["shell beads", "perforated shells"]
-    art: ["hand stencils (Sulawesi, c. 40 ka)", "painted warty pig (Sulawesi, c. 45 ka)", "hunting scene (Sulawesi, c. 44 ka)", "red cave paintings in Borneo, c. 40 ka"]
+    art: ["hand stencils (Sulawesi, at least 39.9 ka)", "painted warty pig (Sulawesi, at least 45.5 ka)", "hunting scene (Sulawesi, at least 43.9 ka)", "red cave paintings in Borneo, at least 40 ka"]
     summary: "Some of the oldest known figurative art, made by early seafaring foragers on the way to Sahul."
-    verification: memory
-    source: "Aubert et al. 2014 Nature 514:223; Aubert et al. 2018 Nature 564:254; Aubert et al. 2019 Nature 576:442; Brumm et al. 2021 Sci Adv 7:eabd4648; O'Connor et al. 2011 Science 334:1117; Barker et al. 2007 J Hum Evol 52:243 — from memory."
+    verification: checked
+    could_not_verify: "The 60 ka start has no Wallacean source: the earliest dated art and fishing are ~45-42 ka (Lida Ajer, Sumatra, 73-63 ka, is in the arrival table). The Timor fish-hook age (c. 23 ka) is from an ANU press summary. Spear hunting of warty pig and anoa, the shell beads and the shelters have no paper here."
+    source: "Aubert et al. 2014 Nature 514:223 (doi:10.1038/nature13422; Sulawesi hand stencil at least 39.9 ka, babirusa at least 35.4 ka); Aubert et al. 2018 Nature 564:254 (doi:10.1038/s41586-018-0679-9; Borneo figurative painting at least 40 ka, hand stencils 52-37 ka); Aubert et al. 2019 Nature 576:442 (doi:10.1038/s41586-019-1806-y; hunting scene at least 43.9 ka); Brumm et al. 2021 Sci Adv 7:eabd4648 (doi:10.1126/sciadv.abd4648; Leang Tedongnge warty pig at least 45.5 ka); O'Connor et al. 2011 Science 334:1117 (doi:10.1126/science.1207703; Jerimalai pelagic fishing 42 ka); Barker et al. 2007 J Hum Evol 52:243 (doi:10.1016/j.jhevol.2006.08.011; Niah, toxic plant processing). An earlier note had Timor fishing as 'c. 42-23 ka'."
 
   - id: sea_mainland_late_pleistocene
     name: "Late Pleistocene foragers of mainland Southeast Asia"
@@ -444,8 +472,9 @@ cultures:
     ornaments: []
     art: []
     summary: "Sparse record; flake industries and, later, the pebble-tool Hoabinhian."
-    verification: memory
-    source: "Demeter et al. 2012 PNAS 109:14375 (Tam Pa Ling, per arrivals.yaml); Hoabinhian studies — from memory."
+    verification: checked
+    could_not_verify: "No stone tools are dated before ~46 ka: the 70 ka start follows the arrival table (Tam Pa Ling 6/7 bones, 86-68 ka, few and debated), and Westaway 2017's Lida Ajer teeth (73-63 ka) are in Sumatra with no tools. Hoabinhian dates were not verified (Forestier 2021, doi:10.1080/01977261.2021.1981654; Marwick 2013, doi:10.1016/j.jaa.2013.08.004); bone points and rainforest game have no paper here."
+    source: "Demeter et al. 2012 PNAS 109:14375 (doi:10.1073/pnas.1208104109; Tam Pa Ling cranium, minimum age 51-46 ka, maximum ~63 ka); Westaway et al. 2017 Nature 548:322 (doi:10.1038/nature23452)."
 
   - id: tasmania_ice_age
     name: "Ice Age Tasmania (Kutikina, Warreen)"
@@ -460,8 +489,9 @@ cultures:
     ornaments: []
     art: ["handprints in some caves, dates uncertain"]
     summary: "People living in the cold southern edge of the world at the Ice Age maximum."
-    verification: memory
-    source: "Cosgrove 1999 J World Prehist 13:357 (Late Pleistocene Tasmania) — from memory."
+    verification: could_not_verify
+    could_not_verify: "Cosgrove 1999's abstract was not reachable: Warreen ~35 ka at its base (intense use 24-22 ka), Kutikina first occupied ~20 ka and wallaby as the main game come from secondary sources only. Pleistocene rock marking is listed in a Tasmanian heritage report (Ballawinne, Wargata Mina) but no dating paper was found."
+    source: "Cosgrove 1999 'Forty-two degrees south: the archaeology of Late Pleistocene Tasmania' J World Prehist 13:357 (doi:10.1023/A:1022310029016). An earlier note gave the title as 'Late Pleistocene Tasmania'."
 
   - id: sahul
     name: "Sahul: Madjedbebe, Lake Mungo, the New Guinea highlands"
@@ -471,21 +501,22 @@ cultures:
     to_ka_bp: 11
     shelter: {phrase: "rock shelters and open camps with hearths; highland camps; coastal shell middens", material: "stone, brush, hearth"}
     tools:
-      - {role: hunting, items: ["spears and spear-throwers, kangaroo and wallaby", "edge-ground axes (from c. 65 ka at Madjedbebe, c. 49 ka in New Guinea)", "throwing sticks"]}
+      - {role: hunting, items: ["spears and spear-throwers, kangaroo and wallaby", "edge-ground axe heads (Madjedbebe, c. 65 ka)", "stone tools thought to be used to fell trees (New Guinea highlands, from c. 49 ka)", "throwing sticks"]}
       - {role: gathering, items: ["grindstones for seeds and roots (Madjedbebe, c. 65 ka)", "digging sticks", "nets for fish and small game"]}
       - {role: processing, items: ["ground ochre, including reflective pigment"]}
     ornaments: ["shell beads", "ochre body painting"]
     art: ["ochre art, rock engravings and painted shelters, most of it hard to date"]
     summary: "Australia and New Guinea's first people: ground-edge axes, seed grinding, ochre."
-    verification: memory
-    source: "Clarkson et al. 2017 Nature 547:306 (Madjedbebe; checked in arrivals.yaml); Bowler et al. 2003 Nature 421:837 (Lake Mungo); Summerhayes et al. 2010 Science 330:78 (New Guinea highlands, 49-44 ka); Hiscock 2008 Archaeology of Ancient Australia — from memory except Clarkson."
+    verification: checked
+    could_not_verify: "The Madjedbebe age and its artefact association are disputed (see the Sahul arrival entry). Summerhayes 2010's abstract does not call the highland tools 'edge-ground'. Spears, spear-throwers, throwing sticks, nets, digging sticks, shell beads and body painting have no paper here. Lake Mungo: burials c. 40 ka and occupation by c. 50-46 ka (Bowler 2003), not 'older than 40 ka'."
+    source: "Clarkson et al. 2017 Nature 547:306 (doi:10.1038/nature22968; Madjedbebe occupation from ~65 ka: grindstones, ground ochres, reflective additives, ground-edge hatchet heads); Bowler et al. 2003 Nature 421:837 (doi:10.1038/nature01383; Lake Mungo, burials 40 +/- 2 ka, humans by 50-46 ka); Summerhayes et al. 2010 Science 330:78 (doi:10.1126/science.1193130; New Guinea highland sites 49-44 ka, tools thought to be used to remove trees). Hiscock 2008 (a book) was dropped."
 
   # ---- The Americas ------------------------------------------------------------------------
   - id: beringian
     name: "Beringian tradition (Alaska and Chukotka)"
     makers: ["H. sapiens"]
     bbox: [[-170, 55, -140, 72]]
-    from_ka_bp: 24
+    from_ka_bp: 16
     to_ka_bp: 11
     shelter: {phrase: "tents and small houses with hearths on the steppe tundra", material: "hide, wood, bone"}
     tools:
@@ -494,8 +525,9 @@ cultures:
     ornaments: ["bone and antler beads"]
     art: []
     summary: "Beringian foragers of the land bridge and Alaska before the Americas opened."
-    verification: memory
-    source: "Hamilton & Goebel 1999 in Ice Age People of North America; Moreno-Mayar et al. 2018 Nature 553:203 (per arrivals.yaml) — from memory."
+    verification: checked
+    could_not_verify: "The span was 24-11 ka; the microblade tradition itself is after ~16.5 ka (Goebel et al. 2008), with Ushki-1 at ~13 cal ka. The earlier people in this box (Bluefish Caves, cut-marked bone at 24 cal ka; the arrival table) left no toolkit recorded here, so 24-16 ka now falls to 'none' rather than being filled with a toolkit that postdates it. Graf & Buvit 2017's abstract was not read. Shelters, game list, tools and beads have no paper here."
+    source: "Goebel, Waters & O'Rourke 2008 Science 319:1497 (doi:10.1126/science.1153569; Beringian dispersal after ~16.5 ka); Goebel et al. 2010 J Archaeol Sci 37:2640 (doi:10.1016/j.jas.2010.05.024; Ushki-1); Bourgeon et al. 2017 PLoS ONE 12:e0169486 (doi:10.1371/journal.pone.0169486; Bluefish Caves 24 cal ka); Moreno-Mayar et al. 2018 Nature 553:203 (doi:10.1038/nature25173; Upward Sun River, ~11.5 ka, genome paper). Hamilton & Goebel 1999 (a book chapter) was dropped."
 
   - id: clovis
     name: "Clovis (North America)"
@@ -511,7 +543,7 @@ cultures:
     art: ["engraved stones and bones at a few sites"]
     summary: "Fluted-point hunters of c. 13,000 years ago, who hunted mammoth."
     verification: checked
-    source: "Waters & Stafford 2007 Science 315:1122 (Clovis c. 13.05-12.75 ka cal BP); Haynes 2002 The Early Settlement of North America; Rasmussen et al. 2014 Nature 506:225 (Anzick)."
+    source: "Waters & Stafford 2007 Science 315:1122 (doi:10.1126/science.1137166; Clovis c. 13.05-12.75 ka cal BP); Haynes 2002 The Early Settlement of North America; Rasmussen et al. 2014 Nature 506:225 (doi:10.1038/nature13025; Anzick)."
 
   - id: folsom_plano
     name: "Folsom and Plano (North America)"
@@ -526,8 +558,9 @@ cultures:
     ornaments: []
     art: []
     summary: "Bison hunters of the Great Plains after the mammoth was gone."
-    verification: memory
-    source: "Meltzer 2009 First Peoples in a New World (UC Press) — from memory."
+    verification: checked
+    could_not_verify: "Only the Folsom start is dated (12.9 ka); nothing was checked for Plano (the 10 ka end; Holliday 2000, Geoarchaeology 15:227, exists but was not read), and the shelters and tools have no paper here. Meltzer 2009 (a book) was dropped."
+    source: "Buchanan et al. 2021 PaleoAmerica 7:133 (doi:10.1080/20555563.2021.1890401; Folsom starts 12,845-12,770 and ends 12,400-12,255 cal BP, from a search summary); Buchanan et al. 2022 Am Antiq 87:567 (doi:10.1017/aaq.2021.153; Folsom starts 12,900-12,740 cal BP)."
 
   - id: western_stemmed
     name: "Western Stemmed tradition (Great Basin and Columbia Plateau)"
@@ -537,13 +570,14 @@ cultures:
     to_ka_bp: 11
     shelter: {phrase: "cave and lakeshore camps with hearths (Paisley Caves, Cooper's Ferry)", material: "stone, hide, hearth"}
     tools:
-      - {role: hunting, items: ["stemmed stone points (Cooper's Ferry, c. 16 ka)", "camel, horse, bison, rabbit and waterfowl (Paisley Caves)"]}
-      - {role: gathering, items: ["wild plant seeds, ground in places", "twined fibre sandals and cordage (Paisley Caves)"]}
+      - {role: hunting, items: ["stemmed stone points (Cooper's Ferry, c. 16 ka)", "horse and other game (Paisley Caves; the full game list was not checked)"]}
+      - {role: gathering, items: ["wild plant seeds, ground in places", "sage cordage (Paisley Caves)", "twined sagebrush sandals (Fort Rock style, c. 10.5-9 ka)"]}
     ornaments: []
     art: []
     summary: "Stemmed-point foragers of the interior West, living there before and beside Clovis."
-    verification: memory
-    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry); Jenkins et al. 2012 Science 337:223 (Paisley Caves) — from memory."
+    verification: checked
+    could_not_verify: "Camel, bison, rabbit and waterfowl at Paisley were not found in the abstract (the paper reports horse and proboscidean blood residues); seed grinding has no paper here. The sandals are Fort Rock-style (c. 10.5-9 ka, after the Paisley layers), not from Paisley as an earlier note had it."
+    source: "Davis et al. 2019 Science 365:891 (doi:10.1126/science.aax9830; Cooper's Ferry stemmed points 16,560-15,280 cal BP); Jenkins et al. 2012 Science 337:223 (doi:10.1126/science.1218443; Paisley Caves: Western Stemmed points ~11.1-11.3 ka 14C, human DNA in pre-Clovis-age coprolites); Fort Rock sandals as in footsteps-web/lib/footwear.ts."
 
   - id: pre_clovis
     name: "Pre-Clovis (North America)"
@@ -553,13 +587,14 @@ cultures:
     to_ka_bp: 13.05
     shelter: {phrase: "camps with hearths and hide shelters; none preserved", material: "not preserved"}
     tools:
-      - {role: hunting, items: ["stemmed and leaf-shaped points", "bifacial blades (Buttermilk Creek, c. 15.5 ka)"]}
+      - {role: hunting, items: ["stemmed and leaf-shaped points", "bifacial blades (Buttermilk Creek, c. 13.2-15.5 ka)"]}
       - {role: gathering, items: ["plants and seeds, ground in places"]}
     ornaments: []
     art: []
     summary: "The earliest well-dated Americans: White Sands footprints (c. 23-21 ka), Cooper's Ferry (c. 16 ka), Buttermilk Creek."
     verification: checked
-    source: "Bennett et al. 2021 Science 373:1528 and Pigati et al. 2023 Science 382:73 (White Sands, checked in arrivals.yaml); Davis et al. 2019 Science 365:891 (Cooper's Ferry); Waters et al. 2011 Science 331:1599 (Buttermilk Creek) — last two from memory."
+    could_not_verify: "Waters et al. 2018 (doi:10.1126/sciadv.aat4505) would be a better source for the stemmed and leaf-shaped points but was not read; hearths, hide shelters and plant grinding have no paper here."
+    source: "Bennett et al. 2021 Science 373:1528 and Pigati et al. 2023 Science 382:73 (White Sands, checked in arrivals.yaml); Davis et al. 2019 Science 365:891 (doi:10.1126/science.aax9830; Cooper's Ferry); Waters et al. 2011 Science 331:1599 (doi:10.1126/science.1201855; Buttermilk Creek Complex ~13.2-15.5 ka, beneath Clovis)."
 
   - id: south_america_early
     name: "Early South America: Monte Verde, fishtail points, Lagoa Santa"
@@ -567,23 +602,27 @@ cultures:
     bbox: [[-82, -56, -34, 13]]
     from_ka_bp: 15
     to_ka_bp: 11
-    shelter: {phrase: "tent-like huts of wooden poles covered with hides, with hearths (Monte Verde, c. 14.5 ka); rock-shelter camps", material: "wood, hide, earth"}
+    shelter: {phrase: "tent-like huts of wooden poles covered with hides, with hearths (Monte Verde, c. 14.5-14 ka); rock-shelter camps", material: "wood, hide, earth"}
     tools:
-      - {role: hunting, items: ["fishtail and leaf-shaped points", "mastodon-like gomphotheres, guanaco, giant sloth, horse and small game"]}
+      - {role: hunting, items: ["fishtail and leaf-shaped points (fishtail c. 13-12 ka)", "mastodon-like gomphotheres, guanaco, giant sloth, horse and small game"]}
       - {role: gathering, items: ["many wild plants, including seaweed and medicinal plants (Monte Verde)", "digging sticks and wooden mortars"]}
     ornaments: ["shell beads and pendants"]
     art: ["rock-shelter paintings in Brazil and Colombia, mostly later"]
     summary: "South America's first foragers, from Chile to Patagonia."
-    verification: memory
-    source: "Dillehay 2015 PLOS ONE 10:e0141923 (Monte Verde II, per arrivals.yaml); Dillehay 2008 The Settlement of the Americas — from memory."
+    verification: checked
+    could_not_verify: "Lagoa Santa has no paper checked (Fontugne 2013 and Bueno 2017 found, not read). The Monte Verde huts, the gomphothere, sloth and horse game, digging sticks, mortars, shell beads and the rock-shelter paintings have no paper here. Monte Verde evidence spans ~18.5-14.5 cal ka (Dillehay 2015), so 'c. 14.5 ka' was the young end."
+    source: "Dillehay et al. 2015 PLoS ONE 10:e0141923 (doi:10.1371/journal.pone.0141923; ephemeral human activity ~18.5-14.5 cal ka); Dillehay et al. 2008 Science 320:784 (doi:10.1126/science.1156533; Monte Verde II seaweed used for food and medicine, 14.22-13.98 cal ka); Waters et al. 2015 Am Antiq 80:376 (doi:10.7183/0002-7316.80.2.376; fishtail points 10,850-10,300 14C BP, ~12.9-12.2 cal ka); Prates et al. 2020 PLoS ONE 15:e0236023 (doi:10.1371/journal.pone.0236023; peopling threshold ~15.5 cal ka). Dillehay 2008 'The Settlement of the Americas' (a book) was dropped."
 
 # Typical big game by Krapp BIOME4 class. A rough, general description of what foragers found there,
 # not a list of species at a place (the fauna ranges give those). Used beside the ranges, always.
-# Sources: Kelly 2013 The Lifeways of Hunter-Gatherers (CUP); Binford 2001 Constructing Frames of
-# Reference (UC Press) — both from memory; verification: memory.
+# The lists are a general summary informed by Kelly 2013 The Lifeways of Hunter-Gatherers (CUP,
+# doi:10.1017/CBO9781139176132) and Binford 2001 Constructing Frames of Reference (UC Press,
+# doi:10.1525/9780520925069); both books are real, but neither has a table keyed to BIOME4 classes,
+# so the per-biome lists could not be traced to a page: verification: could_not_verify.
 biome_prey:
-  verification: memory
-  source: "Kelly 2013 The Lifeways of Hunter-Gatherers; Binford 2001 Constructing Frames of Reference."
+  verification: could_not_verify
+  could_not_verify: "Both books are real and about hunter-gatherer ecology, but neither has a game table keyed to Krapp BIOME4 classes and neither was read page by page; the per-biome lists are a modelled summary, not a quotation."
+  source: "Kelly 2013 The Lifeways of Hunter-Gatherers (doi:10.1017/CBO9781139176132); Binford 2001 Constructing Frames of Reference (doi:10.1525/9780520925069)."
   groups:
     - {biomes: [1, 2], name: tropical forest, game: ["pigs", "small deer and antelope", "monkeys", "rodents", "fish and honey"]}
     - {biomes: [3, 12, 13, 19], name: tropical savanna and woodland, game: ["antelope and zebra herds", "wild cattle and buffalo", "elephant and rhino (rarely)", "warthog and smaller game"]}

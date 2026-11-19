@@ -77,8 +77,10 @@ does it too). Inputs are gitignored: habitat WebPs (`habitat_lookup.py`), modell
 
 `deep_past.yaml` carries 34 technocomplexes (Middle and Later Stone Age, Aterian, Iberomaurusian, Levantine
 Mousterian to Natufian, Mousterian, Aurignacian, Gravettian, Solutrean, Magdalenian, Epigravettian, Siberian, East Asian,
-Japanese, South Asian, Wallacean, Sahul, Clovis, pre-Clovis, Western Stemmed, South America and more). **Most are cited from memory**
-(`verification: memory`) and not yet checked against the papers; the record's note says so, and the UI must not present such a claim as sourced.
+Japanese, South Asian, Wallacean, Sahul, Clovis, pre-Clovis, Western Stemmed, South America and more). Each is `verification: checked` (papers found, DOI in `source`, dates
+confirmed against the abstract or text) or `could_not_verify`, and a `could_not_verify:` sentence says which details no paper was found for;
+the record's note passes it on, and the UI must not present an unverified detail as sourced (research 0013). To refresh the committed atlas
+after editing the two yaml tables without rerunning the model: `poetry run python footstep-generator/anthropology/deep.py --tables-only`.
 Spans are regional and coarse. Clovis (c. 13,050-12,750 years ago) is shorter than one era, so it appears as "also in this period" beside the
 best fit.
 

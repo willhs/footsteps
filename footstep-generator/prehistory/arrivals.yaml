@@ -7,10 +7,14 @@
 # `alt` records a contested alternative (not used unless a scenario switches to it).
 #
 # verification:
-#   checked  = key figure confirmed against the paper's abstract or a reliable summary
-#              during the 2026-11-13 web pass (see `source` for the paper)
-#   memory   = citation and number written from memory; NOT yet checked against the paper.
-#              The model may use it, but the claim must not be shown to users as sourced.
+#   checked          = the cited papers exist (DOI in `source`) and the key figure was confirmed against the
+#                      paper's abstract or full text (2026-11-13 web pass; the memory-only entries on 2026-11-19).
+#                      `could_not_verify` (optional here) names the details of an entry no paper was found for,
+#                      for example a model inference that the cited papers do not state.
+#   could_not_verify = the claim could not be confirmed; the required `could_not_verify` field says why.
+#                      The atlas shows that reason beside the claim.
+# No entry is left as `memory`. A date changed by more than ~10% in the 2026-11-19 pass is listed in
+# docs/research/0013-arrivals-deep-past-source-check; the population model has NOT been rerun for it.
 #
 # bbox is [west, south, east, north] in degrees; a cell belongs to the FIRST matching
 # region in file order (so put small/specific regions before big ones). Boxes are
@@ -25,39 +29,41 @@ regions:
   - id: madagascar_indian_ocean
     name: Madagascar and the western Indian Ocean islands
     bbox: [43, -26, 58, -10]
-    arrival_ka_bp: {central: 2.0, early: 4.0, late: 1.0}
+    arrival_ka_bp: {central: 2.3, early: 4.0, late: 1.0}
     ramp_ka: 1
-    verification: memory
-    source: "Burney et al. 2004 J Archaeol Sci 31:1 (cut-marked bones ~2.3 ka); Dewar et al. 2013 PNAS 110:12583 (possible foragers ~10 ka, not accepted as settlement) -- both from memory."
+    verification: checked
+    source: "Burney et al. 2004 J Hum Evol 47:25 (doi:10.1016/j.jhevol.2004.05.005; earliest human presence ca. 2300 14C yr BP, 350 cal BC); Dewar et al. 2013 PNAS 110:12583 (doi:10.1073/pnas.1306100110; forager occupation of one site from at least 2000 BC, ~4 ka; earlier visits 'scattered and contentious'). An earlier note here had the Burney citation as J Archaeol Sci 31:1 and Dewar's foragers as ~10 ka; both were wrong."
     notes: "After the model window, so empty throughout. Placed before `africa`, whose box would otherwise populate it from 100 ka."
 
   - id: caribbean
     name: Caribbean islands
     bbox: [-85, 17.5, -59, 24]   # Greater Antilles and the northern Lesser Antilles; keeps Central America out
-    arrival_ka_bp: {central: 6.0, early: 7.0, late: 4.0}
+    arrival_ka_bp: {central: 5.8, early: 6.0, late: 4.0}
     ramp_ka: 1
-    verification: memory
-    source: "Wilson 2007 / Napolitano et al. 2019 Sci Adv 5:eaar7806 (earliest Antillean sites ~7-6 ka) -- memory."
+    verification: checked
+    source: "Napolitano et al. 2019 Sci Adv 5:eaar7806 (doi:10.1126/sciadv.aar7806; 2,484 radiocarbon dates, two dispersals from South America, the first ~5.8 ka into Cuba, Hispaniola and Puerto Rico, the second ~2.5 ka; the numbers are from the paper's press summaries, the full text was not reachable); Wilson 2007 The Archaeology of the Caribbean, Cambridge UP (doi:10.1017/CBO9780511816505). An earlier note had the earliest sites at ~7 ka; Napolitano's filtered dates do not support that, so `early` is now 6.0."
     notes: "After the model window, so empty throughout. Placed before `north_america`, whose box would otherwise populate it from 16 ka."
 
   - id: levant_arabia
     name: Levant, Mesopotamia and north Arabia (early, non-lasting exits)
     bbox: [34, 29, 60, 38]
     arrival_ka_bp: {central: 50, early: 120, late: 47}
-    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+    alt: {ka_bp: 100, note: "Skhul 100-135 ka (Grün 2005), Qafzeh ~92 ka, Misliya 177-194 ka; Al Wusta in the Arabian Nefud ~95-86 ka (Groucutt 2018). These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
     ramp_ka: 3
-    verification: memory
-    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
+    verification: checked
+    could_not_verify: "No cited paper says continuous occupation begins at 50 ka: the central date is the model's own inference from Manot 1 (54.7 +/- 5.5 ka) and the Initial Upper Palaeolithic horizon, whose sites (Boker Tachtit, Ksar Akil) were not re-read."
+    source: "Hershkovitz et al. 2018 Science 359:456 (doi:10.1126/science.aap8369; Misliya maxilla 177-194 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (doi:10.1038/s41559-018-0518-2; H. sapiens in Arabia before 85 ka, Al Wusta ~95-86 ka); Grün et al. 2005 J Hum Evol 49:316 (doi:10.1016/j.jhevol.2005.04.006; Skhul 100-135 ka); Hershkovitz et al. 2015 Nature 520:216 (doi:10.1038/nature14134; Manot 1, 54.7 +/- 5.5 ka)."
     notes: "Central date is the start of continuous occupation tied to the main exit. Early date is the first pulse."
 
   - id: south_arabia
     name: South Arabia
     bbox: [41, 12, 60, 29]
     arrival_ka_bp: {central: 50, early: 120, late: 47}
-    alt: {ka_bp: 100, note: "Skhul/Qafzeh ~120-90 ka and Misliya ~185 ka; Arabian Nefud/Jubbah ~85-75 ka. These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
+    alt: {ka_bp: 100, note: "Skhul 100-135 ka (Grün 2005), Qafzeh ~92 ka, Misliya 177-194 ka; Al Wusta in the Arabian Nefud ~95-86 ka (Groucutt 2018). These pulses did not persist; the model treats them as optional low-density pulses, not the start of continuous occupation."}
     ramp_ka: 3
-    verification: memory
-    source: "Hershkovitz et al. 2018 Science 359:456 (Misliya ~185 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (Arabia); Grün et al. 2005 J Hum Evol 49:316 (Skhul/Qafzeh)."
+    verification: checked
+    could_not_verify: "No cited paper says continuous occupation begins at 50 ka: the central date is the model's own inference from Manot 1 (54.7 +/- 5.5 ka) and the Initial Upper Palaeolithic horizon, whose sites (Boker Tachtit, Ksar Akil) were not re-read."
+    source: "Hershkovitz et al. 2018 Science 359:456 (doi:10.1126/science.aap8369; Misliya maxilla 177-194 ka); Groucutt et al. 2018 Nature Ecol Evol 2:800 (doi:10.1038/s41559-018-0518-2; H. sapiens in Arabia before 85 ka, Al Wusta ~95-86 ka); Grün et al. 2005 J Hum Evol 49:316 (doi:10.1016/j.jhevol.2005.04.006; Skhul 100-135 ka); Hershkovitz et al. 2015 Nature 520:216 (doi:10.1038/nature14134; Manot 1, 54.7 +/- 5.5 ka)."
     notes: "Same continuous-occupation date as the Levant. Separate box keeps northeast Africa in Africa; early-exit pulses remain an unused alt scenario."
 
   - id: europe_south_iberia
@@ -85,49 +91,53 @@ regions:
     bbox: [-20, -35, 52, 37]
     arrival_ka_bp: {central: 300, early: 315, late: 200}
     ramp_ka: 0
-    verification: memory
-    source: "Hublin et al. 2017 Nature 546:289 (Jebel Irhoud ~315 ka, 'earliest H. sapiens'); Richter et al. 2017 Nature 546:293. Whole region occupied for the entire model window."
+    verification: checked
+    source: "Hublin et al. 2017 Nature 546:289 (doi:10.1038/nature22336; Jebel Irhoud 315 +/- 34 ka by thermoluminescence); Richter et al. 2017 Nature 546:293 (doi:10.1038/nature22335; 315 +/- 34 ka, and 286 +/- 32 ka for the Irhoud 3 tooth). Central 300 is a round figure between the two. Whole region occupied for the entire model window."
     notes: "Present from before the model start (100 ka BP). Treated as populated throughout."
 
   - id: tibetan_plateau
     name: Tibetan Plateau (>3,000 m)
     bbox: [78, 27, 104, 36]
     arrival_ka_bp: {central: 38, early: 160, late: 30}
-    alt: {ka_bp: 160, note: "The Xiahe mandible (Denisovan, >=160 ka) shows hominin presence, not H. sapiens. Sapiens on the plateau: Nwya Devu ~40 ka (Zhang et al. 2018 Science 362:1049, memory); Chusang handprints 226-169 ka revised to ~20 ka."}
+    alt: {ka_bp: 160, note: "The Xiahe mandible (Denisovan, >=160 ka) shows hominin presence, not H. sapiens. Stone tools on the plateau: Nwya Devu 40-30 ka at ~4,600 m (Zhang et al. 2018 Science 362:1049), with no hominin bones, so 'sapiens' is inferred. The Chusang handprints, once ~20 ka by OSL, were redated to 7.4-12.7 ka (Meyer et al. 2017 Science 355:64)."}
     ramp_ka: 8
-    verification: memory
-    source: "Chen et al. 2019 Nature 569:409 (Xiahe, confirmed); Zhang et al. 2018 Science 362:1049 (Nwya Devu, memory)."
+    verification: checked
+    could_not_verify: "Nwya Devu may have been redated: Ge et al. 2023 (doi:10.1007/s11430-022-1225-7) reports intermittent occupation over the past 45 ka; only its title was read."
+    source: "Chen et al. 2019 Nature 569:409 (doi:10.1038/s41586-019-1139-x; Xiahe, >=160 ka by U-series); Zhang et al. 2018 Science 362:1049 (doi:10.1126/science.aat8824; Nwya Devu, 40-30 ka); Meyer et al. 2017 Science 355:64 (doi:10.1126/science.aag0357; Chusang)."
     notes: "Slow ramp: high-altitude hypoxia and cold. Central is for sapiens; the Denisovan record is under other_hominins."
 
   - id: japan
     name: Japan (Honshu, Kyushu and Shikoku)
     bbox: [129.5, 30, 142, 41.5]
-    arrival_ka_bp: {central: 38, early: 38, late: 32}
-    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    arrival_ka_bp: {central: 38, early: 40, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus: Yamashita-cho Cave I charcoal 32.1 +/- 1.0 ka 14C BP (uncalibrated, ~36 ka cal by a secondary table) and Sakitari occupation 35-30 ka (Fujita et al. 2016). Honshu stone tools (trapezoids, edge-ground axes) from 40-38 ka (Nakazawa 2017)."}
     ramp_ka: 3
-    verification: memory
-    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
-    notes: "Central 38 ka is the tool-based figure from the research note; bones imply 36-32 ka."
+    verification: checked
+    could_not_verify: "Yamashita-cho's calibrated age (~36 ka) comes from a secondary review table; the original 14C report (Kobayashi et al. 1971, Radiocarbon 13:100) was not read."
+    source: "Nakazawa 2017 Curr Anthropol 58(S17):S539 (doi:10.1086/694447; full text read: edge-ground axes and trapezoids 40-38 ka, Hokkaido not before 30 ka, citing Izuho & Kaifu 2015 and Izuho et al. 2012, which have no DOI); Fujita et al. 2016 PNAS 113:11184 (doi:10.1073/pnas.1607857113; Sakitari 35,000-30,000 y ago); Suwa et al. 2011 Anthropol Sci 119:125 (doi:10.1537/asj.110727; Minatogawa charcoal 18.3 and 16.6 ka 14C BP). Nakagawa et al. 2010 (doi:10.1537/ase.091214) is Ishigaki Shiraho-Saonetabaru Cave, 20-16 ka, and was wrongly cited here for Yamashita-cho and Sakitari."
+    notes: "Central 38 ka is the tool-based figure (Nakazawa 2017: 40-38 ka); bones imply 36-32 ka."
 
   - id: japan_hokkaido
     name: Japan (Hokkaido)
     bbox: [139.5, 41.5, 146, 45.5]
-    arrival_ka_bp: {central: 38, early: 38, late: 32}
-    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    arrival_ka_bp: {central: 30, early: 32, late: 28}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus: Yamashita-cho Cave I charcoal 32.1 +/- 1.0 ka 14C BP (uncalibrated, ~36 ka cal by a secondary table) and Sakitari occupation 35-30 ka (Fujita et al. 2016). Honshu stone tools (trapezoids, edge-ground axes) from 40-38 ka (Nakazawa 2017)."}
     ramp_ka: 3
-    verification: memory
-    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
-    notes: "Same dates as the main Japanese islands; separate box excludes Primorye and Sakhalin."
+    verification: checked
+    could_not_verify: "Yamashita-cho's calibrated age (~36 ka) comes from a secondary review table; the original 14C report (Kobayashi et al. 1971, Radiocarbon 13:100) was not read."
+    source: "Nakazawa 2017 Curr Anthropol 58(S17):S539 (doi:10.1086/694447; full text read: edge-ground axes and trapezoids 40-38 ka, Hokkaido not before 30 ka, citing Izuho & Kaifu 2015 and Izuho et al. 2012, which have no DOI); Fujita et al. 2016 PNAS 113:11184 (doi:10.1073/pnas.1607857113; Sakitari 35,000-30,000 y ago); Suwa et al. 2011 Anthropol Sci 119:125 (doi:10.1537/asj.110727; Minatogawa charcoal 18.3 and 16.6 ka 14C BP). Nakagawa et al. 2010 (doi:10.1537/ase.091214) is Ishigaki Shiraho-Saonetabaru Cave, 20-16 ka, and was wrongly cited here for Yamashita-cho and Sakitari."
+    notes: "Changed 2026-11-19 from the main islands' 38 ka: the Hokkaido Palaeolithic record begins no earlier than ~30 ka (Nakazawa 2017). Separate box excludes Primorye and Sakhalin. early/late are bracket choices around 30 ka."
 
   - id: japan_ryukyu
     name: Japan (Ryukyu)
     bbox: [123, 24, 130, 30]
-    arrival_ka_bp: {central: 38, early: 38, late: 32}
-    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus, Yamashita-cho ~32 ka and Sakitari ~36 ka (Nakagawa et al. 2010 / Fujita et al. 2016); Honshu stone tools from ~38 ka (Izuho, Sato & Nakazawa)."}
+    arrival_ka_bp: {central: 36, early: 38, late: 32}
+    alt: {ka_bp: 32, note: "Earliest dated human bones are from the Ryukyus: Yamashita-cho Cave I charcoal 32.1 +/- 1.0 ka 14C BP (uncalibrated, ~36 ka cal by a secondary table) and Sakitari occupation 35-30 ka (Fujita et al. 2016). Honshu stone tools (trapezoids, edge-ground axes) from 40-38 ka (Nakazawa 2017)."}
     ramp_ka: 3
-    verification: memory
-    source: "Sunabe/Yamashita-cho/Sakitari dates from a partly confirmed search (Yamashita-cho ~32 ka confirmed; Minatogawa ~18-22 ka confirmed); Honshu 38 ka from memory."
-    notes: "Same dates as the main Japanese islands; separate southern island chain box."
+    verification: checked
+    could_not_verify: "Yamashita-cho's calibrated age (~36 ka) comes from a secondary review table; the original 14C report (Kobayashi et al. 1971, Radiocarbon 13:100) was not read."
+    source: "Nakazawa 2017 Curr Anthropol 58(S17):S539 (doi:10.1086/694447; full text read: edge-ground axes and trapezoids 40-38 ka, Hokkaido not before 30 ka, citing Izuho & Kaifu 2015 and Izuho et al. 2012, which have no DOI); Fujita et al. 2016 PNAS 113:11184 (doi:10.1073/pnas.1607857113; Sakitari 35,000-30,000 y ago); Suwa et al. 2011 Anthropol Sci 119:125 (doi:10.1537/asj.110727; Minatogawa charcoal 18.3 and 16.6 ka 14C BP). Nakagawa et al. 2010 (doi:10.1537/ase.091214) is Ishigaki Shiraho-Saonetabaru Cave, 20-16 ka, and was wrongly cited here for Yamashita-cho and Sakitari."
+    notes: "Central 36 ka (changed from 38 on 2026-11-19): the oldest dated human evidence is Yamashita-cho (~36 ka cal) and Sakitari (35-30 ka); 38 ka (the Honshu tool date) is kept as `early`. Separate southern island chain box."
 
   - id: south_asia
     name: South Asia (India, Sri Lanka, Pakistan, Nepal)
@@ -136,7 +146,7 @@ regions:
     alt: {ka_bp: 74, note: "Jwalapuram, India, stone tools below the Toba ash (~74 ka), attributed to H. sapiens by Petraglia 2007 Science 317:114; the attribution is disputed."}
     ramp_ka: 3
     verification: checked
-    source: "Wedage et al. 2019 Nat Commun 10:2 (Fa-Hien Lena, Sri Lanka, earliest H. sapiens fossils in South Asia, ~45 ka; microliths 48-45 ka cal BP, Perera et al. 2019 PLOS ONE 14:e0222606); Langley et al. 2020 Sci Adv 6:eaba3831 (bone points ~48 ka)."
+    source: "Wedage et al. 2019 Nat Commun 10:739 (doi:10.1038/s41467-019-08623-1; Fa-Hien Lena, Sri Lanka, earliest H. sapiens fossils in South Asia, ~45 ka); Wedage et al. 2019 PLOS ONE 14:e0222606 (doi:10.1371/journal.pone.0222606; microliths 48-45 ka cal BP); Langley et al. 2020 Sci Adv 6:eaba3831 (doi:10.1126/sciadv.aba3831; bow-and-arrow toolkit and symbolic material ~48 ka). An earlier note here had the PLOS ONE paper under Perera and the Nat Commun volume as 10:2."
     notes: "Central 48 ka from Fa-Hien Lena microlith onset; fossils 45 ka."
 
   - id: southeast_asia_mainland
@@ -153,10 +163,11 @@ regions:
     name: Island Southeast Asia, Sunda shelf and Wallacea
     bbox: [95, -12, 126, 8]
     arrival_ka_bp: {central: 60, early: 70, late: 46}
-    alt: {ka_bp: 46, note: "Earliest fossil sapiens on Borneo (Niah, ~45-40 ka; Barker et al. 2007 J Hum Evol 52:243). A route to Sahul at ~65-50 ka implies earlier transit."}
+    alt: {ka_bp: 46, note: "Earliest securely dated sapiens skeleton on Borneo: Niah Cave activity ~46-34 ka (Barker et al. 2007 J Hum Evol 52:243). A route to Sahul at ~65-50 ka implies earlier transit."}
     ramp_ka: 3
-    verification: memory
-    source: "Barker et al. 2007 J Hum Evol 52:243 (Niah). Transit date inferred from the Sahul arrival (below), not directly dated."
+    verification: checked
+    could_not_verify: "Central 60 ka is the model's hedge between Lida Ajer (73-63 ka, one site, one study) and the secure archaeology (Niah 46 ka, Jerimalai 42-44 ka); no paper dates a transit at 60 ka. The Tabon (Philippines) date was not checked; Callao is H. luzonensis, not sapiens."
+    source: "Barker et al. 2007 J Hum Evol 52:243 (doi:10.1016/j.jhevol.2006.08.011; Niah activity ca. 46,000 to ca. 34,000 years ago); Westaway et al. 2017 Nature 548:322 (doi:10.1038/nature23452; Lida Ajer, Sumatra, modern human teeth 73-63 ka); O'Connor et al. 2011 Science 334:1117 (doi:10.1126/science.1207703; Jerimalai, Timor, pelagic fishing 42 ka)."
     notes: "Corridor to Sahul; coastal sites are now drowned (sea level) so absence of evidence is expected."
 
   - id: sahul
@@ -184,9 +195,10 @@ regions:
     bbox: [30, 40, 60, 62]
     arrival_ka_bp: {central: 45, early: 47, late: 40}
     ramp_ka: 4
-    verification: memory
-    source: "Kostenki 14, Russia, ~45-42 ka (Higham et al. 2011 Nature 479:525; Benazzi et al. 2011 Science 332:1049 for Grotta del Cavallo)."
-    notes: "Memory-sourced Kostenki date; check Higham 2011 before use as a headline."
+    verification: checked
+    could_not_verify: "Only the abstract of Anikovich 2007 was read; the Hoffecker 2008 numbers (oldest layers ~45-41 ka cal) are from a secondary summary. Human fossils at the oldest Kostenki layers are scarce, so the sapiens attribution rests mainly on the artefacts."
+    source: "Anikovich et al. 2007 Science 315:223 (doi:10.1126/science.1133376; Kostenki on the Don, about 45,000-42,000 years ago, beneath the Campanian Ignimbrite ash); Hoffecker et al. 2008 J Hum Evol 55:858 (doi:10.1016/j.jhevol.2008.08.018); Seguin-Orlando et al. 2014 Science 346:1113 (doi:10.1126/science.aaa0114; Kostenki 14 skeleton 38.7-36.2 ka, later than the oldest layers). An earlier note cited Higham 2011 and Benazzi 2011, which are Kent's Cavern and Grotta del Cavallo (Italy), not Kostenki."
+    notes: "Date from the Kostenki cultural layers, not from the Kostenki 14 skeleton."
 
   - id: central_asia_siberia_south
     name: Central Asia and southern Siberia
@@ -194,7 +206,7 @@ regions:
     arrival_ka_bp: {central: 45, early: 47, late: 40}
     ramp_ka: 4
     verification: checked
-    source: "Fu et al. 2014 Nature 514:445 (Ust'-Ishim, W Siberia, 43-47 ka, confirmed). Kozlikin et al. / Zwyns et al. 2019 Nat Commun 10:4 (Tolbor-4, Mongolia, ~45-47 ka) -- memory."
+    source: "Fu et al. 2014 Nature 514:445 (Ust'-Ishim, W Siberia, 43-47 ka, confirmed). Zwyns et al. 2019 Sci Rep 9:11759 (doi:10.1038/s41598-019-47972-1; Tolbor-16, Mongolia, earliest horizon 42.5-45.6 ka; checked 2026-11-19, replacing a wrong 'Nat Commun, Tolbor-4' note)."
     notes: "Ust'-Ishim is a single individual; used for the date, not as proof of a settled population."
 
   - id: siberia_arctic
@@ -231,10 +243,11 @@ regions:
     name: Beringia (Chukotka, Alaska, exposed shelf)
     bbox: [-170, 55, -140, 72]
     arrival_ka_bp: {central: 24, early: 30, late: 20}
-    alt: {ka_bp: 30, note: "Bluefish Caves, Yukon (Bourgeon et al. 2017, citation unchecked); Pleistocene Beringian standstill 25-15 ka (Tamm et al. 2007; Moreno-Mayar et al. 2018 Nature 553:203)."}
+    alt: {ka_bp: 30, note: "Bluefish Caves, Yukon: cut-marked bone as early as 24 cal ka (Bourgeon et al. 2017; the authors themselves see most evidence pointing to ~14 ka). The Beringian standstill (Tamm et al. 2007; Moreno-Mayar et al. 2018: split from East Asians ~36 ka, gene flow ended ~25 ka, Ancient Beringians branched ~22-18 ka). 30 ka is a bracket choice, not a dated site."}
     ramp_ka: 4
-    verification: memory
-    source: "Moreno-Mayar et al. 2018 Nature 553:203; Bourgeon et al. 2017 -- both from memory."
+    verification: checked
+    could_not_verify: "`early` 30 ka has no dated site behind it (Bluefish gives 24 ka); the genetic split dates (36 ka) are for the ancestors, not for people in this box. Tamm 2007's abstract gives no dates, so its '25-15 ka' standstill was dropped."
+    source: "Bourgeon et al. 2017 PLOS ONE 12:e0169486 (doi:10.1371/journal.pone.0169486; Bluefish Caves, human modification as early as 24,000 cal BP); Moreno-Mayar et al. 2018 Nature 553:203 (doi:10.1038/nature25173); Tamm et al. 2007 PLOS ONE 2:e829 (doi:10.1371/journal.pone.0000829; Beringian standstill). An earlier note had Bourgeon in Quaternary Research."
     notes: "Treated as a staging area before the Americas."
 
   - id: central_america
@@ -244,7 +257,7 @@ regions:
     alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
     ramp_ka: 3
     verification: checked
-    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry, Idaho, ~16 ka, memory); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
+    source: "Davis et al. 2019 Science 365:891 (doi:10.1126/science.aax9830; Cooper's Ferry, Idaho, starting 16,560-15,280 cal BP, checked 2026-11-19); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
     notes: "North American arrival and ramp extended through Honduras and Nicaragua; prevents assignment to the late-settled Pacific catch-all."
 
   - id: north_america
@@ -254,17 +267,18 @@ regions:
     alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
     ramp_ka: 3
     verification: checked
-    source: "Davis et al. 2019 Science 365:891 (Cooper's Ferry, Idaho, ~16 ka, memory); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
+    source: "Davis et al. 2019 Science 365:891 (doi:10.1126/science.aax9830; Cooper's Ferry, Idaho, starting 16,560-15,280 cal BP, checked 2026-11-19); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
     notes: "Central 16 ka: coastal route to the unglaciated Pacific side. Interior spread after ~14 ka."
 
   - id: south_america
     name: South America
     bbox: [-82, -56, -34, 13]
     arrival_ka_bp: {central: 15, early: 18, late: 14}
-    alt: {ka_bp: 18, note: "Monte Verde II, Chile, ~14.5 ka (Dillehay et al. 2015 PLOS ONE 10:e0141923, memory); Pedra Furada, Brazil, claimed 30+ ka (rejected by most)."}
+    alt: {ka_bp: 18, note: "Monte Verde, Chile: horizons dated between at least ~18.5 and 14.5 cal ka (Dillehay et al. 2015 PLOS ONE 10:e0141923). Pedra Furada, Brazil: occupation 'more than 20,000 years' ago claimed (Boëda et al. 2014 Antiquity 88:927), rejected by most since Meltzer et al. 1994."}
     ramp_ka: 3
-    verification: memory
-    source: "Dillehay et al. 2015 PLOS ONE, memory. Date follows from North America plus a coastal-rapid dispersal."
+    verification: checked
+    could_not_verify: "Central 15 ka is the model's inference (North America plus a rapid coastal dispersal), not a dated site; Prates et al. 2020 put the earliest threshold for the peopling of South America at ~15.5 cal ka (16.6-15.1)."
+    source: "Dillehay et al. 2015 PLOS ONE 10:e0141923 (doi:10.1371/journal.pone.0141923); Prates et al. 2020 PLOS ONE 15:e0236023 (doi:10.1371/journal.pone.0236023); Boëda et al. 2014 Antiquity 88:927 (doi:10.1017/S0003598X00050845); Meltzer, Adovasio & Dillehay 1994 Antiquity 68:695 (doi:10.1017/S0003598X00047414). An earlier note gave Pedra Furada as 30+ ka; the 2014 claim is 20+ ka."
     notes: "Rapid spread south is a modelling choice: ~1-2 ka from Beringia."
 
   - id: greenland_arctic_canada
@@ -272,17 +286,18 @@ regions:
     bbox: [-125, 56, -10, 84]
     arrival_ka_bp: {central: 4.5, early: 5, late: 4}
     ramp_ka: 1
-    verification: memory
-    source: "Independence I / Saqqaq, ~4.5 ka (Raghavan et al. 2014 Science 345:1255832, memory). After the model window (ends 10,000 BCE ~ 12 ka BP); included so cells here stay empty."
+    verification: checked
+    source: "Paleo-Eskimo settlement from ~3000 BCE, i.e. ~5 ka (Raghavan et al. 2014 Science 345:1255832, doi:10.1126/science.1255832; the paper gives the period, not a 4.5 ka date, so 4.5 is a round central between its start and the Saqqaq sites). After the model window (ends 10,000 BCE ~ 12 ka BP); included so cells here stay empty."
     notes: "Out of model window; zero population throughout."
 
   - id: pacific_remote
     name: Remote Oceania, Pacific islands, Caribbean, Madagascar
     bbox: [-180, -50, 180, 30]
-    arrival_ka_bp: {central: 3.5, early: 3.5, late: 1}
+    arrival_ka_bp: {central: 3.1, early: 3.3, late: 1}
     ramp_ka: 1
-    verification: memory
-    source: "Lapita expansion ~3.3 ka (Kirch). After the model window; empty throughout. Must come LAST in order so other regions match first."
+    verification: checked
+    could_not_verify: "`late` 1 ka (late Polynesian outliers, Madagascar, Caribbean) has no source checked here."
+    source: "Denham et al. 2012 Archaeol Oceania 47:39 (doi:10.1002/j.1834-4453.2012.tb00113.x; Lapita in the Bismarcks 3360-3240 cal BP, Vanuatu 3250-3100, Fiji 3130-3010); Sheppard et al. 2015 J Pac Archaeol 6(1):26 (no DOI; Remote Oceania first settled 'not much more than 3000 BP'); Kirch 2010 Annu Rev Anthropol 39:131 (doi:10.1146/annurev.anthro.012809.104936; overview, Lapita into Remote Oceania ~1200 BC). The earlier 3.5 ka 'Lapita ~3.3 ka (Kirch)' was the Bismarck figure, too old for Remote Oceania. After the model window; empty throughout. Must come LAST in order so other regions match first."
     notes: "Catch-all so no cell is left undefined; population zero before this date."
 
 # Other hominins: NOT H. sapiens, listed separately. The sapiens model must not draw people in
@@ -314,45 +329,54 @@ other_hominins:
     notes: "Tiny island; sapiens overlap with it is unresolved. Negligible for the population map."
 
 # Habitat rules for forager density. These multiply or limit the NPP-based potential density
-# from Tallavaara et al. 2018 (PNAS 115:1232, CC BY 4.0). Values are modelling choices
+# from Tallavaara et al. 2018 (PNAS 115:1232, doi:10.1073/pnas.1715638115; Miami-model NPP from annual
+# mean temperature and precipitation; published under the PNAS licence, not CC BY as an earlier note said).
+# Values are modelling choices
 # informed by anthropology, not fitted to data: they are defaults for the first prototype and
-# should be tuned or ablated once a comparison with Timmermann & Friedrich 2016 exists.
+# should be tuned or ablated once a comparison with Timmermann & Friedrich 2016 (Nature 538:92, doi:10.1038/nature19365) exists.
 # Each rule names what to check in the ethnographic record before trusting the number.
 habitat_rules:
   coast:
     bonus: 1.5            # multiplier on density
     within_km: 20
-    rationale: "Shellfish, fish and sea mammals are reliable calories; coasts hold the highest forager densities (Binford 2001; Kelly 2013). Binford's 'aquatic' resources raise density above terrestrial NPP prediction."
-    verification: memory
+    rationale: "Modelling choice (x1.5 is not fitted). Direction supported by Kelly 2013 Table 7-3 (coastal and riverine forager densities are mostly far above interior ones, with exceptions such as the Tasmanian coast) and by Tallavaara et al. 2018 (doi:10.1073/pnas.1715638115), whose terrestrial NPP model leaves out the aquatic productivity coastal groups relied on."
+    verification: checked
+    could_not_verify: "Binford 2001's own claim that aquatic resources lift density above the terrestrial prediction was not read; the 1.5 multiplier is a choice."
   river:
     bonus: 1.3
     within_km: 10
-    rationale: "Floodplains concentrate plants and game, and rivers act as travel corridors."
-    verification: memory
+    rationale: "Modelling choice. Riverine forager densities are often high (Kelly 2013 Table 7-3: Mattole 210, Sinkyone 270, Puyallup 195 per 100 km2), but the 1.3 value and the 'travel corridor' idea are not sourced."
+    verification: could_not_verify
+    could_not_verify: "Only the high riverine densities in Kelly 2013 Table 7-3 were found; no source for floodplain richness or travel corridors, and the 1.3 is a choice."
   lake:
     bonus: 1.3
     within_km: 10
-    rationale: "Lake margins and wetlands are among the richest mixed habitats."
-    verification: memory
+    rationale: "Modelling choice; no source checked. Lake margins and wetlands are assumed rich mixed habitats."
+    verification: could_not_verify
+    could_not_verify: "No paper or book page found for a lake-margin density bonus; kept as an assumption."
   ecotone:
     bonus: 1.2
     description: "A cell whose 3x3 neighbourhood spans 2+ biomes (forest/grassland, mountain/plain)."
-    rationale: "Mixed habitats give more food types and seasonal fallbacks."
-    verification: memory
+    rationale: "Modelling choice; no source checked. Mixed habitats are assumed to give more food types and seasonal fallbacks."
+    verification: could_not_verify
+    could_not_verify: "No source found for an ecotone density bonus; kept as an assumption."
   cold_limit:
-    # Tallavaara 2015/2018 and Binford 2001 effective temperature (ET) frame; the coldest
-    # month is a better limit than annual means.
+    # The coldest-month mean is a predictor of hunter-gatherer habitat in Tallavaara et al. 2015
+    # (doi:10.1073/pnas.1503784112, calibrated on Binford's 339-population dataset). Tallavaara 2018 uses
+    # annual mean temperature and precipitation, not Binford's effective temperature.
     coldest_month_mean_c:
       zero_below: -35   # no occupation
       full_above: -20   # no penalty
     interpolation: linear
-    rationale: "Foragers at high latitude in winter need fuel, clothing and storage; below roughly -30 C coldest-month mean few ethnographic groups occur outside the Arctic, and then only with marine mammals."
-    verification: memory
+    rationale: "Modelling choice (the -35 to -20 C ramp is not fitted). Coldest-month mean temperature is a predictor of Europe-wide hunter-gatherer habitat in Tallavaara et al. 2015 (doi:10.1073/pnas.1503784112); winter fuel, clothing and storage limit high-latitude foragers."
+    verification: checked
+    could_not_verify: "The thresholds, and the earlier claim that below about -30 C few ethnographic groups occur outside the Arctic, were not found in Binford, Kelly or Tallavaara; that claim was dropped."
   aridity:
     npp_floor_g_m2_yr: 100   # below this, density 0
     npp_ramp_to: 300         # linear ramp from floor to here
-    rationale: "Deep desert has too little plant and animal biomass; the Tallavaara fit already drops to near-zero NPP, but we hard-zero the Sahara and Rub' al Khali cores rather than trust a tiny positive value."
-    verification: memory
+    rationale: "Modelling choice. Direction supported by Tallavaara et al. 2018 (doi:10.1073/pnas.1715638115): hunter-gatherer density rises with Miami-model NPP below a breakpoint near 1,360 g/m2/yr and is largely independent above it. The 100 floor and 300 ramp are not fitted; the Sahara and Rub' al Khali cores are hard-zeroed rather than trusting a tiny positive NPP."
+    verification: checked
+    could_not_verify: "The floor and ramp values are choices; the earlier claim that the Tallavaara fit already drops to near-zero in deep desert was not checked."
   ice_and_sea:
     ice: "density 0 under ice sheets (Krapp/Beyer ice mask)"
     sea: "density 0 on sea; shelf land exposed by lower sea level IS inhabitable (Spratt sea level)."
@@ -364,8 +388,10 @@ habitat_rules:
       - {name: Italy and the Balkans, bbox: [8, 36, 30, 46]}
       - {name: Black Sea and Ukraine, bbox: [28, 42, 42, 50]}
       - {name: South China, bbox: [100, 20, 120, 32]}
-    rationale: "Genetic and archaeological patterns of the LGM contraction and later re-expansion (Tallavaara 2015 for Europe: ~330 ka -> 130 ka -> 410 ka peak-to-trough)."
-    verification: memory
+    rationale: "Modelling choice: the cold and aridity rules empty the north at MIS 4 and the LGM; the refugia list keeps people in the south. LGM = 26.5-19 ka (Clark et al. 2009, doi:10.1126/science.1172873). Tallavaara et al. 2015 (doi:10.1073/pnas.1503784112) simulate Europe's population at ~330,000 people 30 ky ago, a minimum of ~130,000 at 23 ky ago and ~410,000 by 13 ky ago (an earlier note wrote these as 'ka'), densest in Iberia and the Mediterranean with the northern limit near southern Ukraine, and report an unfragmented range, not isolated refugia. Posth et al. 2023 (Nature 615:117) support France/Iberia as refugia."
+    verification: could_not_verify
+    could_not_verify: "Italy/Balkans is not supported as a refugium (Posth 2023, press summary: Italy's population was replaced, and the paper was not read); the South China refuge has no source found (the Frontiers genomics review notes no LGM DNA from there); MIS 4 = 71-57 ka is from the LR04 stack (Lisiecki & Raymo 2005, doi:10.1029/2004PA001071), whose table was not re-read. The earlier citation of Posth 2016 as Nat Commun 7:10713 was wrong (it is Curr Biol 26:827) and was dropped."
   ramp:
     description: "After the arrival date, density rises linearly from 0 to its potential value over `ramp_ka` thousand years (per region). Cells also gain density only if a neighbour cell is already occupied (diffusion front), to stop isolated blobs appearing in Sahul or the Americas."
-    verification: memory
+    verification: could_not_verify
+    could_not_verify: "A pure modelling device (a ramp and a diffusion front); there is no literature claim in it to check."

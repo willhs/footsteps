@@ -2,6 +2,7 @@
 """The deep-past section of the anthropology atlas (100,000-11,000 BCE).
 
     poetry run python footstep-generator/anthropology/deep.py            # add/replace `deep` in the atlas
+    poetry run python footstep-generator/anthropology/deep.py --tables-only   # only re-read the two yaml tables (no model data needed)
 
 Reads the existing deploy/budgie/api/anthropology.json.gz (HYDE, D-PLACE and Seshat parts untouched)
 and writes it back with a `deep` key. `build.py` calls `build_deep()` too, so a full rebuild has it.
@@ -57,17 +58,17 @@ DEEP_SOURCES = {
     anth.PREHISTORY: {
         "what": "Arrival dates of Homo sapiens per region, other hominins, and the modelled forager population (100,000-11,000 BCE).",
         "url": "docs/research/0002-pre-hyde-population-model/research.md",
-        "licence": "Footsteps; a model, not data. Arrival citations are marked checked or memory.",
+        "licence": "Footsteps; a model, not data. Arrival citations are marked checked or could-not-verify, with the reason.",
     },
     anth.CULTURES: {
         "what": "A small cited table of technocomplexes (tools, ornaments, art, shelter) by region and time.",
         "url": "footstep-generator/anthropology/deep_past.yaml",
-        "licence": "Footsteps; each entry names its papers and whether they were checked or written from memory.",
+        "licence": "Footsteps; each entry names its papers and whether they were checked against the paper or could not be verified (with the reason).",
     },
     anth.BIOME_PREY: {
         "what": "Typical big game by biome class.",
         "url": "footstep-generator/anthropology/deep_past.yaml",
-        "licence": "Footsteps; after Kelly 2013 and Binford 2001, from memory.",
+        "licence": "Footsteps; a general summary informed by Kelly 2013 and Binford 2001; per-biome lists could not be traced to a page.",
     },
     anth.KRAPP: {
         "what": "BIOME4 biome per 0.5 degree cell per 1 ka, 100,000 BP to today, and land ice.",
@@ -233,13 +234,33 @@ def load_tables() -> tuple[dict, dict]:
     return arrivals, cultures
 
 
-def build_deep() -> dict:
+def table_sections() -> dict:
+    """The parts of `deep` that are the two yaml tables verbatim: regions, other hominins, technocomplexes, biome prey.
+    They need no model data, so `--tables-only` can refresh a committed atlas without rerunning the population model."""
     arrivals, cultures = load_tables()
-    regions = [{k: r[k] for k in ("id", "name", "bbox", "arrival_ka_bp", "verification", "source")}
+    regions = [{k: r[k] for k in ("id", "name", "bbox", "arrival_ka_bp", "verification", "source", "could_not_verify") if k in r}
                for r in arrivals["regions"]]
     others = [{"id": h["id"], "short": SHORT[h["id"]], "name": h["name"], "bbox": h["bbox"],
                "last_ka_bp": h["last_ka_bp"], "verification": h["verification"], "source": h["source"]}
               for h in arrivals["other_hominins"]]
+    return {"regions": regions, "other_hominins": others,
+            "cultures": cultures["cultures"], "biome_prey": cultures["biome_prey"]}
+
+
+def refresh_tables(atlas: dict) -> dict:
+    """Replace only the table-derived sections of atlas['deep'] (cells, species, climate and people are kept).
+    The region order and boxes must be unchanged, because every cell stores a region index."""
+    old, new = atlas["deep"]["regions"], table_sections()["regions"]
+    if [(r["id"], r["bbox"]) for r in old] != [(r["id"], r["bbox"]) for r in new]:
+        raise SystemExit("region ids/boxes/order changed: the cells' region indices are stale; rebuild the full deep section")
+    atlas["deep"].update(table_sections())
+    atlas["sources"] = {**{k: v for k, v in atlas["sources"].items() if k not in DEEP_SOURCES}, **DEEP_SOURCES}
+    return atlas
+
+
+def build_deep() -> dict:
+    tables = table_sections()
+    regions = tables["regions"]
     cells, _ = climate_and_people()
     species, fauna = fauna_by_cell()
     of = region_index(regions)
@@ -253,10 +274,7 @@ def build_deep() -> dict:
         "version": DEEP_VERSION,
         "eras": [anth.DEEP_ERAS[0], anth.DEEP_ERAS[-1], 1000],
         "biomes": biomes,
-        "regions": regions,
-        "other_hominins": others,
-        "cultures": cultures["cultures"],
-        "biome_prey": cultures["biome_prey"],
+        **tables,
         "species": species,
         "cells": cells,
     }
@@ -270,7 +288,7 @@ def add_to(atlas: dict) -> dict:
 
 def main() -> None:
     atlas = json.loads(gzip.decompress(ATLAS.read_bytes()))
-    atlas = add_to(atlas)
+    atlas = refresh_tables(atlas) if "--tables-only" in sys.argv else add_to(atlas)
     ATLAS.write_bytes(gzip.compress(json.dumps(atlas, separators=(",", ":")).encode(), mtime=0))
     deep = atlas["deep"]
     print(f"deep past: {len(deep['cells'])} cells x {len(anth.DEEP_ERAS)} eras, {len(deep['species'])} species, "

@@ -83,12 +83,28 @@ def test_culture_choice_prefers_most_overlap_then_the_smaller_box_and_only_the_n
 
 # --- the table ------------------------------------------------------------------------------
 
+def assert_checked_or_explained(entry):
+    """No entry may stay 'memory' (2026-11-19 source check): checked, or could_not_verify with a reason."""
+    who = entry.get("id", "entry")
+    assert entry["verification"] in ("checked", "could_not_verify"), who
+    if entry["verification"] == "could_not_verify":
+        assert len(entry.get("could_not_verify", "").strip()) > 20, f"{who}: say why it could not be verified"
+
+
+def test_biome_prey_and_every_arrival_are_checked_or_explained():
+    assert_checked_or_explained(TABLE["biome_prey"])
+    arrivals = yaml.safe_load((Path(__file__).resolve().parents[1] / "prehistory" / "arrivals.yaml").read_text())
+    for r in arrivals["regions"] + arrivals["other_hominins"] + list(arrivals["habitat_rules"].values()):
+        assert_checked_or_explained(r)
+
 def test_every_technocomplex_names_its_makers_dates_source_and_how_it_was_checked():
     assert TABLE["cultures"] == DEEP["cultures"]
     ids = [c["id"] for c in TABLE["cultures"]]
     assert len(ids) == len(set(ids))
     for c in TABLE["cultures"]:
-        assert c["verification"] in ("checked", "memory"), c["id"]
+        assert_checked_or_explained(c)
+        if c["verification"] == "checked":
+            assert "doi:10." in c["source"], f"{c['id']}: name the paper's DOI in `source`"
         assert c["source"].strip() and c["summary"].strip(), c["id"]
         assert set(c["makers"]) <= {"H. sapiens", "Neanderthals", "Denisovans"}, c["id"]
         assert c["from_ka_bp"] > c["to_ka_bp"] >= 10, c["id"]
@@ -160,7 +176,8 @@ def test_europe_before_and_after_sapiens_arrive():
     after = at(47.5, 2.5, -30000)["fields"]
     assert after["hominins"]["value"]["sapiens"]["status"] == "established" and after["hominins"]["value"]["others"] == []
     assert after["technology"]["value"][0].startswith("Gravettian") and after["technology"]["source"] == atlas.CULTURES
-    assert "memory" in after["technology"]["note"] or "checked" in after["technology"]["note"]
+    assert "checked against its source" in after["technology"]["note"] or "Could not verify" in after["technology"]["note"]
+    assert "memory" not in after["technology"]["note"]
 
 
 @pytest.mark.parametrize("lat, lon, year, culture", [
@@ -396,3 +413,14 @@ def test_committed_deep_regions_follow_the_arrival_table():
     assert [{k: r[k] for k in fields} for r in DEEP["regions"]] == [
         {k: r[k] for k in fields} for r in ARRIVALS["regions"]
     ]
+
+
+def test_refresh_tables_keeps_the_model_cells_and_refuses_a_changed_region_order():
+    atlas_in = {"deep": {"regions": [dict(r) for r in DEEP["regions"]], "cells": {"k": 1}, "species": [], "cultures": [],
+                         "other_hominins": [], "biome_prey": {}}, "sources": {}}
+    out = deep.refresh_tables(atlas_in)
+    assert out["deep"]["cells"] == {"k": 1} and out["deep"]["cultures"] == TABLE["cultures"]
+    assert out["deep"]["regions"] == deep.table_sections()["regions"]
+    stale = {"deep": {"regions": DEEP["regions"][1:]}, "sources": {}}
+    with pytest.raises(SystemExit):
+        deep.refresh_tables(stale)

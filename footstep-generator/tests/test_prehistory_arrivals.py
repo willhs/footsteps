@@ -18,7 +18,7 @@ def test_regions_have_ordered_dates_and_valid_bbox():
         assert a["early"] >= a["central"] >= a["late"], r["id"]
         west, south, east, north = r["bbox"]
         assert -180 <= west < east <= 180 and -90 <= south < north <= 90, r["id"]
-        assert r["verification"] in {"checked", "memory"}, r["id"]
+        assert r["verification"] in {"checked", "could_not_verify"}, r["id"]  # no 'memory' left (2026-11-19)
         assert r["source"] and r["ramp_ka"] >= 0, r["id"]
 
 

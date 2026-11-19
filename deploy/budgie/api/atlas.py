@@ -208,9 +208,16 @@ def pick_culture(cultures: list[dict], lat: float, lon: float, window: tuple[flo
     return ranked[0] if ranked else None
 
 
+def check_note(entry: dict, what: str = "Key claim") -> str:
+    """How sure an arrival or culture entry is, in words: checked (maybe with details left unchecked) or could not verify."""
+    reason = entry.get("could_not_verify")
+    if entry["verification"] == "checked":
+        return f"{what} checked against its source." + (f" Could not verify: {reason}" if reason else "")
+    return f"Could not verify: {reason}"
+
+
 def culture_note(c: dict) -> str:
-    check = ("Key claim checked against its source." if c["verification"] == "checked"
-             else "Citations written from memory and not yet checked against the papers.")
+    check = check_note(c)
     makers = " and ".join(c["makers"])
     return (f"{c['name']}, made by {makers}, c. {c['from_ka_bp']:g}-{c['to_ka_bp']:g} thousand years ago. "
             f"A regional pattern, not a record of this place. {check} Sources: {c['source']}")
@@ -275,7 +282,7 @@ class Atlas:
         sapiens_here = hom["sapiens"]["status"] != "absent"
         s_note = (f"Arrival date for {region['name']}: {region['arrival_ka_bp']['central']:g} thousand years ago "
                   f"(credible range {region['arrival_ka_bp']['late']:g}-{region['arrival_ka_bp']['early']:g}). "
-                  f"{'Checked against the paper.' if region['verification'] == 'checked' else 'Citation written from memory.'} "
+                  f"{check_note(region, 'Arrival date')} "
                   f"{region['source']}")
         people = cell["people"][i]
         if people > 0 and not sapiens_here:

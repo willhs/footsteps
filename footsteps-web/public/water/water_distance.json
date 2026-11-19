@@ -1,0 +1,46 @@
+{
+  "file": "water_distance.webp",
+  "width": 4320,
+  "height": 2160,
+  "cell_degrees": 0.08333333333333333,
+  "row0": "north (90N)",
+  "col0": "west (180W)",
+  "channel": "red; green and blue repeat it",
+  "metres": "2e+06 * (code / 255) ** 2",
+  "max_metres": 2000000.0,
+  "levels": 255,
+  "code0": "water in the cell",
+  "measured_to": "cell centres, good to about half a cell",
+  "extra_water": [],
+  "sources": {
+    "water": "Natural Earth 10m rivers + lake centerlines and lakes v5.1.2 (public domain), present-day courses",
+    "sha256": {
+      "ne_10m_rivers_lake_centerlines": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+      "ne_10m_lakes": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9"
+    },
+    "saline_lakes_left_out": [
+      "Dead Sea",
+      "Ebinur Hu",
+      "Great Salt Lake",
+      "Laguna Madre",
+      "Lake Assal",
+      "Lake Eyre North",
+      "Lake Eyre South",
+      "Lake Gairdner",
+      "Lake Natron",
+      "Lake Razazah",
+      "Lake Torrens",
+      "Lake Tuz",
+      "Lake Urmia",
+      "Lake Van",
+      "Mar Chiquita",
+      "North Aral Sea",
+      "Qinghai Hu",
+      "Salton Sea",
+      "South Aral Sea",
+      "Syvash",
+      "Tengiz K\u00f6li",
+      "Uvs Nuur"
+    ]
+  }
+}

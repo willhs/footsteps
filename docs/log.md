@@ -4,6 +4,15 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] update | Baked a river and lake distance layer for placing groups
+
+`footstep-generator/water_distance.py` turns Natural Earth 10m rivers, lake centerlines and lakes (v5.1.2, pinned sha256, public domain; saline lakes left out) into one
+year-independent lossless WebP: great-circle distance from each HYDE 5′ cell to the nearest fresh water, 8-bit on a square-root scale (31 m steps near water, 2,000 km at the top,
+code 0 = water in the cell). 5′ not 2.5′: 872 KB against 2.47 MB. Committed at `footsteps-web/public/water/` with a JSON sidecar, so no deploy-script or compose change; Caddy
+caches `/water/*` like `/ground/*`. The distance is a numpy jump flood ranked by haversine; two rounds match brute force on 4,000 sampled cells. HydroRIVERS not used (agreement unread).
+Present-day courses only: the Green Sahara is a documented caveat with an `--extra-water` hook, nothing palaeo invented. No app code reads it yet (research 0012 part 2).
+See `docs/ops/water-distance.md`.
+
 ## [2026-11-19] update | Checked the memory-only entries in arrivals.yaml and deep_past.yaml
 
 Looked up every `verification: memory` entry (15 arrival regions, 8 habitat rules, 31 technocomplexes, the biome-prey block).

@@ -68,7 +68,7 @@ Technocomplexes (selection):
 
 ## Changes to values the population model reads
 
-Only `arrivals.yaml` feeds `prehistory_population.py`. **The model was NOT rerun.** Changed by more than ~10% or reordering a region:
+Only `arrivals.yaml` feeds `prehistory_population.py`. **The model was not rerun at the time; it was rerun the same day (see [Rerun](#rerun-2026-11-19)).** Changed by more than ~10% or reordering a region:
 
 | Region | Old central (early-late) | New | Change | Model effect |
 |---|---|---|---|---|
@@ -80,14 +80,54 @@ Only `arrivals.yaml` feeds `prehistory_population.py`. **The model was NOT rerun
 Smaller changes (kept below 10%): `japan` `early` 38→40, `japan_ryukyu` central 38→36. Region ids, boxes and file order are unchanged, so the
 committed atlas's per-cell region indices are still valid. The committed `deploy/budgie/api/anthropology.json.gz` was refreshed with
 `poetry run python footstep-generator/anthropology/deep.py --tables-only`, which re-reads only the two yaml tables and keeps the modelled
-people, climate and fauna cells. Those cells still use the old Hokkaido date until the model is rerun.
+people, climate and fauna cells. Those cells used the old Hokkaido date until the model was rerun; the full `deep.py` run below refreshed them.
 
 `evidence/arrival_check.py` runs on the new table (checked against the cached p3k14c rows and AADR from the main project's `data/`):
 no region newly flags "evidence older than `early`", and Hokkaido's earliest p3k14c date is 8.3 ka, far younger than 28 ka.
 
+## Rerun (2026-11-19)
+
+Steady task `8fe0b6b0-9634-4393-9c01-4874cefcb591`. Ran `prehistory_population.py --verify` (all 90 years), `anthropology/deep.py` (full),
+`evidence/model_vs_evidence.py` and `evidence/arrival_check.py` against `arrivals.yaml` at `7e31399`. The old images were the 14 Nov
+set from `66b5c2d`; they were compared with the new ones cell by cell (`rerun/compare.txt`, `rerun/compare_hok_only.txt`).
+
+**What changed in the arrival table since those images:** two central dates the model reads: Hokkaido 38 → 30 ka and Ryukyu 38 → 36 ka
+(the Ryukyu change was in "smaller changes" above, which wrongly implied it had no visible effect). Madagascar, Caribbean and remote Pacific
+changed too but fall after the window. So the rerun shows both.
+
+**Checks**
+
+- **World totals follow the curve.** `--verify` passes for all 90 images; `totals.json` is byte-identical to the committed copy and to
+  `footsteps-web/public/prehistory_totals.json` (low/central/high do not depend on the arrival table). Central 0.20 M (100,000 BCE), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000), as before. Per-year image totals moved by at most ~200 people in 2 million (the Ryukyu edit included).
+- **Hokkaido cells are empty before the arrival.** People in the Hokkaido box (139.5–146°E, 41.5–45.5°N): 0 at every year to 29,000 BCE, then
+  200 (28,000 BCE), 580 (27,000), 931 (26,000), 1,343 (25,000 BCE) and unchanged after. Before: 84 at 36,000 BCE, rising to ~1,000 by 33,000 BCE.
+  Arrival 30 ka BP = 28,050 BCE, ramp 3 ka, so the first non-empty image is 28,000 BCE as expected.
+- **Nothing else changed beyond rescaling, once Ryukyu is set aside.** To separate the two edits, the 11 affected years (36,000–26,000 BCE) were rerun with Ryukyu temporarily put back to 38 ka
+  (scratch output only, `arrivals.yaml` restored): outside the Hokkaido box the images differ from the old ones by at most 0.05% of the people (L1) and 17 people in any cell
+  (`rerun/compare_hok_only.txt`). In the real rerun the Ryukyu edit adds the rest: the East China Sea shelf cells around 25–31°N, 122–129°E lose their people in 35,000 BCE
+  (148 → 0 at 29.75°N 125.75°E), thin out through 33,000 BCE, and move at most 0.5% of the people (L1, 34,000–33,000 BCE).
+- **Only 11 of 90 images changed** (36,000 to 26,000 BCE); the other 79 are byte-identical to the 14 Nov images, so the model is deterministic.
+  SHA-256 of all 90 images and `totals.json`: `rerun/prehistory-manifest.sha256`.
+- **Atlas (`deep.py` full).** `deploy/budgie/api/anthropology.json.gz`: the only differences are 2,840 `people` values in 405 cells (all in eras 36,000–26,000 BCE),
+  none in any other field or in the HYDE section. Cell `40,140` (mostly Hokkaido) falls from 1,119 to 234 people at 32,000 BCE and 370 to 79 at 35,000 BCE; the cell `25,125` (Ryukyu shelf) goes to 0 at 35,000 BCE.
+- **Model vs evidence (research 0009 script, written to a scratch folder; research 0009's committed charts and `results.json` are left as published).** Hokkaido `model_first_ka` 37.95 → 29.95; half-rise 34.95 → 27.95 ka;
+  Ryukyu `model_first_ka` 37.95 → 35.95; the p3k14c evidence is unchanged (earliest Hokkaido date 8.3 ka, no Ryukyu dates), so neither region gains or loses support from the evidence.
+  Hokkaido's `lgm_ratio_model` goes 1.78 → 63.8 because its denominator (people at ~35 ka) is now empty; treat that figure as undefined for Hokkaido. Other regions' LGM ratios move by under 0.2%.
+  The far-east Russia box (`east_asia_far_east`) holds 1.5–1.8% fewer people from 34,000 to 27,000 BCE, probably because the 1.5-cell blur of Hokkaido's mask no longer reaches across the box edge (not traced). The Spearman correlations (`rho_50_16`) moved by under 0.004.
+- **`arrival_check.py`** on the new table: Hokkaido 30 ka (32–28), earliest p3k14c 8.3 ka, earliest direct AADR 0.8 ka, no region flagged newly; the regions that already had p3k14c earlier than `early` (the Siberian and Beringian boxes, steppe Europe) are the same as before.
+- Tests: `poetry run pytest footstep-generator/tests/ -q` → 489 passed, 2 skipped.
+
+**Inputs not in the main checkout.** The run needed Natural Earth 10m rivers and lakes (downloaded; SHA-256 match `docs/ops/prehistory-population.md`) and the p3k14c CSV
+(`p3k14c.py fetch` + `build`, for the 0009 script); neither existed in the main project's `data/`. The job's workspace made its own `data/` of symlinks to the main inputs plus these downloads; nothing in the main checkout was written.
+
+**Publishing (still to do).** The regenerated images live only in the job workspace, which is deleted when the job lands, and workspace rules forbid writing into the main checkout. To publish:
+rerun `poetry run python footstep-generator/prehistory_population.py --verify` from `main` (about 2 minutes once the Natural Earth files are in `data/raw/naturalearth/`), check the SHA-256 of
+`data/tiles/prehistory/` against `rerun/prehistory-manifest.sha256`, then `GRID_ONLY=1 scripts/deploy-budgie.sh`. Only the 11 images from `humans_-36000.webp` to `humans_-26000.webp` differ from what is live; purge those 11
+URLs in Cloudflare. The committed atlas is already refreshed and deploys with the API from `main`.
+
 ## Follow-ups
 
-1. Rerun the prehistory population model (`prehistory_population.py`) for the Hokkaido change, then `deep.py` (full) and the model-vs-evidence reports (research 0009, 0010).
+1. ~~Rerun the prehistory population model for the Hokkaido change, then `deep.py` (full) and the model-vs-evidence reports.~~ Done 2026-11-19 (below). Publishing the 11 changed images to budgie is still to do.
 2. Read the full text of the abstract-only papers listed in `could_not_verify` fields: Napolitano 2019 (dates came from press summaries), Posth 2023, Lisiecki & Raymo 2005 stage boundaries, Ge 2023 (Nwya Devu redated), Izuho 2012 and Izuho & Kaifu 2015 (no DOI), Calcagnile 2019.
 3. Decide whether `central` 60 ka for island Southeast Asia and `early` 30 ka for Beringia (both hedges with no dated site) should move to the dated figures (46 ka; 24 ka).
 4. The Azilian, Magdalenian and Ice Age Tasmania entries need real dating papers; the biome-prey lists need a source with a game table, or to be labelled as the model's own.

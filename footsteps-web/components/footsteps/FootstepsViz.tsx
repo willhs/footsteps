@@ -378,6 +378,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             <strong>Settlement experiment · modelled</strong>
             <p>Named cities use local population budgets. Group sizes and clusters are scenarios from ethnographic analogs, not known settlements.</p>
             <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
+            <p>Where a group sits in its cell: modelled rule (flat ground, near fresh water, near the coast, never in the sea or a lake, at the year&apos;s sea level); the exact spot is imagined.</p>
             {season !== 'off' && <p>Seasonal rounds · modelled ({season === 'june' ? 'June' : 'December'}). Nearby mobile foragers gather in local winter; herders shift pastures within their cell. Latitude sets the contrast. Sites, territories and timing are illustrative; head counts stay the same.</p>}
           </div>
         )}

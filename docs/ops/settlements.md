@@ -2,7 +2,7 @@
 id: settlements
 type: reference
 purpose: "The ?settlements=1 experiment: real cities, regional settlement mixes and deep-time forager types — how to turn it on, regenerate it, and what it does not claim"
-updated: 2026-11-15
+updated: 2026-11-19
 ---
 
 # Settlements experiment (`?settlements=1`)
@@ -63,6 +63,14 @@ It asserts night-side pixels darken, default controls are off, flags control the
 season UI, and the close-up's clock agrees with night. Unit tests cover solar
 geometry, polar days, leap days, seasonal population conservation and fixed groups.
 
+## Where groups sit in a cell (2026-11-19)
+
+With the flag on, group *k* of a cell sits at the cell's *k*-th ranked spot: flat ground, near fresh water, near the year's coast, never in
+the sea or a lake at that year's sea level (`siteRanking.ts`, [site terrain](site-terrain.md)). Scrubbing time does not move a group unless
+its cell's coast changes; cell totals, group ids, counts and sizes are unchanged. The rule is modelled, the exact spot imagined, and the
+legend says so. `?sites=0` (with the flag) keeps the old random positions, for comparison. Groups in the sea fell from 1.8 % to 0.4 %
+(1900 CE, against Natural Earth); not zero, see the doc for what is left. First load of a year costs more in the worker (once per page).
+
 ## What changes
 
 - **Named cities** (Reba et al. 2016, Chandler + Modelski, ≤1900 CE) appear as cyan circles with
@@ -96,7 +104,8 @@ pnpm --dir footsteps-web dev
 node footsteps-web/scripts/verify-settlements.mjs http://localhost:4444 /abs/evidence/dir
 ```
 
-Captures Rome (flag on/off), Ohalo II at 21,000 BCE, and Grid/Dots with the flag. It exits 0
+Captures Rome (flag on/off), Ohalo II at 21,000 BCE, and Grid/Dots with the flag, and, close in (zoom 9, flat map), the Nile near Luxor,
+the Bay of Naples and Ohalo II with ranked spots (`*-ranked.png`) against the old positions (`sites=0`, `*-old.png`). It checks the placement legend line too. It exits 0
 against both `next dev` and a production build. (Until 15 Nov 2026 every `?mode=` deep link threw a
 React hydration error, because `FootstepsViz` read the query string in its first render; it now
 applies URL and cookie state after mount.) Any hydration error now fails the script.

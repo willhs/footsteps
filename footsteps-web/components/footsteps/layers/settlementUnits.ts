@@ -2,6 +2,8 @@ import type { GridData } from '../hooks/gridData';
 import { UnitKind, KIND_OF_WAY, type Units, type UnitKindValue } from './units';
 import { WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { profileAt, type SettlementCatalog } from '@/lib/settlements';
+import { seaLevelAt } from '@/lib/climate';
+import type { SiteRanker } from './siteRanking';
 
 const slots = [0, 20, 24, 25];
 const limits = [20, 4, 1, 4];
@@ -19,10 +21,13 @@ function random(seed: number) {
 
 /** Bounded, deterministic long-tail allocations. Shares represent people assigned
  * to a group, not a census of a real settlement. Even sub-person cells conserve mass.
- * Fixed positions and existing ID slots preserve the year morph's contract. */
+ * Fixed positions and existing ID slots preserve the year morph's contract.
+ * With `sites`, group c of a cell sits at the cell's c-th ranked spot (siteRanking.ts: flat, near fresh water, near the
+ * year's coast, never in the sea); without, at invented positions that ignore land and water. */
 export function buildSettlementUnits(
-  data: GridData, catalog: SettlementCatalog, year: number, habitat: Uint8ClampedArray | null,
+  data: GridData, catalog: SettlementCatalog, year: number, habitat: Uint8ClampedArray | null, sites?: SiteRanker | null,
 ): Units {
+  const seaLevel = seaLevelAt(year);
   const per = new Uint8Array(data.length);
   const kinds = new Uint8Array(data.length);
   const profiles = new Map<string, ReturnType<typeof profileAt>>();
@@ -78,11 +83,22 @@ export function buildSettlementUnits(
     }
     const sum = sizes.reduce((a, b) => a + b, 0);
     let assigned = 0;
+    const spots = sites && kind !== UnitKind.Glow ? sites.spotsFor(data.cellIds[i], seaLevel, count) : null;
+    // A city's glow is the cell, so it stays on the cell centre unless the centre is under water.
+    const glowSpot = sites && kind === UnitKind.Glow && sites.isWet(data.cellIds[i], 0, 0, seaLevel) ? sites.spotsFor(data.cellIds[i], seaLevel, 1) : null;
     for (let c = 0; c < count; c++) {
-      const jitter = kind === UnitKind.Glow ? 0 : 0.9;
-      const centre = (c % 2) * 2;
-      out.positions[j * 2] = data.positions[i * 2] + (centres[centre] * 0.65 + (rand() - 0.5) * 0.3) * data.cellDeg * jitter;
-      out.positions[j * 2 + 1] = data.positions[i * 2 + 1] + (centres[centre + 1] * 0.65 + (rand() - 0.5) * 0.3) * data.cellDeg * jitter;
+      if (spots || glowSpot) {
+        // More groups than dry spots stack on the dry ones, never in the sea.
+        const at = spots ?? glowSpot!;
+        const s = at.dry ? c % at.dry : 0;
+        out.positions[j * 2] = data.positions[i * 2] + at.x[s] * data.cellDeg;
+        out.positions[j * 2 + 1] = data.positions[i * 2 + 1] + at.y[s] * data.cellDeg;
+      } else {
+        const jitter = kind === UnitKind.Glow ? 0 : 0.9;
+        const centre = (c % 2) * 2;
+        out.positions[j * 2] = data.positions[i * 2] + (centres[centre] * 0.65 + (rand() - 0.5) * 0.3) * data.cellDeg * jitter;
+        out.positions[j * 2 + 1] = data.positions[i * 2 + 1] + (centres[centre + 1] * 0.65 + (rand() - 0.5) * 0.3) * data.cellDeg * jitter;
+      }
       out.people[j] = c === count - 1 ? Math.max(0, data.people[i] - assigned) : data.people[i] * sizes[c] / sum;
       assigned += out.people[j];
       out.kind[j] = kind;

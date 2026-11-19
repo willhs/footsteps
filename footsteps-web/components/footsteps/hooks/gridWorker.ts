@@ -15,7 +15,7 @@ export type GridReply =
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
 type Request =
-  | { settlements: boolean }
+  | { settlements: boolean; sites: boolean }
   | { year: number }
   | { id: string; fromYear: number; toYear: number; region: Region; season: Season };
 type Endpoint = { units: Units; width: number };
@@ -23,6 +23,7 @@ type Endpoint = { units: Units; width: number };
 // the UI. This cache is independent of the UI's five decoded snapshots.
 const units = new Map<number, Endpoint>();
 let settlements = false;
+let sites = true; // ranked spots inside cells (`?sites=0` keeps the old invented positions, to compare)
 function remember(year: number, source: Endpoint) {
   units.delete(year);
   units.set(year, source);
@@ -37,7 +38,7 @@ function endpoint(snapshot: DecodedYearGrid): Endpoint {
 async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
-  const snapshot = await decodeYearGrid(year, settlements);
+  const snapshot = await decodeYearGrid(year, settlements, sites);
   remember(year, endpoint(snapshot));
   return endpoint(snapshot);
 }
@@ -49,6 +50,7 @@ function buffers(arrays: ArrayBufferView[]) {
 self.onmessage = ({ data }: MessageEvent<Request>) => {
   if ('settlements' in data) {
     settlements = data.settlements;
+    sites = data.sites;
     units.clear();
     return;
   }
@@ -82,7 +84,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year, settlements)
+  void decodeYearGrid(year, settlements, sites)
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [

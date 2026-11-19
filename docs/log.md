@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] update | Ranked, stable group spots on land near water (?settlements=1)
+
+`?settlements=1` now puts group *k* of a cell at the cell's *k*-th ranked spot (16 candidates: flat ground x near fresh water x near the year's coast, never in the sea or a lake at that year's sea level) instead of a seeded random point; the default Units path is unchanged and `?sites=0` keeps the old positions. Baked `footsteps-web/public/sites/site_terrain.webp` (2.4 MB, 2.5' grid, Terrarium z6 + Natural Earth land and lakes) with `footstep-generator/site_terrain.py`; the ranker is `layers/siteRanking.ts`, cached by cell id in the grid worker. Measured first on the real data: 42,738 of 2.6 M groups were in the sea in 1900 CE (46,746 by Natural Earth's polygons); now 13,924 (10,508 by the polygons), not zero: the coast is only known to 4.6 km and about 3,970 cells have no surely dry spot; the modelled 21,000 BCE image puts 17,862 sub-cells' people in the sea, which a placement change cannot fix. First year load costs about 17 s more in the worker, later years under 1 s. See [site terrain](../ops/site-terrain.md).
+
 ## [2026-11-19] update | Published the Hokkaido/Ryukyu prehistory rerun to budgie
 Regenerated the 90 modelled-population images (all matched the research 0013 manifest) and rsynced them to budgie; only `humans_-36000.webp` to `humans_-26000.webp` changed. Origin and public bytes match. No Cloudflare purge issued (no credentials). See [research 0013](research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).
 

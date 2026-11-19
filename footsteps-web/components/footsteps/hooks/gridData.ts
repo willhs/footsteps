@@ -3,6 +3,7 @@ import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
 import { allocateCities, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
+import { createSiteRanker, type SiteRanker } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
@@ -62,7 +63,7 @@ export function landUseUrl(year: number) {
   return `/grid/landuse_${year}.png`;
 }
 
-type Pixels = { width: number; height: number; data: Uint8ClampedArray };
+export type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 
 /** Exact bytes of an encoded image: no colour conversion, no premultiplication. */
 async function readPixels(url: string, label: string): Promise<Pixels> {
@@ -115,11 +116,11 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
-  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null },
+  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null },
 ): DecodedYearGrid {
   const allocation = settlement ? allocateCities(data, settlement.catalog.cities, year) : null;
   const units = settlement && allocation
-    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat)
+    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites)
     : buildUnits(
     data.cellIds,
     data.positions,
@@ -154,11 +155,54 @@ async function loadSettlementCatalog() {
   return settlementCatalog;
 }
 
-export async function decodeYearGrid(year: number, settlements = false): Promise<DecodedYearGrid> {
-  const [{ width: sw, height: sh, data: px }, landUse] = await Promise.all([
-    readPixels(gridUrl(year), `Grid ${year}`),
-    readLandUse(year),
-  ]);
+/** Read some channels of an image band by band, so a 2.5′ world image never exists as one 150 MB RGBA array. */
+async function readChannels(url: string, label: string, channels: number[]): Promise<{ width: number; height: number; planes: Uint8Array[] }> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
+  const bmp = await createImageBitmap(await response.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  const { width, height } = bmp;
+  const BAND = 256;
+  const canvas = new OffscreenCanvas(width, BAND);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) {
+    bmp.close();
+    throw new Error('Grid decoder requires a 2D canvas');
+  }
+  const planes = channels.map(() => new Uint8Array(width * height));
+  for (let top = 0; top < height; top += BAND) {
+    const rows = Math.min(BAND, height - top);
+    ctx.clearRect(0, 0, width, BAND);
+    ctx.drawImage(bmp, 0, top, width, rows, 0, 0, width, rows);
+    const { data } = ctx.getImageData(0, 0, width, rows);
+    for (let p = 0; p < width * rows; p++) channels.forEach((c, k) => { planes[k][top * width + p] = data[p * 4 + c]; });
+  }
+  bmp.close();
+  return { width, height, planes };
+}
+
+/** The baked terrain and water-distance images behind group placement (siteRanking.ts). Without them groups keep the old
+ * invented positions: a failed fetch never loses the people. One ranker per worker, so its per-cell cache outlives each year. */
+let siteRanker: Promise<SiteRanker | null> | undefined;
+function loadSiteRanker(): Promise<SiteRanker | null> {
+  if (!siteRanker) {
+    siteRanker = Promise.all([
+      readChannels('/sites/site_terrain.webp', 'Site terrain', [0, 1]),
+      readChannels('/water/water_distance.webp', 'Water distance', [0]),
+    ]).then(([t, w]) => {
+      return createSiteRanker({
+        terrain: { width: t.width, height: t.height, depth: t.planes[0], packed: t.planes[1] },
+        water: { width: w.width, height: w.height, code: w.planes[0] },
+      }, HYDE_WIDTH);
+    }).catch((error) => {
+      console.warn('[grid] no site terrain; groups keep their old positions', error);
+      return null;
+    });
+  }
+  return siteRanker;
+}
+
+/** The cells of one year from its decoded population image (and HYDE land use, when there is one). */
+export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: Pixels, landUse: Pixels | null): GridData {
   const scale = isModelled(year) ? Math.round(HYDE_WIDTH / sw) : 1;
   const w = sw * scale;
   const h = sh * scale;
@@ -199,12 +243,21 @@ export async function decodeYearGrid(year: number, settlements = false): Promise
       index++;
     }
   }
+  return { length, positions, people, cellIds, ways, cellDeg, total };
+}
+
+export async function decodeYearGrid(year: number, settlements = false, sites = true): Promise<DecodedYearGrid> {
+  const [pixels, landUse] = await Promise.all([
+    readPixels(gridUrl(year), `Grid ${year}`),
+    readLandUse(year),
+  ]);
   return prepareYearGrid(
     year,
-    { length, positions, people, cellIds, ways, cellDeg, total },
+    gridDataFrom(year, pixels, landUse),
     settlements ? {
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
+      sites: sites ? await loadSiteRanker() : null,
     } : undefined,
   );
 }

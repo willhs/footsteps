@@ -7,8 +7,8 @@ purpose: "Sources, encoding, regeneration and limits of the baked distance-to-fr
 # Water distance (rivers and lakes)
 
 `footstep-generator/water_distance.py` bakes one **year-independent** image: for every HYDE 5′ cell, how far its centre is from the
-nearest river or lake. It is a static model input like `public/settlements.json`. Part 2 (ranked candidate sites in
-`settlementUnits.ts`, research 0012 "Recommended first build") reads it; **no app code reads it yet**.
+nearest river or lake. It is a static model input like `public/settlements.json`. Part 2 (ranked candidate spots in
+`siteRanking.ts`, research 0012 "Recommended first build") reads it under `?settlements=1`: [site terrain](site-terrain.md).
 
 Output, committed: `footsteps-web/public/water/water_distance.webp` (**872 KB**, served at `/water/water_distance.webp`) and
 `water_distance.json` beside it (the scale and sources, machine-readable).

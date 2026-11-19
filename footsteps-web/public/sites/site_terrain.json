@@ -1,0 +1,29 @@
+{
+  "file": "site_terrain.webp",
+  "width": 8640,
+  "height": 4320,
+  "pixel_degrees": 0.041666666666666664,
+  "row0": "north (90N)",
+  "col0": "west (180W)",
+  "red": "0 when the pixel is all land (Natural Earth 10m); else metres below today's sea level rounded up to a multiple of 4, 255 = 136 m or more",
+  "green": "bits 4-7 sea share of the pixel today 0..15; bit 3 lake; bits 0-2 slope class 0..7 (3x3 median); upper bound in degrees of classes 0..6 is slope_upper_deg, class 7 is steeper",
+  "sea_levels": 15,
+  "slope_upper_deg": [
+    0.2,
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    7.5,
+    14.0
+  ],
+  "blue": "0",
+  "sources": {
+    "relief": "AWS Terrarium elevation tiles, zoom 6, mean of 3x3 samples per pixel, central-difference slope",
+    "land_and_lakes": "Natural Earth 10m land and lakes v5.1.2 (public domain)",
+    "sha256": {
+      "ne_10m_land": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
+      "ne_10m_lakes": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9"
+    }
+  }
+}

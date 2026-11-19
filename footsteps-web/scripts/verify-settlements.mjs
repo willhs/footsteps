@@ -29,11 +29,19 @@ try {
     { name: 'rome-modelled', flag: '&settlements=1', mode: 'units', year: '100 CE', lat: 41.9, lon: 12.5 },
     { name: 'rome-default', flag: '', mode: 'units', year: '100 CE', lat: 41.9, lon: 12.5 },
     { name: 'foragers-modelled', flag: '&settlements=1', mode: 'units', year: '21000 BCE', lat: 32.86, lon: 35.55 },
+    // Ranked spots (default with the flag) against the old invented positions (`sites=0`): the Nile near Luxor, the Bay of Naples,
+    // and Ohalo II again close in. Same year, same view, so the two screenshots differ only in where groups sit.
+    { name: 'nile-ranked', flag: '&settlements=1&close3d=0', mode: 'units', year: '0 CE', lat: 25.7, lon: 32.65, zoom: 9 },
+    { name: 'nile-old', flag: '&settlements=1&sites=0&close3d=0', mode: 'units', year: '0 CE', lat: 25.7, lon: 32.65, zoom: 9 },
+    { name: 'naples-ranked', flag: '&settlements=1&close3d=0', mode: 'units', year: '1000 CE', lat: 40.8, lon: 14.3, zoom: 9 },
+    { name: 'naples-old', flag: '&settlements=1&sites=0&close3d=0', mode: 'units', year: '1000 CE', lat: 40.8, lon: 14.3, zoom: 9 },
+    { name: 'ohalo-ranked', flag: '&settlements=1&close3d=0', mode: 'units', year: '21000 BCE', lat: 32.86, lon: 35.55, zoom: 9 },
+    { name: 'ohalo-old', flag: '&settlements=1&sites=0&close3d=0', mode: 'units', year: '21000 BCE', lat: 32.86, lon: 35.55, zoom: 9 },
     { name: 'grid-unchanged', flag: '&settlements=1', mode: 'grid', year: '100 CE', lat: 41.9, lon: 12.5 },
     { name: 'dots-unchanged', flag: '&settlements=1', mode: 'dots', year: '0 CE', lat: 41.9, lon: 12.5 },
   ]) {
     const startErrors = errors.length;
-    await page.goto(`${base}/?mode=${scene.mode}&lat=${scene.lat}&lon=${scene.lon}&zoom=7${scene.flag}`);
+    await page.goto(`${base}/?mode=${scene.mode}&lat=${scene.lat}&lon=${scene.lon}&zoom=${scene.zoom ?? 7}${scene.flag}`);
     await page.getByTestId('year-label').click();
     await page.getByTestId('year-input').fill(scene.year);
     await page.getByTestId('year-input').press('Enter');
@@ -44,6 +52,7 @@ try {
     if (!canvas) throw new Error(`${scene.name}: no canvas`);
     const expectedLabel = !!scene.flag && scene.mode === 'units';
     if (text.includes('Settlement experiment') !== expectedLabel) throw new Error(`${scene.name}: incorrect flag label`);
+    if (text.includes('the exact spot is imagined') !== expectedLabel) throw new Error(`${scene.name}: missing the placement label (rule modelled, exact spot imagined)`);
     const screenshot = path.join(out, `${scene.name}.png`);
     await page.screenshot({ path: screenshot });
     results.push({ scene: scene.name, text, canvas, screenshot, errors: errors.slice(startErrors) });

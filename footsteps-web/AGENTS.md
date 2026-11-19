@@ -20,6 +20,9 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`GridData.ways`); `FireLayer.ts` colours the far-out fires the same way, and the legend reads `LOOKS`.
   `unitMorphVertex.ts` reads a mark's kind from its colour, so `waysOfLife.test.ts` pins the palette.
   Copy `../data/tiles/grid/landuse_*.png` into `public/grid/` for local dev.
+- `?settlements=1` also ranks spots inside each cell (`layers/siteRanking.ts`, one ranker per worker, cached by cell id; reads `/sites/site_terrain.webp` and
+  `/water/water_distance.webp` through `readChannels` in `hooks/gridData.ts`): group *k* sits at spot *k*, off the sea and lakes at the year's sea level. `?sites=0` turns it off to compare.
+  `components/footsteps/layers/settlementSites.real.test.ts` is the gated real-data count (docs/ops/site-terrain.md "Measure").
 - Unit marks represent at least 15 people. A cell under 15 holds one whole group
   (band/camp/village size) with probability people ÷ group size, seeded per cell, so
   thin forager land is not empty close in and expected head count stays right. Individual people use the

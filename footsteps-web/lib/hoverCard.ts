@@ -7,7 +7,7 @@ import type { FoodItem } from './food';
 import type { Evidence } from './time';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'animals' | 'food';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'animals' | 'food';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -27,6 +27,8 @@ export type HoverCardInput = {
   people: { count: number; evidence: Evidence; cellDeg: number } | null;
   /** HYDE land use for the same cell, only for HYDE years. */
   landUse: LandUse | null;
+  /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
+  region?: { people: number } | null;
 };
 
 const MINUS = '−';
@@ -104,6 +106,14 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
       id: 'life',
       text: wayOfLife(use),
       detail: `${share(use.crop)} cropland, ${share(use.grazing)} grazing`,
+      evidence: 'modelled',
+    });
+  }
+  if (i.region) {
+    rows.push({
+      id: 'region',
+      text: `Part of a regional group of about ${twoFigures(i.region.people)} people`,
+      detail: 'tinted on the map · the edge is imagined',
       evidence: 'modelled',
     });
   }

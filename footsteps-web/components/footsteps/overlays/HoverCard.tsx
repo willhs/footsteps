@@ -61,7 +61,10 @@ export default function HoverCard({
   time,
   year,
   grid,
+  region = null,
 }: {
+  /** `?settlements=1` only: the regional group under the cursor, if one is modelled there. */
+  region?: { people: number } | null;
   point: HoverPoint | null;
   time: number;
   /** The population image year in use (nearestDataYear) and its decoded grid, if loaded. */
@@ -84,7 +87,7 @@ export default function HoverCard({
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     };
     return {
-      rows: hoverCardRows({ ...input, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
+      rows: hoverCardRows({ ...input, region, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:
         year >= HYDE_MIN && !(input.landUse && input.people)
@@ -96,7 +99,7 @@ export default function HoverCard({
               peopleModelled: input.people?.evidence === 'modelled' && input.people.count > 0,
             }),
     };
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, region]);
 
   if (!point) return null;
   return (

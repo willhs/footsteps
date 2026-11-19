@@ -143,3 +143,15 @@ describe('animals row', () => {
     expect(ids(hoverCardRows({ ...base, habitat: ice, animals: ['wolf'] }))).not.toContain('animals');
   });
 });
+
+describe('regional group row (?settlements=1)', () => {
+  const base = { time: 1500, habitat: null, today: null, people: null, landUse: null };
+  it('says it is part of a regional group, modelled, only when one is given', () => {
+    expect(hoverCardRows(base).some((r) => r.id === 'region')).toBe(false);
+    expect(hoverCardRows({ ...base, region: null }).some((r) => r.id === 'region')).toBe(false);
+    expect(hoverCardRows({ ...base, region: { people: 1234 } }).find((r) => r.id === 'region')).toMatchObject({
+      text: 'Part of a regional group of about 1,200 people',
+      evidence: 'modelled',
+    });
+  });
+});

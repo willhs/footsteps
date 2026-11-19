@@ -1,8 +1,8 @@
 ---
 id: settlements
 type: reference
-purpose: "The ?settlements=1 experiment: real cities, regional settlement mixes and deep-time forager types — how to turn it on, regenerate it, and what it does not claim"
-updated: 2026-11-19
+purpose: "The ?settlements=1 experiment: real cities, regional settlement mixes, deep-time forager types, households and a hover-only regional group — how to turn it on, regenerate it, and what it does not claim"
+updated: 2026-11-20
 ---
 
 # Settlements experiment (`?settlements=1`)
@@ -70,6 +70,33 @@ the sea or a lake at that year's sea level (`siteRanking.ts`, [site terrain](sit
 its cell's coast changes; cell totals, group ids, counts and sizes are unchanged. The rule is modelled, the exact spot imagined, and the
 legend says so. `?sites=0` (with the flag) keeps the old random positions, for comparison. Groups in the sea fell from 1.8 % to 0.4 %
 (1900 CE, against Natural Earth); not zero, see the doc for what is left. First load of a year costs more in the worker (once per page).
+
+## Households and a regional group (2026-11-20)
+
+Part 3 of research 0012 "Recommended first build" ([research](../research/0012-group-structure/research.md), "2. Nested levels"). Both are behind the flag
+only; without it the default path is unchanged. Legend line says: households are imagined in layout, the regional group's people are modelled and
+its edge imagined.
+
+**Households (street zoom, where individuals are footprints).** `layers/households.ts`. With the flag, `people.ts` packs a group's people into
+households instead of the default random "hearths": sizes 2-7 with a mean of 4.51, inside Binford's 4.48 (95 % CI 4.31-4.67; Hamilton et al. 2007, *Proc R Soc B* 274:2195, Table 1, as
+cited in research 0012). People fill households in order; household 0 stands on the group's spot (the ranked spot from [site terrain](site-terrain.md)), the rest on a sunflower spiral, 40 m apart (camps, bands) or 60 m (villages), members within 4 m of their household's centre. All spacings are
+**imagined**: research 0012 found no data for households per camp or house spacing. Everything is a pure function of the group's position, and the
+household sequence never looks at the group's size, so person *i* keeps their household and place when a group grows or shrinks (`peopleForMorph`'s steady/leaving/entering split is unchanged). The three random draws each person takes are kept,
+so age, sex, role and footwear come out exactly as without households; only the standing place differs. Name tags and the footprint gait read `Person.position` as before. Households are legible from about zoom 14; at the first street zoom (12.5) a group still reads as one cluster.
+
+**Regional group (hover or selection only).** `lib/regionalGroup.ts`. The data gives sizes, not who belonged to whom (research 0012), so membership is a modelling
+choice: a block of the 5' cell grid, 2^level cells a side, aligned so blocks nest and never depend on the year. The level is the smallest whose block holds
+about 840 people (Binford regional population 839, CI 736-954). A block over 3,360 (840 x 4, one level up) falls back to the level below; **no regional group is modelled** (no line, no tint) where one cell already exceeds 3,360 (a 1900 CE town), or where even a 5.3° block holds under 100 people.
+So a group's block is the same in every year **at the same level**; the level (and so which groups share a block, and the people count) follows the year's population. The tint is one
+soft rectangle (14 nested, inset, faint fills, no line) drawn by `layers/regionTint.ts` for the cell under the cursor, or else the clicked place, from zoom 7 (marks clickable). The hover card gets "Part of a regional group of about N people" (two figures, *modelled*).
+
+Tests: `households.test.ts`, `peopleGen.test.ts` (same people and head count, households of 2-7 averaging about 4.5, person *i* independent of group size, the morph contract), `regionalGroup.test.ts` (block nesting, same block across years, fall-back and "none" cases), `hoverCard.test.ts`.
+
+Browser check: `node footsteps-web/scripts/verify-households.mjs http://localhost:4444 /abs/evidence/dir` (production data proxied; runs headed). Captures a forager band at 11,000 BCE (the Natufian Levant, the densest
+modelled block: individuals need a group of 15 or more, which sparse deep-time cells never reach, e.g. Ohalo II at 21,000 BCE) and a 1500 CE village (Nile near Luxor), flat and 3D, at zoom 12.6 and 15.5, plus the hover tint and card at zoom 9. On an M-series Mac with a 120 Hz display
+every street-zoom scene held 110-120 fps with households on (one 3D village run measured 93 fps once, 120 on the rerun); no browser errors. The default-path screenshots at the close zoom show an empty patch because default groups stand in other places, so they are not a like-for-like frame-rate comparison.
+
+Not done: the regional group is not a polity (no names, borders or hierarchy beyond one level); dense places show no regional line; membership is not tested against real data (none exists); households per camp is a consequence of group size and the 4.5 mean, not a measurement.
 
 ## What changes
 

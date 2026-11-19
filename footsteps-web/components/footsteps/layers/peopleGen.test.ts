@@ -1,6 +1,6 @@
 // Generation only; the layer class needs WebGL and is not imported here.
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
-import { describePerson, footprintData, peopleForGroups, peopleForMorph, MAX_PER_GROUP, PRINTS } from './people';
+import { describePerson, footprintData, type GroupInView, peopleForGroups, peopleForMorph, MAX_PER_GROUP, PRINTS } from './people';
 import { UnitKind } from './units';
 
 describe('people from head counts', () => {
@@ -123,5 +123,63 @@ describe('footprints', () => {
     const prints = footprintData(people);
     expect(prints).toHaveLength(people.length * PRINTS);
     prints.forEach((p, i) => expect(p).toBe(people[Math.floor(i / PRINTS)]));
+  });
+});
+
+describe('households (?settlements=1)', () => {
+  const metres = (a: [number, number], b: [number, number], lat: number) =>
+    Math.hypot((a[0] - b[0]) * 111_320 * Math.cos((lat * Math.PI) / 180), (a[1] - b[1]) * 111_320);
+  const band: GroupInView = { lon: 35.5, lat: 32.1, kind: UnitKind.Band, people: 60 };
+  const village: GroupInView = { lon: 31.2, lat: 30.0, kind: UnitKind.Village, people: 160 };
+  const households = (g: GroupInView) => peopleForGroups([g], 1500, 'households');
+
+  it('draws the same people, only standing elsewhere', () => {
+    for (const g of [band, village]) {
+      const plain = peopleForGroups([g], 1500);
+      const homes = households(g);
+      expect(homes).toHaveLength(plain.length);
+      expect(homes.map((p) => [p.age, p.female, p.role, p.footwear])).toEqual(
+        plain.map((p) => [p.age, p.female, p.role, p.footwear]),
+      );
+      expect(homes.map((p) => p.position)).not.toEqual(plain.map((p) => p.position));
+    }
+    // the default layout sets no household
+    expect(peopleForGroups([band]).every((p) => p.household === undefined)).toBe(true);
+  });
+
+  it('packs people into households of 2-7 (about 4-5), in order, deterministically', () => {
+    const a = households(village);
+    const b = households(village);
+    expect(a.map((p) => [p.household, ...p.position])).toEqual(b.map((p) => [p.household, ...p.position]));
+    const sizes = new Map<number, number>();
+    for (const p of a) sizes.set(p.household!, (sizes.get(p.household!) ?? 0) + 1);
+    const all = [...sizes.entries()].sort((x, y) => x[0] - y[0]);
+    // consecutive people share a household; every household but the last (cut by the group's size) is full-sized
+    expect(a.map((p) => p.household)).toEqual([...a.map((p) => p.household)].sort((x, y) => x! - y!));
+    for (const [, size] of all.slice(0, -1)) {
+      expect(size).toBeGreaterThanOrEqual(2);
+      expect(size).toBeLessThanOrEqual(7);
+    }
+    expect(a.length / all.length).toBeGreaterThan(3.8);
+    expect(a.length / all.length).toBeLessThan(5.2);
+  });
+
+  it('keeps household members close together and households apart, round the group spot', () => {
+    const people = households(village);
+    const byHome = new Map<number, typeof people>();
+    for (const p of people) byHome.set(p.household!, [...(byHome.get(p.household!) ?? []), p]);
+    for (const members of byHome.values())
+      for (const m of members) expect(metres(m.position, members[0].position, village.lat)).toBeLessThan(9);
+    // household 0 stands at the group's spot
+    expect(metres(byHome.get(0)![0].position, [village.lon, village.lat], village.lat)).toBeLessThan(10);
+  });
+
+  it('gives person i the same household and place whatever the group size (the morph contract)', () => {
+    const small = households({ ...band, people: 30 });
+    const large = households({ ...band, people: 120 });
+    expect(large.slice(0, 30).map((p) => [p.household, ...p.position])).toEqual(small.map((p) => [p.household, ...p.position]));
+    const grow = peopleForMorph([{ lon: band.lon, lat: band.lat, kind: UnitKind.Band, from: 40, to: 100 }], 1500, 'households');
+    expect([grow.steady.length, grow.leaving.length, grow.entering.length]).toEqual([40, 0, 60]);
+    expect(grow.steady.map((p) => p.household)).toEqual(households({ ...band, people: 100 }).slice(0, 40).map((p) => p.household));
   });
 });

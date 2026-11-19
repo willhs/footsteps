@@ -54,6 +54,7 @@ export default function useGridLayer({
   size = { width: 1440, height: 900 },
   globe = false,
   season = 'off',
+  households = false,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -67,6 +68,8 @@ export default function useGridLayer({
   size?: { width: number; height: number };
   globe?: boolean;
   season?: Season;
+  /** `?settlements=1`: people stand in households of about 4-5 round their group's spot (layers/households.ts). */
+  households?: boolean;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -312,9 +315,9 @@ export default function useGridLayer({
       if (lon < west - pad || lon > east + pad || lat < south - pad || lat > north + pad) continue;
       if (from[i] > 0 || to[i] > 0) groups.push({ lon, lat, kind: kind[i], from: from[i], to: to[i] });
     }
-    return peopleForMorph(groups, morphScene.y1);
+    return peopleForMorph(groups, morphScene.y1, households ? 'households' : 'hearths');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleOn, morphScene, boundsKey]);
+  }, [peopleOn, morphScene, boundsKey, households]);
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
   // years stay put; the ones that leave or arrive fade out or in.

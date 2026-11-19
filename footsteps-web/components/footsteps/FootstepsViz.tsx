@@ -25,6 +25,8 @@ import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import { cssRgb, LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
+import useRegionalGroup from './hooks/useRegionalGroup';
+import { regionTintLayer } from './layers/regionTint';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
 import EvidenceTooltip from './overlays/EvidenceTooltip';
 import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLayer';
@@ -197,10 +199,18 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     size: screenSize,
     globe: is3DMode,
     season,
+    households: settlements,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
   });
+
+  // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
+  // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.
+  const regionOn = settlements && blend.pickable && (renderMode === 'auto' || renderMode === 'units');
+  const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
+  const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
+  const regionLayers = useMemo(() => regionTintLayer(hoverRegion ?? selectedRegion), [hoverRegion, selectedRegion]);
 
   // Name tags beside the walkers at the closest zoom: imagined, like the people (layers/personTags.ts).
   // On by default; ?tags=0 turns them off (to compare frame rates, or for a plain view of the prints).
@@ -250,7 +260,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const layers: LayersList = [
     ...shadedBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers, ...tagLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...presenceLayers, ...tagLayers]),
     ...evidence.layers,
     ...otherHumans.above,
   ] as LayersList;
@@ -280,7 +290,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
       <OtherHumansTooltip hover={otherHumans.hover} />
-      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} />}
+      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} region={hoverRegion} />}
 
       {/* Data info overlay */}
       <SupportingText
@@ -379,6 +389,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             <p>Named cities use local population budgets. Group sizes and clusters are scenarios from ethnographic analogs, not known settlements.</p>
             <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
             <p>Where a group sits in its cell: modelled rule (flat ground, near fresh water, near the coast, never in the sea or a lake, at the year&apos;s sea level); the exact spot is imagined.</p>
+            <p>Households (about 4–5 people, after Binford) stand round each group&apos;s spot at street level: the layout is imagined. Hover a place to tint the regional group it is part of (a few hundred people): the people are modelled, the edge is imagined.</p>
             {season !== 'off' && <p>Seasonal rounds · modelled ({season === 'june' ? 'June' : 'December'}). Nearby mobile foragers gather in local winter; herders shift pastures within their cell. Latitude sets the contrast. Sites, territories and timing are illustrative; head counts stay the same.</p>}
           </div>
         )}

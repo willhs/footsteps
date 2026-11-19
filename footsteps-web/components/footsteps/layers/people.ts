@@ -9,6 +9,7 @@ import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
 import { LOOKS } from '@/lib/waysOfLife';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
+import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
 
 export type Person = {
   id: number;
@@ -22,7 +23,13 @@ export type Person = {
   radius: number; // footprint half-length, pixels
   footwear: number; // index into FOOTWEAR (imagined, lib/footwear.ts)
   gait: number; // hash in [0, 1) of their spot: sets how they walk (lib/gait.ts), shared with the shader
+  /** Index of their household within the group; set only with `households` (`?settlements=1`). Imagined layout. */
+  household?: number;
 };
+
+/** How people stand in camp. `hearths` is the default: a few random clusters. `households` (`?settlements=1`):
+ * packed into households of about 4-5 round the group's spot (households.ts). */
+export type CampLayout = 'hearths' | 'households';
 
 export type GroupInView = {
   lon: number;
@@ -118,7 +125,7 @@ function peopleDrawn(kind: number, people: number) {
  * (fade in). A person's look and place depend on the group and their index alone, so a
  * group that grows or shrinks keeps the people it had and only the difference fades, and
  * a way-of-life change (a different kind of group at the same spot) is a cross-fade. */
-export function peopleForMorph(groups: MorphGroupInView[], year = 1900) {
+export function peopleForMorph(groups: MorphGroupInView[], year = 1900, layout: CampLayout = 'hearths') {
   const steady: Person[] = [];
   const leaving: Person[] = [];
   const entering: Person[] = [];
@@ -131,7 +138,7 @@ export function peopleForMorph(groups: MorphGroupInView[], year = 1900) {
     if (!n) continue;
     const bucket = (i: number) => (i < nFrom && i < nTo ? steady : i < nFrom ? leaving : entering);
     const group: GroupInView = { lon: g.lon, lat: g.lat, kind: g.kind, people: g.to > 0 ? g.to : g.from };
-    for (const person of generate(group, n, id, year)) {
+    for (const person of generate(group, n, id, year, layout)) {
       if (drawn >= MAX_PEOPLE) return { steady, leaving, entering };
       bucket(person.id - id).push(person);
       drawn++;
@@ -141,13 +148,13 @@ export function peopleForMorph(groups: MorphGroupInView[], year = 1900) {
   return { steady, leaving, entering };
 }
 
-export function peopleForGroups(groups: GroupInView[], year = 1900): Person[] {
+export function peopleForGroups(groups: GroupInView[], year = 1900, layout: CampLayout = 'hearths'): Person[] {
   const out: Person[] = [];
   let id = 0;
   for (const g of groups) {
     const n = peopleDrawn(g.kind, g.people);
     if (!n) continue;
-    for (const person of generate(g, n, id, year)) {
+    for (const person of generate(g, n, id, year, layout)) {
       if (out.length >= MAX_PEOPLE) return out;
       out.push(person);
     }
@@ -157,22 +164,45 @@ export function peopleForGroups(groups: GroupInView[], year = 1900): Person[] {
 }
 
 /** The first `n` people of a group; person i never depends on n. */
-function* generate(g: GroupInView, n: number, firstId: number, year: number): Generator<Person> {
+function* generate(g: GroupInView, n: number, firstId: number, year: number, layout: CampLayout): Generator<Person> {
   const r = rng(groupSeed(g.lon, g.lat));
   // camp/village spread in metres → degrees (longitude scaled by latitude)
   const spread = g.kind === UnitKind.Village ? 520 : 260; // camps are as tight as bands
   const mPerDegLat = 111_320;
   const mPerDegLon = mPerDegLat * Math.max(0.2, Math.cos((g.lat * Math.PI) / 180));
+  // Households: people fill them in order, so person i's household never depends on n.
+  const households =
+    layout === 'households'
+      ? householdsOf(groupSeed(g.lon, g.lat), g.kind === UnitKind.Village ? HOUSEHOLD_SPACING_M.village : HOUSEHOLD_SPACING_M.camp)
+      : null;
+  let home: Household | null = null;
+  let room = 0;
   for (let i = 0; i < n; i++) {
-    // clustered around a few hearths/houses
-    const hearth = Math.floor(r() * (g.kind === UnitKind.Village ? 10 : 4));
-    const hr = rng(groupSeed(g.lon, g.lat) + hearth * 7919);
-    const hx = (hr() - 0.5) * spread * 1.2;
-    const hy = (hr() - 0.5) * spread * 1.2;
-    const a = r() * Math.PI * 2;
-    const d = Math.sqrt(r()) * spread * 0.35;
-    const x = hx + Math.cos(a) * d;
-    const y = hy + Math.sin(a) * d;
+    let x: number;
+    let y: number;
+    if (households) {
+      if (room === 0) {
+        home = households.next().value as Household;
+        room = home.size;
+      }
+      room--;
+      // The same three draws as the hearth layout takes, so age, sex and role come out as they do without households.
+      r();
+      const a = r() * Math.PI * 2;
+      const d = Math.sqrt(r()) * HOUSEHOLD_RADIUS_M;
+      x = home!.x + Math.cos(a) * d;
+      y = home!.y + Math.sin(a) * d;
+    } else {
+      // clustered around a few hearths/houses
+      const hearth = Math.floor(r() * (g.kind === UnitKind.Village ? 10 : 4));
+      const hr = rng(groupSeed(g.lon, g.lat) + hearth * 7919);
+      const hx = (hr() - 0.5) * spread * 1.2;
+      const hy = (hr() - 0.5) * spread * 1.2;
+      const a = r() * Math.PI * 2;
+      const d = Math.sqrt(r()) * spread * 0.35;
+      x = hx + Math.cos(a) * d;
+      y = hy + Math.sin(a) * d;
+    }
     const sampledAge = sampleAge(r);
     // Put an adult first, including when the view's total cap truncates a group.
     const age = i === 0 && sampledAge < 18 ? 18 + Math.floor(r() * 37) : sampledAge;
@@ -191,6 +221,7 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number): Ge
       groupPeople: g.people,
       color: child ? [255, 244, 222, 235] : elder ? [222, 214, 200, 235] : [255, 226, 170, 245],
       radius: child ? 5 : 7.5,
+      ...(home && { household: home.index }),
       // Its own stream, so adding it left everyone's place, age and role as they were.
       footwear: footwearFor({ year, lat: g.lat, lon: g.lon, kind: g.kind, age, roll: rng(groupSeed(g.lon, g.lat) + i * 104729 + 1)() }),
     };

@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { OTHER_HUMANS, kaToYear, lastSeenLabel, otherHumansAt, presenceAt, siteAgeLabel } from './otherHumans';
 import { facing, siteActive } from '@/components/footsteps/hooks/useOtherHumansLayer';
 
@@ -44,6 +46,26 @@ describe('other kinds of human', () => {
         expect(s.ka[0]).toBeGreaterThanOrEqual(s.ka[1]);
         expect(s.source).not.toBe('');
       }
+    }
+  });
+
+  it('has every entry checked against a source or says why it could not be', () => {
+    const entries = OTHER_HUMANS.flatMap((h) => [h, ...h.sites]);
+    expect(OTHER_HUMANS.reduce((n, h) => n + h.sites.length, 0)).toBe(24);
+    for (const e of entries) {
+      if (e.checked) expect(e).not.toHaveProperty('couldNotVerify');
+      else expect(e.couldNotVerify.length).toBeGreaterThan(20);
+      expect(e.doi.length).toBeGreaterThan(0);
+      for (const d of e.doi) expect(d).toMatch(/^10\.\d{4,9}\/\S+$/);
+    }
+  });
+
+  it('keeps the species end dates in step with arrivals.yaml other_hominins', () => {
+    const yaml = readFileSync(join(__dirname, '../../footstep-generator/prehistory/arrivals.yaml'), 'utf8');
+    for (const id of ['neanderthals', 'denisovans', 'floresiensis']) {
+      const m = yaml.match(new RegExp(`- id: ${id}\\n(?:.*\\n)*?\\s+last_ka_bp: \\{central: (\\d+), early: (\\d+), late: (\\d+)\\}`));
+      expect(m).not.toBeNull();
+      expect(byId(id).lastKa).toEqual({ central: Number(m![1]), early: Number(m![2]), late: Number(m![3]) });
     }
   });
 

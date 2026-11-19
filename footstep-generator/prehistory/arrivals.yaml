@@ -302,7 +302,7 @@ other_hominins:
     bbox: [75, 10, 135, 56]
     last_ka_bp: {central: 45, early: 60, late: 32}
     verification: checked
-    source: "Chen et al. 2019 Nature 569:409 (Xiahe mandible, >=160 ka); Welker et al. 2024 (as summarised, Baishiya: occupation to ~60 ka, possibly 45 ka, rib dated 48-32 ka) -- the 48-32 ka rib date is from a secondary summary; check the paper."
+    source: "Chen et al. 2019 Nature 569:409 (Xiahe mandible, >=160 ka, doi:10.1038/s41586-019-1139-x); Xia et al. 2024 Nature 632:108 (doi:10.1038/s41586-024-07612-9; Baishiya occupied from >=160 ka to ~60 ka, possibly ~45 ka; hominin rib dated 48-32 ka, read in the paper's PDF 2026-11-19; an earlier note here cited this as 'Welker et al. 2024', but Welker is the last author); Jacobs et al. 2019 Cell 177:1010 (doi:10.1016/j.cell.2019.02.035; Denisovan mixing in Papuans ~45.7 ka (31.9-60.7) and ~29.8 ka (14.4-50.4)). Kept in step with footsteps-web/lib/otherHumans.ts."
     notes: "Range is wide: Siberia (Denisova Cave), Tibet, and perhaps Laos and Island SE Asia."
 
   - id: floresiensis

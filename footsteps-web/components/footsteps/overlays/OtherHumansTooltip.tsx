@@ -16,7 +16,7 @@ export default function OtherHumansTooltip({ hover }: { hover: OtherHumansHover 
       <p className="ov-note">{site.find}</p>
       <p className="ov-note">
         Source: {site.source}
-        {!site.checked && ' · date recalled, not yet checked'}
+        {!site.checked && ` · could not verify: ${site.couldNotVerify}`}
       </p>
     </div>
   );

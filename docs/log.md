@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] update | Checked the recalled sources in the footwear and other-humans tables
+
+Looked up every citation written from memory. `lib/footwear.ts`: the ~40,000-year footwear start is Tianyuan 1
+(Trinkaus & Shang 2008), not Trinkaus 2005, which finds footwear frequent only by ~30–26 ka in western Eurasia; Fort Rock
+sandals (10,500–9,300 cal BP, Connolly & Cannon 1999), Areni-1 (3627–3377 cal BC, Pinhasi 2010) and Otzi (~3300 BC) confirmed;
+Han stitched shoes and a separate heel could not be verified, so neither is claimed. `lib/otherHumans.ts`: each of the 24 sites
+and four species now has a DOI and is either checked or says why it could not be (`couldNotVerify`, shown in the tooltip);
+fixed ranges for 12 sites, two wrong coordinates (Mandrin, Teshik-Tash), the Chagyrskaya head-count, the Kebara hyoid
+claim and the "Welker 2024" Baishiya citation (Xia et al. 2024; also in `arrivals.yaml`). Tests now fail on an unexplained
+unchecked entry and when the end dates drift from `arrivals.yaml`. See `docs/ops/other-humans.md`.
+
 ## [2026-11-19] feature | Marauder's Map name tags beside walking people
 
 At the closest zoom (from ~16.6, full at 17.4, flat map) each of up to 150 people nearest the view centre gets a small warm tag

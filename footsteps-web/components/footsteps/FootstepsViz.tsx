@@ -26,6 +26,7 @@ import { UnitKind } from './layers/units';
 import { cssRgb, LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
 import useRegionalGroup from './hooks/useRegionalGroup';
+import useLargestSettlement from './hooks/useLargestSettlement';
 import { regionTintLayer } from './layers/regionTint';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
 import EvidenceTooltip from './overlays/EvidenceTooltip';
@@ -210,6 +211,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const regionOn = settlements && blend.pickable && (renderMode === 'auto' || renderMode === 'units');
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
+  const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
   const regionLayers = useMemo(() => regionTintLayer(hoverRegion ?? selectedRegion), [hoverRegion, selectedRegion]);
 
   // Name tags beside the walkers at the closest zoom: imagined, like the people (layers/personTags.ts).
@@ -290,7 +292,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
       <OtherHumansTooltip hover={otherHumans.hover} />
-      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} region={hoverRegion} />}
+      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />}
 
       {/* Data info overlay */}
       <SupportingText
@@ -390,6 +392,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
             <p>Where a group sits in its cell: modelled rule (flat ground, near fresh water, near the coast, never in the sea or a lake, at the year&apos;s sea level); the exact spot is imagined.</p>
             <p>Households (about 4–5 people, after Binford) stand round each group&apos;s spot at street level: the layout is imagined. Hover a place to tint the regional group it is part of (a few hundred people): the people are modelled, the edge is imagined.</p>
+            <p>Farmers&apos; groups sit scattered, in hamlets or in villages apart, as the settlement patterns of their analog societies say (modelled; the places are imagined). The hover card&apos;s &ldquo;largest settlement around here&rdquo; is a modelled tail of bigger and smaller villages whose exponent is an assumption (imagined).</p>
             {season !== 'off' && <p>Seasonal rounds · modelled ({season === 'june' ? 'June' : 'December'}). Nearby mobile foragers gather in local winter; herders shift pastures within their cell. Latitude sets the contrast. Sites, territories and timing are illustrative; head counts stay the same.</p>}
           </div>
         )}

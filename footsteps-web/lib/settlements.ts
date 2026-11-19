@@ -24,6 +24,15 @@ export type SettlementCatalog = {
   regions: Record<string, SettlementProfile[]>;
   climate: Record<string, SettlementProfile>;
 };
+/** How a farming region's groups sit on the land, from the EA030 settlement pattern of the societies it is drawn from
+ * (D-PLACE; 5 dispersed homesteads, 6 hamlets, 7 villages/towns, 8 complex permanent). A modelled reading of ethnography,
+ * recorded in the 1930s-ish; the geometry it implies is imagined (docs/ops/settlements.md). */
+export type Layout = 'dispersed' | 'hamlet' | 'nucleated';
+/** Codes 1-4 (nomadic to impermanent) and a missing code have no farmstead geometry, so they keep the plain ranked spots. */
+export function layoutOfPattern(pattern: number | null): Layout {
+  return pattern === 5 ? 'dispersed' : pattern === 6 ? 'hamlet' : 'nucleated';
+}
+
 export type AllocatedCity = {
   id: string;
   name: string;
@@ -127,4 +136,16 @@ export function profileAt(
   const row = Math.min(35, Math.max(0, Math.floor((90 - lat) / 5)));
   const col = Math.min(71, Math.max(0, Math.floor((lon + 180) / 5)));
   return catalog.regions[`${row},${col}`][way];
+}
+
+let catalogRequest: Promise<SettlementCatalog> | undefined;
+/** The catalog (`/settlements.json`, about 4 MB), fetched once per page and thread. A failed fetch is retried by the next caller. */
+export function loadSettlementCatalog(): Promise<SettlementCatalog> {
+  if (!catalogRequest) catalogRequest = fetch('/settlements.json').then(async (response) => {
+    if (!response.ok) throw new Error(`Settlements: HTTP ${response.status}`);
+    const catalog: SettlementCatalog = await response.json();
+    if (catalog.version !== 1) throw new Error('Unsupported settlement catalog');
+    return catalog;
+  }).catch((error) => { catalogRequest = undefined; throw error; });
+  return catalogRequest;
 }

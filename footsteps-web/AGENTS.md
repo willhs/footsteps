@@ -25,6 +25,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   `components/footsteps/layers/settlementSites.real.test.ts` is the gated real-data count (docs/ops/site-terrain.md "Measure").
   Also under the flag: `layers/households.ts` packs a group's people into households of about 4-5 at street zoom (`peopleForMorph(..., 'households')`), and `lib/regionalGroup.ts` + `layers/regionTint.ts`
   give the hovered or selected place a soft regional-group tint and a hover-card line (docs/ops/settlements.md "Households and a regional group").
+  Farming groups also follow their analogs' EA030 pattern (`layers/settlementLayout.ts`: scattered, hamlet cluster, villages apart), and `lib/rankSize.ts` + `hooks/useLargestSettlement.ts` add the hover card's
+  "largest settlement around here" line (assumed rank-size exponent, labelled imagined; docs/ops/settlements.md "Farm layouts and the largest settlement").
 - Unit marks represent at least 15 people. A cell under 15 holds one whole group
   (band/camp/village size) with probability people ÷ group size, seeded per cell, so
   thin forager land is not empty close in and expected head count stays right. Individual people use the

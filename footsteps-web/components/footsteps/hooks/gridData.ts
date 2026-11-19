@@ -1,7 +1,7 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
-import { allocateCities, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
+import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
 import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
@@ -146,17 +146,6 @@ export function prepareYearGrid(
     gridPoints: points(data.positions, gridRadii, gridColors),
     ...(allocation ? { cities: allocation.cities } : {}),
   };
-}
-
-let settlementCatalog: Promise<SettlementCatalog> | undefined;
-async function loadSettlementCatalog() {
-  if (!settlementCatalog) settlementCatalog = fetch('/settlements.json').then(async (response) => {
-    if (!response.ok) throw new Error(`Settlements: HTTP ${response.status}`);
-    const catalog: SettlementCatalog = await response.json();
-    if (catalog.version !== 1) throw new Error('Unsupported settlement catalog');
-    return catalog;
-  }).catch((error) => { settlementCatalog = undefined; throw error; });
-  return settlementCatalog;
 }
 
 /** Read some channels of an image band by band, so a 2.5′ world image never exists as one 150 MB RGBA array. */

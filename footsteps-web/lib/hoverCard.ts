@@ -5,9 +5,10 @@ import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, typ
 import { seaLevelLabel } from './climate';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
+import type { LargestSettlement } from './rankSize';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'animals' | 'food';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -29,6 +30,8 @@ export type HoverCardInput = {
   landUse: LandUse | null;
   /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
   region?: { people: number } | null;
+  /** `?settlements=1` only: the biggest settlement in the ~590 km block (lib/rankSize.ts), or null where the model says nothing. */
+  largest?: LargestSettlement | null;
 };
 
 const MINUS = '−';
@@ -117,6 +120,20 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
       evidence: 'modelled',
     });
   }
+  if (i.largest) {
+    const l = i.largest;
+    const block = `a ~${l.blockKm} km block`;
+    rows.push({
+      id: 'largest',
+      text: l.city
+        ? `Largest settlement around here: ${l.city}, about ${twoFigures(l.people)} people`
+        : `Largest settlement around here: about ${twoFigures(l.people)} people`,
+      detail: l.city
+        ? `a named city, population estimated · in ${block}`
+        : `a tail of bigger and smaller villages, exponent ${l.exponent} assumed (imagined) · in ${block}`,
+      evidence: 'modelled',
+    });
+  }
   if (i.animals?.length && i.habitat && i.habitat.surface === 'land') {
     rows.push({ id: 'animals', text: i.animals.join(', '), detail: 'animals here, natural range', evidence: 'modelled' });
   }
@@ -133,6 +150,15 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
 
 /** About as tall as the card gets (picture, caption, place and four rows; measured ~350 px), so it can be placed without measuring. */
 export const CARD_MAX_HEIGHT = 360;
+/** The two `?settlements=1` rows are long in a 232 px card (measured in the browser: the region row adds about 60 px, the largest-settlement row
+ * about 150 px with its three-line detail), on top of the base above. Over-estimating only moves the card above the cursor. */
+export const SETTLEMENT_ROW_HEIGHT = { region: 70, largest: 150 } as const;
+
+/** The height to reserve for a card with these rows: the food row makes the tallest card, and each settlement row adds its own. */
+export function cardHeightFor(rows: readonly Pick<CardRow, 'id'>[]): number {
+  if (rows.some((row) => row.id === 'food')) return 720;
+  return rows.reduce((h, row) => h + (row.id === 'region' || row.id === 'largest' ? SETTLEMENT_ROW_HEIGHT[row.id] : 0), CARD_MAX_HEIGHT);
+}
 
 /**
  * Fixed-position anchor. The card sits below the cursor when it fits there, above it when it fits

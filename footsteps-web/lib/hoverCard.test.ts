@@ -1,4 +1,4 @@
-import { cardAnchor, formatPlace, hoverCardRows, lonLatAt } from './hoverCard';
+import { CARD_MAX_HEIGHT, SETTLEMENT_ROW_HEIGHT, cardAnchor, cardHeightFor, formatPlace, hoverCardRows, lonLatAt } from './hoverCard';
 import type { HabitatCell } from './habitat';
 
 const land = (biome: string, tempC: number, precipMm: number): HabitatCell => ({ surface: 'land', biome, tempC, precipMm });
@@ -153,5 +153,30 @@ describe('regional group row (?settlements=1)', () => {
       text: 'Part of a regional group of about 1,200 people',
       evidence: 'modelled',
     });
+  });
+});
+
+describe('largest settlement row (?settlements=1)', () => {
+  const base = { time: 1000, habitat: null, today: null, people: null, landUse: null };
+  it('only appears when given, in two figures, with the assumed exponent called imagined', () => {
+    expect(hoverCardRows(base).some((r) => r.id === 'largest')).toBe(false);
+    expect(hoverCardRows({ ...base, largest: null }).some((r) => r.id === 'largest')).toBe(false);
+    const row = hoverCardRows({ ...base, largest: { people: 12_345, exponent: 0.9, city: null, blockKm: 590 } }).find((r) => r.id === 'largest')!;
+    expect(row).toMatchObject({ text: 'Largest settlement around here: about 12,000 people', evidence: 'modelled' });
+    expect(row.detail).toContain('exponent 0.9 assumed (imagined)');
+    expect(row.detail).toContain('590 km');
+  });
+  it('names a city when one is the biggest, without an exponent', () => {
+    const row = hoverCardRows({ ...base, largest: { people: 450_000, exponent: 0.9, city: 'Rome', blockKm: 590 } }).find((r) => r.id === 'largest')!;
+    expect(row.text).toBe('Largest settlement around here: Rome, about 450,000 people');
+    expect(row.detail).not.toContain('exponent');
+  });
+});
+
+describe('cardHeightFor', () => {
+  it('reserves room for the settlement rows, and the most for a food row', () => {
+    expect(cardHeightFor([{ id: 'habitat' }])).toBe(CARD_MAX_HEIGHT);
+    expect(cardHeightFor([{ id: 'region' }, { id: 'largest' }])).toBe(CARD_MAX_HEIGHT + SETTLEMENT_ROW_HEIGHT.region + SETTLEMENT_ROW_HEIGHT.largest);
+    expect(cardHeightFor([{ id: 'food' }, { id: 'largest' }])).toBe(720);
   });
 });

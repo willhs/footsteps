@@ -11,9 +11,10 @@ import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
 import { readHabitat, readLandUse } from '@/lib/habitat';
 import { notableAnimals } from '@/lib/fauna';
-import { cardAnchor, formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
+import { cardAnchor, cardHeightFor, formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
 import { groundImageUrl, groundView, type GroundView } from '@/lib/groundScene';
 import { HYDE_MIN } from '@/lib/time';
+import type { LargestSettlement } from '@/lib/rankSize';
 
 /**
  * The painted ground view: an imagined scene (docs/ops/ground-view.md), always tagged as such, with the
@@ -62,9 +63,12 @@ export default function HoverCard({
   year,
   grid,
   region = null,
+  largest = null,
 }: {
   /** `?settlements=1` only: the regional group under the cursor, if one is modelled there. */
   region?: { people: number } | null;
+  /** `?settlements=1` only: the biggest settlement in the block around the cursor (lib/rankSize.ts). */
+  largest?: LargestSettlement | null;
   point: HoverPoint | null;
   time: number;
   /** The population image year in use (nearestDataYear) and its decoded grid, if loaded. */
@@ -87,7 +91,7 @@ export default function HoverCard({
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     };
     return {
-      rows: hoverCardRows({ ...input, region, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
+      rows: hoverCardRows({ ...input, region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:
         year >= HYDE_MIN && !(input.landUse && input.people)
@@ -99,14 +103,14 @@ export default function HoverCard({
               peopleModelled: input.people?.evidence === 'modelled' && input.people.count > 0,
             }),
     };
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, region]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, region, largest]);
 
   if (!point) return null;
   return (
     <div
       role="tooltip"
       className="ov-panel pointer-events-none fixed z-40 w-[232px] !px-3 !py-2.5"
-      style={cardAnchor(point.x, point.y, window.innerWidth, window.innerHeight, 16, rows.some((row) => row.id === 'food') ? 720 : undefined)}
+      style={cardAnchor(point.x, point.y, window.innerWidth, window.innerHeight, 16, cardHeightFor(rows))}
     >
       {view && ground?.scenes.includes(view.scene) && <GroundPicture view={view} version={ground.version} />}
       <p className="ov-debug">{formatPlace(point.lon, point.lat)}</p>

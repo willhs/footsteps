@@ -50,16 +50,17 @@ export function blockOf(cellRow: number, cellCol: number, level: number, cellDeg
   };
 }
 
-/** Cell ids are `row * width + col` (gridData.ts). Lookup is a binary search: the cells are sorted by id. */
-function peopleInBlock(grid: GridData, b: ReturnType<typeof blockOf>, width: number, height: number) {
+/** Visit the populated cells of a block. Cell ids are `row * width + col` (gridData.ts) and sorted, so each row's cells in the
+ * block are one contiguous id range found by binary search. */
+export function forEachCellInBlock(grid: GridData, b: ReturnType<typeof blockOf>, visit: (i: number) => void) {
+  const width = Math.round(360 / grid.cellDeg);
+  const height = Math.round(180 / grid.cellDeg);
   const span = 1 << b.level;
   const r0 = b.row * span;
   const c0 = b.col * span;
-  let sum = 0;
   for (let r = r0; r < Math.min(height, r0 + span); r++) {
     const first = r * width + c0;
     const last = Math.min(r * width + width - 1, first + span - 1);
-    // The row's cells in this block are one contiguous id range.
     let lo = 0;
     let hi = grid.length;
     while (lo < hi) {
@@ -67,8 +68,13 @@ function peopleInBlock(grid: GridData, b: ReturnType<typeof blockOf>, width: num
       if (grid.cellIds[mid] < first) lo = mid + 1;
       else hi = mid;
     }
-    for (let at = lo; at < grid.length && grid.cellIds[at] <= last; at++) sum += grid.people[at];
+    for (let at = lo; at < grid.length && grid.cellIds[at] <= last; at++) visit(at);
   }
+}
+
+function peopleInBlock(grid: GridData, b: ReturnType<typeof blockOf>) {
+  let sum = 0;
+  forEachCellInBlock(grid, b, (i) => { sum += grid.people[i]; });
   return sum;
 }
 
@@ -76,14 +82,13 @@ function peopleInBlock(grid: GridData, b: ReturnType<typeof blockOf>, width: num
  * group exists (see the top of the file). */
 export function regionalGroupAt(grid: GridData, lon: number, lat: number): RegionalGroup | null {
   if (!Number.isFinite(lon) || !Number.isFinite(lat) || lat < -90 || lat > 90) return null;
-  const width = Math.round(360 / grid.cellDeg);
   const height = Math.round(180 / grid.cellDeg);
   const col = Math.floor((((lon + 180) % 360 + 360) % 360) / grid.cellDeg);
   const row = Math.min(height - 1, Math.floor((90 - lat) / grid.cellDeg));
   let previous: RegionalGroup | null = null;
   for (let level = 0; level <= REGION_MAX_LEVEL; level++) {
     const b = blockOf(row, col, level, grid.cellDeg);
-    const people = peopleInBlock(grid, b, width, height);
+    const people = peopleInBlock(grid, b);
     if (level === 0 && people <= 0) return null;
     const here = { ...b, people };
     if (people >= REGION_TARGET_PEOPLE) {

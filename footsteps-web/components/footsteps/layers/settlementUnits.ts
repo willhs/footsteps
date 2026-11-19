@@ -1,11 +1,13 @@
 import type { GridData } from '../hooks/gridData';
 import { UnitKind, KIND_OF_WAY, type Units, type UnitKindValue } from './units';
 import { WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
-import { profileAt, type SettlementCatalog } from '@/lib/settlements';
+import { layoutOfPattern, profileAt, type Layout, type SettlementCatalog } from '@/lib/settlements';
 import { seaLevelAt } from '@/lib/climate';
 import type { SiteRanker } from './siteRanking';
+import { DISPERSE_POOL, layGroups } from './settlementLayout';
 
 const slots = [0, 20, 24, 25];
+const laidInto = { x: new Float64Array(20), y: new Float64Array(20) }; // layGroups' scratch: at most 20 groups a cell
 const limits = [20, 4, 1, 4];
 
 function random(seed: number) {
@@ -22,8 +24,9 @@ function random(seed: number) {
 /** Bounded, deterministic long-tail allocations. Shares represent people assigned
  * to a group, not a census of a real settlement. Even sub-person cells conserve mass.
  * Fixed positions and existing ID slots preserve the year morph's contract.
- * With `sites`, group c of a cell sits at the cell's c-th ranked spot (siteRanking.ts: flat, near fresh water, near the
- * year's coast, never in the sea); without, at invented positions that ignore land and water. */
+ * With `sites`, a cell's groups sit on its ranked spots (siteRanking.ts: flat, near fresh water, near the year's coast, never in
+ * the sea), and a farming cell's groups follow the settlement pattern of the analog each was drawn from (settlementLayout.ts:
+ * scattered farmsteads, a tight hamlet, or villages apart); without `sites`, at invented positions that ignore land and water. */
 export function buildSettlementUnits(
   data: GridData, catalog: SettlementCatalog, year: number, habitat: Uint8ClampedArray | null, sites?: SiteRanker | null,
 ): Units {
@@ -70,6 +73,7 @@ export function buildSettlementUnits(
     const weight = components.reduce((sum, c) => sum + c.weight, 0);
     const sizes: number[] = [];
     const mobility: number[] = [];
+    const layouts: Layout[] = [];
     const rand = random(data.cellIds[i] * 2246822519 + 7);
     const centres = [rand() - 0.5, rand() - 0.5, rand() - 0.5, rand() - 0.5];
     const choice = random(data.cellIds[i] * 2654435761);
@@ -77,17 +81,24 @@ export function buildSettlementUnits(
       let target = choice() * weight;
       const component = components.find((item) => (target -= item.weight) <= 0);
       // Truncated Pareto tail; normalisation below preserves every cell's budget.
+      layouts.push(layoutOfPattern(component?.pattern ?? null));
       sizes.push((component?.size ?? 1) * Math.min(8, (1 - choice()) ** -0.8));
       mobility.push(!component || component.mode === 'settled' ? 0 : component.mode === 'aggregation' ? 0.1
         : component?.moves !== null && component?.moves !== undefined ? Math.min(1, component.moves / 12) : 0.5);
     }
     const sum = sizes.reduce((a, b) => a + b, 0);
     let assigned = 0;
-    const spots = sites && kind !== UnitKind.Glow ? sites.spotsFor(data.cellIds[i], seaLevel, count) : null;
+    const spots = sites && kind !== UnitKind.Glow ? sites.spotsFor(data.cellIds[i], seaLevel, kind === UnitKind.Village ? Math.max(count, DISPERSE_POOL) : count) : null;
     // A city's glow is the cell, so it stays on the cell centre unless the centre is under water.
     const glowSpot = sites && kind === UnitKind.Glow && sites.isWet(data.cellIds[i], 0, 0, seaLevel) ? sites.spotsFor(data.cellIds[i], seaLevel, 1) : null;
+    // Only farmers have a layout: bands and camps keep one ranked spot each (every group 'nucleated' is exactly that).
+    const laid = spots && kind === UnitKind.Village
+      ? layGroups(layouts, spots, (x, y) => sites!.isWet(data.cellIds[i], x, y, seaLevel), data.cellIds[i], laidInto) : null;
     for (let c = 0; c < count; c++) {
-      if (spots || glowSpot) {
+      if (laid) {
+        out.positions[j * 2] = data.positions[i * 2] + laid.x[c] * data.cellDeg;
+        out.positions[j * 2 + 1] = data.positions[i * 2 + 1] + laid.y[c] * data.cellDeg;
+      } else if (spots || glowSpot) {
         // More groups than dry spots stack on the dry ones, never in the sea.
         const at = spots ?? glowSpot!;
         const s = at.dry ? c % at.dry : 0;

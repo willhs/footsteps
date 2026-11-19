@@ -39,6 +39,7 @@ run('placement against the shipped data', () => {
     }
     const code = new Uint8Array(waterImg.width * waterImg.height);
     for (let i = 0; i < code.length; i++) code[i] = waterImg.data[i * 4];
+    const terrain = { width: terrainImg.width, height: terrainImg.height, depth, packed };
     const ranker = createSiteRanker({
       terrain: { width: terrainImg.width, height: terrainImg.height, depth, packed },
       water: { width: waterImg.width, height: waterImg.height, code },
@@ -56,11 +57,11 @@ run('placement against the shipped data', () => {
     const report: Record<string, unknown>[] = [];
     for (const year of years) {
       const modelled = year < -10000;
-      const popFile = path.join(DATA, 'grid', `humans_${year}.webp`);
+      const popFile = path.join(DATA, modelled ? 'prehistory' : 'grid', `humans_${year}.webp`);
       const pop = await pixels(popFile);
       const landFile = path.join(DATA, 'grid', `landuse_${year}.png`);
       const land = !modelled && fs.existsSync(landFile) ? await pixels(landFile) : null;
-      const data = gridDataFrom(year, pop, land);
+      const data = gridDataFrom(year, pop, land, modelled ? terrain : null); // modelled years keep people off the sea, as the app does
       const habitat = modelled ? (await pixels(path.join(DATA, 'habitat', `bp_${habitatStep(year)}.webp`))).data : null;
       const drop = Math.max(0, -seaLevelAt(year));
       const row: Record<string, unknown> = { year, seaLevelM: Math.round(seaLevelAt(year) * 10) / 10, cells: data.length };

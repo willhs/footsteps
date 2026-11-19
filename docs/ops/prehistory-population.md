@@ -17,7 +17,27 @@ it must say "modelled". Design and sources: [research 0002](../research/0002-pre
 **In the app.** The images use `grid_image.py`'s encoding (`LEVELS`, `MAX_PEOPLE`) at 720 × 360 (0.5°)
 instead of 4320 × 2160. They are published into the same `/grid/` directory as HYDE's (`scripts/deploy-budgie.sh`
 rsyncs `data/tiles/prehistory/`; `scripts/smoke.sh` checks all 90), and `gridData.ts` decodes each as 6 × 6 cells of HYDE's
-5′ grid, each sharing its block's people equally, so cell ids, the glow texture and the year morph work across 10,000 BCE.
+5′ grid, so cell ids, the glow texture and the year morph work across 10,000 BCE. **A block's people go only to its land sub-cells at that year's sea level**
+(next paragraph), equally among them.
+**Land sub-cells.** The model works at 0.5°, so it cannot know a block's coast. `hooks/landSubcells.ts` asks the baked site terrain
+(`public/sites/site_terrain.webp`, [site terrain](site-terrain.md)) which of a block's 36 sub-cells are land at `seaLevelAt(year)`: a sub-cell counts when
+under half of its 2 × 2 terrain pixels are sea (a pixel's sea counts only while `depth > drop`, as in `siteRanking.ts`). The block's people are then split equally
+over those sub-cells, as exact floats (the old equal share re-rounded each part to an encoding level, so block totals drifted by a few percent). If no sub-cell is
+mostly land, the ones with any land take them; a block that is **all sea** at that level keeps its people on every sub-cell, where the model put them
+(`GridData.seaBlocks` counts them: 1 block at 21,000 BCE, 4 at 40,000, 8 at 12,000). The terrain image (2.4 MB) is now fetched for every modelled year, not only
+under `?settlements=1`, and shared with the group ranker; if it fails to load people are shared equally as before. The encoding constants are untouched, so no image
+was regenerated or republished. The mask is app-side: `prehistory_population.py` and its totals are unchanged.
+Measured on the shipped images (`landSubcells.real.test.ts`; people on sub-cells that are wholly sea at that year's level):
+
+| Year | Sea level | People before → after | Cells before → after | World total before → after |
+|---|---|---|---|---|
+| 21,000 BCE | −129 m | 70,606 → 302 | 1,175,040 → 1,156,314 (12,831 → 36 wholly-sea cells) | 3,703,509 → 3,702,465 |
+| 40,000 BCE | −76 m | 36,613 → 153 | 1,032,732 → 1,013,415 | 1,667,877 → 1,666,395 |
+| 12,000 BCE | −76 m | 75,849 → 411 | 1,982,772 → 1,920,164 | 4,528,813 → 4,525,923 |
+
+What is left is the all-sea blocks (302 people at 21,000 BCE). The small world-total change (0.03 %) is the old rounding going away: each block's total is now
+exactly its image's, and the image's own totals are unchanged. Exposed shelves gain their people (Doggerland 4,133 → 4,135, Sunda 314,317 → 314,324 at 21,000 BCE;
+Beringia 476 → 336 because its blocks are partly sea).
 `totals.json` is also written to `footsteps-web/public/prehistory_totals.json` (a full default run only) and bundled:
 `lib/time.ts` (`PEOPLE_TOTALS`, `populationRangeAt`) turns it into the counter's range, e.g. "~1.9–7.4 million, modelled".
 Where it shows "modelled": counter and its note (top left), the timeline header chip and the pale people bars with a

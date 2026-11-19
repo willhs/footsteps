@@ -106,7 +106,7 @@ Measured 2026-11-19 (people are identical before and after in every year; so are
 | 0 CE | 0 m | 1,856,342 | 22,408 → 6,628 | 5,139 → 1,120 |
 | 5000 BCE | −6 m | 1,338,350 | 6,179 → 709 | 4,069 → 830 |
 | 10,000 BCE | −50 m | 1,170,094 | 1,141 → 72 | 3,413 → 706 |
-| 21,000 BCE (modelled) | −129 m | 1,183,248 | 18,656 → 14,090 | 6,317 → 3,895 |
+| 21,000 BCE (modelled, people on land sub-cells) | −129 m | 1,156,358 | 867 → 38 | 6,317 → 3,895 |
 
 **Against Natural Earth's exact polygons, 1900 CE:** in the sea 46,746 (1.79 %) → 10,508 (0.40 %), on a lake 8,392 → 1,636.
 
@@ -116,9 +116,11 @@ Measured 2026-11-19 (people are identical before and after in every year; so are
   small island, a spit, a delta tip or a cell whose land is under a 2.5′ pixel's half-land line. The cell's total must stay in the cell, so
   its groups take the driest doubtful spots. The other half sit within the coast's own precision. Of the 1900 residual groups the median is
   0.8 km (cells with no dry spot) and 0.25 km (the rest) from the nearest Natural Earth land, p90 2.3 km and 0.74 km.
-- At **21,000 BCE** 17,862 groups are in sub-cells that are wholly sea at −129 m: the modelled 0.5° image gives each of a block's 36 sub-cells
-  an equal share regardless of the coast, so some people start the year in the sea. Moving them out would change cell totals, which this
-  change does not do. Fixing that is a population-model job (put each block's people on its land sub-cells).
+- At **21,000 BCE** the modelled 0.5° image used to give each block's 36 sub-cells an equal share regardless of the coast, which put 17,862 groups in sub-cells that were
+  wholly sea at −129 m. `gridData.ts` now gives a block's people only to its land sub-cells at the year's sea level
+  ([prehistory population](prehistory-population.md), "Land sub-cells"): the remaining groups in wholly-sea sub-cells are the 302 people of the one
+  block that is all sea at that level. The row above is measured with this mask (1,156,358 groups; 867 → 38 in the sea by the nearest-pixel test); the 21,000 BCE
+  residual is now the same coast-precision and no-dry-spot cells as the other years (3,914 cells with no dry spot).
 - Lakes below the 2.5′ pixel (under about 20 km²) are not in the image at all.
 
 Frame time: the work is in the grid worker, once per year decode; nothing runs per rendered frame. In jest on an M-series Mac (load average

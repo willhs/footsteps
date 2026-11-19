@@ -1,6 +1,10 @@
-import { decodeYearGrid, gridUrl } from './gridData';
+import { decodeYearGrid, gridDataFrom, gridUrl } from './gridData';
 import { UnitKind } from '../layers/units';
 import { WayOfLife } from '@/lib/waysOfLife';
+
+// The decoder tests fake the browser's image path and have no site terrain; modelled years then warn and carry on.
+beforeEach(() => { jest.spyOn(console, 'warn').mockImplementation(() => {}); });
+afterEach(() => { jest.restoreAllMocks(); });
 
 // Pins the browser side of the encoding in footstep-generator/grid_image.py
 // (tests/test_grid_image.py checks the same levels): level 0 is empty, level q
@@ -128,5 +132,72 @@ describe('way of life from HYDE land use', () => {
     const grid = await decodeYearGrid(-50000);
     expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('landuse'));
     expect(new Set(grid.data.ways)).toEqual(new Set([WayOfLife.Forager]));
+  });
+});
+
+// A block's people go only to its land sub-cells at the year's sea level (landSubcells.ts).
+describe('modelled people stay out of the sea', () => {
+  const W = 720;
+  const H = 360;
+  const level = 700;
+  const people = Math.expm1((level / 1023) * Math.log1p(5_000_000));
+  const pop = () => {
+    const pixels = new Uint8ClampedArray(W * H * 4);
+    pixels.set([level >> 8, level & 255, 0, 255], (100 * W + 400) * 4); // block row 100, column 400
+    return { width: W, height: H, data: pixels };
+  };
+  /** A 2.5′ terrain image that is all land except `sea(col, row)` pixels, which are sea `depth` m deep with `share` of the pixel sea. */
+  const terrain = (sea: (col: number, row: number) => boolean, depth: number) => {
+    const width = 8640;
+    const height = 4320;
+    const d = new Uint8Array(width * height);
+    const packed = new Uint8Array(width * height);
+    for (let y = 1200; y < 1212; y++) {
+      for (let x = 4800; x < 4812; x++) {
+        if (sea(Math.floor((x - 4800) / 2), Math.floor((y - 1200) / 2))) {
+          d[y * width + x] = depth;
+          packed[y * width + x] = 15 << 4;
+        }
+      }
+    }
+    return { width, height, depth: d, packed };
+  };
+
+  test('21,000 BCE: sub-cells of sea deeper than the sea level lose their share, land sub-cells keep it all', () => {
+    const grid = gridDataFrom(-21000, pop(), null, terrain((c) => c < 3, 255));
+    expect(grid.length).toBe(18);
+    expect(Array.from(grid.cellIds).every((id) => (id % 4320) - 2400 >= 3)).toBe(true);
+    expect(grid.total).toBeCloseTo(people, 6); // exact: no rounding to levels
+    expect(grid.people.every((p) => Math.abs(p - people / 18) < 1e-3 * people)).toBe(true);
+    expect(grid.seaBlocks).toBe(0);
+  });
+
+  test('a shelf that is dry at the year\'s sea level counts as land', () => {
+    const shelf = terrain((c) => c < 3, 100); // 100 m deep: dry at −129 m, wet at −50 m
+    expect(gridDataFrom(-21000, pop(), null, shelf).length).toBe(36);
+    expect(gridDataFrom(-12000, pop(), null, shelf).length).toBe(18);
+  });
+
+  test('a block that is all sea keeps its people where the model put them, and is counted', () => {
+    const grid = gridDataFrom(-21000, pop(), null, terrain(() => true, 255));
+    expect(grid.length).toBe(36);
+    expect(grid.seaBlocks).toBe(1);
+    expect(grid.total).toBeCloseTo(people, 6);
+  });
+
+  test('a sub-cell with only a sliver of land is used only when no sub-cell is mostly land', () => {
+    // Sub-cell column 0 is half land (one of its two pixel columns), every other column is sea.
+    const t = terrain(() => true, 255);
+    for (let y = 1200; y < 1212; y++) t.depth[y * 8640 + 4800] = 0;
+    const grid = gridDataFrom(-21000, pop(), null, t);
+    expect(grid.length).toBe(6);
+    expect(grid.seaBlocks).toBe(0);
+    expect(grid.total).toBeCloseTo(people, 6);
+  });
+
+  test('without the terrain image people are shared equally, as before', () => {
+    const grid = gridDataFrom(-21000, pop(), null, null);
+    expect(grid.length).toBe(36);
+    expect(Math.abs(grid.total / people - 1)).toBeLessThan(0.02);
   });
 });

@@ -31,7 +31,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   arrival table, scaled to a literature curve, blended into HYDE) → one 0.5° WebP per 1,000 years, 100,000–11,000 BCE,
   in `grid_image.py`'s encoding, plus `totals.json` (also copied to `footsteps-web/public/prehistory_totals.json`, which `lib/time.ts`
   imports for the counter's range). The app reads the WebPs through the same grid pipeline as HYDE's (`MODELLED_YEARS`, `PEOPLE_YEARS`
-  in `lib/constants.ts`; `gridData.ts` upsamples 0.5° to HYDE's 5′ cells). See `docs/ops/prehistory-population.md`.
+  in `lib/constants.ts`; `gridData.ts` upsamples 0.5° to HYDE's 5′ cells, giving a block's people only to its land sub-cells at the year's sea level). See `docs/ops/prehistory-population.md`.
 - `footstep-generator/habitat_lookup.py`: Krapp biome + Beyer temperature/precipitation per 0.5° cell per 1 ka step, and HYDE land use
   per HYDE year, as small lossless WebPs in `data/tiles/habitat/` (served at `/habitat/`) for the hover card (on by default, `?hover=0` hides it).
   See `docs/ops/habitat-lookup.md`.

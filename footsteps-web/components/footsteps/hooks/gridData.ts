@@ -3,8 +3,10 @@ import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
 import { allocateCities, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
-import { createSiteRanker, type SiteRanker } from '../layers/siteRanking';
+import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
+import { seaLevelAt } from '@/lib/climate';
+import { landSubcells, type TerrainSea } from './landSubcells';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -19,6 +21,8 @@ export type GridData = {
   ways: Uint8Array; // WayOfLife of each cell (lib/waysOfLife.ts), from HYDE land use
   cellDeg: number;
   total: number;
+  /** Modelled years with a land mask: blocks that are all sea at the year's sea level, whose people stay on every sub-cell. */
+  seaBlocks?: number;
 };
 
 export type PointBuffers = {
@@ -42,7 +46,7 @@ export type DecodedYearGrid = YearGrid & { units: Units };
 /** HYDE images are 4320 × 2160 (5′ cells). The modelled pre-HYDE images are
  * 720 × 360 (0.5°); they are decoded as 6 × 6 blocks of 5′ cells so every year
  * shares one cell grid: unit ids and the year morph all
- * assume it. Each sub-cell takes an equal share of its block's people. */
+ * assume it. A block's people go to its land sub-cells (landSubcells.ts), equally. */
 const HYDE_WIDTH = 4320;
 const isModelled = (year: number) => year < TARGET_YEARS[0];
 
@@ -180,17 +184,38 @@ async function readChannels(url: string, label: string, channels: number[]): Pro
   return { width, height, planes };
 }
 
+/** The baked site terrain (docs/ops/site-terrain.md), read once per worker: it places groups under `?settlements=1` and, for every
+ * modelled year, says which sub-cells of a 0.5° block are land. Without it modelled people are shared equally; a failed fetch never loses them. */
+let siteTerrain: Promise<{ terrain: SiteTerrain; width: number; height: number } | null> | undefined;
+function loadSiteTerrain() {
+  if (!siteTerrain) {
+    siteTerrain = readChannels('/sites/site_terrain.webp', 'Site terrain', [0, 1])
+      .then((t) => {
+        // Each HYDE cell must be a whole number of terrain pixels across; anything else is a bad file.
+        if (t.width % HYDE_WIDTH !== 0 || t.height * 2 !== t.width) throw new Error(`site terrain is ${t.width}×${t.height}`);
+        return { width: t.width, height: t.height, terrain: { width: t.width, height: t.height, depth: t.planes[0], packed: t.planes[1] } };
+      })
+      .catch((error) => {
+        console.warn('[grid] no site terrain; modelled people are not kept off the sea, groups keep their old positions', error);
+        siteTerrain = undefined;
+        return null;
+      });
+  }
+  return siteTerrain;
+}
+
 /** The baked terrain and water-distance images behind group placement (siteRanking.ts). Without them groups keep the old
  * invented positions: a failed fetch never loses the people. One ranker per worker, so its per-cell cache outlives each year. */
 let siteRanker: Promise<SiteRanker | null> | undefined;
 function loadSiteRanker(): Promise<SiteRanker | null> {
   if (!siteRanker) {
     siteRanker = Promise.all([
-      readChannels('/sites/site_terrain.webp', 'Site terrain', [0, 1]),
+      loadSiteTerrain(),
       readChannels('/water/water_distance.webp', 'Water distance', [0]),
     ]).then(([t, w]) => {
+      if (!t) return null;
       return createSiteRanker({
-        terrain: { width: t.width, height: t.height, depth: t.planes[0], packed: t.planes[1] },
+        terrain: t.terrain,
         water: { width: w.width, height: w.height, code: w.planes[0] },
       }, HYDE_WIDTH);
     }).catch((error) => {
@@ -201,23 +226,44 @@ function loadSiteRanker(): Promise<SiteRanker | null> {
   return siteRanker;
 }
 
-/** The cells of one year from its decoded population image (and HYDE land use, when there is one). */
-export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: Pixels, landUse: Pixels | null): GridData {
+/** The cells of one year from its decoded population image (and HYDE land use, when there is one).
+ * A modelled block's people go only to its land sub-cells at the year's sea level when `sea` (the baked terrain) is given, so block
+ * totals are exact and nobody starts in the sea; a block that is all sea at that level keeps them on every sub-cell
+ * (`seaBlocks` counts those). Without `sea` each sub-cell takes an equal share. */
+export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: Pixels, landUse: Pixels | null, sea: TerrainSea | null = null): GridData {
   const scale = isModelled(year) ? Math.round(HYDE_WIDTH / sw) : 1;
   const w = sw * scale;
   const h = sh * scale;
+  const parts = scale * scale;
   // Land use shares the population image's cells; a different size is a bad file.
   const land = landUse?.width === w && landUse.height === h ? landUse : null;
   if (landUse && !land) console.warn(`[grid] land use ${year} is ${landUse.width}×${landUse.height}, expected ${w}×${h}`);
-  // Level of each source cell, then of each of its sub-cells.
+  const mask = scale > 1 ? sea : null;
+  const drop = Math.max(0, -seaLevelAt(year));
+  // Level of each source cell, then of each of its sub-cells (equal share), or its land sub-cells (mask).
   const levels = new Uint16Array(sw * sh);
+  const slot = mask ? new Int32Array(sw * sh).fill(-1) : null; // source cell → its row in `keep`
   let occupied = 0;
+  let seaBlocks = 0;
+  const keeps: Uint8Array[] = [];
+  const counts: number[] = [];
+  const scratch = new Uint8Array(parts);
   for (let i = 0; i < sw * sh; i++) {
     const level = (px[i * 4] << 8) | px[i * 4 + 1];
-    levels[i] = sharedLevel(level, scale * scale);
-    if (level) occupied++;
+    if (!level) continue;
+    occupied++;
+    if (mask && slot) {
+      const { count, allSea } = landSubcells(mask, i % sw, Math.floor(i / sw), scale, w, drop, scratch);
+      slot[i] = keeps.length;
+      keeps.push(scratch.slice());
+      counts.push(count);
+      levels[i] = level;
+      if (allSea) seaBlocks++;
+    } else {
+      levels[i] = sharedLevel(level, parts);
+    }
   }
-  const length = occupied * scale * scale;
+  const length = mask ? counts.reduce((a, b) => a + b, 0) : occupied * parts;
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
@@ -226,11 +272,20 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
-    const sourceRow = Math.floor(row / scale) * sw;
+    const blockRow = Math.floor(row / scale);
+    const sourceRow = blockRow * sw;
     for (let col = 0; col < w; col++) {
-      const value = levels[sourceRow + Math.floor(col / scale)];
+      const block = sourceRow + Math.floor(col / scale);
+      const value = levels[block];
       if (!value) continue;
-      const population = Math.expm1((value / LEVELS) * LOG_MAX);
+      let population: number;
+      if (slot) {
+        const s = slot[block];
+        if (!keeps[s][(row % scale) * scale + (col % scale)]) continue;
+        population = Math.expm1((value / LEVELS) * LOG_MAX) / counts[s];
+      } else {
+        population = Math.expm1((value / LEVELS) * LOG_MAX);
+      }
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;
@@ -243,17 +298,18 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       index++;
     }
   }
-  return { length, positions, people, cellIds, ways, cellDeg, total };
+  return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }
 
 export async function decodeYearGrid(year: number, settlements = false, sites = true): Promise<DecodedYearGrid> {
-  const [pixels, landUse] = await Promise.all([
+  const [pixels, landUse, sea] = await Promise.all([
     readPixels(gridUrl(year), `Grid ${year}`),
     readLandUse(year),
+    isModelled(year) ? loadSiteTerrain() : null,
   ]);
   return prepareYearGrid(
     year,
-    gridDataFrom(year, pixels, landUse),
+    gridDataFrom(year, pixels, landUse, sea?.terrain ?? null),
     settlements ? {
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,

@@ -17,8 +17,9 @@ Rules (all tested):
       is monotone in time (once in, never out). Losses are not modelled (see research 0008).
     * `arrival_ka` for a cell is the oldest claim holding it.
     * Every taxon has at least one origin claim, and no spread claim is older than the oldest origin.
-    * `checked` means the figure was confirmed against a search summary of the source in this
-      session; everything else is recalled from the literature and was not read from the paper.
+    * `checked` means the figure was read in the source's abstract or text (DOI or URL in `source`).
+      Everything else says why it could not be verified (`unverified`, or the basis default): a
+      checked claim never carries a reason, an unchecked DATED claim must carry its own.
 """
 
 from __future__ import annotations
@@ -44,6 +45,14 @@ class Basis(str, Enum):
 
 Confidence = Literal["high", "medium", "low"]
 
+# The reason an unchecked claim gets when it gives none. A DATED claim has no default: it names a
+# published date, so the reason it was not confirmed is specific to it (see test_food.py).
+NOT_VERIFIED_DEFAULT: dict[Basis, str] = {
+    Basis.FRONT: "diffusion-front estimate rounded from regional literature; no single dated site to check it against",
+    Basis.HISTORIC: "well-known historical date, not re-checked against a primary source",
+    Basis.DATED: "",
+}
+
 
 @dataclass(frozen=True)
 class Claim:
@@ -53,8 +62,11 @@ class Claim:
     source: str
     kind: Literal["origin", "spread"] = "spread"
     checked: bool = False
+    unverified: str = ""  # why the claim could not be checked; empty when checked
 
     def __post_init__(self) -> None:
+        if self.checked and self.unverified:
+            raise ValueError("a checked claim cannot also say it could not be verified")
         if self.ka < 0:
             raise ValueError("ka is thousands of years BP and cannot be negative")
         if not self.boxes:
@@ -69,14 +81,25 @@ class Claim:
             return "high"
         return "medium" if self.basis is Basis.DATED else "low"
 
+    @property
+    def verification(self) -> Literal["checked", "could not verify"]:
+        return "checked" if self.checked else "could not verify"
+
+    @property
+    def reason(self) -> str:
+        """Why the claim is not checked ("" when it is): its own note, else the default for its basis."""
+        if self.checked:
+            return ""
+        return self.unverified or NOT_VERIFIED_DEFAULT[self.basis]
+
     def holds(self, lon: float, lat: float) -> bool:
         return any(x0 <= lon <= x1 and y0 <= lat <= y1 for x0, x1, y0, y1 in self.boxes)
 
 
-def claim(ka: float, boxes: Box | tuple[Box, ...], basis: Basis, source: str, *, origin: bool = False, checked: bool = False) -> Claim:
+def claim(ka: float, boxes: Box | tuple[Box, ...], basis: Basis, source: str, *, origin: bool = False, checked: bool = False, unverified: str = "") -> Claim:
     """Short constructor for the tables: `boxes` may be one Box or a tuple of them."""
     bs = (boxes,) if boxes and isinstance(boxes[0], (int, float)) else tuple(boxes)  # type: ignore[arg-type]
-    return Claim(ka, bs, basis, source, "origin" if origin else "spread", checked)  # type: ignore[arg-type]
+    return Claim(ka, bs, basis, source, "origin" if origin else "spread", checked, unverified)  # type: ignore[arg-type]
 
 
 @dataclass(frozen=True)

@@ -4,6 +4,7 @@ Everything here runs without downloads. The pipeline test builds a tiny syntheti
 (habitat tiles in the format `habitat_lookup.py` writes) and runs the real `build.build` and
 `lookup.plate` over it. The last tests also run on the real habitat tiles when `data/tiles/habitat` exists."""
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -129,6 +130,17 @@ def test_confidence_follows_basis_and_whether_it_was_checked():
     assert Claim(1, b, Basis.FRONT, "s", checked=True).confidence == "low"  # a checked front is still an estimate
 
 
+def test_a_claim_is_checked_or_says_why_not():
+    b = (R.NEAR_EAST,)
+    assert Claim(1, b, Basis.DATED, "s", checked=True).reason == ""
+    assert Claim(1, b, Basis.DATED, "s", unverified="no abstract").reason == "no abstract"
+    assert Claim(1, b, Basis.FRONT, "s").reason and Claim(1, b, Basis.HISTORIC, "s").reason  # basis defaults
+    assert Claim(1, b, Basis.DATED, "s").verification == "could not verify"
+    assert Claim(1, b, Basis.DATED, "s", checked=True).verification == "checked"
+    with pytest.raises(ValueError):
+        Claim(1, b, Basis.DATED, "s", checked=True, unverified="both")
+
+
 def test_what_a_taxon_needs_from_land_use():
     assert TAXA["wheat"].needs == "crop"
     assert TAXA["sheep"].needs == "farm"
@@ -159,6 +171,19 @@ def test_every_taxon_and_claim_is_cited():
         for c in t.claims:
             assert len(c.source.strip()) > 10, (t.id, c.ka)
             assert c.confidence in ("high", "medium", "low")
+
+
+def test_every_checked_claim_cites_a_doi_or_url_and_every_unchecked_dated_claim_says_why():
+    """The recalled-dates audit (docs/ops/food.md): nothing is "checked" without a link to the source, and every
+    published date that was not confirmed names the reason, so a recalled figure cannot pass as a verified one."""
+    link = re.compile(r"10\.\d{4,9}/\S+|https?://")
+    for t in build.TAXA:
+        for c in t.claims:
+            if c.checked:
+                assert link.search(c.source), f"{t.id} {c.ka}: checked but no DOI or URL in its source"
+            elif c.basis is Basis.DATED:
+                assert c.unverified.strip(), f"{t.id} {c.ka}: a dated claim that is not checked must say why (unverified=...)"
+            assert c.checked != bool(c.reason), (t.id, c.ka)
 
 
 def test_independent_domestication_centres_are_dated_finds_not_estimates():
@@ -248,8 +273,8 @@ def test_the_chicken_is_not_older_than_the_2022_redating():
     assert arrival("chicken", R.EUROPE_ALL) == 2.8
 
 
-def test_dingo_reaches_australia_about_3500_years_ago():
-    assert TAXA["dog"].arrival_ka(*cell_centre(-25, 135)) == 3.5
+def test_dingo_reaches_australia_about_3350_years_ago():
+    assert TAXA["dog"].arrival_ka(*cell_centre(-25, 135)) == 3.35  # Madura Cave bones dated 3348-3081 years ago (Balme 2018)
 
 
 # --- forager table ------------------------------------------------------------------------------------
@@ -434,7 +459,8 @@ def test_plate_on_the_sea_and_on_ice(world):
 
 def test_plate_confidence_is_the_confidence_of_the_arrival_claim(world):
     p = lookup.plate(world, 33.0, 36.0, 0)
-    assert p["confidence"]["wheat"] == "medium"  # a dated but recalled origin
+    assert p["confidence"]["wheat"] == "high"  # a dated origin whose figure was checked (Arranz-Otaegui 2016)
+    assert p["confidence"]["ne_pulses"] == "medium"  # a dated origin that could not be verified
 
 
 def test_plate_rejects_bad_coordinates(world):

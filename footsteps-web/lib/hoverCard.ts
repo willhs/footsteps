@@ -113,7 +113,7 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   if (i.food?.length && i.habitat?.surface === 'land') {
     rows.push({
       id: 'food',
-      text: `Food here: ${i.food.slice(0, 4).map((f) => `${f.name} (${f.confidence}${f.checked ? ', checked summary' : ', recalled'})`).join('; ')}`,
+      text: `Food here: ${i.food.slice(0, 4).map((f) => `${f.name} (${f.confidence}${f.checked ? ', checked' : ', not verified'})`).join('; ')}`,
       detail: 'possible foods · 5° model, not a measured diet',
       evidence: 'modelled',
     });

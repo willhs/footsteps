@@ -11,7 +11,12 @@ ethnographic generalisations, not measurements, and are written from memory of:
     Bailey et al. 1989 Am Anthropol 91:59 (wild yams in rainforest, the 'rainforest problem');
     Marlowe 2005 Evol Anthropol 14:54 (hunter-gatherer diets across ET).
 
-Nothing here was checked against the books this session. `plants` and `animals` are example staples,
+Could not verify (audit of 2026-11-19): these are qualitative generalisations from books (Binford 2001, Kelly 2013, Lee 1979)
+that could not be retrieved, so no entry can be tied to a page. Crossref confirmed that the two papers exist as cited
+(Bailey & Head 1989 Am Anthropol 91:59 doi:10.1525/aa.1989.91.1.02a00040, "Hunting and gathering in tropical rain forest:
+is it possible?"; Marlowe 2005 Evol Anthropol 14:54 doi:10.1002/evan.20046, "Hunter-gatherers and human evolution"); their
+content was not re-read. The tests pin the pattern (plant share falls toward the pole), not any figure.
+`plants` and `animals` are example staples,
 most important first, not complete lists. `plant_weight` is a rough guide to how much of the diet
 plants carried: "high" (about half or more), "medium", "low" (a quarter or less).
 Where a cell is coastal, `COASTAL` is added: fish, shellfish and sea mammals can dominate there.

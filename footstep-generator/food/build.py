@@ -114,7 +114,7 @@ def taxon_json(t: Taxon) -> dict:
         "id": t.id, "name": t.name, "kind": t.kind, "group": t.group, "centre": t.centre, "origin_ka": t.origin_ka,
         "needs": t.needs, "note": t.note,
         "claims": [{"ka": c.ka, "kind": c.kind, "boxes": [list(b) for b in c.boxes], "basis": c.basis.value,
-                    "confidence": c.confidence, "checked": c.checked, "source": c.source} for c in t.claims],
+                    "confidence": c.confidence, "checked": c.checked, "unverified": c.reason, "source": c.source} for c in t.claims],
     }
 
 
@@ -190,10 +190,10 @@ def write(out_dir: Path, data: dict) -> Path:
         json.dump(data, f, separators=(",", ":"))
     with open(out_dir / "claims.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["taxon", "kind", "claim_kind", "ka_bp", "basis", "confidence", "checked", "boxes", "source"])
+        w.writerow(["taxon", "kind", "claim_kind", "ka_bp", "basis", "confidence", "checked", "unverified", "boxes", "source"])
         for t in TAXA:
             for c in t.claims:
-                w.writerow([t.id, t.kind, c.kind, c.ka, c.basis.value, c.confidence, c.checked,
+                w.writerow([t.id, t.kind, c.kind, c.ka, c.basis.value, c.confidence, c.checked, c.reason,
                             ";".join("/".join(f"{v:g}" for v in b) for b in c.boxes), c.source])
     return path
 

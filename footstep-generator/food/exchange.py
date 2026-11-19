@@ -3,7 +3,8 @@
 Old World domesticates reach the Americas and Australia with colonists; a few New World crops go
 the other way. These are written records, so Basis.HISTORIC, but the dates are the first
 documented arrival in a coarse region, not when the thing was common. Recalled from Crosby 1972
-(The Columbian Exchange) and general histories; not checked against a source this session.
+(The Columbian Exchange) and general histories; could not be verified (a book with no abstract to
+read), so every claim here keeps the HISTORIC default reason in model.NOT_VERIFIED_DEFAULT.
 """
 
 from __future__ import annotations

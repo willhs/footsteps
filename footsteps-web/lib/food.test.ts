@@ -26,7 +26,7 @@ test('Levant: names, per-item confidence, recalled dates and modelled label', ()
   const food = foodHere(data, 36, 33, -8000, habitat);
   expect(food.map((f) => f.name)).toEqual(['wheat', 'barley', 'goats']);
   expect(hoverCardRows({ ...input, food }).find((r) => r.id === 'food')).toEqual({
-    id: 'food', text: 'Food here: wheat (high, checked summary); barley (medium, recalled); goats (low, recalled)',
+    id: 'food', text: 'Food here: wheat (high, checked); barley (medium, not verified); goats (low, not verified)',
     detail: 'possible foods · 5° model, not a measured diet', evidence: 'modelled',
   });
 });

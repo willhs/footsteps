@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] update | Food table: recalled dates looked up, 56 of 531 claims checked
+
+Every origin and every other dated claim in `footstep-generator/food/` was looked up (Crossref and Europe PMC abstracts, a research agent for pages the abstracts missed). 56 claims are now `checked` (was 19), each with a DOI or URL in its `source`; the 8 origins and 35 other dated claims that could not be confirmed carry `unverified`, the reason; fronts and historic dates keep a default reason (`model.NOT_VERIFIED_DEFAULT`). Two tests enforce this, so a recalled figure cannot pass as a checked one. The forager table is marked could-not-verify (books). Wrong values fixed, several moving the first-appearance era: potato 8.0 → 5.0 ka (no directly dated find is older than ~5.4 ka), cassava in Mesoamerica 4.6 → 6.5 (4600 BC misread as 4.6 ka), broomcorn millet origin 8.7 → 10.0 and Europe 6.0 → 3.6, common bean in the Andes 2.5 → 5.0, sorghum 4.5 → 5.0, donkey 6.0 → 7.0, water buffalo (Yangtze 7.0 ka removed; Indus 4.5, SE Asia 3.0), guinea pig 6.0 → 5.0, soybean in Japan 5.0, wheat in China split (lower Yellow River 4.6, Gansu 3.9), dingo 3.35, dromedary 3.0, Ganges rice demoted from a second origin to a spread. Several citations were wrong (Kwak 2009 is Crop Science, Kaplan & Lynch 1999 is Economic Botany, Lee 2011 is PLoS ONE, Balme 2018 is Scientific Reports, Hather & Kirch is Mangaia). The hover row now says "checked" / "not verified" instead of "checked summary" / "recalled". `food.json.gz` and the web export were rebuilt in the job workspace but are git-ignored: publish with `GRID_ONLY=1 scripts/deploy-budgie.sh` from the home network. Details: `docs/ops/food.md`, "Verification pass".
+
 ## [2026-11-19] update | Checked the recalled sources in the footwear and other-humans tables
 
 Looked up every citation written from memory. `lib/footwear.ts`: the ~40,000-year footwear start is Tianyuan 1

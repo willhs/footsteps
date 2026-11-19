@@ -48,7 +48,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `time_use.py`). The prompt's facts stay under `PROMPT_TOKEN_BUDGET`. See `docs/ops/ethnography.md`.
 - `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
   tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
-  staples by biome. A modelled dataset (most dates recalled, see its `checked` flag); read by the hover card only with `?food=1`. See `docs/ops/food.md`, research 0008.
+  staples by biome. A modelled dataset (origins checked against DOIs on 2026-11-19; fronts and the rest say why they were not, see `checked` and `unverified`); read by the hover card only with `?food=1`. See `docs/ops/food.md`, research 0008.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
   See `docs/ops/hyde-climate-spread.md`.

@@ -4,6 +4,14 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] research | Better human groups: placement, nesting, hierarchy, polities
+
+Research note `docs/research/0012-group-structure/research.md` (no app code). Groups in a cell are not "evenly spread": `settlementUnits.ts` clumps them at two random anchors
+per cell and neither builder tests land or water. Only sub-cell data (Terrarium slope, distance to water, the year's coast) can move a group, since HYDE, biome and climate are
+cell-sized or coarser and cell totals are fixed. Recommended first build: a ranked, year-independent site list per cell (group k sits at site k, so scrubbing and ids stay
+stable) behind `?settlements=1`, plus a baked river-distance image. Nesting uses Hamilton et al. 2007 Table 1 (4.5 / 15.6 / 53.7 / 165 / 839, ratio about 3.8) and shows one extra
+level at a time. Polities: no borders (vision), at most a baked hover-card name from Cliopatria (CC BY 4.0, verified). Four follow-up tasks outlined; unresolved licences listed.
+
 ## [2026-11-18] feature | People as walking footprints
 
 Zoomed in to individual people, each one is now a pair of footprints instead of a dot, inspired by the Marauder's Map

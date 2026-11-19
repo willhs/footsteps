@@ -4,6 +4,9 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] update | Published the Hokkaido/Ryukyu prehistory rerun to budgie
+Regenerated the 90 modelled-population images (all matched the research 0013 manifest) and rsynced them to budgie; only `humans_-36000.webp` to `humans_-26000.webp` changed. Origin and public bytes match. No Cloudflare purge issued (no credentials). See [research 0013](research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).
+
 ## [2026-11-19] update | Prehistory model rerun for Hokkaido 38 -> 30 ka
 
 Reran `prehistory_population.py --verify`, `anthropology/deep.py` (full), `model_vs_evidence.py` and `arrival_check.py` against `arrivals.yaml` at `7e31399`. Hokkaido is empty until 28,000 BCE (was 36,000); 11 of 90 images changed (36,000 to 26,000 BCE), the other 79 are byte-identical; world totals and `totals.json` unchanged; the Ryukyu 38 -> 36 ka edit from the same commit also shows. The atlas `deep` cells were refreshed (only `people` changed). The images still need publishing from `main`. See [research 0013](../research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).

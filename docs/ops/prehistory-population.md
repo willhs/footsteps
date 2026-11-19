@@ -66,7 +66,7 @@ hydration-warning filter does not recognise production React error `#418` (the e
 deep-link hydration issue noted in research 0009). Fixed 15 Nov 2026: the hydration error is gone
 and the script no longer filters any error, so it exits 0 against `next dev` and a production build.
 
-Rerun 2026-11-19 for Hokkaido 38 -> 30 ka and Ryukyu 38 -> 36 ka (`7e31399`): 11 images changed (36,000 to 26,000 BCE), `totals.json` did not; the images are not yet published
+Rerun 2026-11-19 for Hokkaido 38 -> 30 ka and Ryukyu 38 -> 36 ka (`7e31399`): 11 images changed (36,000 to 26,000 BCE), `totals.json` did not; published to budgie the same day (regenerated in a later job's workspace; all 90 images matched the manifest; rsync with `--checksum` sent exactly those 11; no Cloudflare purge was possible from the job, so reload with the cache disabled if an old Hokkaido band shows)
 (hashes and the publish steps are in [research 0013](../research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19)). A fresh checkout's `data/raw/` has no `naturalearth/`:
 download it first (commands above). Regeneration is deterministic: unchanged years came out byte-identical.
 

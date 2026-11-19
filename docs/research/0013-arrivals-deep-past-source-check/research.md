@@ -120,14 +120,16 @@ changed too but fall after the window. So the rerun shows both.
 **Inputs not in the main checkout.** The run needed Natural Earth 10m rivers and lakes (downloaded; SHA-256 match `docs/ops/prehistory-population.md`) and the p3k14c CSV
 (`p3k14c.py fetch` + `build`, for the 0009 script); neither existed in the main project's `data/`. The job's workspace made its own `data/` of symlinks to the main inputs plus these downloads; nothing in the main checkout was written.
 
-**Publishing (still to do).** The regenerated images live only in the job workspace, which is deleted when the job lands, and workspace rules forbid writing into the main checkout. To publish:
+**Published (2026-11-19, follow-up job).** Regenerated again in a fresh workspace (Natural Earth hashes matched; `--verify` passed, 2 minutes): all 90 images and `totals.json` matched `rerun/prehistory-manifest.sha256`. `rsync -a --checksum` of the images to budgie `app/grid/` transferred exactly the 11 files `humans_-36000.webp` to `humans_-26000.webp`; origin SHA-256 matched, and `https://footsteps.willhs.me/grid/humans_-{26..36}000.webp` served the new bytes for all 11 (checked straight after, Cloudflare `HIT`, age under 10 s). No Cloudflare credentials in the job, so no purge was issued; other edge locations could still hold the old copy for up to the one-day cache. Plan as written before publishing, kept for the record:
+
+**Publishing (was still to do).** The regenerated images live only in the job workspace, which is deleted when the job lands, and workspace rules forbid writing into the main checkout. To publish:
 rerun `poetry run python footstep-generator/prehistory_population.py --verify` from `main` (about 2 minutes once the Natural Earth files are in `data/raw/naturalearth/`), check the SHA-256 of
 `data/tiles/prehistory/` against `rerun/prehistory-manifest.sha256`, then `GRID_ONLY=1 scripts/deploy-budgie.sh`. Only the 11 images from `humans_-36000.webp` to `humans_-26000.webp` differ from what is live; purge those 11
 URLs in Cloudflare. The committed atlas is already refreshed and deploys with the API from `main`.
 
 ## Follow-ups
 
-1. ~~Rerun the prehistory population model for the Hokkaido change, then `deep.py` (full) and the model-vs-evidence reports.~~ Done 2026-11-19 (below). Publishing the 11 changed images to budgie is still to do.
+1. ~~Rerun the prehistory population model for the Hokkaido change, then `deep.py` (full) and the model-vs-evidence reports.~~ Done 2026-11-19 (below). The 11 changed images were published to budgie the same day.
 2. Read the full text of the abstract-only papers listed in `could_not_verify` fields: Napolitano 2019 (dates came from press summaries), Posth 2023, Lisiecki & Raymo 2005 stage boundaries, Ge 2023 (Nwya Devu redated), Izuho 2012 and Izuho & Kaifu 2015 (no DOI), Calcagnile 2019.
 3. Decide whether `central` 60 ka for island Southeast Asia and `early` 30 ka for Beringia (both hedges with no dated site) should move to the dated figures (46 ka; 24 ka).
 4. The Azilian, Magdalenian and Ice Age Tasmania entries need real dating papers; the biome-prey lists need a source with a game table, or to be labelled as the model's own.

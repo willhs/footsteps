@@ -17,6 +17,7 @@ import { evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { CLOSE3D_ZOOM, close3dParam, pitchForZoom } from '@/lib/close3d';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
+import usePersonTags from '@/components/footsteps/hooks/usePersonTags';
 import GroundingPanel from './overlays/GroundingPanel';
 import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
@@ -185,21 +186,32 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const { layers: gridLayers, grid, blend, loading } = useGridLayer({
+  const screenSize =
+    typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
+  const { layers: gridLayers, grid, blend, loading, people } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
     mode: renderMode === 'dots' ? 'auto' : renderMode,
     view: viewState,
-    size:
-      typeof window === 'undefined'
-        ? undefined
-        : { width: window.innerWidth, height: window.innerHeight },
+    size: screenSize,
     globe: is3DMode,
     season,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
+  });
+
+  // Name tags beside the walkers at the closest zoom: imagined, like the people (layers/personTags.ts).
+  // On by default; ?tags=0 turns them off (to compare frame rates, or for a plain view of the prints).
+  const [tagsOn, setTagsOn] = useState(true);
+  useEffect(() => setTagsOn(new URLSearchParams(window.location.search).get('tags') !== '0'), []);
+  const tagLayers = usePersonTags({
+    people,
+    view: deckViewState,
+    size: screenSize,
+    enabled: tagsOn && renderMode !== 'dots' && !is3DMode,
+    peopleOpacity: blend.people,
   });
 
   const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
@@ -238,7 +250,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const layers: LayersList = [
     ...shadedBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...presenceLayers, ...tagLayers]),
     ...evidence.layers,
     ...otherHumans.above,
   ] as LayersList;

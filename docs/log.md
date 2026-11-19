@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-19] feature | Marauder's Map name tags beside walking people
+
+At the closest zoom (from ~16.6, full at 17.4, flat map) each of up to 150 people nearest the view centre gets a small warm tag
+"role, age" beside their newest footprint, e.g. "potter, 34", fading in with zoom. Imagined, like the people. Tags skip overlaps
+in screen space, prefer people tagged last time (no flicker), and in the tilted close-up 3D view drop tags the perspective would draw
+too small to read. To follow a walker, `lib/gait.ts` ports the shader's footprint gait to TS (pinned by `lib/gait.test.ts`; the two
+carry a "keep in sync" comment). GPU `sin` hashes differ between cards, so the per-person hash is now computed in TS
+(`Person.gait`, `gaitSeed`) and read by the shader as an attribute; people's walks changed pattern once but are as stable as before.
+Tag positions update every 200 ms as data only (no layer rebuild). `?tags=0` turns them off. Checked in the browser: flat and 3D
+village (1500 CE, Nile delta), a 14,000 BCE band; ~140 fps with and without tags. See `footsteps-web/AGENTS.md`.
+
 ## [2026-11-19] research | Better human groups: placement, nesting, hierarchy, polities
 
 Research note `docs/research/0012-group-structure/research.md` (no app code). Groups in a cell are not "evenly spread": `settlementUnits.ts` clumps them at two random anchors

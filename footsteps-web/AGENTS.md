@@ -56,6 +56,15 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   The opt-in `?food=1` row (`lib/food.ts`, `hooks/useFood.ts`) lazily loads `/food/food.json`; export with `food/export_web.py` (docs/ops/food.md).
   The card's top picture is an imagined, pre-painted scene (`lib/groundScene.ts` picks it from biome, date and way of life;
   `public/ground/` holds the WebPs and `index.json`; only listed scenes show). See docs/ops/ground-view.md.
+- Name tags (Marauder's Map): from zoom ~16.6 (full at 17.4), flat map only, each of up to 150 people nearest the view centre
+  gets a tag "role, age" ("potter, 34") beside their newest footprint. Imagined, like the people (the person card says so).
+  The tag follows the walker because `lib/gait.ts` is a TS port of the footprint shader's `gait` GLSL in `layers/people.ts`:
+  **change one, change the other** (`lib/gait.test.ts` pins values). The one thing they do not share is the hash `h`: GPU `sin` of a
+  big number differs between cards, so `gaitSeed` computes it in TS (`Person.gait`) and the shader reads it as an attribute.
+  `layers/personTags.ts` picks the tags (pure; skips overlaps in screen space, prefers people tagged last time, drops tags that a
+  tilted view draws smaller than `MIN_TAG_SCALE`); `hooks/usePersonTags.ts` re-runs it every 200 ms and rewrites positions only
+  (the TextLayer keeps its text while the same people are tagged). Only people present at both data years get tags. `?tags=0`
+  turns them off (compare frame rates; measured ~140 fps both ways at zoom 17.5, flat and 3D, in a 1500 CE village on an M-series Mac).
 - `components/ui/TimeBar.tsx`: time navigation, one fixed log-of-years-ago track. Its scale, key steps,
   typed-year parsing and speed-based fine drag live in `lib/timeScale.ts` (tested); the readout above it is
   `TimeReadout.tsx`. `?bar=old` still shows the previous two-strip `TimeNavigator.tsx` for comparison:

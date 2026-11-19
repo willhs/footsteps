@@ -23,7 +23,10 @@ import {
   footprintData,
   peopleForMorph,
   type MorphGroupInView,
+  type Person,
 } from '../layers/people';
+
+const NO_PEOPLE: readonly Person[] = [];
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -73,6 +76,8 @@ export default function useGridLayer({
   blend: ViewBlend;
   /** Data years being fetched/decoded for what's on screen, or null when ready. */
   loading: [number, number] | null;
+  /** The people drawn at full strength (present at both data years): what name tags are for. */
+  people: readonly Person[];
 } {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
@@ -411,5 +416,6 @@ export default function useGridLayer({
     grid: enabled && grid?.year === year ? grid.data : null,
     blend,
     loading: unitsWaiting ? [y0, y1] : null,
+    people: people?.steady ?? NO_PEOPLE,
   };
 }

@@ -8,6 +8,7 @@ import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
 import { LOOKS } from '@/lib/waysOfLife';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
+import { animClock, gaitSeed } from '@/lib/gait';
 
 export type Person = {
   id: number;
@@ -20,6 +21,7 @@ export type Person = {
   color: [number, number, number, number];
   radius: number; // footprint half-length, pixels
   footwear: number; // index into FOOTWEAR (imagined, lib/footwear.ts)
+  gait: number; // hash in [0, 1) of their spot: sets how they walk (lib/gait.ts), shared with the shader
 };
 
 export type GroupInView = {
@@ -177,9 +179,11 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number): Ge
     const female = r() < 0.5;
     const child = age < 13;
     const elder = age >= 55;
+    const position: [number, number] = [g.lon + x / mPerDegLon, g.lat + y / mPerDegLat];
     yield {
       id: firstId + i,
-      position: [g.lon + x / mPerDegLon, g.lat + y / mPerDegLat],
+      position,
+      gait: gaitSeed(position[0], position[1]),
       age,
       female,
       role: role(age, g.kind, r),
@@ -237,8 +241,10 @@ const peopleAnim = {
 } as const;
 
 // Where print k of this person is, which way it points, and how strongly it shows.
+// KEEP IN SYNC with gaitAt() in lib/gait.ts: name tags follow the walker with that port, and
+// lib/gait.test.ts pins its values. The hash h arrives as an attribute (gaitSeed in gait.ts).
 const gait = /* glsl */ `
-  float h = fract(sin(dot(geometry.worldPosition.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  float h = instanceGait;
   // About three in ten are on the move a lot (a loop of up to ~25 m at 0.8-1.4 m/s); the rest
   // stand or sit at their spot and now and then take a few steps within a couple of metres.
   float walker = step(0.7, h);
@@ -324,6 +330,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
     parameters: { depthCompare: 'always', depthWriteEnabled: false },
     getShoe: { type: 'accessor', value: (p: unknown) => as(p).footwear },
     getPrint: { type: 'accessor', value: (_: unknown, { index }: { index: number }) => index % PRINTS },
+    getGait: { type: 'accessor', value: (p: unknown) => as(p).gait },
     pickable: true,
   } as DefaultProps<Props>;
 
@@ -336,6 +343,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
         defaultValue: 0,
       },
       instanceShoe: { size: 1, accessor: 'getShoe', defaultValue: 0 },
+      instanceGait: { size: 1, accessor: 'getGait', defaultValue: 0 },
     });
   }
 
@@ -346,7 +354,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
       modules: [...shaders.modules, peopleAnim],
       inject: {
         ...shaders.inject,
-        'vs:#decl': 'in float instancePrint;\nin float instanceShoe;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
+        'vs:#decl': 'in float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
         // Lying on the ground: turn the quad to the walking direction, set the foot a little to
         // its side of the path, and move it along the path in metres.
         'vs:DECKGL_FILTER_SIZE': `${gait}
@@ -364,7 +372,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({
-      peopleAnim: { time: (performance.now() / 1000) % 100_000 },
+      peopleAnim: { time: animClock() },
     });
     super.draw(params);
   }

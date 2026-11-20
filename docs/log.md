@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] deploy | Terrain colour pyramid published to budgie
+
+Rebuilt `data/tiles/terrain/detail/` with `footstep-generator/terrain_tiles.py` from fresh Blue Marble 500 m
+downloads (the earlier build lived only in a reaped worktree): 47,662 tiles + ref + manifest, 138.2 MB, the same
+per-zoom counts as `docs/ops/terrain-images.md`. Rsynced to budgie `app/terrain/detail/` (the deploy script's
+`detail/***` rule, run alone so no other data moved). Prod serves the manifest, ref and z7/z8 tiles as PNG/WebP, and
+`?terrain_tiles=1` on footsteps.willhs.me draws the sharp tiles (UK 50,000 BCE z7). `scripts/smoke.sh` still printed
+its "not published" warning: Cloudflare held a 404 for the bare `manifest.png` from before publishing, because the
+Caddy `/terrain/*` rule gives 404s the same one-day `Cache-Control`. The app's `?v=2` URLs were unaffected. Fix
+filed as Steady task 63cb97ee.
+
 ## [2026-11-21] feature | Terrain colour pyramid behind ?terrain_tiles=1
 
 `footstep-generator/terrain_tiles.py` tiles NASA Blue Marble at 500 m into one year-independent Web Mercator pyramid

@@ -29,6 +29,9 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
   band shows, at the size of our own band sprites (`halo`). Hover one for the guess. How many and where are **guesses** (legend and
   hover say so); see "Guessed bands" below. Denisovan bands in the Wallacea area, inferred only from Denisovan DNA in Papuans and
   Aboriginal Australians, are fewer and fainter. No name labels: our own people have none either.
+  On the flat map and in the close-up 3D relief (zoom 8+) bands and sites always draw over the ground (`depthCompare: 'always'`, as
+  our own group marks in `people.ts`); before 2026-11-20 the relief hid them at high zoom, because luma 9 ignores the old `depthTest`
+  name in `FIRE_BLEND`. On the globe they stay depth-tested so the far side does not show through.
 - **Fade**: each species is drawn fully until the earliest of its last dates and fades to nothing by the latest
   (`presenceAt`); its bands drop out one by one in a fixed random order, so half-way through the fade half are left. The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
   anthropology atlas (`anthropology/deep.py`) also reads; keep the two in step.

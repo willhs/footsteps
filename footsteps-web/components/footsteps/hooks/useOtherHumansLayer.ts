@@ -11,7 +11,7 @@ import type { LayersList } from '@deck.gl/core';
 import { kaToYear, otherHumansAt, type OtherHuman, type Site } from '@/lib/otherHumans';
 import { BANDS_URL, bandStepKa, bandsAt, type Band, type BandsFile } from '@/lib/otherHumanBands';
 import { populationAt } from '@/lib/time';
-import FireLayer, { fireRadius, fireVisibleFraction, peoplePerFire } from '../layers/FireLayer';
+import FireLayer, { FIRE_BLEND, fireRadius, fireVisibleFraction, peoplePerFire } from '../layers/FireLayer';
 import { viewBlend } from './peopleView';
 
 // Lavender: cool like the evidence marks (blue, teal) but distinct; our own people are the warm colours.
@@ -39,7 +39,21 @@ export function bandShare(bandPeople: number, year: number, zoom: number, far: n
   return far * farShare + (1 - far);
 }
 
-export default function useOtherHumansLayer({ enabled, time, zoom }: { enabled: boolean; time: number; zoom: number }) {
+// On the flat map (and its close-up 3D relief, which writes depth) bands and sites always draw over the ground, as our own
+// group marks do (people.ts). On the globe they stay depth-tested so the far side does not show through.
+const OVER_GROUND = { depthCompare: 'always', depthWriteEnabled: false } as const;
+
+export default function useOtherHumansLayer({
+  enabled,
+  time,
+  zoom,
+  globe = false,
+}: {
+  enabled: boolean;
+  time: number;
+  zoom: number;
+  globe?: boolean;
+}) {
   const [hover, setHover] = useState<OtherHumansHover | null>(null);
   const year = Math.round(time);
   // Rebuild only when someone's presence changes, not every slider frame.
@@ -121,12 +135,13 @@ export default function useOtherHumansLayer({ enabled, time, zoom }: { enabled: 
               id: 'other-humans-bands',
               data: fires as never,
               visibleFraction: 1,
+              parameters: globe ? FIRE_BLEND : { ...FIRE_BLEND, ...OVER_GROUND },
               pickable: true,
               onHover: onBandHover as never,
             }),
           ]
         : [],
-    [fires, onBandHover],
+    [fires, onBandHover, globe],
   );
 
   const above = useMemo<LayersList>(
@@ -144,13 +159,14 @@ export default function useOtherHumansLayer({ enabled, time, zoom }: { enabled: 
               getLineWidth: 1,
               stroked: true,
               radiusUnits: 'pixels',
+              parameters: globe ? {} : OVER_GROUND,
               pickable: true,
               onHover: onSiteHover,
               updateTriggers: { getRadius: year, getFillColor: [key, year], getLineColor: [key, year] },
             }),
           ]
         : [],
-    [data, key, onSiteHover, year],
+    [data, key, onSiteHover, year, globe],
   );
 
   return {

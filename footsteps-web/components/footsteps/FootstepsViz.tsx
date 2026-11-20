@@ -187,6 +187,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     enabled: otherHumansOn,
     time,
     zoom: viewState.zoom,
+    globe: is3DMode,
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);

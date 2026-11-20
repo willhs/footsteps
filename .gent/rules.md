@@ -15,7 +15,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - The people view is chosen by zoom: firelight far out, Units (bands, villages, herding camps,
   city glow) for the cells around the viewport closer in. Each populated cell has a way of life
   (forager / farmer / herder / urban) read from HYDE land use (`footsteps-web/lib/waysOfLife.ts`,
-  `docs/ops/grid-images.md`); it sets the kind of group and the colour. `?mode=units|grid|dots`
+  `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
+  ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
 - Close-up 3D: from zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/layers/Close3DLayer.ts`,
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour, plants by Krapp biome (placement
@@ -52,10 +53,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/water_distance.py`: Natural Earth 10m rivers, lake centerlines and (non-saline) lakes v5.1.2 (pinned sha256, public domain) → one year-independent
   lossless WebP of great-circle distance to the nearest fresh water per HYDE 5′ cell (8-bit, metres = 2,000 km × (code/255)², code 0 = water in the cell),
   committed at `footsteps-web/public/water/water_distance.webp` (872 KB) with a `water_distance.json` sidecar. A static model input for placing groups
-  (research 0012, part 2); read by `siteRanking.ts` under `?settlements=1`. Present-day courses; the Green Sahara is not modelled (`--extra-water` is the hook). See `docs/ops/water-distance.md`.
+  (research 0012, part 2); read by `siteRanking.ts` (settlement model, on by default). Present-day courses; the Green Sahara is not modelled (`--extra-water` is the hook). See `docs/ops/water-distance.md`.
 - `footstep-generator/site_terrain.py`: AWS Terrarium zoom-6 tiles + Natural Earth 10m land and lakes v5.1.2 (pinned) → one year-independent lossless WebP on a 2.5′ grid
   (`footsteps-web/public/sites/site_terrain.webp`, 2.4 MB, with a `site_terrain.json` sidecar): depth of each pixel's sea below today's, its sea share, a lake flag and a regional slope class.
-  Under `?settlements=1` only, `components/footsteps/layers/siteRanking.ts` ranks 16 candidate spots per 5′ cell (flat × near fresh water × near the year's coast × a stable per-spot factor of 1 ± 0.35 that stops the ties lining up in rows, never sea or lake at
+  In the settlement model (the default Units view; `?settlements=0` turns it off), `components/footsteps/layers/siteRanking.ts` ranks 16 candidate spots per 5′ cell (flat × near fresh water × near the year's coast × a stable per-spot factor of 1 ± 0.35 that stops the ties lining up in rows, never sea or lake at
   `seaLevelAt(year)`) and `settlementUnits.ts` puts group *k* at spot *k*; cell totals and ids unchanged, `?sites=0` keeps the old positions. Modelled rule, imagined spot.
   `site_check.py` counts groups in the sea against Natural Earth's polygons. See `docs/ops/site-terrain.md`.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,

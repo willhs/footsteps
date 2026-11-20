@@ -7,8 +7,8 @@ updated: 2026-11-20
 
 # Site terrain and ranked spots (`?settlements=1`)
 
-Part 2 of research 0012 "Recommended first build" ([research](../research/0012-group-structure/research.md)). Behind the existing
-`?settlements=1` flag only: without it the default Units path is byte-for-byte the old one. The rule is **modelled**; the exact spot a
+Part 2 of research 0012 "Recommended first build" ([research](../research/0012-group-structure/research.md)). Part of the settlement model,
+the default Units view since 2026-11-20: with `?settlements=0` the Units path is byte-for-byte the old one. The rule is **modelled**; the exact spot a
 group takes is **imagined** (the on-screen legend says so).
 
 Before this, the two Units builders put groups at seeded random points in the cell and never asked whether the point was land.

@@ -1,7 +1,7 @@
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import type { AllocatedCity } from '@/lib/settlements';
 
-/** Settlement experiment: named Reba cities, labelled as modelled allocations. */
+/** Settlement model (default Units view): named Reba cities, labelled as modelled allocations. */
 export function cityLayers(cities: AllocatedCity[], opacity: number, zoom: number) {
   return [
     new ScatterplotLayer<AllocatedCity>({

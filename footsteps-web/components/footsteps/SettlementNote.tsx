@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 const PIN_KEY = 'footsteps.settlementNote.pinned';
 
 /**
- * The `?settlements=1` explainer: one line until tapped. Tapping opens it for now;
+ * The settlement model's explainer (on by default; `?settlements=0` hides it with the model): one line until tapped. Tapping opens it for now;
  * "Pin" keeps it open on later visits (remembered per viewer), "Close" folds it away.
  */
 export function SettlementNote({ season }: { season: 'off' | 'june' | 'december' }) {
@@ -33,7 +33,7 @@ export function SettlementNote({ season }: { season: 'off' | 'june' | 'december'
         data-testid="settlement-note-toggle"
         className="ov-panel ov-note pointer-events-auto absolute left-4 top-20 z-10 flex items-center gap-1.5 px-3 py-1.5 text-[var(--ov-text-2)] hover:text-[var(--ov-text)]"
       >
-        <strong className="font-semibold">Settlement experiment · modelled</strong>
+        <strong className="font-semibold">Settlements · modelled</strong>
         <span aria-hidden>ⓘ</span>
         <span className="sr-only">Show details</span>
       </button>
@@ -46,7 +46,7 @@ export function SettlementNote({ season }: { season: 'off' | 'june' | 'december'
       data-testid="settlement-note"
     >
       <div className="flex items-center justify-between gap-3">
-        <strong className="ov-note text-[var(--ov-text)]">Settlement experiment · modelled</strong>
+        <strong className="ov-note text-[var(--ov-text)]">Settlements · modelled</strong>
         <span className="flex gap-2">
           <button
             type="button"

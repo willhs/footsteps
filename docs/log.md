@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Settlement model is now the default Units view
+
+Will asked to make `?settlements=1` the default after the rows, panel and largest-settlement fixes. `lib/settlements.ts` `settlementsFromParams` (used by `FootstepsViz.tsx` and the grid worker) is now on unless `?settlements=0`; `?settlements=1` and `?seasons=1` still turn it on. The panel reads "Settlements · modelled" (was "Settlement experiment"). `?settlements=0` keeps the old even-groups path byte-for-byte. `docs/ops/settlements.md` "Turn it off", `scripts/verify-settlements.mjs` (baseline scene is now `settlements=0`).
+
 ## [2026-11-20] fix | Smoke retries the API check through the Watchtower restart window
 
 The live smoke got a 502 from /api/anthropology because the API container restarts separately from the web one. scripts/smoke.sh now retries that request for ~2 minutes (curl --retry-all-errors).

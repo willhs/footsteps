@@ -1,21 +1,22 @@
 ---
 id: settlements
 type: reference
-purpose: "The ?settlements=1 experiment: real cities, regional settlement mixes, deep-time forager types, households, a hover-only regional group, farm settlement layouts and a largest-settlement hover line — how to turn it on, regenerate it, and what it does not claim"
+purpose: "The settlement model (the default Units view since 2026-11-20; ?settlements=0 turns it off): real cities, regional settlement mixes, deep-time forager types, households, a hover-only regional group, farm settlement layouts and a largest-settlement hover line — how to turn it on, regenerate it, and what it does not claim"
 updated: 2026-11-20
 ---
 
-# Settlements experiment (`?settlements=1`)
+# Settlement model (default; `?settlements=0` turns it off)
 
-An opt-in Units view that makes settlement lumpy instead of even. Everything it draws is
+The default Units view (since 2026-11-20; it was the opt-in `?settlements=1` experiment). It makes settlement lumpy instead of even. Everything it draws is
 **modelled**; the population budget is unchanged. Method, sources and limits:
 [research 0011](../research/0011-settlement-patterns/research.md).
 
-## Turn it on
+## Turn it off
 
-Add `settlements=1` to the URL, e.g. `/?mode=units&lat=41.9&lon=12.5&zoom=7&settlements=1`.
+It is on by default. Add `settlements=0` to the URL to get the old Units view (even groups of 30 / 60 / 300 at random spots in the cell),
+e.g. `/?mode=units&lat=41.9&lon=12.5&zoom=7&settlements=0`; `settlements=1` still works and changes nothing. `?seasons=1` keeps the model on.
 The flag is read once per page load (the grid worker caches by year only), so reload to switch.
-Grid and Dots ignore it. Without the flag the default Units path is byte-for-byte the old one.
+Grid and Dots ignore it. With `settlements=0` the Units path is byte-for-byte the old one.
 
 ### Seasonal scenarios (2026-11-15)
 

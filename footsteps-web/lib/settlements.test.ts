@@ -1,4 +1,4 @@
-import { allocateCities, blendCities, cityPopulation, type HistoricalCity, type SettlementCatalog } from './settlements';
+import { allocateCities, blendCities, cityPopulation, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { prepareYearGrid } from '@/components/footsteps/hooks/gridData';
 import { buildSettlementUnits } from '@/components/footsteps/layers/settlementUnits';
@@ -99,4 +99,13 @@ test('Beyer climate chooses a different forager residential scenario, including 
   expect(Array.from(sliceUnits(b, 3600, WORLD).mobility!)).toEqual([0]);
   const morph = buildUnitMorph(b, b, true);
   expect(Array.from(morph.attributes.getMobility.value)).toEqual([0, 0]);
+});
+
+describe('settlementsFromParams', () => {
+  it('is on by default and off only with ?settlements=0 (unless seasons need it)', () => {
+    expect(settlementsFromParams(new URLSearchParams(''))).toBe(true);
+    expect(settlementsFromParams(new URLSearchParams('settlements=1'))).toBe(true);
+    expect(settlementsFromParams(new URLSearchParams('settlements=0'))).toBe(false);
+    expect(settlementsFromParams(new URLSearchParams('settlements=0&seasons=1'))).toBe(true);
+  });
 });

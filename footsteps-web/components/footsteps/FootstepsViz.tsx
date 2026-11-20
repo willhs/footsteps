@@ -38,6 +38,7 @@ import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
+import { settlementsFromParams } from '@/lib/settlements';
 import ToggleButton from '@/components/ui/ToggleButton';
 
 const NIGHT = new NightExtension();
@@ -101,7 +102,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [renderMode, setRenderMode] = useState<PeopleMode>(DEFAULT_RENDER_MODE);
   const [debugModes, setDebugModes] = useState(false);
   const [hoverCard, setHoverCard] = useState(true);
-  const [settlements, setSettlements] = useState(false);
+  const [settlements, setSettlements] = useState(true);
   const [seasonsEnabled, setSeasonsEnabled] = useState(false);
   const [season, setSeason] = useState<Season>('off');
   const [nightOn, setNightOn] = useState(false);
@@ -109,7 +110,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSeasonsEnabled(params.get('seasons') === '1');
-    setSettlements(params.get('settlements') === '1' || params.get('seasons') === '1');
+    setSettlements(settlementsFromParams(params));
     setRenderMode(renderModeFromUrl());
     setDebugModes(modeParam() !== null);
     setHoverCard(hoverParam());

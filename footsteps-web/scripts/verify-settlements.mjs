@@ -27,7 +27,7 @@ const results = [];
 try {
   for (const scene of [
     { name: 'rome-modelled', flag: '&settlements=1', mode: 'units', year: '100 CE', lat: 41.9, lon: 12.5 },
-    { name: 'rome-default', flag: '', mode: 'units', year: '100 CE', lat: 41.9, lon: 12.5 },
+    { name: 'rome-off', flag: '&settlements=0', off: true, mode: 'units', year: '100 CE', lat: 41.9, lon: 12.5 },
     { name: 'foragers-modelled', flag: '&settlements=1', mode: 'units', year: '21000 BCE', lat: 32.86, lon: 35.55 },
     // Ranked spots (default with the flag) against the old invented positions (`sites=0`): the Nile near Luxor, the Bay of Naples,
     // and Ohalo II again close in. Same year, same view, so the two screenshots differ only in where groups sit.
@@ -50,8 +50,8 @@ try {
     const text = await page.locator('body').innerText();
     const canvas = await page.locator('canvas').count();
     if (!canvas) throw new Error(`${scene.name}: no canvas`);
-    const expectedLabel = !!scene.flag && scene.mode === 'units';
-    if (text.includes('Settlement experiment') !== expectedLabel) throw new Error(`${scene.name}: incorrect flag label`);
+    const expectedLabel = !scene.off && scene.mode === 'units';
+    if (text.includes('Settlements · modelled') !== expectedLabel) throw new Error(`${scene.name}: incorrect flag label`);
     if (text.includes('the exact spot is imagined') !== expectedLabel) throw new Error(`${scene.name}: missing the placement label (rule modelled, exact spot imagined)`);
     const screenshot = path.join(out, `${scene.name}.png`);
     await page.screenshot({ path: screenshot });

@@ -48,10 +48,12 @@ export function variants(filter = {}) {
   return out;
 }
 
-/** The URL that puts the camera there. Flat = `close3d=0`; 3D is the app's default from zoom 8. Nothing else is touched. */
-export function sceneUrl(base, { scene, zoom, mode }) {
+/** The URL that puts the camera there. Flat = `close3d=0`; 3D is the app's default from zoom 8. `extra` (from --query,
+ * e.g. `terrain_tiles=0`) is appended so two runs of one build can compare a flag; nothing else is touched. */
+export function sceneUrl(base, { scene, zoom, mode }, extra = '') {
   const q = new URLSearchParams({ lat: String(scene.lat), lon: String(scene.lon), zoom: String(zoom), year: String(scene.year) });
   if (mode === 'flat') q.set('close3d', '0');
+  for (const [k, v] of new URLSearchParams(extra)) q.set(k, v);
   return `${base.replace(/\/$/, '')}/?${q}`;
 }
 
@@ -73,18 +75,37 @@ export function metersPerPixel(zoom, lat) {
   return (40_075_016 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
 }
 
+/** The colour pyramid's source: Blue Marble 500 m, 1/240 degree per pixel (footstep-generator/terrain_tiles.py). */
+export const PYRAMID_SOURCE_DEG = 1 / 240;
+
 /**
  * Size of one texel of the terrain colour source, in screen pixels at the screen centre, nadir (tilt makes the foreground coarser).
- * `source` describes the colour: today one equirectangular era image `{ kind: 'era-image', width, height }`.
- * A tile pyramid would add its own kind here and keep the same output, so the table and --compare do not change.
+ * `source` describes the colour: one equirectangular era image `{ kind: 'era-image', width, height }`, or the colour
+ * pyramid `{ kind: 'tile-pyramid', maxZoom }` (256 px Web Mercator tiles). deck.gl's TileLayer picks tile zoom
+ * round(zoom + 1) for 256 px tiles in its 512 px world, capped at the pyramid's top; a texel is the larger of that tile's
+ * pixel and the source photo's own pixel (1/240 degree), so the number never claims more than the photo has.
  */
 export function texelOf(source, zoom, lat) {
-  if (source.kind !== 'era-image') throw new Error(`unknown colour source ${source.kind}`);
+  if (source.kind !== 'era-image' && source.kind !== 'tile-pyramid') throw new Error(`unknown colour source ${source.kind}`);
   const mpp = metersPerPixel(zoom, lat);
-  const eastWestM = (40_075_016 * Math.cos((lat * Math.PI) / 180)) / source.width;
-  const northSouthM = 20_037_508 / source.height; // half the Web Mercator world over the rows: a row is the same ground height at any latitude
+  const cos = Math.cos((lat * Math.PI) / 180);
+  let eastWestM;
+  let northSouthM;
+  let label;
+  if (source.kind === 'era-image') {
+    eastWestM = (40_075_016 * cos) / source.width;
+    northSouthM = 20_037_508 / source.height; // half the Web Mercator world over the rows: a row is the same ground height at any latitude
+    label = `${source.kind} ${source.width}x${source.height}`;
+  } else {
+    const tileZoom = Math.min(source.maxZoom, Math.max(0, Math.round(zoom + 1)));
+    const tileM = (40_075_016 * cos) / (256 * 2 ** tileZoom);
+    const photoM = (PYRAMID_SOURCE_DEG * 40_075_016) / 360;
+    eastWestM = Math.max(tileM, photoM * cos);
+    northSouthM = Math.max(tileM, photoM);
+    label = `${source.kind} z${tileZoom}/${source.maxZoom}`;
+  }
   return {
-    source: `${source.kind} ${source.width}x${source.height}`,
+    source: label,
     eastWestM: Math.round(eastWestM),
     northSouthM: Math.round(northSouthM),
     // Web Mercator keeps shapes, so a screen pixel is mpp metres both ways; a texel is a fixed ground height but a narrowing ground width,
@@ -108,11 +129,18 @@ export function demTileZoom(url) {
 /** What a request is, for the tracked-resource rule and the byte breakdown. */
 export function resourceKind(url) {
   if (/\/terrain\/earth_-?\d+\.webp/.test(url)) return 'era-image';
+  if (/\/terrain\/detail\//.test(url)) return 'detail-tile';
   if (/elevation-tiles-prod/.test(url)) return 'dem';
   if (/\/habitat\//.test(url)) return 'habitat';
   return 'other';
 }
-/** The loads that make the terrain "all there": the era image(s), the elevation tiles and the habitat lookup. */
+/** Colour-pyramid tile zoom from a detail tile URL (`/terrain/detail/{z}/{x}/{y}.webp`), or null (manifest, ref). */
+export function detailTileZoom(url) {
+  const m = /\/terrain\/detail\/(\d+)\/\d+\/\d+\.webp/.exec(url);
+  return m ? Number(m[1]) : null;
+}
+
+/** The loads that make the terrain "all there": the era image(s), the colour pyramid, the elevation tiles and the habitat lookup. */
 export const isTracked = (url) => resourceKind(url) !== 'other';
 
 /**

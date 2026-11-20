@@ -53,6 +53,19 @@ for y in -100000 $YEARS; do
   magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/earth_${y}.webp" | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain $y"; else echo "FAIL terrain $y"; fail=1; fi
 done
+# Terrain colour pyramid (footstep-generator/terrain_tiles.py, published by deploy-budgie.sh): the manifest, the
+# reference photo and a UK tile. The app draws the era images alone without it, and code deploys before the data is
+# published, so an unpublished pyramid is a warning; once the manifest is there, every file must be what it claims.
+magic=$(curl -fsS --max-time 20 -r 0-7 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/manifest.png" | od -An -tx1 | tr -d ' \n') || magic=""
+if [[ "$magic" == 89504e470d0a1a0a* ]]; then
+  echo "ok   terrain detail manifest"
+  for f in ref.webp 7/63/41.webp; do
+    magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/$f" | od -An -tx1 | tr -d ' \n') || magic=""
+    if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain detail $f"; else echo "FAIL terrain detail $f"; fail=1; fi
+  done
+else
+  echo "WARN terrain detail pyramid not published (GRID_ONLY=1 scripts/deploy-budgie.sh); the app shows the era images alone"
+fi
 # Hover card lookups (footstep-generator/habitat_lookup.py): lossless WebP, one per
 # 1,000-year step (0..102 ka BP, habitat_meta.json maxKa) and one per HYDE year.
 for k in $(seq 0 $HABITAT_LAST_BP); do

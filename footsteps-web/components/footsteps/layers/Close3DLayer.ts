@@ -8,6 +8,7 @@ import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
 import type { LakePlane } from '@/lib/pastWater';
 import { shelterMeshes, type Shelter } from './shelters';
+import { loadDetailPixels, type DetailManifest, type DetailPixels } from '@/lib/terrainDetail';
 import {
   CLOSE3D_ZOOM,
   TREE_PX,
@@ -27,6 +28,8 @@ type Props = {
   ground: Ground;
   /** Changes when `ground` describes a different year. */
   groundKey: string;
+  /** Which colour-pyramid tiles exist (lib/terrainDetail.ts): each ground tile takes its colour detail from one. */
+  colourTiles?: DetailManifest | null;
   seaLevel: number;
   /** `?pastwater=1`, in the scenario's epoch: the modelled lake (lib/pastWater.ts). Its vertices are water at the lake's own level, not `seaLevel`. */
   lake?: LakePlane | null;
@@ -45,7 +48,7 @@ export function shelterHoverOf(info: { object?: unknown; x: number; y: number })
   return picked?.shelter ? { shelter: picked.shelter, x: info.x, y: info.y } : null;
 }
 
-type TileData = { heights: Float32Array };
+type TileData = { heights: Float32Array; detail: DetailPixels | null };
 type Standing = { shelter: Shelter; position: [number, number, number] };
 type Built = { key: string; mesh: TerrainMesh; plants: Plant[] };
 
@@ -71,7 +74,7 @@ async function loadHeights(url: string, signal?: AbortSignal): Promise<TileData>
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
-  return { heights: terrariumHeights(ctx.getImageData(0, 0, canvas.width, canvas.height).data) };
+  return { heights: terrariumHeights(ctx.getImageData(0, 0, canvas.width, canvas.height).data), detail: null };
 }
 
 /** Every dwelling inside a tile, lifted to the tile's ground height there; those on water (at or below sea level) are left out. */
@@ -139,7 +142,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground, groundKey, seaLevel, lake = null, plants: drawPlants = false, detail = false, shelters = [] } = this.props;
+    const { ground, groundKey, seaLevel, lake = null, plants: drawPlants = false, detail = false, shelters = [], colourTiles = null } = this.props;
     const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${lake ? `|${lake.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
@@ -151,8 +154,11 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       maxRequests: 6,
       debounceTime: 100,
       refinementStrategy: 'best-available',
-      getTileData: ({ url, signal }) => loadHeights(url!, signal),
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters] },
+      getTileData: async ({ url, signal, index: { x, y, z } }) => {
+        const [data, tile] = await Promise.all([loadHeights(url!, signal), colourTiles ? loadDetailPixels(colourTiles, z, x, y) : null]);
+        return { ...data, detail: tile };
+      },
+      updateTriggers: { getTileData: colourTiles, renderSubLayers: [key, Math.round(zoom * 4), shelters] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !('west' in props.tile.bbox)) return null;
@@ -160,10 +166,12 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         const { x, y, z } = props.tile.index;
         let b = built.get(data);
         if (!b || b.key !== key) {
+          // The colour pyramid's tile over this ground tile, when tiles are on (lib/terrainDetail.ts).
+          const tileGround = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
           b = {
             key,
-            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground, 4, detail, lake),
-            plants: drawPlants ? plantsForTile(data.heights, bbox, [x, y, z], seaLevel, ground) : [],
+            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, 4, detail, lake),
+            plants: drawPlants ? plantsForTile(data.heights, bbox, [x, y, z], seaLevel, tileGround) : [],
           };
           built.set(data, b);
         }

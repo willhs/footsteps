@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The terrain benchmark: fixed camera positions, measured the same way every time (docs/ops/terrain-bench.md).
 //
-//   node scripts/terrain-bench.mjs [--base URL] [--out DIR] [--scenes alps,nile] [--zooms 8,10] [--modes flat,3d]
+//   node scripts/terrain-bench.mjs [--query terrain_tiles=0] [--base URL] [--out DIR] [--scenes alps,nile] [--zooms 8,10] [--modes flat,3d]
 //                                  [--no-warm] [--headless] [--label text] [--build] [--max-load N] [--max-wait SECONDS]
 //   node scripts/terrain-bench.mjs --compare old.json new.json
 //
@@ -37,6 +37,7 @@ import {
   resourceKind,
   sceneUrl,
   texelOf,
+  detailTileZoom,
   timeToDetail,
   variants,
   webpSize,
@@ -51,6 +52,7 @@ const VIEWPORT = { width: 1440, height: 900 };
 const SETTLE_QUIET_MS = 1500; // no tracked request finished or in flight for this long = loaded
 const LOAD_TIMEOUT_MS = 90_000;
 const PAN_STEPS = 120;
+const PYRAMID_MAX_ZOOM = 8; // DETAIL_MAX_ZOOM in lib/terrainDetail.ts
 
 function parseArgs(argv) {
   const args = { flags: new Set(), values: {} };
@@ -59,7 +61,7 @@ function parseArgs(argv) {
     if (a === '--compare') {
       args.compare = [argv[i + 1], argv[i + 2]];
       i += 2;
-    } else if (['--base', '--out', '--scenes', '--zooms', '--modes', '--label', '--max-load', '--max-wait'].includes(a)) args.values[a.slice(2)] = argv[++i];
+    } else if (['--base', '--out', '--scenes', '--zooms', '--modes', '--label', '--max-load', '--max-wait', '--query'].includes(a)) args.values[a.slice(2)] = argv[++i];
     else if (a.startsWith('--')) args.flags.add(a.slice(2));
     else throw new Error(`Unexpected argument ${a}`);
   }
@@ -113,6 +115,7 @@ async function measureLoad(context, url, { screenshot, wantDem }) {
   let inflight = 0;
   let eraImage = null; // { width, height } read from the era image's own bytes
   const demZooms = new Map();
+  const detailZooms = new Map();
   page.on('request', (r) => {
     if (isTracked(r.url())) inflight++;
   });
@@ -135,6 +138,10 @@ async function measureLoad(context, url, { screenshot, wantDem }) {
       tally.demRequests++;
       const z = demTileZoom(r.url());
       if (z !== null) demZooms.set(z, (demZooms.get(z) ?? 0) + 1);
+    }
+    if (kind === 'detail-tile') {
+      const z = detailTileZoom(r.url());
+      if (z !== null) detailZooms.set(z, (detailZooms.get(z) ?? 0) + 1);
     }
     if (kind === 'era-image' && !eraImage) {
       const res = await r.response();
@@ -211,6 +218,7 @@ async function measureLoad(context, url, { screenshot, wantDem }) {
     },
     net: { load: loadNet, pan: panNet },
     demTileZooms: Object.fromEntries([...demZooms].sort((a, b) => a[0] - b[0])),
+    detailTileZooms: Object.fromEntries([...detailZooms].sort((a, b) => a[0] - b[0])),
     eraImage,
     screenshotError,
     errors: errors.slice(0, 5),
@@ -257,6 +265,7 @@ const file = {
     dirty: git('status', '--porcelain', '--', '.', ':!terrain-bench-out').length > 0,
     base,
     label: args.values.label ?? null,
+    query: args.values.query ?? null,
     viewport: VIEWPORT,
     headless,
     renderer,
@@ -284,7 +293,7 @@ async function waitForQuiet() {
 try {
   for (const v of picked) {
     await waitForQuiet();
-    const url = sceneUrl(base, v);
+    const url = sceneUrl(base, v, args.values.query ?? '');
     const context = await browser.newContext({ viewport: VIEWPORT });
     const t0 = Date.now();
     const startLoad = loadavg();
@@ -299,7 +308,11 @@ try {
     }
     await context.close().catch(() => {});
     const era = cold?.eraImage ?? ERA_IMAGE_FALLBACK;
-    const texel = texelOf({ kind: 'era-image', ...era }, v.zoom, v.scene.lat);
+    // The colour pyramid when the run fetched its tiles (z3-8 today), else the era image.
+    const pyramidZ = Object.keys(cold?.detailTileZooms ?? {}).map(Number);
+    const texel = pyramidZ.length
+      ? texelOf({ kind: 'tile-pyramid', maxZoom: PYRAMID_MAX_ZOOM }, v.zoom, v.scene.lat)
+      : texelOf({ kind: 'era-image', ...era }, v.zoom, v.scene.lat);
     const tileZ = Object.keys(cold?.demTileZooms ?? {}).map(Number);
     const result = {
       id: v.id,

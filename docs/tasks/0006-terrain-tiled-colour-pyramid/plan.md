@@ -68,47 +68,47 @@ texel ~1 px to zoom 8 and 4 at zoom 10.
 
 ## Phase 1: Generator
 
-- [ ] Create `footstep-generator/terrain_tiles.py`: per z5 block, reproject the 500 m photo to Mercator (row map +
+- [x] Create `footstep-generator/terrain_tiles.py`: per z5 block, reproject the 500 m photo to Mercator (row map +
   BOX horizontal resize), write z8 tiles that are not uniform, average 2×2 down to z5, then z4/z3 from the z5 mosaic;
   write `ref.webp`, `manifest.png`, `meta.json` (sizes, counts, bytes per zoom).
-- [ ] Create `footstep-generator/tests/test_terrain_tiles.py`: Mercator maths (tile ↔ lat/lon), uniform-tile test,
+- [x] Create `footstep-generator/tests/test_terrain_tiles.py`: Mercator maths (tile ↔ lat/lon), uniform-tile test,
   manifest parent rule.
-- [ ] Run: `poetry run pytest footstep-generator/tests/test_terrain_tiles.py -q` — pass.
-- [ ] Run the generator into `data/tiles/terrain/detail/`; record tile count and bytes per zoom.
+- [x] Run: `poetry run pytest footstep-generator/tests/test_terrain_tiles.py -q` — pass.
+- [x] Run the generator into `data/tiles/terrain/detail/`; record tile count and bytes per zoom.
 
 ## Phase 2: Client layer
 
-- [ ] Create `footsteps-web/lib/terrainDetail.ts`: constants (zooms, URLs, version), `DetailManifest` (decode PNG
+- [x] Create `footsteps-web/lib/terrainDetail.ts`: constants (zooms, URLs, version), `DetailManifest` (decode PNG
   bits, `has(z,x,y)`), `recolour(era, ref, detail)` (TS twin of the GLSL rule), `terrainTilesParam`.
-- [ ] Create `footsteps-web/lib/terrainDetail.test.ts`: recolour identity at ref = era, ratio cases (ice, shelf,
+- [x] Create `footsteps-web/lib/terrainDetail.test.ts`: recolour identity at ref = era, ratio cases (ice, shelf,
   out-of-range), manifest parent rule.
-- [ ] Create `components/footsteps/layers/TerrainDetailLayer.ts`: TileLayer z3–8, tiles absent from the manifest
+- [x] Create `components/footsteps/layers/TerrainDetailLayer.ts`: TileLayer z3–8, tiles absent from the manifest
   return null (no request), shader = era pair cross-fade × detail ÷ ref, base look (desaturate, tint) as the era
   layers.
-- [ ] Wire into `useTerrainLayers.ts` between the era backdrop and relief/close3d; load `ref` and manifest once.
-- [ ] Close-up 3D: `Close3DLayer` loads the covering detail tile (z = min(tile z, 8)) beside the heights and colours
+- [x] Wire into `useTerrainLayers.ts` between the era backdrop and relief/close3d; load `ref` and manifest once.
+- [x] Close-up 3D: `Close3DLayer` loads the covering detail tile (z = min(tile z, 8)) beside the heights and colours
   vertices with `recolour` through an optional `Ground.detail` hook.
 
 ## Phase 3: Bench and evidence
 
-- [ ] `terrain-bench-lib.mjs`: classify `/terrain/detail/` as terrain (`detail-tile`), `texelOf` kind `tile-pyramid`;
+- [x] `terrain-bench-lib.mjs`: classify `/terrain/detail/` as terrain (`detail-tile`), `texelOf` kind `tile-pyramid`;
   the bench picks it when detail tiles were requested. Pin in `lib/terrainBench.test.ts`.
-- [ ] Bench before (this branch's base, tiles off) and after (tiles on), `--compare`; same machine, note load.
-- [ ] Screenshots before/after: UK 50,000 BCE z7, Nile 3000 BCE z8, globe → workspace `evidence/`.
-- [ ] Decide rollout (flag-free or `?terrain_tiles=1`), record why.
+- [x] Bench before (this branch's base, tiles off) and after (tiles on), `--compare`; same machine, note load.
+- [x] Screenshots before/after: UK 50,000 BCE z7, Nile 3000 BCE z8, globe → workspace `evidence/`.
+- [x] Decide rollout (flag-free or `?terrain_tiles=1`), record why.
 
 ## Phase 4: Docs and wrap
 
-- [ ] `docs/ops/terrain-images.md`: the pyramid, its inputs' real resolution (Krapp 0.5°, HYDE 5′, ETOPO 4′ — the
+- [x] `docs/ops/terrain-images.md`: the pyramid, its inputs' real resolution (Krapp 0.5°, HYDE 5′, ETOPO 4′ — the
   ratio is smooth, only the photo is sharp), "imagined" label, bytes, the per-year trade-off, publish steps.
-- [ ] `docs/ops/terrain-bench.md`: after numbers. `scripts/deploy-budgie.sh` rsyncs `detail/`; smoke checks one tile.
-- [ ] AGENTS.md architecture line; legend note says the detail is the modern photo (imagined on past eras).
-- [ ] Log/index fragments under `docs/log.d/`, `docs/index.d/`.
-- [ ] Run lint, tsc, vitest, pytest for the generator; commit.
+- [x] `docs/ops/terrain-bench.md`: after numbers. `scripts/deploy-budgie.sh` rsyncs `detail/`; smoke checks one tile.
+- [x] AGENTS.md architecture line; legend note says the detail is the modern photo (imagined on past eras).
+- [x] Log/index fragments under `docs/log.d/`, `docs/index.d/`.
+- [x] Run lint, tsc, vitest, pytest for the generator; commit.
 
 ## Final Checklist
 
-- [ ] All phases complete, tests green, docs updated, work committed.
+- [x] All phases complete, tests green, docs updated, work committed.
 
 ## References
 

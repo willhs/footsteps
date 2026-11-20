@@ -17,6 +17,7 @@ import {
   resourceKind,
   sceneUrl,
   texelOf,
+  detailTileZoom,
   timeToDetail,
   variants,
   webpSize,
@@ -43,6 +44,7 @@ describe('scene table', () => {
     const [flat, tilted] = variants({ scenes: ['nile'], zooms: [10] });
     expect(sceneUrl('http://x:1/', flat)).toBe('http://x:1/?lat=25.7&lon=32.6&zoom=10&year=1500&close3d=0');
     expect(sceneUrl('http://x:1', tilted)).toBe('http://x:1/?lat=25.7&lon=32.6&zoom=10&year=1500');
+    expect(sceneUrl('http://x:1', tilted, 'terrain_tiles=0')).toBe('http://x:1/?lat=25.7&lon=32.6&zoom=10&year=1500&terrain_tiles=0');
   });
 });
 
@@ -64,6 +66,19 @@ describe('texel size', () => {
   it("meets the goal's 2 px only when the colour source has pixels to spare", () => {
     expect(texelOf(era, 4, 46).eastWestPx).toBeCloseTo(4, 1);
     expect(texelOf({ kind: 'era-image', width: 2048 * 2 ** 9, height: 1024 * 2 ** 9 }, 12, 0).eastWestPx).toBeLessThanOrEqual(GOAL.texelPx);
+  });
+
+  it('reads the colour pyramid at the tile deck.gl picks, never finer than its 500 m photo', () => {
+    const pyramid = { kind: 'tile-pyramid', maxZoom: 8 };
+    // deck.gl draws 256 px tiles at zoom round(zoom + 1): zoom 6 uses z7 tiles, one texel per screen px at the equator.
+    expect(texelOf(pyramid, 6, 0).eastWestPx).toBeCloseTo(1, 1);
+    expect(texelOf(pyramid, 6, 0).source).toBe('tile-pyramid z7/8');
+    // From zoom 8 the z8 tiles are stretched: 2 px at 8, 8 at 10, 32 at 12 (the era image: 64, 256, 1024).
+    expect(texelOf(pyramid, 8, 0).eastWestPx).toBeCloseTo(2, 1);
+    expect(texelOf(pyramid, 10, 0).eastWestPx).toBeCloseTo(8, 1);
+    expect(texelOf(pyramid, 12, 0).eastWestPx).toBeCloseTo(32, 1);
+    // At 60°N a z8 tile pixel (306 m) is finer than the photo's 464 m rows: the photo sets the height.
+    expect(texelOf(pyramid, 8, 60).northSouthM).toBe(464);
   });
 
   it('rejects a colour source it does not know', () => {
@@ -110,6 +125,10 @@ describe('request kinds', () => {
     expect(resourceKind('http://h/terrain/earth_-10000.webp?v=3')).toBe('era-image');
     expect(resourceKind('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1/2.png')).toBe('dem');
     expect(resourceKind('http://h/habitat/h_1.webp')).toBe('habitat');
+    expect(resourceKind('http://h/terrain/detail/7/63/41.webp?v=1')).toBe('detail-tile');
+    expect(resourceKind('http://h/terrain/detail/manifest.png?v=1')).toBe('detail-tile');
+    expect(detailTileZoom('http://h/terrain/detail/7/63/41.webp?v=1')).toBe(7);
+    expect(detailTileZoom('http://h/terrain/detail/ref.webp')).toBeNull();
     expect(resourceKind('http://h/grid/humans_1000.webp')).toBe('other');
   });
   it('expects elevation tiles where the app streams them', () => {

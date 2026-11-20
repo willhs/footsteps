@@ -21,6 +21,7 @@ node footsteps-web/scripts/terrain-bench.mjs --label "after X"
 # options: --base URL (a running server instead of out/)  --build (run pnpm build first)  --out DIR
 #          --scenes alps,nile  --zooms 8,10  --modes flat,3d  --no-warm  --headless  --max-load N  --max-wait SECONDS
 node footsteps-web/scripts/terrain-bench.mjs --compare old.json new.json     # deltas, per variant
+node footsteps-web/scripts/terrain-bench.mjs --query terrain_tiles=1 --label "pyramid on"   # a URL flag on one build
 ```
 
 Without `--base` it serves `out/` itself with production-like headers (hashed assets immutable, data cached a day,
@@ -61,7 +62,8 @@ context: HTTP cache full, in-memory caches empty). Per load:
 - **Texel**: size of one terrain colour texel in screen px at the screen centre (`texelOf` in `scripts/terrain-bench-lib.mjs`).
   Today the colour is one 2048 x 1024 era image (its real size is read from the response), so a texel is a fixed ~19.6 km
   of ground: east-west it is `2^zoom / 4` px at any latitude, and 1/cos(lat) times that tall. Tilt makes the foreground coarser than the centre.
-  `texelOf` takes a colour source (`{kind: 'era-image', width, height}`); a tile pyramid adds its own kind and the table and `--compare` stay the same.
+  `texelOf` takes a colour source: `{kind: 'era-image', width, height}`, or `{kind: 'tile-pyramid', maxZoom}` when the run fetched
+  colour-pyramid tiles (`/terrain/detail/`, counted as terrain): the tile deck.gl draws (zoom round(zoom + 1), capped at 8), never finer than the 500 m photo.
   The elevation sample spacing (`demSamplePx`) is in the JSON too.
 
 The pure parts (scene table, texel maths, timing, goal checks, compare) are in `scripts/terrain-bench-lib.mjs` and pinned by `lib/terrainBench.test.ts`.
@@ -105,6 +107,41 @@ What the baseline says:
 - The Alps are the heaviest scene (16 MB of terrain cold at zoom 10 3D: 2.8 s slower than flat); Doggerland's and the steppe's smooth ground costs the least.
 
 Two screenshots are kept here: [Alps zoom 10 tilted](terrain-bench/alps-z10-3d.jpg) and [Doggerland zoom 10 tilted](terrain-bench/doggerland-z10-3d.jpg). The rest stay out of git (they are in each run's `shots/`).
+
+## Colour pyramid, tiles off vs on (2026-11-21)
+
+Task 0006 (`docs/tasks/0006-terrain-tiled-colour-pyramid/`) adds the 500 m colour pyramid (`terrain-images.md`
+"Detail tiles"). Both runs are one build of the branch (working tree on `5a31a5a`), Will's MacBook, headed Chrome,
+off with `--query terrain_tiles=0`, on with the pyramid on (it was the default during the run; it is now
+`--query terrain_tiles=1`). Load average 3–6 off, 4–8 on. A first off run at load 6–16 was thrown away: its tilted
+times were 1–2 s slower from load alone. Data: [`tiles-off-5a31a5a.json`](terrain-bench/tiles-off-5a31a5a.json),
+[`tiles-on-5a31a5a.json`](terrain-bench/tiles-on-5a31a5a.json), per variant: [`tiles-compare.md`](terrain-bench/tiles-compare.md).
+Shots: Nile zoom 10 tilted, [era image](terrain-bench/nile-z10-3d-era.jpg) and [with tiles](terrain-bench/nile-z10-3d-tiles.jpg).
+
+Median and worst of the five scenes (seconds), worst-scene pan fps, longest main-thread task, texel (east-west px):
+
+| zoom | mode | cold off → on | warm off → on | fps worst off → on | longest task ms off → on | texel px off → on |
+|---|---|---|---|---|---|---|
+| 4 | flat | 0.15 / 0.16 → 0.67 / 0.82 | 0.11 / 0.12 → 0.66 / 0.76 | 139.5 → 139.3 | 54 → 66 | 4 → 1 |
+| 6 | flat | 3.34 / 3.74 → 3.60 / 3.81 | 1.00 / 1.15 → 1.02 / 1.19 | 140 → 135.3 | 69 → 57 | 16 → 1 |
+| 8 | flat | 3.66 / 4.01 → 3.60 / 4.35 | 1.01 / 1.14 → 1.03 / 1.14 | 140 → 135 | 76 → 67 | 64 → 2 |
+| 8 | 3d | 3.31 / 3.46 → 3.17 / 4.11 | 0.75 / 0.86 → 0.77 / 0.87 | 136.2 → 125.8 | 77 → 90 | 64 → 2 |
+| 10 | flat | 3.74 / 4.25 → 3.78 / 4.04 | 1.12 / 1.18 → 1.15 / 1.16 | 139.4 → 136.5 | 61 → 62 | 256 → 8 |
+| 10 | 3d | 6.61 / 6.65 → 4.85 / 4.88 | 1.71 / 4.03 → 1.68 / 1.69 | 109.6 → 94.4 | 131 → 183 | 256 → 8 |
+| 12 | flat | 3.60 / 3.84 → 3.61 / 3.66 | 1.07 / 1.12 → 1.03 / 1.14 | 138.1 → 136.6 | 92 → 92 | 1024 → 32 |
+| 12 | 3d | 6.52 / 6.86 → 5.85 / 6.67 | 1.67 / 5.00 → 1.66 / 1.69 | 109.8 → 100.9 | 179 → 178 | 1024 → 32 |
+
+- **Texel**: 32 times finer from zoom 8 up (64 → 2 px at 8, 256 → 8 at 10); one px to zoom 7. The goal's 2 px holds to
+  zoom 8; past it the z8 tiles stretch (the 500 m photo runs out).
+- **Close view time to detail**: tilted zoom 10 cold 6.6 → 4.9 s in all five scenes; the off rerun at matched load
+  reproduced the 6.6 s, so it is not load. Why fetching more makes the tilted view settle sooner is not explained
+  (the ground tile now waits for its colour tile, which may change how deck.gl schedules the elevation requests);
+  treat it as measured, not understood. Warm and flat times are unchanged within noise.
+- **Regressions**: zoom 4 now waits for the tiles (+0.4–0.7 s to full detail; the era image is still on screen at
+  0.15 s). Tilted pan fps is lower in some scenes (Nile zoom 10 110 → 94, Alps zoom 12 118 → 101, Nile zoom 8
+  136 → 126), still far above the goal's 50. Terrain bytes +0.3–0.7 MB cold per view.
+- **Rollout**: behind `?terrain_tiles=1` (off by default), because the task allows a flag-free rollout only with no
+  regression. Flip the default in `lib/terrainDetail.ts` `terrainTilesParam` once Will has looked.
 
 ## Noise
 

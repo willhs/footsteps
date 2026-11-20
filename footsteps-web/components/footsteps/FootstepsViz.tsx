@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { terrainTilesParam } from '@/lib/terrainDetail';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { WebMercatorViewport, type LayersList, type PickingInfo } from '@deck.gl/core';
 import { bandsInView, emptyViewNote, peopleInView } from '@/lib/emptyView';
@@ -646,11 +647,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
 /** One-line source note for the terrain images. */
 function TerrainNote() {
+  // The colour pyramid's line only when it is drawn (`?terrain_tiles=1`, lib/terrainDetail.ts).
+  const [tiles, setTiles] = useState(false);
+  useEffect(() => setTiles(terrainTilesParam(window.location.search)), []);
   return (
     <span className="ov-note mt-1.5 block">
       Land, sea and ice reconstructed from climate and ice models (Krapp et al. 2021),
       coloured from NASA Blue Marble; the green Sahara is drawn from the literature.
-      Faint line: today&apos;s coast.
+      {tiles && <>Close in, the fine texture is today&apos;s ground (Blue Marble 500 m) recoloured to the era: imagined detail, not a map of then. </>}
       Relief: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noreferrer">Mapzen / AWS Terrain Tiles</a> (modern elevation, including seabed).
       Fine surface grain is illustrative.
     </span>

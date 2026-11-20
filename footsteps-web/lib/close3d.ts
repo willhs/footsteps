@@ -119,6 +119,7 @@ export function terrariumHeights(rgba: Uint8ClampedArray): Float32Array {
 }
 
 import type { LakePlane } from './pastWater';
+import type { DetailPixels } from './terrainDetail';
 
 export type Bbox = { west: number; south: number; east: number; north: number };
 type Rgb = [number, number, number];
@@ -130,6 +131,8 @@ export type Ground = {
   biomeAt: (lon: number, lat: number) => number;
   /** Annual mean temperature (°C) of the 0.5° cell, or null. */
   tempAt: (lon: number, lat: number) => number | null;
+  /** The same ground coloured with a colour-pyramid tile's detail (lib/terrainDetail.ts); absent when tiles are off. */
+  withDetail?: (tile: DetailPixels) => Ground;
 };
 
 /** Sun direction for the baked hillshade: from the north-west, 45° up (unit vector). */

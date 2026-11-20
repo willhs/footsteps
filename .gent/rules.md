@@ -19,7 +19,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
 - Close-up 3D: from zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/layers/Close3DLayer.ts`,
-  `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour. Plant marks by Krapp biome
+  `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour with the colour pyramid's detail. Plant marks by Krapp biome
   are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
   Will reviews it (`?ground=1`; the note then says "surface imagined"). On by default; `?close3d=0` keeps it flat.
@@ -31,6 +31,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/terrain_image.py`: Krapp2021 biomes + Blue Marble colours + HYDE
   farmland → one ~200 KB Earth image per terrain year in `data/tiles/terrain/`, drawn
   cross-faded in terrain mode by `hooks/useTerrainLayers.ts`. See `docs/ops/terrain-images.md`.
+  Close in (zoom 3–8, stretched beyond), `footstep-generator/terrain_tiles.py`'s one year-independent pyramid of the 500 m
+  Blue Marble photo (`data/tiles/terrain/detail/`, ~138 MB, alpha = today's land) is recoloured per year on the GPU as
+  `photo × era ÷ ref` (`lib/terrainDetail.ts`, `layers/TerrainDetailLayer.ts`; the close-up 3D ground uses the same rule),
+  so scrubbing fetches no tiles. The fine texture on past eras is today's ground, labelled imagined. Behind `?terrain_tiles=1` until reviewed (benchmark: zoom-4 time to detail and some tilted fps regressed; docs/ops/terrain-bench.md).
 - `footstep-generator/prehistory_population.py`: a MODELLED world population (Tallavaara NPP fit, Beyer climate,
   arrival table, scaled to a literature curve, blended into HYDE) → one 0.5° WebP per 1,000 years, 100,000–11,000 BCE,
   in `grid_image.py`'s encoding, plus `totals.json` (also copied to `footsteps-web/public/prehistory_totals.json`, which `lib/time.ts`

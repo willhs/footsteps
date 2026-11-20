@@ -42,9 +42,13 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `@deck.gl/mesh-layers` must stay aliased to its CommonJS
   build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
-- `node scripts/terrain-bench.mjs` is the terrain scoreboard (time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
 - `pnpm visual` is the screenshot regression: ten fixed scenes (Units, Grid, Dots, close-up 3D, hover card, a selected person) on real data and GPU, compared with `e2e/visual/*.webp`. **Run it after `pnpm build` and before committing any change that can move pixels**; a diff sheet (`visual-out/<scene>.diff.png`) shows what moved, and `pnpm visual --update --scenes <ids>` re-baselines on purpose. `?still=1` stops the time-based animation for it (`lib/still.ts`). Not in CI (no GPU, no data). `docs/ops/visual-regression.md`.
-- `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
+- Terrain colour close in: `layers/TerrainDetailLayer.ts` draws the 500 m photo pyramid (`/terrain/detail/{z}/{x}/{y}.webp`, z3–8,
+  a manifest says which tiles exist) recoloured by the two era images on the GPU (`recolour` in `lib/terrainDetail.ts`, GLSL twin
+  `RECOLOUR_GLSL`: change one, change the other); `Close3DLayer` loads the covering tile per ground tile for its vertex colours.
+  Off until reviewed: `?terrain_tiles=1` turns it on. `node scripts/terrain-detail-shots.mjs out <dir>` takes before/after shots.
+- `node scripts/terrain-bench.mjs` is the terrain scoreboard (`--query terrain_tiles=0` compares a flag on one build; time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
+>- `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
   throttles requestAnimationFrame, so its fps numbers are meaningless.
 - The 90 modelled pre-HYDE images (100,000–11,000 BCE, 0.5°) come from `../footstep-generator/prehistory_population.py`

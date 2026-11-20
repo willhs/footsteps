@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Terrain colour pyramid behind ?terrain_tiles=1
+
+`footstep-generator/terrain_tiles.py` tiles NASA Blue Marble at 500 m into one year-independent Web Mercator pyramid
+(z3–8, 47,662 tiles, 138 MB, alpha = today's land from Natural Earth 10m ramped inland). The browser recolours it per
+terrain year as `photo × era ÷ ref` (`lib/terrainDetail.ts`, `layers/TerrainDetailLayer.ts`, and the close-up 3D
+ground), keeping the year cross-fade and fetching no tiles on a scrub. Benchmark (tiles off vs on, matched load):
+texel 64 → 2 px at zoom 8, 256 → 8 at 10, 1024 → 32 at 12; tilted zoom 10 cold 6.6 → 4.9 s; but zoom 4 waits
++0.4–0.7 s for tiles and tilted pan fps drops up to ~15 (still ≥ 94), so it ships behind `?terrain_tiles=1`.
+Fine texture on past eras is today's ground, labelled imagined. Publish with `GRID_ONLY=1 scripts/deploy-budgie.sh`
+(after merge). See `docs/ops/terrain-images.md` "Detail tiles", `docs/ops/terrain-bench.md`, task 0006.
+
 ## [2026-11-21] add | Screenshot regression: `pnpm visual`, ten fixed scenes compared with committed baselines
 
 `footsteps-web/scripts/visual.mjs` opens ten fixed scenes (globe 1900; Rome 1000 BCE in Units, Grid and Dots; Nile 3000 BCE and Doggerland 10,000 BCE close-up 3D; UK 50,000 BCE empty-view note; Croatia 50,000 BCE other humans; the hover card; a selected person) in headless Chromium on the real GPU with real data, waits until each is settled (no requests, `main[data-loading]` off, the scene's own condition, three identical screenshots), and compares with `e2e/visual/*.webp` by pixelmatch (0.1 % of pixels allowed). A failure writes an expected | actual | diff sheet. New `?still=1` (`lib/still.ts`) stops the shader clock and pins the sun clock to one fixed day so pixels are stable. Elevation tiles are cached on disk (`visual-cache/`); data is found in this checkout or the primary checkout of a worktree. The static server moved out of `terrain-bench.mjs` into `scripts/static-server.mjs`. Not wired into CI: no GPU, no data in git. `docs/ops/visual-regression.md`.

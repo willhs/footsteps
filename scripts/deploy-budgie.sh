@@ -29,11 +29,14 @@ sync_grid() {
   # Population images used to be PNGs; drop the superseded ones.
   # find, not rm with a glob: budgie's zsh aborts on a glob with no matches.
   ssh "$REMOTE" "find $DEST/app/grid -name 'humans_*.png' -delete"
-  # Terrain: one ~200 KB WebP per terrain year (footstep-generator/terrain_image.py)
+  # Terrain: one ~200 KB WebP per terrain year (footstep-generator/terrain_image.py), plus the year-independent
+  # colour pyramid in detail/ (footstep-generator/terrain_tiles.py: ~48k tiles, ~120 MB) when it has been built.
   if compgen -G "$ROOT/data/tiles/terrain/earth_*.webp" >/dev/null; then
     ssh "$REMOTE" "mkdir -p $DEST/app/terrain"
-    rsync -az --include='earth_*.webp' --exclude='*' \
+    rsync -az --include='earth_*.webp' --include='detail/***' --exclude='*' \
       "$ROOT/data/tiles/terrain/" "$REMOTE:$DEST/app/terrain/"
+    [[ -f "$ROOT/data/tiles/terrain/detail/manifest.png" ]] \
+      || echo "warning: no terrain colour pyramid (data/tiles/terrain/detail); see docs/ops/terrain-images.md" >&2
   else
     echo "warning: no local terrain images; skipping (see docs/ops/terrain-images.md)" >&2
   fi

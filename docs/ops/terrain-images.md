@@ -2,7 +2,7 @@
 id: terrain-images
 type: reference
 purpose: "Sources, method and regeneration of the per-era Earth terrain images"
-updated: 2026-11-14
+updated: 2026-11-21
 ---
 
 # Terrain images
@@ -142,11 +142,76 @@ the deployed version. Timings use a headed Chromium with Metal, not software
 rendering. The existing query-driven view-state hydration mismatch is retained
 separately as `knownHydrationErrors`; shader and other runtime errors fail the run.
 
+## Detail tiles: the colour pyramid (2026-11-21)
+
+Close in, the 2048 × 1024 era image is ~19.6 km per pixel (64 screen px per texel at zoom 8, 256 at zoom 10).
+`footstep-generator/terrain_tiles.py` writes `data/tiles/terrain/detail/`, served at `/terrain/detail/`:
+
+- `{z}/{x}/{y}.webp`: 256 px Web Mercator tiles, zoom 3 to 8, of NASA Blue Marble Next Generation (July 2004) at
+  **500 m** (86,400 × 43,200, eight 21,600² JPEGs `world.200407.3x21600x21600.{A1..D2}.jpg`), lossy q80. Alpha is
+  today's land (Natural Earth 10m land minus lakes, the pinned v5.1.2 files `site_terrain.py` uses) ramped from 0 at
+  today's shore to 255 about 4 km inland. Tiles that are all open ocean are not written.
+- `manifest.png`: 256 × 256, which z8 tiles exist (a lower tile exists if any z8 tile under it does), so the
+  browser never requests a missing tile. `ref.webp`: the 5400 × 2700 photo BOX-resized to 2048 × 1024, exactly the
+  `bm_hi` `terrain_image.py` multiplies. `meta.json`: tile counts and bytes per zoom.
+
+**One pyramid for every year.** `terrain_image.py` paints land as `photo × smooth era ratio`, so in the browser
+`era ÷ ref` is that ratio and `detail × era ÷ ref` is the same era picture with the 500 m photo's detail
+(`recolour` in `footsteps-web/lib/terrainDetail.ts`; `layers/TerrainDetailLayer.ts` is its shader, and the close-up
+3D ground colours its vertices with the TypeScript twin). Each endpoint of the year pair is recoloured, then
+cross-faded exactly as the era images are, so scrubbing fetches no tiles. Where the era pixel was not
+photo-derived the ratio leaves the script's clip range (0.25–2.5) and the era colour stays: era ice over today's
+ice-free ground, painted exposed shelves, era sea. Below today's sea level (from −1.5 m) era land over today's sea or
+shore keeps the era colour too (the alpha ramp), so the Ice Age shows neither today's sea nor a hard modern coastline.
+The weight is averaged over five taps (0.75 era pixel apart), so the edge of the detail fades over ~30 km instead of
+following the era image's 20 km pixel grid.
+
+**What is sharp and what is not.** Only the photo is finer than the era image. The era's colour change comes from
+Krapp biomes (0.5°, ~55 km), HYDE land use (5′, ~9 km) and the era coast (ETOPO 4′ / Krapp, ~7 km); inside
+`era ÷ ref` they stay at their own resolution. So the fine texture on a past era (valleys, river plains, field
+patchwork, towns in July 2004) is **today's ground, imagined for then**; the legend says so. Biome and ice edges are
+no sharper than before; the past coast below today's is still the relief layer's DEM coast from zoom 5.
+**Behind `?terrain_tiles=1`, off by default** until Will has looked: the benchmark (`terrain-bench.md`, 2026-11-21)
+shows zoom-4 time to detail +0.4–0.7 s (it now waits for the tiles; the era image still shows at once) and tilted pan
+fps down by up to ~15 in two scenes (Nile 110 → 94, still far above the goal's 50), and the task allows a flag-free
+rollout only with no regression.
+
+**Bytes.** The whole pyramid is 138 MB (47,662 tiles), for every terrain year at once: per terrain year it adds
+nothing beyond the ~200 KB era image the year already has, so the total for the 120 `TERRAIN_YEARS` is 138 MB.
+A pyramid per terrain year (the task's first idea) would be about 120 × that (~16.6 GB), and every scrub across a
+terrain step would fetch a new set of tiles; recolouring one set in the shader costs nothing per year. Per zoom:
+
+| zoom | tiles | MB | mean KB/tile |
+|---|---|---|---|
+| 3 | 64 | 0.4 | 5.8 |
+| 4 | 223 | 1.2 | 5.2 |
+| 5 | 740 | 3.6 | 4.9 |
+| 6 | 2,573 | 11.0 | 4.3 |
+| 7 | 9,290 | 32.2 | 3.5 |
+| 8 | 34,772 | 89.6 | 2.6 |
+| ref + manifest | 2 | 0.29 | |
+
+The texel the tiles give is one screen pixel up to zoom 7, 2 at 8, then the z8 tiles stretch: 8 px at zoom 10 and 32 at
+12 (the era image: 64, 256, 1024). The goal's 2 px at zoom 12 needs a source near 10 m (Sentinel-2 class); not done.
+
+Regenerate (inputs are not in git):
+
+```bash
+mkdir -p data/raw/bluemarble/500m && cd data/raw/bluemarble/500m
+for t in A1 A2 B1 B2 C1 C2 D1 D2; do
+  curl -fsSO https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/july/world.200407.3x21600x21600.$t.jpg
+done; cd -
+poetry run python footstep-generator/terrain_tiles.py     # ~4 min, 4 workers, fetches Natural Earth if missing
+```
+
+Bump `DETAIL_VERSION` in `lib/terrainDetail.ts` when the tiles change (Cloudflare caches `/terrain` for a day).
+`node footsteps-web/scripts/terrain-detail-shots.mjs footsteps-web/out <dir>` takes before/after screenshots (tiles off/on).
+
 ## Publish
 
 ```bash
-GRID_ONLY=1 scripts/deploy-budgie.sh     # grid + terrain images, no app build
-scripts/smoke.sh https://footsteps.willhs.me   # checks terrain/earth_{year}.webp too
+GRID_ONLY=1 scripts/deploy-budgie.sh     # grid + terrain images + detail/ pyramid, no app build
+scripts/smoke.sh https://footsteps.willhs.me   # checks terrain/earth_{year}.webp and the pyramid (warns if unpublished)
 ```
 
 ## Known limits
@@ -155,7 +220,9 @@ scripts/smoke.sh https://footsteps.willhs.me   # checks terrain/earth_{year}.web
 - Isostatic depression is not modelled beyond what Krapp's mask carries. The coast uses
   one global sea level against today's elevation, so regional sea level (ice loading,
   rebound) is not modelled.
-- The modern coastline line is Natural Earth 110m, coarse when zoomed in.
+- The modern coastline line (`?coast=1`) is Natural Earth 110m, coarse when zoomed in.
+- The colour pyramid sharpens texture, not the era's own boundaries: biome and ice edges stay at Krapp's 0.5°, and the
+  past coast below today's is the relief layer's DEM coast, not the tiles. Past 500 m (zoom 8) the tiles stretch.
 - Relief does not sharpen the underlying 2048 × 1024 era coast or biome boundaries.
   Blue-dominance masking can fade relief in mixed coastal pixels; exact categorical
   masking would require an additional generated land/ice mask.

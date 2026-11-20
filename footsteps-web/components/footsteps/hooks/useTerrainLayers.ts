@@ -180,7 +180,9 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   }, [enabled, y0, y1]);
 
   useEffect(() => {
-    if (enabled) loadCoastline().then(setCoast);
+    // The modern coastline (Natural Earth 110m) is off: its long straight segments read as solid lines close in,
+    // and in the Ice Age it sits inland. `?coast=1` draws it.
+    if (enabled && new URLSearchParams(window.location.search).get('coast') === '1') loadCoastline().then(setCoast);
   }, [enabled]);
 
   // Blend weight quantised so the 3D ground is rebuilt at most ~20 times across a terrain step.

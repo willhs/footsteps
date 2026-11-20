@@ -79,9 +79,9 @@ poetry run python footstep-generator/terrain_image.py -6000    # one year
    real photo colour; nothing is tinted beyond what the photo shows. An earlier
    invented field tan overstated farming (greener July crops read as tan sheets).
 
-The client dims the images (`tintColor` 230, `desaturate` 0.1), draws a faint modern
-coastline (`world-simple.geojson`, Natural Earth 110m land, stroked) and puts the
-source note in the legend.
+The client dims the images (`tintColor` 230, `desaturate` 0.1) and puts the source note in the legend.
+The faint modern coastline (`world-simple.geojson`, Natural Earth 110m land, stroked) is off since
+2026-11-20 (coarse straight segments close in; inland in the Ice Age); `?coast=1` draws it.
 
 ### High-zoom relief (2026-11-14)
 

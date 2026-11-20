@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Modern coastline lines off by default
+
+Will saw solid lines over the UK at 50,000 BCE, zoom 7: the faint modern coastline (Natural Earth 110m, `useTerrainLayers.ts`), whose long straight segments show close in and sit inland in the Ice Age. Off now; `?coast=1` draws it. Checked at the same time: that view is fully drawn after ~10 s (no pending requests; zoom 7 is below the 3D close-up, so no elevation tiles); it looks unfinished because the era image is ~20 km per pixel and the model has no one in Britain then (hover card: "No one modelled"). The sharpness is goal 4cb72add.
+
 ## [2026-11-20] change | No floating pop-ups: the left column shows what is hovered or selected
 
 Will: no hover modal, just the left info panel for whatever is hovered or selected. The other-human site/band card (`OtherHumansTooltip`), the dated-evidence card (`EvidenceTooltip`, `?evidence=1`) and the Dots click popup (`PopulationTooltip`, now read through `useTooltipData`) render in the left column instead of at the cursor. One at a time: a hovered site, band or mark beats the place card; over the column itself nothing is hovered, so the legend returns. `getTooltipPosition` is gone.

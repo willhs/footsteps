@@ -2,6 +2,7 @@
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
 import { UnitKind } from './units';
 import { peopleForGroups, type Person } from './people';
+import { epochHour, planDay } from '@/lib/routine';
 import { MAX_TAGS, MIN_TAG_SCALE, TAG_ZOOM, chooseTags, tagText, tagVisibility, type Project } from './personTags';
 
 const village = { lon: 31.131, lat: 30.8885, kind: UnitKind.Village, people: 150 };
@@ -87,5 +88,44 @@ describe('tags', () => {
 
   it('handle an empty crowd', () => {
     expect(choose({ people: [] as Person[] })).toEqual([]);
+  });
+});
+
+describe('tags with the daily routine', () => {
+  // Spring equinox, local noon at the village.
+  const ms = Date.UTC(2026, 2, 20, 12) - (village.lon / 15) * 3_600_000;
+  const routine = { epoch: epochHour(ms), ms };
+  const onTrip = people.find((p) => {
+    const a = planDay(p, routine.epoch).away;
+    return a?.kind === 'trip' && a.dist > 1500 && a.dist < 2500 && p.age >= 15;
+  })!;
+  const plan = planDay(onTrip, routine.epoch);
+
+  it('find a person where their trip has taken them, not at their spot', () => {
+    if (plan.away?.kind !== 'trip') throw new Error('expected a trip');
+    // Noon is inside a trip only if the plan says so; move the clock to the middle of this one.
+    const mid = (plan.from + plan.to) / 2;
+    const at = { epoch: routine.epoch, ms: ms + (mid - 12) * 3_600_000 };
+    const dest: [number, number] = [
+      onTrip.position[0] + (Math.cos(plan.away.bearing) * plan.away.dist) / (111_320 * Math.cos((village.lat * Math.PI) / 180)),
+      onTrip.position[1] + (Math.sin(plan.away.bearing) * plan.away.dist) / 111_320,
+    ];
+    // Looking at the village they are gone from view...
+    expect(choose({ routine: at }).some((t) => t.person === onTrip)).toBe(false);
+    // ...looking at where they work, their tag is there, with the print a few metres from the destination.
+    const projectAtDest: Project = ([lon, lat]) => ({
+      x: size.width / 2 + ((lon - dest[0]) * 111_320 * Math.cos((village.lat * Math.PI) / 180)) / M_PER_PX,
+      y: size.height / 2 - ((lat - dest[1]) * 111_320) / M_PER_PX,
+      scale: 1,
+    });
+    const tag = choose({ routine: at, centre: dest, project: projectAtDest }).find((t) => t.person === onTrip);
+    expect(tag).toBeDefined();
+    const dLon = (tag!.position[0] - dest[0]) * 111_320 * Math.cos((village.lat * Math.PI) / 180);
+    const dLat = (tag!.position[1] - dest[1]) * 111_320;
+    expect(Math.hypot(dLon, dLat)).toBeLessThan(12 * 1.6);
+  });
+
+  it('are unchanged without a routine', () => {
+    expect(choose().map((t) => t.person.id)).toEqual(choose({ routine: undefined }).map((t) => t.person.id));
   });
 });

@@ -1,4 +1,4 @@
-import { partOfDay, solarAltitude, sunHours, sunPosition, sunTimeLabel } from './sunTime';
+import { dayLengthHours, partOfDay, solarAltitude, sunHours, sunPosition, sunTimeLabel } from './sunTime';
 
 const noonUtc = new Date(Date.UTC(2026, 10, 14, 12, 0, 0));
 
@@ -46,4 +46,21 @@ test('labels read as a clock and a part of the day', () => {
   expect(sunTimeLabel(-180, noonUtc)).toBe('12:00 am · night');
   expect(partOfDay(6)).toBe('dawn');
   expect(partOfDay(18.5)).toBe('dusk');
+});
+
+describe('dayLengthHours', () => {
+  it('is 12 h everywhere at the equinox and at the equator all year', () => {
+    expect(dayLengthHours(60, 0)).toBeCloseTo(12, 6);
+    expect(dayLengthHours(0, 23.4)).toBeCloseTo(12, 6);
+  });
+  it('is long in a northern summer and short in its winter', () => {
+    expect(dayLengthHours(50, 23.4)).toBeCloseTo(16.1, 0);
+    expect(dayLengthHours(50, -23.4)).toBeCloseTo(7.9, 0);
+    // The southern hemisphere is the other way round.
+    expect(dayLengthHours(-24, 23.4)).toBeCloseTo(10.5, 0);
+  });
+  it('is 0 in polar night and 24 in midnight sun', () => {
+    expect(dayLengthHours(80, -23.4)).toBe(0);
+    expect(dayLengthHours(80, 23.4)).toBe(24);
+  });
 });

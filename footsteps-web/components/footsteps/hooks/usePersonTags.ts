@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { WebMercatorViewport, type LayersList } from '@deck.gl/core';
 import { TextLayer } from '@deck.gl/layers';
 import { animClock } from '@/lib/gait';
+import { solarNowMs } from '@/lib/solarClock';
 import type { Person } from '../layers/people';
 import { TAG_FONT_PX, TAG_GAP_PX, chooseTags, tagVisibility, type Tag } from '../layers/personTags';
 
@@ -21,12 +22,15 @@ export default function usePersonTags({
   size,
   enabled,
   peopleOpacity,
+  routineEpoch = null,
 }: {
   people: readonly Person[];
   view: View;
   size: { width: number; height: number } | undefined;
   enabled: boolean;
   peopleOpacity: number;
+  /** The daily routine's plan hour (`epochHour`), or null when it is off: tags then follow people on their trips. */
+  routineEpoch?: number | null;
 }): LayersList {
   const opacity = enabled ? tagVisibility(view.zoom) * peopleOpacity : 0;
   const active = opacity > 0 && people.length > 0 && !!size;
@@ -69,6 +73,7 @@ export default function usePersonTags({
         return { x, y, scale: groundPx(lon, lat) / centrePx };
       },
       kept: new Set(shown.current.map((t) => t.person.id)),
+      routine: routineEpoch === null ? undefined : { epoch: routineEpoch, ms: solarNowMs() },
     });
     // Same people as last time: keep the objects (so the layer keeps its text) and move them.
     const prev = shown.current;
@@ -80,7 +85,7 @@ export default function usePersonTags({
     return shown.current;
     // `frame` is the clock tick: it is what re-runs this as the walkers move.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, people, longitude, latitude, zoom, pitch, bearing, width, height, frame]);
+  }, [active, people, longitude, latitude, zoom, pitch, bearing, width, height, frame, routineEpoch]);
 
   return useMemo(
     () =>

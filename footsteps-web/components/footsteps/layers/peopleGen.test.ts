@@ -69,6 +69,14 @@ describe('people from head counts', () => {
     expect(d.title).toMatch(/^(A girl|A boy|A woman|A man), about \d+$/);
     expect(d.detail).toMatch(/in a band of about 31 people\. Footprints: [a-z ]+ \(imagined from era and climate\)\.$/);
   });
+
+  it('adds what they are doing now, labelled imagined, only when given the sun clock (?routine=1)', () => {
+    const adult = peopleForGroups([band]).find((p) => p.age >= 18)!;
+    const midnight = Date.UTC(2026, 2, 20, 0) - (band.lon / 15) * 3_600_000;
+    const d = describePerson(adult, midnight);
+    expect(d.detail).toContain('Now: asleep in the camp. Imagined: the pattern is modelled from time-use studies');
+    expect(describePerson(adult).detail).not.toContain('Now:');
+  });
 });
 
 describe('people between two data years', () => {

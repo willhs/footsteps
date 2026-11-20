@@ -22,6 +22,7 @@ import {
   PeopleLayer,
   footprintData,
   peopleForMorph,
+  routineProps,
   type MorphGroupInView,
   type Person,
 } from '../layers/people';
@@ -55,6 +56,7 @@ export default function useGridLayer({
   globe = false,
   season = 'off',
   households = false,
+  routineEpoch = null,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -70,6 +72,8 @@ export default function useGridLayer({
   season?: Season;
   /** `?settlements=1`: people stand in households of about 4-5 round their group's spot (layers/households.ts). */
   households?: boolean;
+  /** The daily routine's plan hour (lib/routine.ts `epochHour`), or null for the old always-the-same gait (`?routine=1`). */
+  routineEpoch?: number | null;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -325,10 +329,10 @@ export default function useGridLayer({
     () =>
       people
         ? (['steady', 'leaving', 'entering'] as const).map(
-            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]) }),
+            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch) }),
           )
         : [],
-    [people],
+    [people, routineEpoch],
   );
   const cityLayers = useMemo(() => {
     const cities = (unitsContinuous && morphScene

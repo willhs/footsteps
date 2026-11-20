@@ -14,7 +14,7 @@ import { BANDS_URL, bandStepKa, bandsAt, type Band, type BandsFile } from '@/lib
 import { populationAt } from '@/lib/time';
 import FireLayer, { FIRE_BLEND, fireRadius, fireVisibleFraction, peoplePerFire } from '../layers/FireLayer';
 import { viewBlend, viewBounds } from './peopleView';
-import { PeopleLayer, footprintData, peopleForGroups, type Person } from '../layers/people';
+import { PeopleLayer, footprintData, peopleForGroups, routineProps, type Person } from '../layers/people';
 import { UnitKind } from '../layers/units';
 
 // Lavender: cool like the evidence marks (blue, teal) but distinct; our own people are the warm colours.
@@ -84,6 +84,7 @@ export default function useOtherHumansLayer({
   globe = false,
   view,
   size,
+  routineEpoch = null,
 }: {
   enabled: boolean;
   time: number;
@@ -92,6 +93,8 @@ export default function useOtherHumansLayer({
   /** The flat map's view and screen size: which bands' people to walk at street zoom. */
   view?: { longitude: number; latitude: number; zoom: number };
   size?: { width: number; height: number };
+  /** The daily routine's plan hour, or null (`?routine=1`; see useGridLayer). */
+  routineEpoch?: number | null;
 }) {
   const [hover, setHover] = useState<OtherHumansHover | null>(null);
   const year = Math.round(time);
@@ -195,8 +198,8 @@ export default function useOtherHumansLayer({
   );
   const walkerLayer = useMemo(
     // The id starts with 'people', so a click picks a walker as it picks one of ours (FootstepsViz).
-    () => (walkers.length ? new PeopleLayer({ id: 'people-other-humans', data: footprintData(walkers) }) : null),
-    [walkers],
+    () => (walkers.length ? new PeopleLayer({ id: 'people-other-humans', data: footprintData(walkers), ...routineProps(routineEpoch) }) : null),
+    [walkers, routineEpoch],
   );
 
   const above = useMemo<LayersList>(

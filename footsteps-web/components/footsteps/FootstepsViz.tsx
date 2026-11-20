@@ -36,6 +36,7 @@ import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLay
 import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 import useSolarClock from './hooks/useSolarClock';
+import { epochHour, routineParam } from '@/lib/routine';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
@@ -110,6 +111,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [season, setSeason] = useState<Season>('off');
   const [nightOn, setNightOn] = useState(false);
   const now = useSolarClock();
+  // The daily routine (lib/routine.ts), ?routine=1: people sleep, stay at the hearth, play or go on trips by the sun clock.
+  // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
+  const [routineOn, setRoutineOn] = useState(false);
+  useEffect(() => setRoutineOn(routineParam(window.location.search)), []);
+  const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSeasonsEnabled(params.get('seasons') === '1');
@@ -191,6 +197,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     globe: is3DMode,
     view: viewState,
     size: typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight },
+    routineEpoch,
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
@@ -208,6 +215,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     globe: is3DMode,
     season,
     households: settlements,
+    routineEpoch,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -246,6 +254,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     size: screenSize,
     enabled: tagsOn && renderMode !== 'dots' && !is3DMode,
     peopleOpacity: blend.people,
+    routineEpoch,
   });
 
   const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
@@ -391,7 +400,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 placed: selectedGroup.kind !== UnitKind.Glow,
               }
             }
-            person={selectedPerson ? describePerson(selectedPerson) : null}
+            person={selectedPerson ? describePerson(selectedPerson, routineOn ? now.getTime() : undefined) : null}
             portrait={
               selectedPerson
                 ? { person: selectedPerson, year: Math.round(time), lat: selectedPerson.position[1] }

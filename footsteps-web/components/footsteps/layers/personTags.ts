@@ -3,6 +3,7 @@
 // from a typical population (people.ts). Which people, and where their tags sit, is decided
 // here from plain data; the hook (hooks/usePersonTags.ts) runs it a few times a second.
 import { newestPrint } from '@/lib/gait';
+import { localHourAt, planOf } from '@/lib/routine';
 import type { Person } from './people';
 
 /** Tags fade in over this zoom range (flat map; ~0.35 m per pixel at the top at 30°N). */
@@ -46,7 +47,9 @@ const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 &
 
 /** The tags to show for `people` now. `centre` is the view centre [lon, lat], `size` the screen in
  * pixels, `project` maps a place to the screen. `kept` are the people tagged last time: they are
- * considered first, so a tag does not wink out because a stranger came nearer the centre. */
+ * considered first, so a tag does not wink out because a stranger came nearer the centre.
+ * With `routine` (the daily routine, ?routine=1: its plan hour and the sun clock in ms) a tag follows its
+ * person along their day, so people away on a trip are found where the road has taken them. */
 export function chooseTags({
   people,
   clock,
@@ -55,6 +58,7 @@ export function chooseTags({
   project,
   kept = new Set<number>(),
   max = MAX_TAGS,
+  routine,
 }: {
   people: readonly Person[];
   clock: number;
@@ -63,6 +67,7 @@ export function chooseTags({
   project: Project;
   kept?: ReadonlySet<number>;
   max?: number;
+  routine?: { epoch: number; ms: number };
 }): Tag[] {
   const [cLon, cLat] = centre;
   const mPerDegLon = M_PER_DEG_LAT * Math.max(0.2, Math.cos((cLat * Math.PI) / 180));
@@ -73,8 +78,16 @@ export function chooseTags({
     const [lon, lat] = person.position;
     const dx = (lon - cLon) * mPerDegLon;
     const dy = (lat - cLat) * M_PER_DEG_LAT;
-    if (Math.abs(dx) > MAX_RANGE_M || Math.abs(dy) > MAX_RANGE_M) continue;
-    const position = newestPrint(person.position, person.gait, clock);
+    const plan = routine ? planOf(person, routine.epoch) : undefined;
+    // A person on a trip can be that far from their spot and still be in view.
+    const roam = plan?.away?.kind === 'trip' ? plan.away.dist : 0;
+    if (Math.abs(dx) > MAX_RANGE_M + roam || Math.abs(dy) > MAX_RANGE_M + roam) continue;
+    const position = newestPrint(
+      person.position,
+      person.gait,
+      clock,
+      plan && routine ? { plan, localHour: localHourAt(routine.ms, lon) } : undefined,
+    );
     const { x: px, y: py, scale } = project(position);
     if (px < 0 || py < 0 || px > size.width || py > size.height || scale < MIN_TAG_SCALE) continue;
     const text = tagText(person);

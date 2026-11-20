@@ -9,6 +9,8 @@ import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
 import { LOOKS } from '@/lib/waysOfLife';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
+import { WALK_MS, planAttributes, planOf, routineLine } from '@/lib/routine';
+import { solarNowMs } from '@/lib/solarClock';
 import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
 import { OTHER_HUMANS, type OtherHuman } from '@/lib/otherHumans';
 
@@ -231,7 +233,9 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number, lay
   }
 }
 
-export function describePerson(p: Person) {
+/** The person card's words. With `routineMs` (the sun clock, ms; `?routine=1`) it adds what they are doing now. */
+export function describePerson(p: Person, routineMs?: number) {
+  const now = routineMs === undefined ? '' : ` ${routineLine(p, routineMs)}`;
   const who =
     p.age < 13
       ? p.female
@@ -247,12 +251,12 @@ export function describePerson(p: Person) {
     const title = kind.adjective ? `A ${kind.adjective} ${noun}` : `A ${noun} of ${kind.name}`;
     return {
       title: `${title}, about ${p.age}`,
-      detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).`,
+      detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${now}`,
     };
   }
   return {
     title: `${who}, about ${p.age}`,
-    detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).`,
+    detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${now}`,
   };
 }
 
@@ -278,24 +282,67 @@ const peopleAnim = {
   name: 'peopleAnim',
   vs: /* glsl */ `uniform peopleAnimUniforms {
   float time;
+  float sunUtc;
+  float routine;
 } peopleAnim;
 `,
-  uniformTypes: { time: 'f32' },
+  uniformTypes: { time: 'f32', sunUtc: 'f32', routine: 'f32' },
 } as const;
 
 // Where print k of this person is, which way it points, and how strongly it shows.
-// KEEP IN SYNC with gaitAt() in lib/gait.ts: name tags follow the walker with that port, and
-// lib/gait.test.ts pins its values. The hash h arrives as an attribute (gaitSeed in gait.ts).
+// KEEP IN SYNC with gaitAt() / routineGaitAt() in lib/gait.ts and stateAt() in lib/routine.ts: name tags
+// follow the walker with that port, and lib/gait.test.ts pins its values. The hash h arrives as an
+// attribute (gaitSeed in gait.ts).
+//
+// With the daily routine on (?routine=1) the person's day arrives as two vec4 attributes (planAttributes in
+// lib/routine.ts) and the sun hour as a uniform. The day picks a style: 0 as before, 1 asleep (still), 2 playing
+// (a wide loop), 3 working at the end of a trip (a small, slow loop, offset to the destination); on the out
+// and back legs of a trip the person walks a straight road at WALK_MS (`transit`).
 const gait = /* glsl */ `
   float h = instanceGait;
+  float style = 0.0;
+  bool transit = false;
+  bool outward = true;
+  float legSec = 0.0;
+  float tripDist = instanceTrip.x;
+  vec2 heading = vec2(cos(instanceTrip.y), sin(instanceTrip.y));
+  vec2 base = vec2(0.0);
+  if (peopleAnim.routine > 0.5) {
+    float lh = mod(peopleAnim.sunUtc + instanceTrip.w, 24.0);
+    float u = lh < instanceDay.x ? lh + 24.0 : lh;
+    float tt = tripDist / (${WALK_MS.toFixed(1)} * 3600.0);
+    bool asleep = u >= instanceDay.y;
+    bool away = !asleep && u >= instanceDay.z && u < instanceDay.w;
+    if (asleep) {
+      style = 1.0;
+    } else if (away && tripDist > 0.0) {
+      if (u < instanceDay.z + tt) {
+        transit = true;
+        legSec = (u - instanceDay.z) * 3600.0;
+      } else if (u >= instanceDay.w - tt) {
+        transit = true;
+        outward = false;
+        legSec = (u - (instanceDay.w - tt)) * 3600.0;
+      } else {
+        style = 3.0;
+        base = heading * tripDist;
+      }
+    } else if (away && instanceTrip.z > 0.5) {
+      style = 2.0;
+    }
+  }
   // About three in ten are on the move a lot (a loop of up to ~25 m at 0.8-1.4 m/s); the rest
   // stand or sit at their spot and now and then take a few steps within a couple of metres.
-  float walker = step(0.7, h);
+  float walker = (style > 1.5 || (h >= 0.7 && style < 0.5)) ? 1.0 : 0.0;
   float reach = mix(1.0 + 1.5 * fract(h * 7.0), 8.0 + 16.0 * fract(h * 7.0), walker);
   float speed = mix(0.6, 0.8 + 0.6 * fract(h * 13.0), walker);
+  if (style > 2.5) {
+    reach = 4.0 + 8.0 * fract(h * 7.0);
+    speed = 0.5 + 0.4 * fract(h * 13.0);
+  }
   float w = speed / reach;
   float period = 25.0 + 70.0 * fract(h * 17.0);
-  float walkFrac = mix(0.1, 0.5 + 0.35 * fract(h * 19.0), walker);
+  float walkFrac = (style > 0.5 && style < 1.5) ? 0.0 : mix(0.1, 0.5 + 0.35 * fract(h * 19.0), walker);
   // Walked time: the clock runs only while walking, so the path is continuous through stops.
   float t = peopleAnim.time + h * 977.0;
   float cyc = floor(t / period);
@@ -303,6 +350,11 @@ const gait = /* glsl */ `
   float walkT = walkFrac * period;
   float s = cyc * walkT + min(within, walkT);
   bool moving = within < walkT;
+  if (transit) {
+    speed = ${WALK_MS.toFixed(1)};
+    s = legSec;
+    moving = true;
+  }
   float stepT = 0.7 / speed; // a ~0.7 m step
   float n = floor(s / stepT);
   float phase = fract(s / stepT);
@@ -310,8 +362,14 @@ const gait = /* glsl */ `
   float sk = moving ? (n - k + 0.5) * stepT : s;
   float a1 = sk * w + h * 6.2832;
   float a2 = sk * w * 0.8 + h * 3.7;
-  vec2 m = reach * vec2(sin(a1), cos(a2));
+  vec2 m = base + reach * vec2(sin(a1), cos(a2));
   vec2 dir = normalize(vec2(cos(a1), -0.8 * sin(a2)) + 1e-4);
+  if (transit) {
+    float along = (n - k + 0.5) * 0.7;
+    along = clamp(outward ? along : tripDist - along, 0.0, tripDist);
+    m = heading * along;
+    dir = outward ? heading : -heading;
+  }
   float side = mod(n - k, 2.0) < 0.5 ? 1.0 : -1.0;
   vFoot = side;
   vShoe = instanceShoe;
@@ -353,10 +411,28 @@ const shapeFootprint = /* glsl */ `
   }
 `;
 
-type Props = ScatterplotLayerProps<unknown>;
+/** Extra props: the daily routine (lib/routine.ts), off unless `routine` is set. Build them with `routineProps`. */
+type RoutineProps = {
+  routine?: boolean;
+  getDay?: (p: unknown) => [number, number, number, number];
+  getTrip?: (p: unknown) => [number, number, number, number];
+};
+type Props = ScatterplotLayerProps<unknown> & RoutineProps;
 const as = (p: unknown) => p as Person;
 
-export class PeopleLayer extends ScatterplotLayer<unknown> {
+/** The props that turn the daily routine on for a PeopleLayer, for the plans of hour `epoch` (`epochHour`);
+ * `null` leaves the layer as it was. Plans are cached on the person, so the three prints share one. */
+export function routineProps(epoch: number | null): RoutineProps & { updateTriggers?: Record<string, unknown> } {
+  if (epoch === null) return {};
+  return {
+    routine: true,
+    getDay: (p) => planAttributes(planOf(as(p), epoch)).day,
+    getTrip: (p) => planAttributes(planOf(as(p), epoch)).trip,
+    updateTriggers: { getDay: epoch, getTrip: epoch },
+  };
+}
+
+export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
   static layerName = 'PeopleLayer';
   static defaultProps: DefaultProps<Props> = {
     ...ScatterplotLayer.defaultProps,
@@ -374,6 +450,9 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
     getShoe: { type: 'accessor', value: (p: unknown) => as(p).footwear },
     getPrint: { type: 'accessor', value: (_: unknown, { index }: { index: number }) => index % PRINTS },
     getGait: { type: 'accessor', value: (p: unknown) => as(p).gait },
+    getDay: { type: 'accessor', value: [0, 0, 0, 0] },
+    getTrip: { type: 'accessor', value: [0, 0, 0, 0] },
+    routine: false,
     pickable: true,
   } as DefaultProps<Props>;
 
@@ -387,6 +466,8 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
       },
       instanceShoe: { size: 1, accessor: 'getShoe', defaultValue: 0 },
       instanceGait: { size: 1, accessor: 'getGait', defaultValue: 0 },
+      instanceDay: { size: 4, accessor: 'getDay', defaultValue: [0, 0, 0, 0] },
+      instanceTrip: { size: 4, accessor: 'getTrip', defaultValue: [0, 0, 0, 0] },
     });
   }
 
@@ -397,7 +478,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
       modules: [...shaders.modules, peopleAnim],
       inject: {
         ...shaders.inject,
-        'vs:#decl': 'in float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
+        'vs:#decl': 'in float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nin vec4 instanceDay;\nin vec4 instanceTrip;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
         // Lying on the ground: turn the quad to the walking direction, set the foot a little to
         // its side of the path, and move it along the path in metres.
         'vs:DECKGL_FILTER_SIZE': `${gait}
@@ -415,7 +496,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown> {
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({
-      peopleAnim: { time: animClock() },
+      peopleAnim: { time: animClock(), sunUtc: (solarNowMs() / 3_600_000) % 24, routine: this.props.routine ? 1 : 0 },
     });
     super.draw(params);
   }

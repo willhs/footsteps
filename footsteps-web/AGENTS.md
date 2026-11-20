@@ -77,6 +77,15 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   tilted view draws smaller than `MIN_TAG_SCALE`); `hooks/usePersonTags.ts` re-runs it every 200 ms and rewrites positions only
   (the TextLayer keeps its text while the same people are tagged). Only people present at both data years get tags. `?tags=0`
   turns them off (compare frame rates; measured ~140 fps both ways at zoom 17.5, flat and 3D, in a 1500 CE village on an M-series Mac).
+- Daily routine (`?routine=1`, off by default until reviewed on prod; `lib/routine.ts`, docs/ops/routine.md): each person at street zoom is asleep, at the hearth,
+  playing (children 5-12) or away on a trip (gathering, hunting, fishing, fields, herding, water and wood, visiting another camp) by the *local sun time*
+  (`lib/sunTime.ts`; today's date and clock, the slider's year has none). A `DayPlan` per person per sun-clock hour (`planOf`, seeded by the spot hash `Person.gait`, not the id)
+  reaches the footprint shader as two vec4 attributes (`routineProps` in `layers/people.ts`) and the shader runs `stateAt` itself per print (asleep = still, paired feet; out/back = straight road at 1.2 m/s; there = small loop
+  at the destination). **`stateAt`/`routineGaitAt` (TS) and the `gait` GLSL are one piece of maths: change both** (`lib/gait.test.ts`, `lib/routine.test.ts` pin values).
+  Name tags follow people along their trips (`chooseTags` `routine`), the person card adds "Now: gathering, about 2 km from camp. Imagined: …" (`describePerson(p, ms)`).
+  Pattern modelled from time-use studies (hours in `lib/routine.ts` must equal `time_use.yaml`; a test reads `time_use.json`), this person's day imagined; sources and what is assumed are in docs/ops/routine.md.
+  `?utc=6.5` starts the sun clock at 06:30 UTC and `?warp=60` speeds it up (`lib/solarClock.ts`; also moves the stats panel's sun time and the Day/night shading), for checking day and night.
+  Our own and other kinds of human both use it; totals, ids and positions per group are untouched. Existing behaviour found while checking: a band whose cell holds fewer than 15 people draws no individuals at street zoom (`peopleDrawn`), e.g. the Kalahari in 1800 CE.
 - `components/ui/TimeBar.tsx`: time navigation, one fixed log-of-years-ago track. Its scale, key steps,
   typed-year parsing and speed-based fine drag live in `lib/timeScale.ts` (tested); the readout above it is
   `TimeReadout.tsx`. `?bar=old` still shows the previous two-strip `TimeNavigator.tsx` for comparison:

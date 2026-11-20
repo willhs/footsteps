@@ -32,6 +32,14 @@ export function solarAltitude(lon: number, lat: number, sun: SunPosition): numbe
     + Math.cos(lat * rad) * Math.cos(sun.declination * rad) * Math.cos((lon - sun.longitude) * rad);
 }
 
+/** Hours between sunrise and sunset at a latitude, for a solar declination in degrees (0 to 24;
+ * 0 in polar night, 24 in midnight sun). Geometric: no refraction, upper limb or twilight. */
+export function dayLengthHours(lat: number, declination: number): number {
+  const rad = Math.PI / 180;
+  const c = -Math.tan(lat * rad) * Math.tan(declination * rad);
+  return c >= 1 ? 0 : c <= -1 ? 24 : (24 / Math.PI) * Math.acos(c);
+}
+
 /** Rough part of the day, from the sun's local hour (equinox-like; ignores latitude and season). */
 export function partOfDay(hours: number): string {
   if (hours < 5) return 'night';

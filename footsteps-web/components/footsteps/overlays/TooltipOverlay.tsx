@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import PopulationTooltip from './PopulationTooltip';
 
 export interface TooltipData {
   population: number;
@@ -12,6 +11,7 @@ export interface TooltipData {
 }
 
 interface TooltipContextValue {
+  tooltipData: TooltipData | null;
   setTooltipData: (data: TooltipData | null) => void;
 }
 
@@ -25,17 +25,18 @@ export function useTooltipOverlay() {
   return ctx.setTooltipData;
 }
 
+/** The clicked dot's data, drawn in the left column by FootstepsViz (no floating popup). */
+export function useTooltipData() {
+  const ctx = useContext(TooltipContext);
+  if (!ctx) throw new Error('useTooltipData must be used within TooltipOverlay');
+  return ctx.tooltipData;
+}
+
 export default function TooltipOverlay({ children }: { children: ReactNode }) {
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
 
   return (
-    <TooltipContext.Provider value={{ setTooltipData }}>
-      {children}
-      <PopulationTooltip
-        data={tooltipData}
-        onClose={() => setTooltipData(null)}
-      />
-    </TooltipContext.Provider>
+    <TooltipContext.Provider value={{ tooltipData, setTooltipData }}>{children}</TooltipContext.Provider>
   );
 }
 

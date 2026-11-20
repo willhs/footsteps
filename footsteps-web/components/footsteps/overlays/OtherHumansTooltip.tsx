@@ -1,14 +1,11 @@
 import { lastSeenLabel, siteAgeLabel } from '@/lib/otherHumans';
 import type { OtherHumansHover } from '../hooks/useOtherHumansLayer';
 
-/** A hovered site (name, age, find, source) or guessed band of another kind of human. */
+/** A hovered site (name, age, find, source) or guessed band of another kind of human, shown in the left column. */
 export default function OtherHumansTooltip({ hover }: { hover: OtherHumansHover | null }) {
   if (!hover) return null;
   return (
-    <div
-      className="ov-panel pointer-events-none absolute z-30 max-w-[300px] px-3 py-2"
-      style={{ left: hover.x + 12, top: hover.y + 12 }}
-    >
+    <div className="ov-panel pointer-events-none shrink-0 px-3.5 py-3" data-testid="other-humans-info">
       {hover.kind === 'site' ? <Site site={hover.site} /> : <Band band={hover.band} />}
     </div>
   );

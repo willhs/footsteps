@@ -9,7 +9,8 @@ import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
 import VizToggles from '@/components/ui/VizToggles';
 import ControlRow from '@/components/ui/ControlRow';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
-import TooltipOverlay, { useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
+import TooltipOverlay, { useTooltipData, useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
+import PopulationTooltip from './overlays/PopulationTooltip';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
@@ -89,6 +90,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // mixes the two data years either side of `time`.
   const year = nearestDataYear(time);
   const setTooltipData = useTooltipOverlay();
+  const tooltipData = useTooltipData();
 
   // Everything the browser alone knows (query string, cookie) is applied after mount: the static HTML
   // and the first client render both use these defaults, or React throws hydration error #418.
@@ -214,7 +216,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // (to reach the legend or "About the data") there is no card, so the legend comes back.
   const columnRef = useRef<HTMLDivElement | null>(null);
   const columnRight = columnRef.current?.getBoundingClientRect().right ?? 0;
-  const cardPoint = hoverCard && hoverPoint && hoverPoint.x > columnRight + 8 ? hoverPoint : null;
+  const onMap = (x: number) => x > columnRight + 8;
+  // One thing at a time in the column: a hovered site, band or evidence mark beats the place card under it.
+  const evidenceHover = evidenceOn && evidence.hover && onMap(evidence.hover.x) ? evidence.hover : null;
+  const otherHover = !evidenceHover && otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
+  const cardPoint = hoverCard && !evidenceHover && !otherHover && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
+  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || tooltipData);
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
@@ -296,8 +303,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         }}
       />
 
-      {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
-      <OtherHumansTooltip hover={otherHumans.hover} />
 
       {/* Data info overlay */}
       <SupportingText
@@ -395,12 +400,15 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           <SettlementNote season={season} />
         )}
         {/* Hover card, docked here rather than following the cursor; the details panel takes its place while open. */}
+        {tooltipData && <PopulationTooltip data={tooltipData} onClose={() => setTooltipData(null)} />}
+        {evidenceHover && <EvidenceTooltip hover={evidenceHover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
+        {otherHover && <OtherHumansTooltip hover={otherHover} />}
         {cardPoint && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 
         {/* Legend: hidden while the details panel or the hover card is up, which need the height. */}
-        {peopleView && !selectedPlace && !cardPoint ? (
+        {peopleView && !selectedPlace && !columnBusy ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (

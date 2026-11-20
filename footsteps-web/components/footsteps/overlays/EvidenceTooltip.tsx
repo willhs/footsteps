@@ -2,7 +2,7 @@ import { homininLabel, sampleCaveats, type AadrDoc } from '@/lib/aadr';
 import { formatYearRange, type EvidenceDoc } from '@/lib/evidence';
 import type { EvidenceHover } from '../hooks/useEvidenceLayer';
 
-/** Name, date range and source of the hovered dated site (or the count for a bunch). */
+/** Name, date range and source of the hovered dated site (or the count for a bunch), shown in the left column. */
 export default function EvidenceTooltip({
   hover,
   doc,
@@ -24,10 +24,7 @@ export default function EvidenceTooltip({
       : null;
   const ref = s && s.r >= 0 ? (doc?.refs[s.r] ?? null) : null;
   return (
-    <div
-      className="ov-panel pointer-events-none absolute z-30 max-w-[280px] px-3 py-2"
-      style={{ left: hover.x + 12, top: hover.y + 12 }}
-    >
+    <div className="ov-panel pointer-events-none shrink-0 px-3.5 py-3" data-testid="evidence-info">
       <p className="ov-eyebrow">
         Measured evidence ·{' '}
         {hover.kind === 'dna' ? 'Ancient DNA (AADR)' : 'Radiocarbon (p3k14c)'}

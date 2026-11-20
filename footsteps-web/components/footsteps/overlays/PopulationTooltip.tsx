@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { getTooltipPosition, formatCoordinates } from './tooltipUtils';
+import { formatCoordinates } from './tooltipUtils';
 import { getPopulationScale } from '@/lib/format';
 import type { TooltipData } from './TooltipOverlay';
 import { CloseIcon } from '@/components/ui/icons';
@@ -12,7 +12,7 @@ interface PopulationTooltipProps {
 }
 
 /**
- * Minimalist tooltip for displaying population data when clicking on dots.
+ * Population at a clicked dot (Dots mode), shown in the left column.
  * Follows the established design philosophy of data-driven minimalism.
  */
 export default function PopulationTooltip({
@@ -56,27 +56,16 @@ export default function PopulationTooltip({
 
   if (!data) return null;
 
-  const position = getTooltipPosition(data.clickPosition);
   const populationScale = getPopulationScale(data.population);
 
   const roundedPopulation = Math.round(data.population);
   const populationLabel = roundedPopulation === 1 ? 'person' : 'people';
 
   return (
-    <>
-      {/* Tooltip (hover-friendly: container doesn't capture pointer events) */}
-      <div
-        className={`fixed pointer-events-none transition-all duration-200 ease-out z-50 ${
-          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-        }`}
-        style={{
-          left: `${position.left}px`,
-          top: `${position.top}px`,
-          minWidth: '220px',
-          maxWidth: '260px',
-        }}
-      >
-        <div className="ov-panel ov-panel-strong pointer-events-auto">
+        <div
+          className={`ov-panel ov-panel-strong pointer-events-auto shrink-0 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+          data-testid="population-info"
+        >
           {/* Population (primary) */}
           <div className="mb-2">
             <div className="text-3xl font-semibold text-[var(--ov-amber)] leading-none tracking-tight">
@@ -114,7 +103,5 @@ export default function PopulationTooltip({
             {formatCoordinates(data.coordinates)}
           </div>
         </div>
-      </div>
-    </>
   );
 }

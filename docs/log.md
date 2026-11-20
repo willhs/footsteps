@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | No floating pop-ups: the left column shows what is hovered or selected
+
+Will: no hover modal, just the left info panel for whatever is hovered or selected. The other-human site/band card (`OtherHumansTooltip`), the dated-evidence card (`EvidenceTooltip`, `?evidence=1`) and the Dots click popup (`PopulationTooltip`, now read through `useTooltipData`) render in the left column instead of at the cursor. One at a time: a hovered site, band or mark beats the place card; over the column itself nothing is hovered, so the legend returns. `getTooltipPosition` is gone.
+
 ## [2026-11-20] change | Other kinds of human drawn like our own people
 
 Will saw sparkling fires for our people and static triangles with name labels for Neanderthals, and asked for them not to differ in so many ways. The bands now use the people's own `FireLayer` sprite, size and flicker, thinned far out by the same people-per-fire and zoom rule (`peoplePerFire`, `fireVisibleFraction`; all bands from the groups zoom), so colour is the only difference. The shapes (▲ ■ ✦ ★) and the name labels are gone; the hover card names the species and when it was last seen. `docs/ops/other-humans.md` "Bands".

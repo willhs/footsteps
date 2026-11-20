@@ -118,6 +118,8 @@ export function terrariumHeights(rgba: Uint8ClampedArray): Float32Array {
   return out;
 }
 
+import type { LakePlane } from './pastWater';
+
 export type Bbox = { west: number; south: number; east: number; north: number };
 type Rgb = [number, number, number];
 
@@ -254,6 +256,24 @@ export function tileWater(heights: Float32Array, sea: number, step = 4): { n: nu
   return { n, water: openWater(below, n) };
 }
 
+/** Vertices of a tile's grid (`step` pixels apart, as tileWater) that are the modelled lake (`?pastwater=1`): inside the shared lake mask AND
+ * below the lake's plane. The mask says where the basin-connected lake is, the DEM says where the water stands: a vertex above the plane
+ * in the mask is an island or the shore, one below it outside the mask is a dry basin the lake never reached. The plane is `lake.level` on
+ * the DEM's own datum, not the year's ocean. */
+export function lakeVertices(heights: Float32Array, bbox: Bbox, lake: LakePlane, step = 4): Uint8Array {
+  const size = 256;
+  const n = size / step + 1;
+  const out = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++) {
+    const lat = bbox.north - ((bbox.north - bbox.south) * j) / (n - 1);
+    for (let i = 0; i < n; i++) {
+      const h = heights[Math.min(size - 1, j * step) * size + Math.min(size - 1, i * step)];
+      if (h < lake.level && lake.wetAt(bbox.west + ((bbox.east - bbox.west) * i) / (n - 1), lat)) out[j * n + i] = 1;
+    }
+  }
+  return out;
+}
+
 /** Wet low ground (reeds, pools): land less than this many metres above the year's sea level... */
 const WET_MAX_HEIGHT = 5;
 /** ...and flatter than this (m/m). */
@@ -290,8 +310,9 @@ export type TerrainMesh = {
 
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
- * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. */
-export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false): TerrainMesh {
+ * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. With `lake`, the
+ * modelled lake's vertices (lakeVertices) are open water flat at the lake's own level, and low ground by it is shore relative to that level, not the sea's. */
+export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
   const { west, south, east, north } = bbox;
@@ -308,11 +329,14 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   // Heights per vertex, then which below-sea vertices are open water and which land is on its shore.
   const hv = new Float32Array(n * n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) hv[j * n + i] = at(i * step, j * step);
-  const { water } = tileWater(heights, sea, step);
+  const ocean = tileWater(heights, sea, step).water;
+  const lakeWater = lake ? lakeVertices(heights, bbox, lake, step) : null;
+  const water = lakeWater ? ocean.map((w, v) => (w || lakeWater[v] ? 1 : 0)) : ocean;
   const shore = nearWater(water, n);
+  const nearLake = lakeWater ? nearWater(lakeWater, n) : null;
   const surfaceAt = (i: number, j: number) => {
     const v = Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i));
-    return water[v] ? sea : hv[v];
+    return lakeWater?.[v] ? lake!.level : water[v] ? sea : hv[v];
   };
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -320,6 +344,8 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       const h = hv[v];
       const wet = water[v] === 1;
       const surface = surfaceAt(i, j);
+      // The level water stands at here: the lake's plane at and beside the lake, else the year's sea.
+      const level = nearLake?.[v] ? lake!.level : sea;
       // Slope from neighbours, in metres per metre, on the drawn surface.
       const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j)) / (2 * dxM);
       const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1)) / (2 * dyM); // +y is north
@@ -335,10 +361,10 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       normals[v * 3 + 1] = ny / len;
       normals[v * 3 + 2] = 1 / len;
       const slope = Math.hypot(hx, hy);
-      let c = groundColour(h, slope, sea, lon, lat, ground, base, wet, shore[v] === 1);
+      let c = groundColour(h, slope, level, lon, lat, ground, base, wet, shore[v] === 1);
       if (texCoords) {
         const biome = ground.biomeAt(lon, lat);
-        const lowFlat = !wet && h - sea < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
+        const lowFlat = !wet && h - level < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
         const cv = wet
           ? { dryCold: 1, layer: COVER_WATER }
           : coverFor(biome, snowMix(h, lon, lat, ground, base), lowFlat);

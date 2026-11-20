@@ -89,6 +89,8 @@ export default function useGridLayer({
 }): {
   layers: LayersList;
   grid: GridData | null;
+  /** `?pastwater=1`: groups the model could not place at this year (all lake), or undefined when it did not run. */
+  unresolved: YearGrid['units']['unresolved'];
   blend: ViewBlend;
   /** Data years being fetched/decoded for what's on screen, or null when ready. */
   loading: [number, number] | null;
@@ -460,6 +462,7 @@ export default function useGridLayer({
   return {
     layers: [...layerList, ...cityLayers],
     grid: enabled && grid?.year === year ? grid.data : null,
+    unresolved: enabled && grid?.year === year ? grid.units.unresolved : undefined,
     blend,
     loading: unitsWaiting ? [y0, y1] : null,
     people: people?.steady ?? NO_PEOPLE,

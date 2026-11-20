@@ -7,6 +7,7 @@ import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
 import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { seaLevelAt } from '@/lib/climate';
+import { loadPastWater, NO_EPOCH, pastWaterEpoch, type PastWaterLayers } from '@/lib/pastWater';
 import { landSubcells, type TerrainSea } from './landSubcells';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
@@ -38,7 +39,7 @@ export type PointBuffers = {
 export type YearGrid = {
   year: number;
   data: GridData;
-  units: Pick<Units, 'length' | 'counts'>;
+  units: Pick<Units, 'length' | 'counts' | 'unresolved'>;
   gridPoints: PointBuffers;
   cities?: AllocatedCity[];
 };
@@ -121,11 +122,11 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
-  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null; dwellings?: DwellingTable | null },
+  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null; dwellings?: DwellingTable | null; epoch?: number },
 ): DecodedYearGrid {
   const allocation = settlement ? allocateCities(data, settlement.catalog.cities, year) : null;
   const units = settlement && allocation
-    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites, settlement.dwellings)
+    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites, settlement.dwellings, settlement.epoch ?? NO_EPOCH)
     : buildUnits(
     data.cellIds,
     data.positions,
@@ -196,10 +197,11 @@ function loadSiteTerrain() {
 
 /** The baked terrain and water-distance images behind group placement (siteRanking.ts). Without them groups keep the old
  * invented positions: a failed fetch never loses the people. One ranker per worker, so its per-cell cache outlives each year. */
-let siteRanker: Promise<SiteRanker | null> | undefined;
-function loadSiteRanker(): Promise<SiteRanker | null> {
-  if (!siteRanker) {
-    siteRanker = Promise.all([
+const siteRankers = new Map<boolean, Promise<SiteRanker | null>>(); // with and without the past-water layers (`?pastwater=1`), so each keeps its own per-cell cache
+function loadSiteRanker(pastWater: PastWaterLayers | null): Promise<SiteRanker | null> {
+  let ranker = siteRankers.get(pastWater !== null);
+  if (!ranker) {
+    ranker = Promise.all([
       loadSiteTerrain(),
       readChannels('/water/water_distance.webp', 'Water distance', [0]),
     ]).then(([t, w]) => {
@@ -207,13 +209,15 @@ function loadSiteRanker(): Promise<SiteRanker | null> {
       return createSiteRanker({
         terrain: t.terrain,
         water: { width: w.width, height: w.height, code: w.planes[0] },
+        pastWater,
       }, HYDE_WIDTH);
     }).catch((error) => {
       console.warn('[grid] no site terrain; groups keep their old positions', error);
       return null;
     });
+    siteRankers.set(pastWater !== null, ranker);
   }
-  return siteRanker;
+  return ranker;
 }
 
 /** The cells of one year from its decoded population image (and HYDE land use, when there is one).
@@ -291,7 +295,9 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }
 
-export async function decodeYearGrid(year: number, settlements = false, sites = true): Promise<DecodedYearGrid> {
+export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false): Promise<DecodedYearGrid> {
+  // `?pastwater=1`: the lake patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
+  const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the Mega-Chad scenario is not applied', error); return null; }) : null;
   const [pixels, landUse, sea] = await Promise.all([
     readPixels(gridUrl(year), `Grid ${year}`),
     readLandUse(year),
@@ -303,7 +309,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
     settlements ? {
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
-      sites: sites ? await loadSiteRanker() : null,
+      sites: sites ? await loadSiteRanker(lake) : null,
+      epoch: lake ? pastWaterEpoch(year) : NO_EPOCH,
       // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
       dwellings: await loadDwellings().catch(() => null),
     } : undefined,

@@ -239,3 +239,116 @@ test('without a ranker the builder keeps its old positions', () => {
   const data = cells([120, 60], [INLAND_CELL, INLAND_CELL + 1]);
   expect(buildSettlementUnits(data, catalog(), 0, null, null).positions).toEqual(buildSettlementUnits(data, catalog(), 0, null).positions);
 });
+
+// --- past water (?pastwater=1) ----------------------------------------------------------------------------------------------
+// The inland cell (row 1, col 6; terrain pixels x 12-13, y 2-3) is inside a modelled lake. The scenario epoch is 1; 0 means none.
+
+const EPOCH = 1;
+/** The lake over `pixels` (x, y) of the terrain grid, and (optionally) cells of the distance grid whose code the patch sets to 0. */
+function withLake(pixels: [number, number][], waterCells: [number, number][] = [], seaUntilPixel = 9): SiteLayers {
+  const base = world(undefined, seaUntilPixel);
+  const xs = pixels.map(([x]) => x);
+  const ys = pixels.map(([, y]) => y);
+  const lake = { x0: Math.min(...xs), y0: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) + 1, height: Math.max(...ys) - Math.min(...ys) + 1, wet: new Uint8Array(0) };
+  lake.wet = new Uint8Array(lake.width * lake.height);
+  for (const [x, y] of pixels) lake.wet[(y - lake.y0) * lake.width + (x - lake.x0)] = 1;
+  const wx = waterCells.map(([c]) => c);
+  const wy = waterCells.map(([, r]) => r);
+  const patch = waterCells.length
+    ? { x0: Math.min(...wx), y0: Math.min(...wy), width: Math.max(...wx) - Math.min(...wx) + 1, height: Math.max(...wy) - Math.min(...wy) + 1, code: new Uint8Array(0) }
+    : { x0: 6, y0: 1, width: 1, height: 1, code: new Uint8Array(0) }; // static distances everywhere (the patch has none to give)
+  patch.code = new Uint8Array(patch.width * patch.height).fill(255);
+  for (const [c, r] of waterCells) patch.code[(r - patch.y0) * patch.width + (c - patch.x0)] = 0;
+  return { ...base, pastWater: { lake, water: patch } };
+}
+// the lake over the cell and its neighbours (pixels x 10-15, y 0-5): a spot's bilinear reach is a pixel, so only a lake that goes past the cell wets all of it
+const LAKE_ALL: [number, number][] = Array.from({ length: 36 }, (_, i) => [10 + (i % 6), Math.floor(i / 6)]);
+
+test('with no epoch, a ranker given the past water is the ranker without it', () => {
+  const plain = createSiteRanker(world(), CELLS);
+  const wet = createSiteRanker(withLake(LAKE_ALL), CELLS);
+  for (let cell = 0; cell < CELLS * 4; cell++) expect(snap(wet.spotsFor(cell, 0))).toEqual(snap(plain.spotsFor(cell, 0)));
+  expect(wet.spotsFor(INLAND_CELL, 0).unresolved).toBeFalsy();
+});
+
+test('in the epoch a cell the lake covers has nothing usable: unresolved, and wet everywhere', () => {
+  const ranker = createSiteRanker(withLake(LAKE_ALL), CELLS);
+  const spots = ranker.spotsFor(INLAND_CELL, 0, CANDIDATES, EPOCH);
+  expect(spots.dry).toBe(0);
+  expect(spots.unresolved).toBe(true);
+  expect(ranker.isWet(INLAND_CELL, 0, 0, 0, EPOCH)).toBe(true);
+  expect(ranker.isWet(INLAND_CELL, 0, 0, 0)).toBe(false); // the same point with no epoch is dry land
+});
+
+test('an epoch change re-ranks a cached cell even though the sea level did not change', () => {
+  const ranker = createSiteRanker(withLake(LAKE_ALL), CELLS);
+  const dry = snap(ranker.spotsFor(INLAND_CELL, -5)); // a cell with no sea anywhere around it: its list is the same at every sea level
+  expect(dry.dry).toBe(CANDIDATES);
+  expect(ranker.spotsFor(INLAND_CELL, -5, CANDIDATES, EPOCH).unresolved).toBe(true);
+  expect(snap(ranker.spotsFor(INLAND_CELL, -5))).toEqual(dry); // and back: the no-epoch list again
+  expect(ranker.spotsFor(INLAND_CELL, -5).unresolved).toBeFalsy();
+});
+
+test('a partly lake cell keeps its groups on the dry side', () => {
+  const ranker = createSiteRanker(withLake([[12, 2], [12, 3]]), CELLS); // the west half of the cell
+  const spots = ranker.spotsFor(INLAND_CELL, 0, CANDIDATES, EPOCH);
+  expect(spots.unresolved).toBe(false);
+  expect(spots.dry).toBeGreaterThan(0);
+  expect(spots.dry).toBeLessThan(CANDIDATES);
+  for (let k = 0; k < spots.dry; k++) {
+    expect(ranker.isWet(INLAND_CELL, spots.x[k], spots.y[k], 0, EPOCH)).toBe(false);
+    expect(spots.x[k]).toBeGreaterThan(-0.1);
+  }
+});
+
+test('cells outside the past-water region are exactly as without it, at any epoch', () => {
+  const plain = createSiteRanker(world(), CELLS);
+  const wet = createSiteRanker(withLake(LAKE_ALL), CELLS);
+  for (const cell of [0, 1, CELLS, CELLS + 1, 2 * CELLS + 1, 3 * CELLS]) {
+    expect(wet.inPastWater(cell)).toBe(false);
+    expect(snap(wet.spotsFor(cell, 0, CANDIDATES, EPOCH))).toEqual(snap(plain.spotsFor(cell, 0)));
+  }
+  expect(wet.inPastWater(INLAND_CELL)).toBe(true);
+});
+
+test('the distance patch replaces the static distances inside its cells only', () => {
+  const none = createSiteRanker(world(), CELLS);
+  const ranker = createSiteRanker(withLake([[12, 2]], [[6, 1]]), CELLS); // the cell's own distance cell now holds water
+  const off = snap(none.spotsFor(INLAND_CELL, 0));
+  const noEpoch = snap(ranker.spotsFor(INLAND_CELL, 0));
+  expect(noEpoch).toEqual(off); // the patch is only read in the epoch
+  const on = ranker.spotsFor(INLAND_CELL, 0, CANDIDATES, EPOCH);
+  expect(snap(on)).not.toEqual(off);
+  // water at the cell's own centre beats water 2,000 km away: its best spots lie nearer the centre than its worst
+  const reach = (k: number) => Math.max(Math.abs(on.x[k]), Math.abs(on.y[k]));
+  expect((reach(0) + reach(1) + reach(2)) / 3).toBeLessThan((reach(on.dry - 1) + reach(on.dry - 2) + reach(on.dry - 3)) / 3);
+});
+
+test('the builder keeps lake groups out, counts them, and keeps every other group and every person it was given', () => {
+  const data = cells([300, 200], [INLAND_CELL, 3 * CELLS]); // a lake cell and a dry one far from it (all land: no sea in this world)
+  const layers = withLake(LAKE_ALL, [], 0);
+  const ranker = createSiteRanker(layers, CELLS);
+  const without = buildSettlementUnits(data, catalog(), -6000, null, ranker);
+  const wet = buildSettlementUnits(data, catalog(), -6000, null, ranker, null, EPOCH);
+  const inLake = (id: number) => id >> 5 === INLAND_CELL;
+  expect(Array.from(without.ids).some(inLake)).toBe(true);
+  expect(Array.from(wet.ids).some(inLake)).toBe(false);
+  expect(wet.unresolved?.people).toBeCloseTo(300, 3);
+  expect(wet.unresolved?.groups).toBe(without.length - wet.length);
+  expect(wet.unresolved?.groups).toBeGreaterThan(0);
+  expect(sum(wet.people) + (wet.unresolved?.people ?? 0)).toBeCloseTo(data.total, 2); // nothing vanished: placed + unresolved = the cells' people
+  expect(data.total).toBe(500); // the cells themselves are untouched
+  expect(without.unresolved).toBeUndefined();
+  // the dry cell's groups are the ones the no-epoch build placed
+  const dryOnly = (u: typeof wet) => Array.from(u.ids).map((id, i) => [id, u.positions[i * 2], u.positions[i * 2 + 1]]).filter(([id]) => !inLake(id));
+  expect(dryOnly(wet)).toEqual(dryOnly(without));
+});
+
+test('an epoch with no lake patch changes nothing and reports no unresolved groups', () => {
+  const data = cells([300], [INLAND_CELL]);
+  const ranker = createSiteRanker(world(), CELLS);
+  const a = buildSettlementUnits(data, catalog(), -6000, null, ranker);
+  const b = buildSettlementUnits(data, catalog(), -6000, null, ranker, null, EPOCH);
+  expect(b.positions).toEqual(a.positions);
+  expect(b.unresolved).toEqual({ groups: 0, people: 0 });
+});

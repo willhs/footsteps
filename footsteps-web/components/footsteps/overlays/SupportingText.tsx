@@ -37,6 +37,8 @@ interface Props {
   is3DMode?: boolean; // For debugging which mode is active
   year: number; // Current year being rendered
   close3d?: boolean; // the tilted 3D close-up is on screen
+  /** `?pastwater=1`: what the Mega-Chad scenario says at this date and mode (lib/pastWater.ts `pastWaterNote`); null when the flag is off. */
+  pastWater?: { label: string; title: string } | null;
 }
 
 /** Close in, the map runs on today's clock: the time of day where you are looking. */
@@ -62,6 +64,7 @@ function SupportingText({
   progressiveRenderStatus,
   year,
   close3d = false,
+  pastWater = null,
   now,
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
@@ -279,6 +282,11 @@ function SupportingText({
 
       {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
         <SunTime lon={viewState.longitude} lat={viewState.latitude} now={now} />
+      )}
+      {pastWater && (
+        <div className="ov-note mt-0.5" data-testid="pastwater-note" title={pastWater.title}>
+          {pastWater.label}
+        </div>
       )}
       {close3d && (
         <div

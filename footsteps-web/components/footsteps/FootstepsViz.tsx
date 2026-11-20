@@ -44,6 +44,7 @@ import { sunPosition } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
+import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
 import { shelterHoverOf, type ShelterHover } from './layers/Close3DLayer';
@@ -120,6 +121,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
   const [figures, setFigures] = useState(false);
   useEffect(() => setFigures(new URLSearchParams(window.location.search).get('figures') === '1'), []);
+  // `?pastwater=1`: the dated Mega-Chad lake (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
+  const [pastWaterOn, setPastWaterOn] = useState(false);
+  useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
   const [routineOn, setRoutineOn] = useState(false);
   useEffect(() => setRoutineOn(routineParam(window.location.search)), []);
   const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
@@ -225,7 +229,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, blend, loading, people, scenePeople, shelters } = useGridLayer({
+  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -405,6 +409,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         totalPopulation={renderMode === 'dots' ? totalPopulation : populationAt(time)}
         viewState={viewState}
         close3d={close3d}
+        pastWater={pastWaterOn ? pastWaterNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', unresolved) : null}
         lodLevel={stableLODLevel}
         lodEnabled={false}
         toggleLOD={() => {}}

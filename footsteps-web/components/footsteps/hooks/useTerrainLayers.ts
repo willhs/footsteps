@@ -11,6 +11,7 @@ import Close3DLayer from '../layers/Close3DLayer';
 import { cellOffset, decodeTemp, habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
 import { groundParam, plantsParam, type Ground } from '@/lib/close3d';
+import { lakePlaneFor, loadPastWater, pastWaterEpoch, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
 
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
@@ -18,7 +19,9 @@ import { groundParam, plantsParam, type Ground } from '@/lib/close3d';
 // Bump when the images are regenerated: Cloudflare caches /terrain for a day.
 // v3: farmland calibrated to the Blue Marble photo (2026-11-11).
 const TERRAIN_VERSION = 3;
-const terrainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
+// `?pastwater=1`: the years the dated Mega-Chad lake repaints come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
+const pastWaterOn = () => typeof window !== 'undefined' && pastWaterParam(window.location.search);
+const terrainUrl = (year: number) => (pastWaterOn() && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
 const TINT = TERRAIN_TINT;
@@ -157,6 +160,19 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
       live = false;
     };
   }, [enabled, close3d, ka]);
+  // The modelled lake (small patches, ~9 KB) is fetched only with the flag and the close-up on; the plane exists only in the scenario's epoch.
+  const [lakeLayers, setLakeLayers] = useState<PastWaterLayers | null>(null);
+  useEffect(() => {
+    if (!enabled || !close3d || !pastWaterOn()) return;
+    let live = true;
+    loadPastWater().then((layers) => live && setLakeLayers(layers)).catch((error) => console.warn('[terrain] no past water', error));
+    return () => {
+      live = false;
+    };
+  }, [enabled, close3d]);
+  const epoch = pastWaterEpoch(clampTime(time));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the plane depends on the epoch, not on every tick of `time`
+  const lake = useMemo(() => lakePlaneFor(lakeLayers, clampTime(time)), [lakeLayers, epoch]);
   // The pair on screen: the wanted one once both images are decoded, until then
   // the last complete pair (never a blank frame while scrubbing).
   const [shown, setShown] = useState<Pair | null>(null);
@@ -232,7 +248,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     );
   }
   if (close3d) {
-    if (ground) layers.push(new Close3DLayer({ id: 'close3d', ground: ground.ground, groundKey: ground.key, seaLevel: seaLevelAt(clampTime(time)), plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
+    if (ground) layers.push(new Close3DLayer({ id: 'close3d', ground: ground.ground, groundKey: ground.key, seaLevel: seaLevelAt(clampTime(time)), lake, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

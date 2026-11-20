@@ -15,7 +15,7 @@ export type GridReply =
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
 type Request =
-  | { settlements: boolean; sites: boolean }
+  | { settlements: boolean; sites: boolean; pastWater: boolean }
   | { year: number }
   | { id: string; fromYear: number; toYear: number; region: Region; season: Season };
 type Endpoint = { units: Units; width: number };
@@ -23,6 +23,7 @@ type Endpoint = { units: Units; width: number };
 // the UI. This cache is independent of the UI's five decoded snapshots.
 const units = new Map<number, Endpoint>();
 let settlements = false;
+let pastWater = false; // `?pastwater=1`: the dated Mega-Chad lake keeps groups out of it (lib/pastWater.ts); a year's epoch is a function of the year, so the year-keyed cache below stays right
 let sites = true; // ranked spots inside cells (`?sites=0` keeps the old invented positions, to compare)
 function remember(year: number, source: Endpoint) {
   units.delete(year);
@@ -38,7 +39,7 @@ function endpoint(snapshot: DecodedYearGrid): Endpoint {
 async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
-  const snapshot = await decodeYearGrid(year, settlements, sites);
+  const snapshot = await decodeYearGrid(year, settlements, sites, pastWater);
   remember(year, endpoint(snapshot));
   return endpoint(snapshot);
 }
@@ -51,6 +52,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
   if ('settlements' in data) {
     settlements = data.settlements;
     sites = data.sites;
+    pastWater = data.pastWater;
     units.clear();
     return;
   }
@@ -85,7 +87,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year, settlements, sites)
+  void decodeYearGrid(year, settlements, sites, pastWater)
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [
@@ -98,7 +100,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
       ];
       const publicSnapshot: YearGrid = {
         ...snapshot,
-        units: { length: snapshot.units.length, counts: snapshot.units.counts },
+        units: { length: snapshot.units.length, counts: snapshot.units.counts, unresolved: snapshot.units.unresolved },
       };
       self.postMessage(
         { year, snapshot: publicSnapshot } satisfies GridReply,

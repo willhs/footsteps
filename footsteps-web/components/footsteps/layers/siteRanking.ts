@@ -6,6 +6,7 @@
 // The worker asks for every populated cell of a year (1.3 million in 1900 CE), so a cell's list lives in packed typed arrays
 // (about 25 bytes a cell), not in objects, and `spotsFor` hands back one reused scratch object.
 import terrainMeta from '../../../public/sites/site_terrain.json';
+import { NO_EPOCH, type PastWaterLayers } from '@/lib/pastWater';
 
 /** Candidate spots per cell: a jittered 4 × 4 grid, so spots are spread and no two touch. A cell with more groups than dry spots stacks them. */
 export const CANDIDATES = 16;
@@ -35,19 +36,25 @@ const SEA_LEVELS: number = terrainMeta.sea_levels; // sea share is stored in 4 b
 export type SiteTerrain = { width: number; height: number; depth: Uint8Array; packed: Uint8Array };
 /** The baked distance to fresh water (footstep-generator/water_distance.py): code → metres = 2,000 km × (code / 255)². */
 export type SiteWater = { width: number; height: number; code: Uint8Array };
-export type SiteLayers = { terrain: SiteTerrain; water: SiteWater };
+/** `pastWater`, when given (`?pastwater=1`): the shared Mega-Chad highstand (lib/pastWater.ts). A call that names an epoch then sees its lake as wet and its
+ * freshwater distances instead of the static image's, for cells in the patches' region only; everywhere else the ranker is exactly what it was without it. */
+export type SiteLayers = { terrain: SiteTerrain; water: SiteWater; pastWater?: PastWaterLayers | null };
 
 /** One cell's candidate spots, best first, as offsets from the cell centre in cell widths (east, north). The first `dry` are the
  * ones groups may use: surely dry land at the year's sea level, or, when none is, the doubtful shore spots (under half sea or
  * lake) driest first. The rest are sea or lake and are never used. When nothing is usable, `dry` is 0 and spot 0 is the least
- * wet one (a data conflict the caller can count). The arrays are reused by the next call. */
-export type CellSpots = { x: Float64Array; y: Float64Array; dry: number };
+ * wet one (a data conflict the caller can count). `unresolved`: the call named a scenario epoch that put lake over the cell and nothing
+ * in it is usable; the caller must not draw a group there (spot 0 is still the least wet one). The arrays are reused by the next call. */
+export type CellSpots = { x: Float64Array; y: Float64Array; dry: number; unresolved?: boolean };
 
 export type SiteRanker = {
-  /** The cell's first `count` spots at a sea level (metres relative to today, ≤ 0). Cached by cell id; the cached list is reused until the coast around the cell changes. */
-  spotsFor(cellId: number, seaLevelM: number, count?: number): CellSpots;
-  /** Whether a point in the cell (offsets as in CellSpots) is sea or lake at that sea level. */
-  isWet(cellId: number, x: number, y: number, seaLevelM: number): boolean;
+  /** The cell's first `count` spots at a sea level (metres relative to today, ≤ 0) and a scenario `epoch` (lib/pastWater.ts; 0 = none). Cached by cell id; the
+   * cached list is reused until the coast around the cell, or the epoch of a cell in the past-water region, changes. */
+  spotsFor(cellId: number, seaLevelM: number, count?: number, epoch?: number): CellSpots;
+  /** Whether a point in the cell (offsets as in CellSpots) is sea or lake at that sea level and epoch. */
+  isWet(cellId: number, x: number, y: number, seaLevelM: number, epoch?: number): boolean;
+  /** Whether an epoch can change this cell: it lies inside (or just beside) the past-water patches. False for every cell without them. */
+  inPastWater(cellId: number): boolean;
   /** How many cells have a cached list. */
   readonly size: number;
 };
@@ -83,12 +90,29 @@ export function candidateOffsets(cellId: number) {
 const INLAND = 128; // flag in a cache entry's high signature byte
 const WINDOW = 6; // terrain pixels around a cell: its own 2 × 2 and a ring of 2 (a spot's bilinear reach is one pixel)
 
-export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: number): SiteRanker {
+export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cellsAcross: number): SiteRanker {
   const { width: tw, height: th, depth, packed } = terrain;
   const tScale = tw / cellsAcross; // terrain pixels across one cell (2)
   const wScale = water.width / cellsAcross; // water pixels across one cell (1)
 
-  // Cache: slot[cellId] = entry + 1. An entry is a ranked order of CANDIDATES bytes, the sea state it was ranked for (36 bits) and `dry`.
+  // Past water: the 5′ cells an epoch can change (both patches, plus the reach of a cell's spots and window), and the epoch the current call asked for.
+  const lake = pastWater?.lake;
+  const patch = pastWater?.water;
+  let regionRow0 = 0, regionRow1 = -1, regionCol0 = 0, regionCol1 = -1;
+  if (lake && patch) {
+    const reach = 3; // cells: a spot's offset, its bilinear pixel and the ranking window are all within 2
+    regionCol0 = Math.min(Math.floor(lake.x0 / tScale), Math.floor(patch.x0 / wScale)) - reach;
+    regionRow0 = Math.min(Math.floor(lake.y0 / tScale), Math.floor(patch.y0 / wScale)) - reach;
+    regionCol1 = Math.max(Math.ceil((lake.x0 + lake.width) / tScale), Math.ceil((patch.x0 + patch.width) / wScale)) + reach;
+    regionRow1 = Math.max(Math.ceil((lake.y0 + lake.height) / tScale), Math.ceil((patch.y0 + patch.height) / wScale)) + reach;
+  }
+  const inRegion = (row: number, col: number) => row >= regionRow0 && row < regionRow1 && col >= regionCol0 && col < regionCol1;
+  /** The epoch in force for the current call (0 outside the region, so a cell there is ranked, and cached, exactly as without the flag). */
+  let live = NO_EPOCH;
+  const liveFor = (row: number, col: number, epoch: number) => (epoch !== NO_EPOCH && inRegion(row, col) ? epoch : NO_EPOCH);
+
+  // Cache: slot[cellId] = entry + 1. An entry is a ranked order of CANDIDATES bytes, the sea state it was ranked for (36 bits), the epoch it
+  // was ranked for (a cell's list depends on it only inside the region) and `dry`.
   const slot = new Int32Array((cellsAcross * cellsAcross) / 2);
   let capacity = 1024;
   let entries = 0;
@@ -96,15 +120,17 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
   let sigLo = new Uint32Array(capacity);
   let sigHi = new Uint8Array(capacity);
   let dries = new Uint8Array(capacity);
+  let epochs = new Uint8Array(capacity);
   const grow = () => {
     capacity *= 2;
     const o = new Uint8Array(capacity * CANDIDATES); o.set(orders); orders = o;
     const lo = new Uint32Array(capacity); lo.set(sigLo); sigLo = lo;
     const hi = new Uint8Array(capacity); hi.set(sigHi); sigHi = hi;
     const d = new Uint8Array(capacity); d.set(dries); dries = d;
+    const ep = new Uint8Array(capacity); ep.set(epochs); epochs = ep;
   };
 
-  const spots: CellSpots = { x: new Float64Array(CANDIDATES), y: new Float64Array(CANDIDATES), dry: 0 };
+  const spots: CellSpots = { x: new Float64Array(CANDIDATES), y: new Float64Array(CANDIDATES), dry: 0, unresolved: false };
   const seaPixels = new Float32Array(WINDOW * WINDOW * 2);
   const ox = new Float64Array(CANDIDATES);
   const oy = new Float64Array(CANDIDATES);
@@ -123,6 +149,15 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
   const wrapX = (x: number, n: number) => (x < 0 ? x + n : x >= n ? x - n : x);
   const clampY = (y: number, n: number) => (y < 0 ? 0 : y >= n ? n - 1 : y);
 
+  /** A terrain pixel is lake today (Natural Earth) or, in the epoch in force, in the modelled highstand lake. */
+  const lakeAt = (packedByte: number, x: number, y: number) => {
+    if (packedByte & 8) return true;
+    if (!live || !lake) return false;
+    const c = x - lake.x0;
+    const r = y - lake.y0;
+    return c >= 0 && r >= 0 && c < lake.width && r < lake.height && lake.wet[r * lake.width + c] === 1;
+  };
+
   /** Bilinear wet share (sea, lake) and slope in degrees around a point; results land in `at`. */
   const at = { sea: 0, lake: 0, slope: 0 };
   function sample(row: number, col: number, u: number, v: number, drop: number) {
@@ -134,8 +169,10 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
     const fy = py - fy0;
     const xa = wrapX(fx0 | 0, tw);
     const xb = wrapX(xa + 1, tw);
-    const ya = clampY(fy0 | 0, th) * tw;
-    const yb = clampY((fy0 | 0) + 1, th) * tw;
+    const rowA = clampY(fy0 | 0, th);
+    const rowB = clampY((fy0 | 0) + 1, th);
+    const ya = rowA * tw;
+    const yb = rowB * tw;
     const w00 = (1 - fx) * (1 - fy);
     const w10 = fx * (1 - fy);
     const w01 = (1 - fx) * fy;
@@ -149,9 +186,19 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
     const p01 = packed[i01];
     const p11 = packed[i11];
     at.sea = w00 * wetShare(i00, drop) + w10 * wetShare(i10, drop) + w01 * wetShare(i01, drop) + w11 * wetShare(i11, drop);
-    at.lake = (p00 & 8 ? w00 : 0) + (p10 & 8 ? w10 : 0) + (p01 & 8 ? w01 : 0) + (p11 & 8 ? w11 : 0);
+    at.lake = (lakeAt(p00, xa, rowA) ? w00 : 0) + (lakeAt(p10, xb, rowA) ? w10 : 0) + (lakeAt(p01, xa, rowB) ? w01 : 0) + (lakeAt(p11, xb, rowB) ? w11 : 0);
     at.slope = w00 * slopeDegrees[p00 & 7] + w10 * slopeDegrees[p10 & 7] + w01 * slopeDegrees[p01 & 7] + w11 * slopeDegrees[p11 & 7];
   }
+
+  /** The distance code of one 5′ cell: the epoch's patch where it covers the cell, else the static image (the two agree at the patch's edge). */
+  const codeAt = (x: number, y: number) => {
+    if (live && patch) {
+      const c = x - patch.x0;
+      const r = y - patch.y0;
+      if (c >= 0 && r >= 0 && c < patch.width && r < patch.height) return patch.code[r * patch.width + c];
+    }
+    return water.code[y * water.width + x];
+  };
 
   /** Metres to fresh water at a point, between the four 5′ cell centres around it. */
   function waterAt(row: number, col: number, u: number, v: number) {
@@ -164,10 +211,10 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
     const ww = water.width;
     const xa = wrapX(fx0 | 0, ww);
     const xb = wrapX(xa + 1, ww);
-    const ya = clampY(fy0 | 0, water.height) * ww;
-    const yb = clampY((fy0 | 0) + 1, water.height) * ww;
-    return (1 - fx) * (1 - fy) * waterMetres[water.code[ya + xa]] + fx * (1 - fy) * waterMetres[water.code[ya + xb]]
-      + (1 - fx) * fy * waterMetres[water.code[yb + xa]] + fx * fy * waterMetres[water.code[yb + xb]];
+    const ya = clampY(fy0 | 0, water.height);
+    const yb = clampY((fy0 | 0) + 1, water.height);
+    return (1 - fx) * (1 - fy) * waterMetres[codeAt(xa, ya)] + fx * (1 - fy) * waterMetres[codeAt(xb, ya)]
+      + (1 - fx) * fy * waterMetres[codeAt(xa, yb)] + fx * fy * waterMetres[codeAt(xb, yb)];
   }
 
   /** Which of the WINDOW × WINDOW terrain pixels around the cell have their sea under water at `drop`: 36 bits, in sigA (32) and sigB (4). */
@@ -258,21 +305,23 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
   }
 
   return {
-    spotsFor(cellId, seaLevelM, count = CANDIDATES) {
+    spotsFor(cellId, seaLevelM, count = CANDIDATES, epoch = NO_EPOCH) {
       const drop = Math.max(0, -seaLevelM);
       const row = Math.floor(cellId / cellsAcross);
       const col = cellId - row * cellsAcross;
+      live = liveFor(row, col, epoch);
       let e = slot[cellId] - 1;
-      // A cell with no sea anywhere around it (bit 7 of sigHi) has one list at every sea level: nothing to re-read.
-      if (e < 0 || !(sigHi[e] & INLAND)) {
+      // A cell with no sea anywhere around it (bit 7 of sigHi) has one list at every sea level: nothing to re-read, unless its epoch changed.
+      if (e < 0 || epochs[e] !== live || !(sigHi[e] & INLAND)) {
         const { x0, y0 } = readWindow(row, col, drop);
-        if (e < 0 || sigLo[e] !== sigA || (sigHi[e] & ~INLAND) !== sigB) {
+        if (e < 0 || epochs[e] !== live || sigLo[e] !== sigA || (sigHi[e] & ~INLAND) !== sigB) {
           if (e < 0) {
             if (entries === capacity) grow();
             e = entries++;
             slot[cellId] = e + 1;
           }
           dries[e] = rank(cellId, row, col, drop, x0, y0, orders, e * CANDIDATES);
+          epochs[e] = live;
           sigLo[e] = sigA;
           sigHi[e] = sigB | (anySea ? 0 : INLAND);
         }
@@ -285,12 +334,19 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
         spots.y[s] = oy[k];
       }
       spots.dry = dries[e];
+      spots.unresolved = live !== NO_EPOCH && dries[e] === 0;
       return spots;
     },
-    isWet(cellId, x, y, seaLevelM) {
+    isWet(cellId, x, y, seaLevelM, epoch = NO_EPOCH) {
       const row = Math.floor(cellId / cellsAcross);
-      sample(row, cellId - row * cellsAcross, x, y, Math.max(0, -seaLevelM));
+      const col = cellId - row * cellsAcross;
+      live = liveFor(row, col, epoch);
+      sample(row, col, x, y, Math.max(0, -seaLevelM));
       return Math.max(at.sea, at.lake) >= WET_EDGE;
+    },
+    inPastWater(cellId) {
+      const row = Math.floor(cellId / cellsAcross);
+      return inRegion(row, cellId - row * cellsAcross);
     },
     get size() {
       return entries;

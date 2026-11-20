@@ -6,6 +6,7 @@ import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import GroundDetail from './groundDetail';
 import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
+import type { LakePlane } from '@/lib/pastWater';
 import { shelterMeshes, type Shelter } from './shelters';
 import {
   CLOSE3D_ZOOM,
@@ -27,6 +28,8 @@ type Props = {
   /** Changes when `ground` describes a different year. */
   groundKey: string;
   seaLevel: number;
+  /** `?pastwater=1`, in the scenario's epoch: the modelled lake (lib/pastWater.ts). Its vertices are water at the lake's own level, not `seaLevel`. */
+  lake?: LakePlane | null;
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;
   /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
@@ -136,8 +139,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground, groundKey, seaLevel, plants: drawPlants = false, detail = false, shelters = [] } = this.props;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}`;
+    const { ground, groundKey, seaLevel, lake = null, plants: drawPlants = false, detail = false, shelters = [] } = this.props;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${lake ? `|${lake.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM,
@@ -159,7 +162,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         if (!b || b.key !== key) {
           b = {
             key,
-            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground, 4, detail),
+            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground, 4, detail, lake),
             plants: drawPlants ? plantsForTile(data.heights, bbox, [x, y, z], seaLevel, ground) : [],
           };
           built.set(data, b);

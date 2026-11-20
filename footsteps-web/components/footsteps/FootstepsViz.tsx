@@ -185,7 +185,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     enabled: otherHumansOn,
     time,
     zoom: viewState.zoom,
-    globeCenter: is3DMode ? [viewState.longitude, viewState.latitude] : null,
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
@@ -285,7 +284,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         unprojectRef={hoverCard ? unprojectRef : undefined}
         // Night lights flicker and bands/villages move on the GPU; redraw
         // continuously only while either is on screen.
-        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating)}
+        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating || otherHumans.shown)}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
@@ -454,9 +453,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             )}
             {otherHumans.shown && (
               <p className="ov-note mt-1">
-                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>▲ ■ ✦ ★</span> Other kinds of human
-                (Neanderthals, Denisovans, Flores, Luzon) · each mark a guessed band of ~15; numbers and places imagined.
-                {notesOpen && ' Places follow climate and habitat inside rough ranges drawn around known fossils and DNA. Round dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. Faint marks east of Borneo are hinted only by Denisovan DNA in Papuans today.'}
+                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>●</span> Other kinds of human
+                (Neanderthals, Denisovans, Flores, Luzon), drawn like our own people · bands of ~15; numbers and places guessed.
+                {notesOpen && ' Places follow climate and habitat inside rough ranges drawn around known fossils and DNA. Ringed dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. Fainter fires east of Borneo are hinted only by Denisovan DNA in Papuans today.'}
               </p>
             )}
             {notesOpen && showTerrain && <TerrainNote />}
@@ -487,7 +486,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             </ToggleButton>
           </ControlRow>
           <ControlRow label="Other humans">
-            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: guessed bands and key dated sites, until each was last seen">
+            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: guessed bands drawn like our own people and key dated sites, until each was last seen">
               {otherHumansOn ? 'On' : 'Off'}
             </ToggleButton>
           </ControlRow>

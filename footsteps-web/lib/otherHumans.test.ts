@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { OTHER_HUMANS, kaToYear, lastSeenLabel, otherHumansAt, presenceAt, siteAgeLabel } from './otherHumans';
-import { facing, siteActive } from '@/components/footsteps/hooks/useOtherHumansLayer';
+import { bandShare, siteActive } from '@/components/footsteps/hooks/useOtherHumansLayer';
 import { bandStepKa, bandsAt, type BandsFile } from './otherHumanBands';
 
-jest.mock('@deck.gl/layers', () => ({}));
+jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
 
 const byId = (id: string) => OTHER_HUMANS.find((h) => h.id === id)!;
 
@@ -80,13 +80,6 @@ describe('other kinds of human', () => {
   });
 });
 
-describe('globe names', () => {
-  it('hides names round the back of the globe', () => {
-    expect(facing([30, 47], [40, 42])).toBe(true);
-    expect(facing([30, 47], [-120, -10])).toBe(false);
-  });
-});
-
 describe('guessed bands', () => {
   const file: BandsFile = JSON.parse(readFileSync(join(__dirname, '../public/other_humans/bands.json'), 'utf8'));
 
@@ -123,6 +116,15 @@ describe('guessed bands', () => {
     expect(half.length).toBeLessThan(full.length * 0.65);
     expect(half.length).toBeGreaterThan(full.length * 0.35);
     expect(bandsAt(rows, 40, 0)).toEqual([]);
+  });
+
+  it('thins bands far out by the same people-per-fire rule as our own people, and shows all close in', () => {
+    // 60,000 BCE: our own fires stand for a few hundred people each, so a band of 15 shows a few percent of the time.
+    const far = bandShare(15, -60000, 4, 1);
+    expect(far).toBeGreaterThan(0.02);
+    expect(far).toBeLessThan(0.2);
+    expect(bandShare(15, -60000, 2, 1)).toBeLessThan(far);
+    expect(bandShare(15, -60000, 6, 0)).toBe(1);
   });
 
   it('picks the 1 ka step for a year, clamped to the file', () => {

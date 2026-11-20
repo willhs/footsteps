@@ -21,17 +21,19 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
 
 ## What is on screen
 
-- **Bands** (`footsteps-web/public/other_humans/bands.json`, read by `lib/otherHumanBands.ts`): one mark per guessed band of
-  about 15 people, like the Units view of our own species: ▲ Neanderthals, ■ Denisovans, ✦ *H. floresiensis*, ★ *H. luzonensis*.
-  How many and where are **guesses** (the legend and the hover card say so); see "Guessed bands" below. Denisovan bands in the
-  Wallacea area, inferred only from Denisovan DNA in Papuans and Aboriginal Australians, are fewer and drawn fainter.
+- **Bands** (`footsteps-web/public/other_humans/bands.json`, read by `lib/otherHumanBands.ts`): guessed bands of about 15 people,
+  drawn exactly like our own people: the same flickering fire sprite (`FireLayer`), size and flicker. **Colour (lavender) is the only
+  difference.** Far out, they are thinned by the same rule as our own fires: one fire per as many people as a *Homo sapiens* fire
+  stands for that year (`peoplePerFire`, a few hundred at 60,000 BCE), then the same zoom thinning (`fireVisibleFraction`), so
+  20,000 Neanderthals next to ~800,000 of us show as a few sparks at zoom 3. As the view hands over to groups (zoom ~4.6–5.4), every
+  band shows, at the size of our own band sprites (`halo`). Hover one for the guess. How many and where are **guesses** (legend and
+  hover say so); see "Guessed bands" below. Denisovan bands in the Wallacea area, inferred only from Denisovan DNA in Papuans and
+  Aboriginal Australians, are fewer and fainter. No name labels: our own people have none either.
 - **Fade**: each species is drawn fully until the earliest of its last dates and fades to nothing by the latest
   (`presenceAt`); its bands drop out one by one in a fixed random order, so half-way through the fade half are left. The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
   anthropology atlas (`anthropology/deep.py`) also reads; keep the two in step.
 - **Sites**: 24 key dated sites with the find, a source and its DOI; brighter when the year shown is within the site's dates.
   Each is `checked: true` or has a `couldNotVerify` reason, which the tooltip shows. See "Source check" below.
-- **Names**: "Neanderthals / another kind of human · last seen about 40,000 years ago". Island species are named from
-  zoom 3; the subtitle shows from zoom 2. On the globe, names draw over the ground and are hidden round the back.
 
 Lavender, so it reads as cool next to the evidence marks (blue, teal) and never as people (the only warm colour).
 

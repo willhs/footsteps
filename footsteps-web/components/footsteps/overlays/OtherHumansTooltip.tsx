@@ -1,4 +1,4 @@
-import { siteAgeLabel } from '@/lib/otherHumans';
+import { lastSeenLabel, siteAgeLabel } from '@/lib/otherHumans';
 import type { OtherHumansHover } from '../hooks/useOtherHumansLayer';
 
 /** A hovered site (name, age, find, source) or guessed band of another kind of human. */
@@ -32,7 +32,9 @@ function Site({ site }: { site: Extract<OtherHumansHover, { kind: 'site' }>['sit
 function Band({ band }: { band: Extract<OtherHumansHover, { kind: 'band' }>['band'] }) {
   return (
     <>
-      <p className="ov-eyebrow">{band.human.name} · another kind of human</p>
+      <p className="ov-eyebrow">
+        {band.human.name} · another kind of human, {lastSeenLabel(band.human)}
+      </p>
       <p className="ov-body text-[var(--ov-text)]">A guessed band of about {band.people} people</p>
       <p className="ov-note">
         Imagined: how many and where are guesses, placed by climate and habitat inside a rough range, not a find.

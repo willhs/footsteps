@@ -125,6 +125,12 @@ export const FIRE_BLEND = {
   blendAlphaDstFactor: 'one',
 } as const;
 
+/** Sprite radius in pixels for a mark whose cell holds `people`: 4 px for a near-empty cell, 13 px at 5 M. */
+export const fireRadius = (people: number) => 4 + (9 * Math.log1p(people)) / LOG_MAX;
+
+/** People one fire stands for in a world of `total` (far out, before the zoom thins them). */
+export const peoplePerFire = (total: number) => Math.max(1, total / fireBudget(total));
+
 /** Instanced buffers for one year's marks (built once, reused by every frame). */
 export function fireData(marks: FireMarks) {
   const radius = new Float32Array(marks.length);

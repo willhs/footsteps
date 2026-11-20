@@ -14,7 +14,8 @@ export type BandsFile = {
   species: Record<OtherHuman['id'], { people: number; bands: BandRow[] }>;
 };
 
-export type Band = { position: [number, number]; hinted: boolean };
+/** `rank` 0..1 is the band's place in the file's stable random order: the zoom shows ranks below a threshold. */
+export type Band = { position: [number, number]; hinted: boolean; rank: number };
 
 /** The generator's 1 ka step for `year`, clamped to its span. */
 export function bandStepKa(file: Pick<BandsFile, 'first_ka' | 'last_ka'>, year: number): number {
@@ -30,26 +31,10 @@ export function bandsAt(rows: BandRow[], ka: number, presence: number): Band[] {
     const r = rows[i];
     for (let j = 3; j + 1 < r.length; j += 2) {
       if (r[j] >= ka && ka >= r[j + 1]) {
-        out.push({ position: [r[0], r[1]], hinted: r[2] === 1 });
+        out.push({ position: [r[0], r[1]], hinted: r[2] === 1, rank: i / rows.length });
         break;
       }
     }
   }
   return out;
 }
-
-/** One mark per species, white on transparent so deck.gl can tint it (IconLayer `mask`). */
-export const BAND_MARK: Record<OtherHuman['id'], { glyph: string; path: string }> = {
-  neanderthals: { glyph: '▲', path: 'M12 3 L22 20 L2 20 Z' },
-  denisovans: { glyph: '■', path: 'M4 4 H20 V20 H4 Z' },
-  floresiensis: { glyph: '✦', path: 'M12 1 L15 9 L23 12 L15 15 L12 23 L9 15 L1 12 L9 9 Z' },
-  luzonensis: {
-    glyph: '★',
-    path: 'M12 1.5 L14.9 8.6 L22.5 9.2 L16.7 14.2 L18.5 21.6 L12 17.6 L5.5 21.6 L7.3 14.2 L1.5 9.2 L9.1 8.6 Z',
-  },
-};
-
-export const bandIconUrl = (id: OtherHuman['id']) =>
-  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path d="${BAND_MARK[id].path}" fill="#fff"/></svg>`,
-  )}`;

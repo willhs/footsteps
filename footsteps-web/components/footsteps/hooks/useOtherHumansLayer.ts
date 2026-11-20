@@ -1,27 +1,25 @@
 'use client';
 
-// Other kinds of human (Neanderthals, Denisovans, H. floresiensis, H. luzonensis): guessed bands under the
-// people (one mark per band, a shape per species), key dated sites and names above them. On by default; the
-// View panel or ?humans=0 turns it off. Data and sources: lib/otherHumans.ts, lib/otherHumanBands.ts.
+// Other kinds of human (Neanderthals, Denisovans, H. floresiensis, H. luzonensis), drawn like our own people:
+// each guessed band is a flickering fire (FireLayer), thinned far out by the same one-fire-per-so-many-people
+// rule, all bands shown once the people view switches to groups. Colour is the only difference. Key dated
+// sites sit above them. On by default; the View panel or ?humans=0 turns it off.
+// Data and sources: lib/otherHumans.ts, lib/otherHumanBands.ts.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { IconLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import type { LayersList } from '@deck.gl/core';
-import {
-  kaToYear,
-  lastSeenLabel,
-  otherHumansAt,
-  type OtherHuman,
-  type Site,
-} from '@/lib/otherHumans';
-import { BANDS_URL, bandIconUrl, bandStepKa, bandsAt, type Band, type BandsFile } from '@/lib/otherHumanBands';
+import { kaToYear, otherHumansAt, type OtherHuman, type Site } from '@/lib/otherHumans';
+import { BANDS_URL, bandStepKa, bandsAt, type Band, type BandsFile } from '@/lib/otherHumanBands';
+import { populationAt } from '@/lib/time';
+import FireLayer, { fireRadius, fireVisibleFraction, peoplePerFire } from '../layers/FireLayer';
+import { viewBlend } from './peopleView';
 
-// Lavender: cool like the evidence marks (blue, teal) but distinct; people are the only warm colour.
+// Lavender: cool like the evidence marks (blue, teal) but distinct; our own people are the warm colours.
 export const OTHER_HUMANS_RGB: [number, number, number] = [190, 150, 255];
 const RGB = OTHER_HUMANS_RGB;
 
-export type BandDatum = Band & { human: OtherHuman; presence: number; people: number };
+export type BandDatum = Band & { human: OtherHuman; people: number };
 type SiteDatum = Site & { human: OtherHuman; presence: number; active: boolean };
-type LabelDatum = { human: OtherHuman; presence: number };
 
 export type OtherHumansHover = ({ kind: 'site'; site: SiteDatum } | { kind: 'band'; band: BandDatum }) & {
   x: number;
@@ -34,33 +32,21 @@ export function siteActive(site: Site, year: number): boolean {
   return year >= oldest && year <= kaToYear(site.ka[1]);
 }
 
-/** Is `p` on the near side of a globe centred on `c` (within 80° of the centre)? */
-export function facing(p: [number, number], c: [number, number]): boolean {
-  const r = Math.PI / 180;
-  const cos =
-    Math.sin(p[1] * r) * Math.sin(c[1] * r) + Math.cos(p[1] * r) * Math.cos(c[1] * r) * Math.cos((p[0] - c[0]) * r);
-  return cos > Math.cos(80 * r);
+/** Share of bands drawn: far out, one fire per as many people as our own people's fires stand for, thinned by
+ * zoom exactly as theirs are; as the view hands over to groups (`far` → 0), every band. */
+export function bandShare(bandPeople: number, year: number, zoom: number, far: number): number {
+  const farShare = Math.min(1, bandPeople / peoplePerFire(populationAt(year))) * fireVisibleFraction(zoom);
+  return far * farShare + (1 - far);
 }
 
-export default function useOtherHumansLayer({
-  enabled,
-  time,
-  zoom,
-  globeCenter,
-}: {
-  enabled: boolean;
-  time: number;
-  zoom: number;
-  /** On the globe: the view centre [lon, lat], so names on the far side can be hidden. */
-  globeCenter?: [number, number] | null;
-}) {
+export default function useOtherHumansLayer({ enabled, time, zoom }: { enabled: boolean; time: number; zoom: number }) {
   const [hover, setHover] = useState<OtherHumansHover | null>(null);
   const year = Math.round(time);
   // Rebuild only when someone's presence changes, not every slider frame.
   const shown = useMemo(() => (enabled ? otherHumansAt(year) : []), [enabled, year]);
   const key = shown.map((d) => `${d.human.id}:${d.presence.toFixed(2)}`).join('|');
 
-  // The bands file (~100 KB) loads the first time anyone is shown; a failed fetch leaves sites and names.
+  // The bands file (~100 KB) loads the first time anyone is shown; a failed fetch leaves the sites.
   const [bandsFile, setBandsFile] = useState<BandsFile | null>(null);
   const wantBands = shown.length > 0;
   useEffect(() => {
@@ -79,16 +65,14 @@ export default function useOtherHumansLayer({
   const data = useMemo(() => {
     const bands: BandDatum[] = [];
     const sites: SiteDatum[] = [];
-    const labels: LabelDatum[] = [];
     for (const { human, presence } of shown) {
       const rows = bandsFile?.species[human.id]?.bands;
       if (rows && stepKa !== null) {
-        for (const b of bandsAt(rows, stepKa, presence)) bands.push({ ...b, human, presence, people: bandsFile.band_people });
+        for (const b of bandsAt(rows, stepKa, presence)) bands.push({ ...b, human, people: bandsFile.band_people });
       }
       for (const s of human.sites) sites.push({ ...s, human, presence, active: siteActive(s, year) });
-      labels.push({ human, presence });
     }
-    return { bands, sites, labels };
+    return { bands, sites };
     // `key`, the band step and the rounded thousand capture every change that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, bandsFile, stepKa, Math.round(year / 1000)]);
@@ -96,50 +80,58 @@ export default function useOtherHumansLayer({
   const onSiteHover = useCallback((info: { object?: SiteDatum | null; x: number; y: number }) => {
     setHover(info.object ? { kind: 'site', site: info.object, x: info.x, y: info.y } : null);
   }, []);
-  const onBandHover = useCallback((info: { object?: BandDatum | null; x: number; y: number }) => {
-    setHover(info.object ? { kind: 'band', band: info.object, x: info.x, y: info.y } : null);
-  }, []);
+  const onBandHover = useCallback((info: { index: number; x: number; y: number }) => {
+    const band = info.index >= 0 ? data.bands[info.index] : undefined;
+    setHover(band ? { kind: 'band', band, x: info.x, y: info.y } : null);
+  }, [data]);
 
-  const bandSize = zoom >= 5 ? 13 : zoom >= 3 ? 10 : 8;
-  const below = useMemo<LayersList>(
+  // The same instanced buffers our own fires use: position, radius, rank, colour.
+  const fires = useMemo(() => {
+    const n = data.bands.length;
+    const positions = new Float32Array(n * 2);
+    const radius = new Float32Array(n).fill(fireRadius(bandsFile?.band_people ?? 15));
+    const rank = new Float32Array(n);
+    const color = new Uint8ClampedArray(n * 4);
+    data.bands.forEach((b, i) => {
+      positions.set(b.position, i * 2);
+      rank[i] = b.rank;
+      color.set([...RGB, b.hinted ? 120 : 255], i * 4);
+    });
+    return {
+      length: n,
+      attributes: {
+        getPosition: { value: positions, size: 2 },
+        getRadius: { value: radius, size: 1 },
+        getRank: { value: rank, size: 1 },
+        getFillColor: { value: color, size: 4 },
+      },
+    };
+  }, [data, bandsFile]);
+
+  const blend = viewBlend(zoom, 'auto');
+  const visibleFraction = bandsFile ? bandShare(bandsFile.band_people, year, zoom, blend.glow) : 1;
+  // Close in our own bands are fire sprites of at least `halo` px; match them.
+  const radiusScale = Math.max(1, blend.halo / fireRadius(bandsFile?.band_people ?? 15)) * (1 - blend.glow) + blend.glow;
+
+  const below = useMemo<FireLayer[]>(
     () =>
-      data.bands.length
+      fires.length
         ? [
-            new IconLayer<BandDatum>({
+            new FireLayer({
               id: 'other-humans-bands',
-              data: data.bands,
-              getPosition: (b) => b.position,
-              getIcon: (b) => ({ id: b.human.id, url: bandIconUrl(b.human.id), width: 48, height: 48, mask: true }),
-              getSize: bandSize,
-              sizeUnits: 'pixels',
-              getColor: (b) => [...RGB, Math.round((b.hinted ? 110 : 215) * (0.5 + 0.5 * b.presence))],
+              data: fires as never,
+              visibleFraction: 1,
               pickable: true,
-              onHover: onBandHover,
-              updateTriggers: { getColor: key },
+              onHover: onBandHover as never,
             }),
           ]
         : [],
-    [data, key, bandSize, onBandHover],
-  );
-
-  const islandsNamed = zoom >= 3;
-  const detailed = zoom >= 2;
-  // Names draw over the ground (a curved globe would cut them), so hide those round the back.
-  const cLon = globeCenter ? Math.round(globeCenter[0]) : null;
-  const cLat = globeCenter ? Math.round(globeCenter[1]) : null;
-  const labels = useMemo(
-    () =>
-      data.labels.filter(
-        (d) =>
-          (islandsNamed || d.human.id === 'neanderthals' || d.human.id === 'denisovans') &&
-          (cLon === null || cLat === null || facing(d.human.label, [cLon, cLat])),
-      ),
-    [data, islandsNamed, cLon, cLat],
+    [fires, onBandHover],
   );
 
   const above = useMemo<LayersList>(
     () =>
-      data.labels.length
+      data.sites.length
         ? [
             new ScatterplotLayer<SiteDatum>({
               id: 'other-humans-sites',
@@ -156,34 +148,15 @@ export default function useOtherHumansLayer({
               onHover: onSiteHover,
               updateTriggers: { getRadius: year, getFillColor: [key, year], getLineColor: [key, year] },
             }),
-            ...(['name', 'about'] as const).map(
-              (line) =>
-                new TextLayer<LabelDatum>({
-                  id: `other-humans-${line}`,
-                  // Island species need some zoom before their names fit; far out, names only.
-                  data: line === 'name' || detailed ? labels : [],
-                  getPosition: (d) => d.human.label,
-                  getText: (d) => (line === 'name' ? d.human.name : `another kind of human · ${lastSeenLabel(d.human)}`),
-                  getSize: line === 'name' ? 15 : 12,
-                  getColor: (d) => [225, 210, 255, Math.round((line === 'name' ? 245 : 200) * d.presence)],
-                  getPixelOffset: [0, line === 'name' ? -8 : 8],
-                  getTextAnchor: 'middle',
-                  getAlignmentBaseline: 'center',
-                  characterSet: 'auto',
-                  fontFamily: 'system-ui, sans-serif',
-                  fontWeight: line === 'name' ? 700 : 600,
-                  outlineWidth: 2,
-                  outlineColor: [12, 10, 24, 220],
-                  fontSettings: { sdf: true, fontSize: 96, buffer: 8 },
-                  pickable: false,
-                  parameters: { depthCompare: 'always' },
-                  updateTriggers: { getColor: key },
-                }),
-            ),
           ]
         : [],
-    [data, key, labels, detailed, onSiteHover, year],
+    [data, key, onSiteHover, year],
   );
 
-  return { below, above, hover: enabled ? hover : null, shown: shown.length > 0 };
+  return {
+    below: below.map((l) => l.clone({ visibleFraction, radiusScale } as never)),
+    above,
+    hover: enabled ? hover : null,
+    shown: shown.length > 0,
+  };
 }

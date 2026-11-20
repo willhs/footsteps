@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Other kinds of human drawn like our own people
+
+Will saw sparkling fires for our people and static triangles with name labels for Neanderthals, and asked for them not to differ in so many ways. The bands now use the people's own `FireLayer` sprite, size and flicker, thinned far out by the same people-per-fire and zoom rule (`peoplePerFire`, `fireVisibleFraction`; all bands from the groups zoom), so colour is the only difference. The shapes (▲ ■ ✦ ★) and the name labels are gone; the hover card names the species and when it was last seen. `docs/ops/other-humans.md` "Bands".
+
 ## [2026-11-20] change | Other kinds of human drawn as guessed bands, not areas
 
 Will asked for the other humans to be drawn like the people: points, even if guessed. The hand-drawn ranges moved to `footstep-generator/other_humans/bands.yaml` with guessed numbers (Neanderthals 20,000 inside Bocquet-Appel & Degioanni's 5,000-70,000; Denisovans 10,000, Flores 500, Luzon 1,000, all said to be guesses) and a band of 15 (Skov 2022). `other_humans_bands.py` spreads the bands by the pre-HYDE habitat model inside each range, on dry land at each 1 ka step's sea level, with stable cells so bands persist (`public/other_humans/bands.json`, 97 KB). The app draws one mark per band, ▲ Neanderthals, ■ Denisovans, ✦ Flores, ★ Luzon, hoverable, thinning out band by band as a species fades. `docs/ops/other-humans.md` "Guessed bands".

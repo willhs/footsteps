@@ -42,6 +42,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `@deck.gl/mesh-layers` must stay aliased to its CommonJS
   build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
+- `node scripts/terrain-bench.mjs` is the terrain scoreboard (time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
   throttles requestAnimationFrame, so its fps numbers are meaningless.

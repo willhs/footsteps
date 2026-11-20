@@ -48,3 +48,6 @@ footsteps-web/public/habitat
 footsteps-web/public/fauna
 
 footsteps-web/public/food
+
+# terrain benchmark output (scripts/terrain-bench.mjs)
+footsteps-web/terrain-bench-out/

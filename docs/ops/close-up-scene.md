@@ -79,3 +79,27 @@ throttles animation frames). Frame rate is limited by the page's CPU work as muc
 - Biome borders follow the 0.5° cells, so a change of cover is a sharp line.
 - The relief colour and baked hillshade are unchanged; the shader multiplies and tints them.
 - Globe view is not supported (the shader reads mesh offsets as degrees); the close-up is flat-map only.
+
+## People and animals (`?figures=1`)
+
+Opt-in until reviewed on production. At the zoom where individual footprints appear, the newest of each person's three prints becomes a small upright silhouette; the two older prints remain its trail. Adults and children differ in size. With `?routine=1`, asleep people lie down, resting people sit, and walkers carry a staff/tool or a load according to their existing `DayPlan`. Without routine, the existing walking/rest rhythm continues. Shapes, poses, equipment and positions are imagined. `footprintData`, person ids, `describePerson`, year-morph opacity, and other-human picking keep their existing contract. No second routine scheduler is introduced.
+
+`PeopleLayer` uses the same GPU gait for both looks, with an upright camera-facing quad (or a ground-plane quad while asleep) in the newest-print slot. `?figures=0` or omitting the parameter preserves footprints. The current sparse-cell rule still draws no individuals below 15 people per group; a Kalahari 1800 scene may contain wildlife without human figures.
+
+`useAnimalsLayer` loads fauna blocks and the food model independently of hover and `?food=1`, only in the opt-in street view. `lib/animals.ts` builds at most 120 stable instances (up to 72 wild, reserving room for livestock) around the view, on an illustrative fixed geographic lattice (~550 m north–south, narrower east–west at high latitudes): plant eaters in small groups of three, predators singly. Each candidate must be in its own PHYLACINE 1° range cell at the millennium step, and outside the habitat sea/ice mask. Only the loaded 30° block is used; animals in a neighbouring block appear when the view centre enters it. The selection uses the same notable large animals as the hover card. This is a selection of species, not abundance or a reconstructed animal census.
+
+Farmer/herder groups can have small domestic herds (cattle, sheep/goats, horses, camels, llamas/alpacas, dogs) only when the full food-model roster allows them at that cell and era; the four-food hover summary is not used. Domestic herds are placed by occupied patches near the existing people, including people at the nearer year-morph endpoint. Wild candidates stay at least 350 m from people’s home spots, domestic candidates 85 m. Bounded shader wander stays within 12 m; land checks include a 16 m margin. This avoids groups at home, not people on arbitrary routine trips. The habitat mask is coarse (0.5°); it cannot resolve a river bank or individual field.
+
+Animals are cool grey; people retain the warm palette. Silhouettes distinguish broad body forms (quadruped, elephant/mammoth, camelid, horned ungulate), not every species' anatomy. Picking names the species and says “range modelled (PHYLACINE), this animal imagined”; domestic picking instead says “availability modelled (food spread model), this domestic animal imagined”. No PHYLACINE claim is made for livestock.
+
+People and animals retain the existing overlay-on-terrain depth policy: they do not sample elevation and can show through a hill. Their readable pixel size is illustrative, not a measured height. Animation changes uniforms only, with no per-frame JavaScript loop over instances.
+
+Reproduce screenshots, picking and street-zoom fps with a headed GPU browser:
+
+```bash
+node footsteps-web/scripts/measure-figures.mjs http://localhost:4444 <evidence-directory>
+```
+
+The harness uses public production data to supply this checkout's missing gitignored assets. It visits Kalahari 1800, Mongolia 1000, Ukraine 15,000 BCE and Nile 1500, day and night, plus default footprints and Grid/Dots. Its JSON report records the actual loaded layers and species, GPU picks, errors and frame rates; screenshots and report belong outside git. The script chooses a nearby populated group from the real data for the closest view when one exists. A species named in an acceptance scene is not forced into that scene if the range/spread model does not supply it.
+
+The current food export has no dog taxon; the renderer accepts dogs if the model supplies them, but does not invent them independently.

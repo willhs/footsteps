@@ -57,6 +57,7 @@ export default function useGridLayer({
   season = 'off',
   households = false,
   routineEpoch = null,
+  figures = false,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -74,6 +75,7 @@ export default function useGridLayer({
   households?: boolean;
   /** The daily routine's plan hour (lib/routine.ts `epochHour`), or null for the old always-the-same gait (`?routine=1`). */
   routineEpoch?: number | null;
+  figures?: boolean;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -85,6 +87,7 @@ export default function useGridLayer({
   loading: [number, number] | null;
   /** The people drawn at full strength (present at both data years): what name tags are for. */
   people: readonly Person[];
+  scenePeople: readonly Person[];
 } {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
@@ -322,6 +325,8 @@ export default function useGridLayer({
     return peopleForMorph(groups, morphScene.y1, households ? 'households' : 'hearths');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peopleOn, morphScene, boundsKey, households]);
+  const nearerPart = morphProgress < 0.5 ? 'leaving' : 'entering';
+  const scenePeople = useMemo(() => people ? [...people.steady, ...people[nearerPart]] : NO_PEOPLE, [people, nearerPart]);
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
   // years stay put; the ones that leave or arrive fade out or in.
@@ -329,10 +334,10 @@ export default function useGridLayer({
     () =>
       people
         ? (['steady', 'leaving', 'entering'] as const).map(
-            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch) }),
+            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch), figures }),
           )
         : [],
-    [people, routineEpoch],
+    [people, routineEpoch, figures],
   );
   const cityLayers = useMemo(() => {
     const cities = (unitsContinuous && morphScene
@@ -424,5 +429,6 @@ export default function useGridLayer({
     blend,
     loading: unitsWaiting ? [y0, y1] : null,
     people: people?.steady ?? NO_PEOPLE,
+    scenePeople,
   };
 }

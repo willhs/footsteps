@@ -17,6 +17,8 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { CLOSE3D_ZOOM, close3dParam, pitchForZoom } from '@/lib/close3d';
+import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
+import { describeAnimal, type AnimalInstance } from '@/lib/animals';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import usePersonTags from '@/components/footsteps/hooks/usePersonTags';
@@ -113,6 +115,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const now = useSolarClock();
   // The daily routine (lib/routine.ts), ?routine=1: people sleep, stay at the hearth, play or go on trips by the sun clock.
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
+  const [figures, setFigures] = useState(false);
+  useEffect(() => setFigures(new URLSearchParams(window.location.search).get('figures') === '1'), []);
   const [routineOn, setRoutineOn] = useState(false);
   useEffect(() => setRoutineOn(routineParam(window.location.search)), []);
   const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
@@ -198,14 +202,17 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     view: viewState,
     size: typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight },
     routineEpoch,
+    figures,
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
+  const [selectedAnimal, setSelectedAnimal] = useState<AnimalInstance | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, blend, loading, people } = useGridLayer({
+  const { layers: gridLayers, grid, blend, loading, people, scenePeople } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -216,9 +223,16 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     season,
     households: settlements,
     routineEpoch,
+    figures,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
+  });
+
+  const animalLayers = useAnimalsLayer({
+    enabled: figures && !is3DMode && blend.people > 0 && (renderMode === 'auto' || renderMode === 'units'),
+    lon: viewState.longitude, lat: viewState.latitude, time, people: scenePeople,
+    opacity: blend.people,
   });
 
   // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
@@ -318,7 +332,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const layers: LayersList = [
     ...shadedBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...presenceLayers, ...tagLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...animalLayers, ...presenceLayers, ...tagLayers]),
     ...evidence.layers,
     ...otherHumans.above,
   ] as LayersList;
@@ -336,6 +350,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         // continuously only while either is on screen.
         animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating || otherHumans.shown)}
         onClick={(info) => {
+          const animal = info.layer?.id === 'animals' ? info.object as AnimalInstance | undefined : undefined;
+          setSelectedAnimal(animal ?? null);
+          if (animal) {
+            setSelectedPlace(null);
+            setSelectedPerson(null);
+            setSelectedGroup(null);
+            return;
+          }
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
           const person = info.layer?.id?.startsWith('people') ? (info.object as Person | undefined) : undefined;
@@ -388,6 +410,16 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           top: 'calc(var(--ov-top) + var(--ov-stats-h, 150px) + 8px)',
         }}
       >
+        {figures && peopleView && blend.people > 0 && (
+          <p className="ov-panel ov-body px-3 py-2">People’s positions and look imagined · animals’ ranges modelled, individuals imagined</p>
+        )}
+        {selectedAnimal && figures && peopleView && (
+          <div className="ov-panel pointer-events-auto px-3.5 py-3" aria-label="Animal details">
+            <button className="float-right" aria-label="Close animal details" onClick={() => setSelectedAnimal(null)}>×</button>
+            <p className="ov-body">{describeAnimal(selectedAnimal).title}</p>
+            <p className="ov-body text-[var(--ov-text-3)]">{describeAnimal(selectedAnimal).detail}</p>
+          </div>
+        )}
         {peopleView && selectedPlace && (
           <GroundingPanel
             facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
@@ -452,12 +484,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         {tooltipData && <PopulationTooltip data={tooltipData} onClose={() => setTooltipData(null)} />}
         {evidenceHover && <EvidenceTooltip hover={evidenceHover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
         {otherHover && <OtherHumansTooltip hover={otherHover} />}
-        {cardPoint && !(peopleView && selectedPlace) && (
+        {cardPoint && !selectedAnimal && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 
         {/* Legend: hidden while the details panel or the hover card is up, which need the height. */}
-        {peopleView && !selectedPlace && !columnBusy ? (
+        {peopleView && !selectedAnimal && !selectedPlace && !columnBusy ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (

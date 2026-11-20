@@ -4,6 +4,12 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Opt-in people figures and nearby animals
+
+Added `?figures=1`: the newest footprint becomes an upright adult/child silhouette, with the remaining prints as its trail. The merged daily routine (`20d321b`) supplies sleep, rest, trip poses and carried equipment. Person objects, ids and picking remain unchanged, including other kinds of human.
+
+Nearby GPU-animated animals use PHYLACINE ranges at their own cell and millennium; domestic herds require farmer/herder people and food-model availability. Counts and looks are imagined, bounded and capped. Species picking labels wild ranges and domestic spread separately. Footprints remain the default pending Will's review on prod. The real-data browser harness captures the four requested scenes, day/night, and measures street fps.
+
 ## [2026-11-21] add | Terrain benchmark: fixed camera paths with a baseline
 
 `footsteps-web/scripts/terrain-bench.mjs` (pure parts in `terrain-bench-lib.mjs`, pinned by `lib/terrainBench.test.ts`) drives headed Chrome over 5 scenes (Alps, Nile, Doggerland, Amazon, steppe) at zoom 4 to 12, flat and tilted 3D from zoom 8, cold and warm. It reports time to detail, fps over a fixed pan, long tasks, network bytes and requests, and the colour texel in screen px, with a screenshot per variant, JSON plus a markdown table with goal checks, and `--compare old.json new.json`. No rendering changed. Baseline on main `5943d1f` (before the close-up ground-cover job): zoom 10 tilted takes 6.7 to 7.1 s cold and 1.7 to 2.2 s warm (goal 3 s / 1.5 s), 125+ fps panning (passes), longest main-thread task 164 ms (goal 50), colour texel 256 px at zoom 10 (goal 2). A first run on a busy machine (load 60 to 118) was 2 to 3 times worse, so each result records the load average and `--max-load` waits for quiet. `docs/ops/terrain-bench.md`.

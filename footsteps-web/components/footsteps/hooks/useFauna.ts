@@ -59,5 +59,5 @@ export default function useFauna(point: { lon: number; lat: number } | null, tim
   }, [key]);
 
   if (cell === null || !species || !state || state.key !== key) return null;
-  return { species, ids: presentAt(state.block, cell, habitatStep(Math.round(time))) };
+  return { species, block: state.block, key, ids: presentAt(state.block, cell, habitatStep(Math.round(time))) };
 }

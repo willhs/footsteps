@@ -284,9 +284,10 @@ const peopleAnim = {
   float time;
   float sunUtc;
   float routine;
+  float figures;
 } peopleAnim;
 `,
-  uniformTypes: { time: 'f32', sunUtc: 'f32', routine: 'f32' },
+  uniformTypes: { time: 'f32', sunUtc: 'f32', routine: 'f32', figures: 'f32' },
 } as const;
 
 // Where print k of this person is, which way it points, and how strongly it shows.
@@ -373,6 +374,10 @@ const gait = /* glsl */ `
   float side = mod(n - k, 2.0) < 0.5 ? 1.0 : -1.0;
   vFoot = side;
   vShoe = instanceShoe;
+  vFigure = peopleAnim.figures > 0.5 && k < 0.5 ? 1.0 : 0.0;
+  vPose = style > 0.5 && style < 1.5 ? 2.0 : (!moving && !transit ? 1.0 : 0.0);
+  vSwing = moving ? sin(phase * 3.14159) * side : 0.0;
+  vEquipment = (transit || style > 2.5) ? instanceEquipment : 0.0;
   vPrintAlpha = moving
     ? (k < 0.5 ? smoothstep(0.0, 0.2, phase) : k < 1.5 ? mix(1.0, 0.55, phase) : mix(0.55, 0.0, phase))
     : (k < 1.5 ? 1.0 : 0.0);
@@ -380,6 +385,34 @@ const gait = /* glsl */ `
 
 // The four kinds of print (lib/footwear.ts FOOT): 0 bare foot with toes, 1 hide wrap (one soft
 // oval), 2 sandal (a flat squared sole), 3 stitched shoe (sole and a separate heel block).
+// A silhouette in the upright quad: head, trunk, arms, legs, and the trip's tool or load.
+const figureShape = /* glsl */ `
+float segment(vec2 p, vec2 a, vec2 b, float r) {
+  vec2 d = b - a;
+  return length(p - a - d * clamp(dot(p-a,d)/dot(d,d),0.0,1.0)) - r;
+}
+float figure(vec2 p) {
+  if (vPose > 1.5) p = vec2(p.y, -p.x);
+  float hip = vPose > 0.5 && vPose < 1.5 ? -0.25 : -0.12;
+  float d = length(p - vec2(0.0,0.64)) - 0.16;
+  d = min(d, segment(p,vec2(0.0,0.4),vec2(0.0,hip),0.13));
+  float stride = vSwing * 0.17;
+  if (vPose > 0.5 && vPose < 1.5) {
+    d = min(d,segment(p,vec2(0.0,hip),vec2(0.35,-0.3),0.075));
+    d = min(d,segment(p,vec2(0.35,-0.3),vec2(0.4,-0.72),0.065));
+    d = min(d,segment(p,vec2(-0.06,hip),vec2(-0.38,-0.64),0.065));
+  } else {
+    d = min(d,segment(p,vec2(-0.06,hip),vec2(-0.19-stride,-0.8),0.065));
+    d = min(d,segment(p,vec2(0.06,hip),vec2(0.19+stride,-0.8),0.065));
+  }
+  d = min(d,segment(p,vec2(-0.09,0.32),vec2(-0.29+stride,-0.18),0.06));
+  d = min(d,segment(p,vec2(0.09,0.32),vec2(0.29-stride,-0.18),0.06));
+  if (vEquipment > 1.5) d = min(d,length((p-vec2(-0.28,0.13))/vec2(0.19,0.26))-1.0);
+  else if (vEquipment > 0.5) d = min(d,segment(p,vec2(0.34,-0.76),vec2(0.34,0.65),0.025));
+  return d;
+}
+`;
+
 const shapeFootprint = /* glsl */ `
   // The quad is turned to the walking direction: +y is toe, x is across the foot (outer side +).
   vec2 f = vec2(geometry.uv.x * vFoot, geometry.uv.y);
@@ -405,7 +438,9 @@ const shapeFootprint = /* glsl */ `
     float heel = max(hq.x, hq.y);
     d = min(sole, heel);
   }
-  if (picking.isActive < 0.5) {
+  if (vFigure > 0.5) {
+    if (figure(geometry.uv) > 0.0) discard;
+  } else if (picking.isActive < 0.5) {
     if (d > 1.0 || vPrintAlpha <= 0.01) discard;
     color.a *= vPrintAlpha * (1.0 - smoothstep(0.82, 1.0, d) * 0.6);
   }
@@ -414,6 +449,8 @@ const shapeFootprint = /* glsl */ `
 /** Extra props: the daily routine (lib/routine.ts), off unless `routine` is set. Build them with `routineProps`. */
 type RoutineProps = {
   routine?: boolean;
+  figures?: boolean;
+  getEquipment?: (p: unknown) => number;
   getDay?: (p: unknown) => [number, number, number, number];
   getTrip?: (p: unknown) => [number, number, number, number];
 };
@@ -428,7 +465,12 @@ export function routineProps(epoch: number | null): RoutineProps & { updateTrigg
     routine: true,
     getDay: (p) => planAttributes(planOf(as(p), epoch)).day,
     getTrip: (p) => planAttributes(planOf(as(p), epoch)).trip,
-    updateTriggers: { getDay: epoch, getTrip: epoch },
+    getEquipment: (p: unknown) => {
+      const away = planOf(as(p), epoch).away;
+      if (away?.kind !== 'trip') return 0;
+      return ['gathering', 'fetching water and wood'].includes(away.trip) ? 2 : away.trip === 'visiting another camp' ? 0 : 1;
+    },
+    updateTriggers: { getDay: epoch, getTrip: epoch, getEquipment: epoch },
   };
 }
 
@@ -453,12 +495,17 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
     getDay: { type: 'accessor', value: [0, 0, 0, 0] },
     getTrip: { type: 'accessor', value: [0, 0, 0, 0] },
     routine: false,
+    figures: false,
+    getHeight: { type: 'accessor', value: (p: unknown) => as(p).age < 13 ? 0.6 : 1 },
+    getEquipment: { type: 'accessor', value: 0 },
     pickable: true,
   } as DefaultProps<Props>;
 
   initializeState() {
     super.initializeState();
     this.getAttributeManager()!.addInstanced({
+      instanceHeight: { size: 1, accessor: 'getHeight', defaultValue: 1 },
+      instanceEquipment: { size: 1, accessor: 'getEquipment', defaultValue: 0 },
       instancePrint: {
         size: 1,
         accessor: 'getPrint',
@@ -478,7 +525,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
       modules: [...shaders.modules, peopleAnim],
       inject: {
         ...shaders.inject,
-        'vs:#decl': 'in float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nin vec4 instanceDay;\nin vec4 instanceTrip;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
+        'vs:#decl': 'in float instanceHeight;\nin float instanceEquipment;\nout float vFigure;\nout float vPose;\nout float vSwing;\nout float vEquipment;\nin float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nin vec4 instanceDay;\nin vec4 instanceTrip;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
         // Lying on the ground: turn the quad to the walking direction, set the foot a little to
         // its side of the path, and move it along the path in metres.
         'vs:DECKGL_FILTER_SIZE': `${gait}
@@ -486,9 +533,18 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
   vec2 q = size.xy;
   float r = max(abs(q.x), abs(q.y)); // corners sit at (±r, ±r)
   size.xy = across * q.x + dir * q.y + across * side * r * 0.62;
+  if (peopleAnim.figures > 0.5 && vFigure < 0.5) size.xy *= 0.3;
+  if (vFigure > 0.5) {
+    // The projection's screen-x row gives a horizontal camera-facing axis even after rotation.
+    vec2 right = normalize(vec2(project.viewProjectionMatrix[0][0], project.viewProjectionMatrix[1][0]));
+    float scale = instanceHeight * (vPose > 0.5 && vPose < 1.5 ? 0.65 : 1.0);
+    size.xy = right * q.x * scale;
+    size.z = (q.y + r) * scale;
+    if (vPose > 1.5) { size.xy = right * q.x + dir * q.y * 0.4; size.z = r * 0.12; }
+  }
   size.xy += project_size(m);
 `,
-        'fs:#decl': 'in float vFoot;\nin float vPrintAlpha;\nin float vShoe;',
+        'fs:#decl': 'in float vFigure;\nin float vPose;\nin float vSwing;\nin float vEquipment;\nin float vFoot;\nin float vPrintAlpha;\nin float vShoe;\n' + figureShape,
         'fs:DECKGL_FILTER_COLOR': shapeFootprint,
       },
     };
@@ -496,7 +552,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({
-      peopleAnim: { time: animClock(), sunUtc: (solarNowMs() / 3_600_000) % 24, routine: this.props.routine ? 1 : 0 },
+      peopleAnim: { time: animClock(), sunUtc: (solarNowMs() / 3_600_000) % 24, routine: this.props.routine ? 1 : 0, figures: this.props.figures ? 1 : 0 },
     });
     super.draw(params);
   }

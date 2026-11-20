@@ -149,17 +149,16 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
   const wrapX = (x: number, n: number) => (x < 0 ? x + n : x >= n ? x - n : x);
   const clampY = (y: number, n: number) => (y < 0 ? 0 : y >= n ? n - 1 : y);
 
-  /** A terrain pixel is lake today (Natural Earth) or, in the epoch in force, in the modelled highstand lake. */
-  const lakeAt = (packedByte: number, x: number, y: number) => {
-    if (packedByte & 8) return true;
-    if (!live || !lake) return false;
+  /** 1 when a terrain pixel is in the modelled highstand lake of the epoch in force, else 0. */
+  const scenarioAt = (x: number, y: number) => {
+    if (!live || !lake) return 0;
     const c = x - lake.x0;
     const r = y - lake.y0;
-    return c >= 0 && r >= 0 && c < lake.width && r < lake.height && lake.wet[r * lake.width + c] === 1;
+    return c >= 0 && r >= 0 && c < lake.width && r < lake.height ? lake.wet[r * lake.width + c] : 0;
   };
 
   /** Bilinear wet share (sea, lake) and slope in degrees around a point; results land in `at`. */
-  const at = { sea: 0, lake: 0, slope: 0 };
+  const at = { sea: 0, lake: 0, scenario: 0, slope: 0 };
   function sample(row: number, col: number, u: number, v: number, drop: number) {
     const px = (col + 0.5 + u) * tScale - 0.5;
     const py = (row + 0.5 - v) * tScale - 0.5;
@@ -186,7 +185,13 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
     const p01 = packed[i01];
     const p11 = packed[i11];
     at.sea = w00 * wetShare(i00, drop) + w10 * wetShare(i10, drop) + w01 * wetShare(i01, drop) + w11 * wetShare(i11, drop);
-    at.lake = (lakeAt(p00, xa, rowA) ? w00 : 0) + (lakeAt(p10, xb, rowA) ? w10 : 0) + (lakeAt(p01, xa, rowB) ? w01 : 0) + (lakeAt(p11, xb, rowB) ? w11 : 0);
+    // `scenario`: the share of the modelled lake alone (0 unless an epoch is in force); `lake` adds today's lakes to it.
+    const s00 = scenarioAt(xa, rowA);
+    const s10 = scenarioAt(xb, rowA);
+    const s01 = scenarioAt(xa, rowB);
+    const s11 = scenarioAt(xb, rowB);
+    at.scenario = w00 * s00 + w10 * s10 + w01 * s01 + w11 * s11;
+    at.lake = (p00 & 8 || s00 ? w00 : 0) + (p10 & 8 || s10 ? w10 : 0) + (p01 & 8 || s01 ? w01 : 0) + (p11 & 8 || s11 ? w11 : 0);
     at.slope = w00 * slopeDegrees[p00 & 7] + w10 * slopeDegrees[p10 & 7] + w01 * slopeDegrees[p01 & 7] + w11 * slopeDegrees[p11 & 7];
   }
 
@@ -266,8 +271,11 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
       const wet = at.sea > at.lake ? at.sea : at.lake;
       if (wet >= SURE_DRY) {
         score[k] = -1;
-        wetness[k] = wet;
-        if (wet < WET_EDGE) doubtful++;
+        // A spot the modelled lake touches at all is never a doubtful shore spot (the coast's 4.6 km doubt does not apply to a lake drawn on the
+        // same grid): it ranks after every doubtful one and is not counted, so a group is never placed in the pixel of a lake.
+        const touched = at.scenario > 0;
+        wetness[k] = touched ? 1 + wet : wet;
+        if (wet < WET_EDGE && !touched) doubtful++;
         continue;
       }
       dry++;

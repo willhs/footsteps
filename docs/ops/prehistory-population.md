@@ -90,6 +90,10 @@ Rerun 2026-11-19 for Hokkaido 38 -> 30 ka and Ryukyu 38 -> 36 ka (`7e31399`): 11
 (hashes and the publish steps are in [research 0013](../research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19)). A fresh checkout's `data/raw/` has no `naturalearth/`:
 download it first (commands above). Regeneration is deterministic: unchanged years came out byte-identical.
 
+Rerun 2026-11-21 for research 0009 P3: `southeast_asia_mainland` capped at 22°N, new `south_china` row (22-28°N, 92-112°E) at 42 ka / ramp 8: 36 of 90 images changed (68,000 to 33,000 BCE),
+`totals.json` did not, Kunming, Guilin and Yuchanyan are empty until 40,000 BCE (was 68,000). Numbers and hashes in
+[research 0009](../research/0009-model-vs-evidence/research.md#after-p3-southern-china-split-from-mainland-southeast-asia-2026-11-21). Publishing the 36 images to budgie is a separate step (`GRID_ONLY=1 scripts/deploy-budgie.sh`).
+
 ## Method
 
 For each slider year (BP = 1950 − year), on the 0.5° grid of Krapp and Beyer (row 0 = 90°N):
@@ -161,7 +165,7 @@ confidence interval. Every figure marked secondhand or synthesis needs its paper
 - Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000).
   The model holds ~14% of the people the Tallavaara fit would put on every ice-free cell once
   everyone has arrived, so the scale step never asks for more than the fit allows.
-- Africa alone until the first exit; mainland Southeast Asia at 70 ka; Sahul at 50 ka; the Americas from 16 ka (all central dates).
+- Africa alone until the first exit; mainland Southeast Asia south of 22°N at 70 ka (southern China, 22-28°N, at 42 ka since 2026-11-21); Sahul at 50 ka; the Americas from 16 ka (all central dates).
 - At the last glacial maximum northern Europe is empty and the southern refugia (Iberia, Italy, the Balkans) hold people; this comes
   from the cold rule, not from the `refugia` list, which is documentation only.
 - Where it disagrees with HYDE (the pure model at 12,000 BCE, before the blend was lengthened to 14,000 BCE, against HYDE's 10,000 BCE grid):

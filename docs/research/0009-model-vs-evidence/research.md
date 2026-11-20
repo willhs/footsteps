@@ -172,15 +172,16 @@ Chart 1 compares each region's share of the world, model against evidence. The t
 
 ## Proposed model changes
 
-These proposals were written against the original baseline. P1, P2 and P4 are now applied; P9's
-arrival-mask part is also applied. All other proposals remain unchanged. Each says what to change,
+These proposals were written against the original baseline. P1, P2, P3 and P4 are now applied; P9's
+arrival-mask part is also applied. P3 was applied on 2026-11-21 as a `south_china` row at 42 ka / ramp 8 (see
+[After P3](#after-p3-southern-china-split-from-mainland-southeast-asia-2026-11-21): Kunming, Guilin and Yuchanyan first have people at 40,000 BCE, was 68,000 BCE). All other proposals remain unchanged. Each says what to change,
 why, the confidence, and what would settle it.
 
 | # | Change | Evidence | Confidence | Effect |
 |---|---|---|---|---|
 | P1 | **Fix the box order.** Move `levant_arabia` (split as Levant/Mesopotamia/north Arabia, e.g. [34,29,60,38], plus south Arabia [41,12,60,29]) *before* `africa`, or give `africa` a north-east limit; add small override regions for south Iberia/Sicily (europe_west) and Honduras/Nicaragua (south_america or north_america). Decide whether the Levant should hold early-exit pulses as an explicit low-density scenario (`alt`) rather than as a side effect of the box. | Section 1: 25 checkpoint places; 100 ka image has people at Jerusalem and Hatay | **High** (a bug against the table's own intent). The *intended* answer for the 120-50 ka Levant is a judgment call: radiocarbon cannot test it | Removes about 3.8k Levant people at 50 ka (13-33 per busiest cell at 100 ka); Arabia and Iran west of 52°E also lose theirs (not separately measured); the Levant start moves from 100+ ka to 50 ka (or a labelled pulse) |
 | P2 | **Make the `tibetan_plateau` row apply**: list it before `south_asia`, `east_asia` and `central_asia_siberia_south` (central 38 ka, ramp 8 as written). Also move `japan` before `east_asia` and shrink it to the islands (Kyushu to Hokkaido plus Ryukyu), not Primorye/Sakhalin. | Section 1: 0 cells; Lhasa and Xiahe fall to other regions; Kyushu is `east_asia` | **High** for the order; **low** for the date (evidence silent: plateau-interior dates start at 6.5 ka, Japan's at 8.3 ka) | Plateau gets its slow ramp (arrival 38 ka instead of 48/42 ka); Primorye leaves the Japan row |
-| P3 | **Split southern China from mainland Southeast Asia.** Cap `southeast_asia_mainland` at ~22°N (or add a `south_china` row that takes `east_asia`'s dates: central 42-45 ka, ramp ~8). Keep 70 ka only for the mainland south of it, and flag the date as resting on two bones (it already is). | Kunming, Guilin, Yuchanyan fall in the 70 ka region; the oldest date in the region is 34.0 ka (Longtanshan, Yunnan) and 21.5 ka (Yuchanyan); nothing is old enough to support 70 ka, nor can it refute it | Medium for the split (geography); low for 42 ka (the dated sites say "not before 34 ka" but there are 5 of them) | Southern China gets people from ~45 ka rather than 70 ka; mainland Southeast Asia's early people shrink (not quantified) |
+| P3 | **(Applied 2026-11-21.)** **Split southern China from mainland Southeast Asia.** Cap `southeast_asia_mainland` at ~22°N (or add a `south_china` row that takes `east_asia`'s dates: central 42-45 ka, ramp ~8). Keep 70 ka only for the mainland south of it, and flag the date as resting on two bones (it already is). | Kunming, Guilin, Yuchanyan fall in the 70 ka region; the oldest date in the region is 34.0 ka (Longtanshan, Yunnan) and 21.5 ka (Yuchanyan); nothing is old enough to support 70 ka, nor can it refute it | Medium for the split (geography); low for 42 ka (the dated sites say "not before 34 ka" but there are 5 of them) | Southern China gets people from ~45 ka rather than 70 ka; mainland Southeast Asia's early people shrink (not quantified) |
 | P4 | **Siberia: move `siberia_arctic` central from 32 to 40 ka, ramp 4 → 8**; keep 45 early and 28 late. | Section 2: Ust'-Ishim (44 ka, a sapiens genome) is in the box; evidence ≥ 2 sites per ka from 41 ka; Yana RHS (31.6 ka) is then the *first dense* occupation, not the first | **Medium**: Ust'-Ishim is one individual and Mamontovaya Kur'ya's ~40 ka is weakly dated; the cold limit already removes people in the cold stretches | Small in people (Siberia holds ~500 at 30 ka), visible on the map (Siberian occupation starts ~8 ka earlier) |
 | P5 | **West Europe glacial-maximum weight.** Between 36 and 20 ka scale density in `europe_west` so its 26-20 ka / 36-30 ka ratio is about 0.75 (the middle of the raw and corrected evidence, 0.51-1.01 across filters) instead of 1.5, i.e. a multiplier of about 0.5 at the maximum, rising back to 1 by ~16 ka; let the other regions absorb the difference so the world total (a separate choice) is unchanged. Implement as a per-region multiplier curve in `arrivals.yaml`, not by editing `WORLD_CURVE`. Central Asia and the steppe: a smaller multiplier (about 0.7) is suggested, **low confidence**, revisit with ROAD. Do not change Africa or East Asia. | Section 4: robust under all three filters for west Europe only | **Medium** for west Europe (direction robust, size depends on the correction); **low** for the others | West Europe holds ~100k fewer people at 22 ka (200k → about 100k), the other regions slightly more; the glacial-maximum map would show the contraction the documentation describes but the numbers do not |
 | P6 | **Ramps: `europe_east_steppe` 4 → 2 ka, `central_asia_siberia_south` 4 → 2 ka, `east_asia` 4 → 8 ka.** | Section 2: the steppe and central Asia fill within 1 ka of onset; east Asia stays thin to 35 ka | **Low** (a few sites per bin; Neanderthal contamination in the first two) | Steeper start in the steppe and central Asia, slower start in east Asia; changes the shape of the first 4-6 ka only |
@@ -246,6 +247,41 @@ ramp (30,000 BCE = 31.95 ka BP is still in the ramp). The reproducible browser c
 `footsteps-web/scripts/verify-prehistory-arrivals.mjs`: it reads served WebP levels and captures
 Jerusalem/Lhasa views, plus Units and Dots. Existing deep-link hydration warnings are retained in
 its report; the arrival checks do not change that frontend issue.
+
+## After P3: southern China split from mainland Southeast Asia (2026-11-21)
+
+Steady task `9eab673b-37c8-41e6-9107-b1c93712d2b6`. **P3 is applied.** `southeast_asia_mainland` is capped at 22°N (`[92, -2, 112, 22]`) and a new
+`south_china` row, `[92, 22, 112, 28]`, takes `east_asia`'s dates (central 42 ka, early 80, late 38) with a ramp of 8 ka. The two boxes meet on the same line, so the order of
+the two rows does not matter; `south_china` sits before `east_asia`, and `tibetan_plateau` (earlier in the file) still wins its own 27-28°N strip. There are now **28** region boxes.
+Date and ramp are choices: 42 ka is `east_asia`'s date carried over (the dated sites say "not before 34 ka", five of them, so it is low confidence), and the 8 ka ramp is the one the proposal and P6 give for a
+thin south. The strip also holds north Myanmar and Assam east of 92°E, where there is no evidence either way. The 70 ka date south of the line is unchanged and still rests on two bones (Tam Pa Ling 6/7).
+
+**Region check** (`regions.py`, the same assigner as the model): Kunming, Guilin and Yuchanyan (and Dali, Myitkyina) are `south_china`; Tam Pa Ling (20.2°N), Hanoi, Xishuangbanna (22.0°N) and Hainan stay `southeast_asia_mainland`;
+Hong Kong and Guangzhou were already `east_asia`; Lhasa is still `tibetan_plateau`.
+
+**Reran** `prehistory_population.py --verify` (all 90 images), `anthropology/deep.py` (full), `model_vs_evidence.py` (this folder's charts and `results.json`, now 28 regions; the old tables above remain the original baseline) and
+`arrival_check.py` (`rerun-p3/arrival_check.txt`). Before-images were regenerated from `arrivals.yaml` at `971b383` and match the 19 Nov manifest of research 0013 byte for byte; after-images, hashes and the comparison are in
+[`rerun-p3/`](rerun-p3/) (`compare_p3.py`, `compare_p3.txt`, `prehistory-manifest.sha256`).
+
+| Check | Before | After |
+|---|---|---|
+| Kunming, Guilin, Yuchanyan: first image with any people in their 3×3 cells | 68,000 BCE (70 ka region) | **40,000 BCE** (central 42 ka BP = 40,050 BCE; none at 41,000 BCE or earlier) |
+| Their region | `southeast_asia_mainland`, 70 ka / ramp 5 | `south_china`, 42 ka / ramp 8 |
+| People in 22-28°N, 92-112°E at 60,000 / 50,000 / 42,000 BCE | 43.6 k / 57.7 k / 60.5 k | **0** / **0** / **0** (then 5.2 k at 40,000 BCE, 51.4 k at 35,000, 74.7 k at 33,000 against 82.9 k before; identical from 32,000 BCE) |
+| People in mainland SE Asia south of 22°N at 60,000 / 50,000 / 45,000 BCE | 143.2 k / 187.9 k / 193.9 k | 149.8 k / 195.2 k / 200.0 k (+4.6%, +3.9%, +3.1%) |
+| Whole old `southeast_asia_mainland` box (both parts) at 60,000 / 50,000 BCE | 186.8 k / 245.6 k | 149.8 k / 195.2 k (−20%) |
+| World total per image, `totals.json`, `prehistory_totals.json` | -- | byte-identical to before; `--verify` passes all 90 |
+| Images that changed | -- | 36 of 90 (68,000 to 33,000 BCE); the 54 others are pixel-identical, including everything from 32,000 BCE on |
+
+- **World totals still follow the literature curve**: the scale step holds each year's total. Removing up to 64 k people from south China (68,000-33,000 BCE) is paid back by every other region through one rescale factor per step (up to 6.6% at 62,000 BCE, 1.4% at 35,000, 0 from 32,000 BCE).
+- **Mainland Southeast Asia south of the line is unchanged except for that rescale.** Cells 2° or more south of 22°N (south of 20°N) move by the world rescale factor and nothing else (e.g. 50,000 BCE: per-cell ratio 1.046-1.063, world factor 1.054). Within about 3 cells (1.5°) of the new 22°N edge, density drops (up to 35% in the worst cell) because the 1.5-cell blur of the capped region's mask no longer reaches north across the old box edge; this
+  is the same edge softening every box has and is the intended price of a hard boundary.
+- **Arrival check**: `south_china` is not flagged (earliest p3k14c date 34.0 ka, Longtanshan, Yunnan; 3rd-oldest site 19.6 ka; earliest direct AADR date 11.5 ka, Longlin Cave). The capped `southeast_asia_mainland` row has earliest p3k14c 9.4 ka (Khao Sam Kheo) and AADR 7.9 ka: the 70 ka date still has no evidence behind it either way (P10 would settle it). No region newly flags "evidence older than `early`".
+- **Model vs evidence** (`results.json`): `south_china` model first ≥2%-of-peak 41.95 ka, half-rise 34.95 ka, 3.7% of the world at 20 ka; `southeast_asia_mainland` share at 20 ka 15.2% → 11.5%; `east_asia` unchanged (first 40.95 ka, 6.5% at 20 ka, rho 0.570). The south China LGM ratio is 1.65 (SE Asia box before: 1.57).
+- **Atlas**: `deploy/budgie/api/anthropology.json.gz` `deep` section regenerated (the region list has 28 entries; per-cell region indices after `south_china` shifted by one, so the API and the atlas must be deployed together; they are one commit).
+- Tests: `poetry run pytest footstep-generator/tests/ -q`, see the job envelope.
+
+**Publishing** (the data is not in git): `GRID_ONLY=1 scripts/deploy-budgie.sh`, then `scripts/smoke.sh https://footsteps.willhs.me`, after the change lands. Only the 36 images from `humans_-68000.webp` to `humans_-33000.webp` differ from what is live; purge those URLs in Cloudflare if cached.
 
 ## What we don't know
 

@@ -150,14 +150,25 @@ regions:
     notes: "Central 48 ka from Fa-Hien Lena microlith onset; fossils 45 ka."
 
   - id: southeast_asia_mainland
-    name: Mainland Southeast Asia
-    bbox: [92, -2, 112, 28]
+    name: Mainland Southeast Asia (south of 22 N)
+    bbox: [92, -2, 112, 22]
     arrival_ka_bp: {central: 70, early: 86, late: 46}
     alt: {ka_bp: 46, note: "Skeletal evidence in Laos is Tam Pa Ling 2 (~46 ka); the 86-68 ka TPL 6/7 fragments are few and debated."}
     ramp_ka: 5
     verification: checked
     source: "Demeter et al. 2012 PNAS 109:14375 (Tam Pa Ling, >=46 ka); Demeter et al. 2022 / Freidline et al. 2023 Nat Commun 14:3193 (TPL 6/7, 86-68 ka)."
-    notes: "Central uses the published 70 +/- 3 ka for TPL 6; low confidence because the sample is two bones. Model treats the 86-46 ka span as very sparse regardless."
+    notes: "Central uses the published 70 +/- 3 ka for TPL 6; low confidence because the sample is two bones. Model treats the 86-46 ka span as very sparse regardless. Capped at 22 N on 2026-11-21 (research 0009 P3): the box used to run to 28 N and so held Kunming, Guilin and Yuchanyan, where the oldest dated sites are 34.0 ka (Longtanshan) and 21.5 ka (Yuchanyan); that part is now `south_china`. Tam Pa Ling (20.2 N, 103.4 E) stays inside."
+
+  - id: south_china
+    name: Southern China and the north of mainland Southeast Asia (22-28 N)
+    bbox: [92, 22, 112, 28]
+    arrival_ka_bp: {central: 42, early: 80, late: 38}
+    alt: {ka_bp: 80, note: "Daoxian, Hunan (Liu et al. 2015 Nature 526:696, 80-120 ka) -- widely doubted as secure sapiens attribution to the date."}
+    ramp_ka: 8
+    verification: checked
+    could_not_verify: "No dated site in the box is older than 34 ka (research 0009: Longtanshan, Yunnan, 34.0 ka; Yuchanyan 21.5 ka), so 42 ka is `east_asia`'s date carried over, not a date this box's own evidence gives; the dated sites say 'not before 34 ka' and there are five of them."
+    source: "Fu et al. 2013 PNAS 110:2223 (Tianyuan, ~40 ka, confirmed in this pass), as for `east_asia`; evidence in docs/research/0009-model-vs-evidence (section 1: Kunming, Guilin and Yuchanyan fell in the 70 ka mainland Southeast Asia box)."
+    notes: "Added 2026-11-21 (research 0009 P3): this strip was part of `southeast_asia_mainland` (70 ka). It takes `east_asia`'s dates, with a slower ramp of 8 ka (research 0009 P3 and P6: the dated sites stay thin to ~35 ka). It also covers north Myanmar and Assam east of 92 E, where there is no evidence either way. Placed before `east_asia`, whose box would otherwise take it from 92 E; it holds the same boundary as the capped Southeast Asia row, so the order between the two does not matter."
 
   - id: island_se_asia_wallacea
     name: Island Southeast Asia, Sunda shelf and Wallacea

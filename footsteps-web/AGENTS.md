@@ -43,6 +43,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
 - `node scripts/terrain-bench.mjs` is the terrain scoreboard (time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
+- `pnpm visual` is the screenshot regression: ten fixed scenes (Units, Grid, Dots, close-up 3D, hover card, a selected person) on real data and GPU, compared with `e2e/visual/*.webp`. **Run it after `pnpm build` and before committing any change that can move pixels**; a diff sheet (`visual-out/<scene>.diff.png`) shows what moved, and `pnpm visual --update --scenes <ids>` re-baselines on purpose. `?still=1` stops the time-based animation for it (`lib/still.ts`). Not in CI (no GPU, no data). `docs/ops/visual-regression.md`.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
   throttles requestAnimationFrame, so its fps numbers are meaningless.

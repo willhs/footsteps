@@ -51,3 +51,7 @@ footsteps-web/public/food
 
 # terrain benchmark output (scripts/terrain-bench.mjs)
 footsteps-web/terrain-bench-out/
+
+# visual regression output: actual images, diff sheets, report (scripts/visual.mjs)
+footsteps-web/visual-out/
+footsteps-web/visual-cache/

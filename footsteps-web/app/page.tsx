@@ -22,7 +22,8 @@ export default function Home() {
 
   const Bar = oldBar ? TimeNavigator : TimeBar;
   return (
-    <main className="relative w-full h-full overflow-hidden bg-black">
+    // data-loading: the time bar's loading flag as an attribute, for the visual regression run to wait on (docs/ops/visual-regression.md).
+    <main className="relative w-full h-full overflow-hidden bg-black" data-loading={loading ? 'true' : 'false'}>
       <ErrorBoundary>
         <FootstepsViz time={time} onLoadingChange={setLoading} />
       </ErrorBoundary>

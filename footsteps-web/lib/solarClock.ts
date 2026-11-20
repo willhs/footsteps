@@ -4,6 +4,8 @@
 // The stats panel's sun time, the Day/night shading and the daily routine (lib/routine.ts) all read it,
 // so a bent clock shows the same hour everywhere. Without either parameter it is `Date.now()`.
 
+import { STILL_DAY_UTC_MS, stillRequested } from './still';
+
 type Bend = { start: number; realStart: number; warp: number };
 let bend: Bend | null = null;
 let configuredFor: string | null = null;
@@ -18,6 +20,11 @@ export function configureSolarClock(search: string): void {
   const warp = Number(params.get('warp'));
   const hasUtc = params.get('utc') !== null && Number.isFinite(utc);
   const hasWarp = params.get('warp') !== null && Number.isFinite(warp) && warp > 0;
+  if (stillRequested(search)) {
+    // ?still=1 (lib/still.ts): a stopped clock on one fixed day, at ?utc= hours (default noon).
+    bend = { start: STILL_DAY_UTC_MS + (hasUtc ? utc : 12) * 3_600_000, realStart: Date.now(), warp: 0 };
+    return;
+  }
   if (!hasUtc && !hasWarp) {
     bend = null;
     return;
@@ -27,8 +34,8 @@ export function configureSolarClock(search: string): void {
   bend = { start: hasUtc ? midnight + utc * 3_600_000 : real, realStart: real, warp: hasWarp ? warp : 1 };
 }
 
-/** Whether the URL bent the clock (the page then redraws the sun time every second). */
-export const solarClockBent = () => bend !== null;
+/** Whether the URL bent the clock so it moves (the page then redraws the sun time every second). A still clock does not move. */
+export const solarClockBent = () => bend !== null && bend.warp !== 0;
 
 /** The clock now, in milliseconds since the epoch. */
 export function solarNowMs(): number {

@@ -1,6 +1,7 @@
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import vs from './unitMorphVertex';
+import { animSeconds } from '@/lib/still';
 
 type MorphProps = { progress: number; brightness: number; settle: number; halo: number };
 const block = /* glsl */ `uniform morphUniforms {
@@ -89,7 +90,7 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     const { progress, brightness, settle, halo } = this.props;
     this.state.model?.shaderInputs.setProps({
-      morph: { progress, brightness, settle, halo, time: (performance.now() / 1000) % 1000 },
+      morph: { progress, brightness, settle, halo, time: animSeconds(1000) },
     });
     super.draw(params);
   }

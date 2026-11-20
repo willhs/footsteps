@@ -7,10 +7,11 @@
 //
 // This is what lets a name tag follow a walker: the tag asks for the newest print's place.
 
+import { animSeconds } from './still';
 import { WALK_MS, stateAt, styleOf, type DayPlan, type State } from './routine';
 
 /** The shared animation clock (seconds), as the shader's `peopleAnim.time` uniform gets it. */
-export const animClock = () => (performance.now() / 1000) % 100_000;
+export const animClock = () => animSeconds(100_000);
 
 const fract = (x: number) => x - Math.floor(x);
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;

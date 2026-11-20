@@ -10,7 +10,8 @@
     "lint": "next lint",
     "format": "prettier . --write",
     "test": "jest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "visual": "node scripts/visual.mjs"
   },
   "keywords": [],
   "author": "",
@@ -56,6 +57,8 @@
     "eslint-plugin-react": "^7.37.5",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
-    "prettier": "^3.6.2"
+    "pixelmatch": "^8.0.0",
+    "prettier": "^3.6.2",
+    "sharp": "^0.35.5"
   }
 }

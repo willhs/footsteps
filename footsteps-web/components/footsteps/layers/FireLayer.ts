@@ -11,6 +11,7 @@
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import type { GridData } from '../hooks/gridData';
+import { animSeconds } from '@/lib/still';
 import { LOOKS, type WayOfLifeValue } from '@/lib/waysOfLife';
 
 export type FireMarks = {
@@ -196,7 +197,7 @@ export default class FireLayer extends ScatterplotLayer<unknown, { visibleFracti
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({
       fire: {
-        time: (performance.now() / 1000) % 1000,
+        time: animSeconds(1000),
         visible: (this.props as unknown as Props).visibleFraction,
       },
     });

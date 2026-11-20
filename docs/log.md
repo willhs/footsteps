@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] add | Close-up 3D ground cover by biome behind `?ground=1`
+
+The zoomed-in ground now reads as its biome instead of flat era-image colour, behind `?ground=1` (off until Will reviews it on prod). Each ground vertex carries a `Cover` from its Krapp biome, the snow line and low flat ground (`coverFor`, `lib/close3d.ts`); a deck.gl extension (`layers/groundDetail.ts`) paints it in the fragment shader: grass patches and clumps, a lumpy tree canopy for forest (sparse crowns for savanna), sand dunes and ripples, cracked ice, reed and pools on low flat ground, banded rock on steep slopes. No new download; the old plant marks stay off (`?plants=1`). Pattern size follows the pixel (a lattice never under ~3 px), so it stays visible at zoom 10-12 without shimmer. The "3D:" note says "surface imagined" and its hover text says the biome is modelled and the pattern imagined (`close3dNote`). Before/after shots for Amazon, Sahara, Mongolian steppe, Scandinavian ice and Mesopotamian marsh at zoom 10 and 12 came from the new `scripts/measure-ground.mjs`; frame rate with the flag on or off is inside the noise (mean 19.9 vs 21.6 fps at zoom 10, 15.8 vs 15.3 at zoom 12). Wet ground is a geometry rule (low and flat), since the elevation tiles carry no rivers. `docs/ops/close-up-scene.md`.
+
 ## [2026-11-20] change | Other kinds of human walk at street zoom like our own people
 
 Will asked for footsteps and "the rest of the human things" when zoomed in. At street zoom each guessed band in view becomes its ~15 people in lavender footprints (`walkersOf`, `PeopleLayer`), with name tags and the same click card, which names their kind and says the band is a guess. "Imagine their day" sends `kindOfHuman`: the day API names the kind, drops our own head counts and recorded-forager analogies, and limits the day to what archaeology supports. The portrait is still our generic template ("not a likeness"). `docs/ops/other-humans.md` "Walkers".

@@ -18,6 +18,34 @@ export function plantsParam(search: string): boolean {
   return new URLSearchParams(search).get('plants') === '1';
 }
 
+/** Biome surface detail in the ground shader (grass, closed canopy, sand ripples, cracked ice, reeds, rock):
+ * off until Will has looked at it on prod. `?ground=1` turns it on. */
+export function groundParam(search: string): boolean {
+  return new URLSearchParams(search).get('ground') === '1';
+}
+
+const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
+
+/** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
+export function close3dNote(plants: boolean, ground: boolean): { label: string; title: string } {
+  const imagined: string[] = [];
+  const how: string[] = [];
+  if (ground) {
+    imagined.push('surface');
+    how.push(
+      "The biome under each patch of ground is modelled (Krapp biomes, Beyer climate). The surface drawn on it, grass tufts, tree crowns, sand ripples, ice cracks, reeds and rock bands, is imagined: a formula picks it from the biome, and its details are not found anywhere.",
+    );
+  } else how.push("Ground colour comes from the year's biome.");
+  if (plants) {
+    imagined.push('plants');
+    how.push("Each plant mark stands for many plants of the year's biome, placed and sized by hand.");
+  }
+  return {
+    label: imagined.length ? `3D: ground measured, ${imagined.join(' and ')} imagined` : '3D: ground measured',
+    title: `${RELIEF} ${how.join(' ')}`,
+  };
+}
+
 /** On unless the URL says ?close3d=0. */
 export function close3dParam(search: string): boolean {
   return new URLSearchParams(search).get('close3d') !== '0';
@@ -148,9 +176,40 @@ export function groundColour(
   if (biome === 28) return mix(c, SNOW, 0.8);
   if (shore) c = mix(c, SAND, clamp01(1 - (h - sea) / 6) * 0.85);
   c = mix(c, ROCK, clamp01((slope - 0.35) / 0.5) * 0.6);
-  const snow = snowLine(ground.tempAt(lon, lat), lat, base);
-  c = mix(c, SNOW, clamp01((h - snow) / 250));
+  c = mix(c, SNOW, snowMix(h, lon, lat, ground, base));
   return c;
+}
+
+/** 0..1 share of snow at height `h` (m): fully snowy 250 m above the snow line. */
+function snowMix(h: number, lon: number, lat: number, ground: Ground, base: number): number {
+  return clamp01((h - snowLine(ground.tempAt(lon, lat), lat, base)) / 250);
+}
+
+/** What the fragment shader paints on a point of ground (`?ground=1`), as the two numbers a vertex
+ * carries (they are interpolated across a triangle, so each is a smooth axis, never a class id):
+ * - `dryCold`: 0 desert sand, 1 grass, 2 ice or snow. Grass sits between, so a blend across a
+ *   biome edge passes through a natural neighbour (steppe between desert and tundra).
+ * - `layer`: below -0.75 open water (no detail); -0.5 wet low ground (reeds, pools), fading to 0
+ *   (bare of trees) and up to 1 (closed tree canopy: the share of the ground under crowns). */
+export type Cover = { dryCold: number; layer: number };
+
+/** `layer` of open water. */
+export const COVER_WATER = -1;
+/** `layer` of wet low ground. */
+export const COVER_WET = -0.5;
+
+/** The cover of land, from its Krapp biome (lib/habitat.ts BIOMES; 0 unknown) and the ground it stands on.
+ * Forest, woodland and savanna get their tree share from VEGETATION (the same table the ?plants=1 marks used),
+ * ice sheets and ground above the snow line are ice, desert and barren are sand, the rest is grass.
+ * `snow` is 0..1 (snowMix), `wet`: low, flat ground by water (see buildTerrainMesh). Nothing grows on ice,
+ * snow or sand; wet ground keeps no trees. */
+export function coverFor(biome: number, snow: number, wet: boolean): Cover {
+  if (biome === 28 || snow >= 0.5) return { dryCold: 2, layer: 0 };
+  const desert = biome === 21 || biome === 27;
+  const dryCold = desert ? 0 : 1;
+  if (wet && biome !== 27) return { dryCold, layer: COVER_WET };
+  const trees = biome >= 1 && biome <= 20 ? (VEGETATION[biome]?.density ?? 0) * (biome === 13 || biome === 14 ? 0.7 : 1) : 0;
+  return { dryCold, layer: trees * (1 - snow) };
 }
 
 /** Below-sea vertices that count as open water: a connected patch that reaches the tile edge or
@@ -195,6 +254,14 @@ export function tileWater(heights: Float32Array, sea: number, step = 4): { n: nu
   return { n, water: openWater(below, n) };
 }
 
+/** Wet low ground (reeds, pools): land less than this many metres above the year's sea level... */
+const WET_MAX_HEIGHT = 5;
+/** ...and flatter than this (m/m). */
+const WET_MAX_SLOPE = 0.006;
+/** Desert counts as wet only this low (m above the year's sea): a salt marsh or sabkha, not an inland plain. A rule on the
+ * vertex alone, so it cannot change at tile edges. */
+const WET_DESERT_MAX_HEIGHT = 3;
+
 /** Vertices within `reach` grid steps of open water. */
 function nearWater(water: Uint8Array, n: number, reach = 2): Uint8Array {
   const near = new Uint8Array(n * n);
@@ -217,17 +284,21 @@ export type TerrainMesh = {
   normals: Float32Array;
   colors: Float32Array; // 0..1
   indices: Uint32Array;
+  /** Per vertex [Cover.dryCold, Cover.layer], only when built with `cover` (`?ground=1`). */
+  texCoords?: Float32Array;
 };
 
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
- * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. */
-export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4): TerrainMesh {
+ * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
+ * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. */
+export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
   const { west, south, east, north } = bbox;
   const positions = new Float32Array(n * n * 3);
   const normals = new Float32Array(n * n * 3);
   const colors = new Float32Array(n * n * 3);
+  const texCoords = cover ? new Float32Array(n * n * 2) : undefined;
   const latMid = ((south + north) / 2) * (Math.PI / 180);
   const mPerLon = 111_320 * Math.cos(latMid);
   const dxM = ((east - west) / (n - 1)) * mPerLon;
@@ -263,13 +334,23 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       normals[v * 3] = nx / len;
       normals[v * 3 + 1] = ny / len;
       normals[v * 3 + 2] = 1 / len;
-      let c = groundColour(h, Math.hypot(hx, hy), sea, lon, lat, ground, base, wet, shore[v] === 1);
+      const slope = Math.hypot(hx, hy);
+      let c = groundColour(h, slope, sea, lon, lat, ground, base, wet, shore[v] === 1);
+      if (texCoords) {
+        const biome = ground.biomeAt(lon, lat);
+        const lowFlat = !wet && h - sea < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
+        const cv = wet
+          ? { dryCold: 1, layer: COVER_WATER }
+          : coverFor(biome, snowMix(h, lon, lat, ground, base), lowFlat);
+        texCoords[v * 2] = cv.dryCold;
+        texCoords[v * 2 + 1] = cv.layer;
+      }
       // Baked hillshade (sun from the north-west, 45° up); water stays flat-lit.
       const lit = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
       const shade = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
       c = [c[0] * shade, c[1] * shade, c[2] * shade];
       // Small stable mottling so flat ground does not read as one blurred colour.
-      if (!wet) {
+      if (!wet && !cover) {
         const m = 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
         c = [c[0] * m, c[1] * m, c[2] * m];
       }
@@ -290,7 +371,7 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       k += 6;
     }
   }
-  return { positions, normals, colors, indices };
+  return { positions, normals, colors, indices, texCoords };
 }
 
 export type Plant = { position: [number, number, number]; kind: TreeKind; rgb: Rgb; scale: number };

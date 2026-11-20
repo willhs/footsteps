@@ -1,8 +1,13 @@
 import {
   CLOSE3D_PITCH,
+  COVER_WATER,
+  COVER_WET,
   EXAGGERATION,
   buildTerrainMesh,
+  close3dNote,
   close3dParam,
+  coverFor,
+  groundParam,
   openWater,
   groundColour,
   pitchForZoom,
@@ -105,4 +110,68 @@ test('open water: patches reaching the edge or big enough; specks are not', () =
   const water = openWater(below, n);
   expect(water[10 * n + 10]).toBe(0);
   expect(water[5 * n]).toBe(1);
+});
+
+test('?ground=1 is the only thing that turns the ground detail on', () => {
+  expect(groundParam('')).toBe(false);
+  expect(groundParam('?ground=0')).toBe(false);
+  expect(groundParam('?plants=1')).toBe(false);
+  expect(groundParam('?ground=1')).toBe(true);
+});
+
+test('cover follows the biome: forest crowns, grass, sand, ice', () => {
+  expect(coverFor(1, 0, false).layer).toBeGreaterThan(0.9); // tropical evergreen forest: closed canopy
+  expect(coverFor(1, 0, false).dryCold).toBe(1);
+  expect(coverFor(4, 0, false).layer).toBeGreaterThan(coverFor(12, 0, false).layer); // forest over savanna
+  expect(coverFor(12, 0, false).layer).toBeGreaterThan(0); // savanna keeps a few crowns
+  expect(coverFor(20, 0, false).layer).toBeLessThan(0.1); // grassland: almost none
+  expect(coverFor(23, 0, false)).toEqual({ dryCold: 1, layer: 0 }); // tundra: grass, no crowns
+  expect(coverFor(21, 0, false)).toEqual({ dryCold: 0, layer: 0 }); // desert: sand
+  expect(coverFor(28, 0, false)).toEqual({ dryCold: 2, layer: 0 }); // land ice
+});
+
+test('snow takes the trees, wet ground takes the trees, water has its own marker', () => {
+  expect(coverFor(4, 0.5, false)).toEqual({ dryCold: 2, layer: 0 }); // above the snow line
+  expect(coverFor(4, 0.3, false).layer).toBeLessThan(coverFor(4, 0, false).layer);
+  expect(coverFor(4, 0, true)).toEqual({ dryCold: 1, layer: COVER_WET });
+  expect(coverFor(21, 0, true)).toEqual({ dryCold: 0, layer: COVER_WET }); // coastal salt flat
+  expect(coverFor(27, 0, true).layer).toBeGreaterThanOrEqual(0); // barren rock is never wet
+  expect(COVER_WATER).toBeLessThan(-0.75);
+  expect(COVER_WET).toBeGreaterThan(-0.75);
+});
+
+test('a mesh built with cover carries one [dryCold, layer] pair per vertex; without it, none', () => {
+  const heights = heightsOf((x) => (x < 128 ? -80 : 20 + (x % 7))); // sea on the west, bumpy land
+  const n = 256 / 4 + 1;
+  expect(buildTerrainMesh(heights, bbox, -50, flat(4)).texCoords).toBeUndefined();
+  const mesh = buildTerrainMesh(heights, bbox, -50, flat(4), 4, true);
+  expect(mesh.texCoords!.length).toBe(n * n * 2);
+  expect(mesh.texCoords![1]).toBe(COVER_WATER); // first vertex: in the sea
+  const last = (n - 1) * 2; // last of the first row: land, deciduous forest
+  expect(mesh.texCoords![last]).toBe(1);
+  expect(mesh.texCoords![last + 1]).toBeGreaterThan(0.5);
+});
+
+test('low flat ground by the sea is wet, higher ground and a desert above 3 m are not', () => {
+  const coast = heightsOf((x) => (x < 100 ? -80 : 2)); // 2 m above a sea at 0, flat
+  const n = 256 / 4 + 1;
+  const row = (mesh: ReturnType<typeof buildTerrainMesh>, i: number) => mesh.texCoords![i * 2 + 1];
+  const forest = buildTerrainMesh(coast, bbox, 0, flat(4), 4, true);
+  expect(row(forest, n - 3)).toBe(COVER_WET); // flat low land, whatever the biome
+  const highland = buildTerrainMesh(heightsOf((x) => (x < 100 ? -80 : 60)), bbox, 0, flat(4), 4, true);
+  expect(row(highland, n - 3)).toBeGreaterThan(0); // 60 m up: forest
+  const lowDesert = buildTerrainMesh(heightsOf(() => 2), bbox, 0, flat(21), 4, true);
+  expect(row(lowDesert, 5 * n + 5)).toBe(COVER_WET); // a salt flat 2 m above the sea
+  const dryDesert = buildTerrainMesh(heightsOf(() => 4), bbox, 0, flat(21), 4, true);
+  expect(row(dryDesert, 5 * n + 5)).toBe(0); // 4 m up: bare sand
+});
+
+test('the note says the surface is imagined only when ?ground=1 is on', () => {
+  expect(close3dNote(false, false).label).toBe('3D: ground measured');
+  expect(close3dNote(false, true).label).toBe('3D: ground measured, surface imagined');
+  expect(close3dNote(true, false).label).toBe('3D: ground measured, plants imagined');
+  expect(close3dNote(true, true).label).toBe('3D: ground measured, surface and plants imagined');
+  expect(close3dNote(false, true).title).toMatch(/modelled/);
+  expect(close3dNote(false, true).title).toMatch(/imagined/);
+  expect(close3dNote(false, false).title).not.toMatch(/imagined/);
 });

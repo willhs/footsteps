@@ -20,7 +20,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   is a debug override. Grid uses the same per-year population images.
 - Close-up 3D: from zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/layers/Close3DLayer.ts`,
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour. Plant marks by Krapp biome
-  are off by default (`?plants=1`): cones and blobs read as toys, not trees. On by default; `?close3d=0` keeps it flat.
+  are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
+  (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
+  Will reviews it (`?ground=1`; the note then says "surface imagined"). On by default; `?close3d=0` keeps it flat.
+  See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
   lossless WebP per year in `data/tiles/grid/`. Browser decoding is in

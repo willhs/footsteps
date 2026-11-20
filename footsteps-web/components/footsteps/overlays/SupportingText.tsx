@@ -5,7 +5,7 @@ import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time'
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
-import { plantsParam } from '@/lib/close3d';
+import { close3dNote, groundParam, plantsParam } from '@/lib/close3d';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -67,6 +67,7 @@ function SupportingText({
 }: Props) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const [plantsOn, setPlantsOn] = useState(false);
+  const [groundOn, setGroundOn] = useState(false);
   // The left column (hover card, notes, legend) starts below this panel, whose height changes with its lines.
   const panelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -81,6 +82,9 @@ function SupportingText({
     };
   }, []);
   useEffect(() => setPlantsOn(plantsParam(window.location.search)), []);
+  useEffect(() => setGroundOn(groundParam(window.location.search)), []);
+
+  const note = close3dNote(plantsOn, groundOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(
@@ -280,11 +284,9 @@ function SupportingText({
         <div
           className="ov-note mt-0.5"
           data-testid="close3d-note"
-          title={plantsOn
-            ? "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Each plant mark stands for many plants of the year's biome, placed and sized by hand."
-            : "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Ground colour comes from the year's biome."}
+          title={note.title}
         >
-          {plantsOn ? '3D: ground measured, plants imagined' : '3D: ground measured'}
+          {note.label}
         </div>
       )}
 

@@ -10,7 +10,7 @@ import TerrainReliefLayer, { TERRAIN_DESATURATE, TERRAIN_TINT } from '../layers/
 import Close3DLayer from '../layers/Close3DLayer';
 import { cellOffset, decodeTemp, habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
-import { plantsParam, type Ground } from '@/lib/close3d';
+import { groundParam, plantsParam, type Ground } from '@/lib/close3d';
 
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
@@ -232,7 +232,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     );
   }
   if (close3d) {
-    if (ground) layers.push(new Close3DLayer({ id: 'close3d', ground: ground.ground, groundKey: ground.key, seaLevel: seaLevelAt(clampTime(time)), plants: typeof window !== 'undefined' && plantsParam(window.location.search) }));
+    if (ground) layers.push(new Close3DLayer({ id: 'close3d', ground: ground.ground, groundKey: ground.key, seaLevel: seaLevelAt(clampTime(time)), plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

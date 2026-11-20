@@ -3,6 +3,7 @@
 import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
+import GroundDetail from './groundDetail';
 import {
   CLOSE3D_ZOOM,
   TREE_PX,
@@ -24,6 +25,8 @@ type Props = {
   seaLevel: number;
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;
+  /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
+  detail?: boolean;
 };
 
 type TileData = { heights: Float32Array };
@@ -31,6 +34,7 @@ type Built = { key: string; mesh: TerrainMesh; plants: Plant[] };
 
 const DEM = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 const MESHES = plantMeshes();
+const GROUND_DETAIL = [new GroundDetail()];
 const built = new WeakMap<TileData, Built>();
 
 async function loadHeights(url: string, signal?: AbortSignal): Promise<TileData> {
@@ -54,8 +58,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground, groundKey, seaLevel, plants: drawPlants = false } = this.props;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}`;
+    const { ground, groundKey, seaLevel, plants: drawPlants = false, detail = false } = this.props;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM,
@@ -77,7 +81,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         if (!b || b.key !== key) {
           b = {
             key,
-            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground),
+            mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground, 4, detail),
             plants: drawPlants ? plantsForTile(data.heights, bbox, [x, y, z], seaLevel, ground) : [],
           };
           built.set(data, b);
@@ -95,9 +99,12 @@ export default class Close3DLayer extends CompositeLayer<Props> {
               positions: { value: mesh.positions, size: 3 },
               normals: { value: mesh.normals, size: 3 },
               colors: { value: mesh.colors, size: 3 },
+              // [dryCold, layer] per vertex for the GroundDetail shader.
+              ...(mesh.texCoords ? { texCoords: { value: mesh.texCoords, size: 2 } } : {}),
             },
             indices: { value: mesh.indices, size: 1 },
           },
+          extensions: detail ? GROUND_DETAIL : [],
           // Colours carry a baked hillshade (lib/close3d.ts): light them flat.
           material: { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
           pickable: false,

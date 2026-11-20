@@ -38,7 +38,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
 - Close-up 3D (default; `?close3d=0` keeps the map flat): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
   draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
   image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
-  placement and size are invented and the screen says so. `@deck.gl/mesh-layers` must stay aliased to its CommonJS
+  placement and size are invented and the screen says so. `?ground=1` adds biome surface detail in the ground's fragment shader
+  (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `@deck.gl/mesh-layers` must stay aliased to its CommonJS
   build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
 - `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900

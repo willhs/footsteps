@@ -363,6 +363,15 @@ Success: share of groups on water falls from "unknown, probably non-zero" to zer
    one soft polygon for the hovered block; legend line "imagined". Depends on 2.
 4. **EA030 geometry plus rank-size tail** (S–M). Dispersed/hamlet/village geometry; one stated exponent per region; hover-card line for the largest settlement. Independent of 2.
 
+5. **Clustered placement across neighbouring cells** (M, not built). Written down 2026-11-20 after the grid fix (`docs/ops/site-terrain.md` "Regularity"): per-cell
+   spots with a stable score factor measure as random-looking (square order 0.14 against 0.42-0.45 before, nearest-neighbour spread at the
+   random level), but every populated cell still holds at least one group, so the map has no empty land between groups and no bunching along rivers. The
+   bigger option is a clustered point process: build one smooth suitability field over a block (say 4 × 4 cells: flat × water × coast, blurred over
+   a few cells), draw the block's groups from it (a Poisson cluster or log-Gaussian Cox process, so villages bunch along rivers and coasts with empty
+   land between), and keep totals exact per block rather than per cell (the block's people split over its groups as now). The cost is the id contract
+   (a cell's groups would move to another cell, so ids need a block-level scheme or the morph fades them) and the per-cell cell-total invariant that the hover card and
+   the tests rely on. Do it only if the one-per-cell look still reads as machine-made on a thin forager plain.
+
 Not proposed as a task yet: a polity name on the hover card (bake Cliopatria into a per-cell, per-HYDE-year lookup, CC BY 4.0, credit Seshat).
 Revisit after 2–4, and after settling the Seshat Equinox licence question from research 0007.
 

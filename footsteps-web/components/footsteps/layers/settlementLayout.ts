@@ -16,7 +16,7 @@ import type { CellSpots } from './siteRanking';
 /** Dispersed groups choose among this many of the best-ranked spots (the better half of a cell's 16 candidates). */
 export const DISPERSE_POOL = 8;
 /** A hamlet's later houses stand this far from its first (cell widths; 0.05 is about 460 m on a 5′ cell, where candidate spots are at least
- * 0.07 apart and usually 0.2), growing slowly with the count. */
+ * 0.05 apart and usually 0.2), growing slowly with the count. */
 export const HAMLET_BASE = 0.025;
 export const HAMLET_STEP = 0.025;
 /** Offsets never leave the cell (cell widths from its centre). */

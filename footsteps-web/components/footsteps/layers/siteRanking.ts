@@ -10,7 +10,12 @@ import terrainMeta from '../../../public/sites/site_terrain.json';
 /** Candidate spots per cell: a jittered 4 × 4 grid, so spots are spread and no two touch. A cell with more groups than dry spots stacks them. */
 export const CANDIDATES = 16;
 const SIDE = 4;
-const MARGIN = 0.45; // spots stay this far (cell widths) from the cell centre, clear of the neighbours' spots
+const MARGIN = 0.5; // the strata cover the whole cell (offsets are cell widths from the centre)
+const STRATUM_JITTER = 0.8; // a spot lies within the middle 80 % of its stratum, so two spots of a cell are never closer than 0.05
+/** The score is multiplied by 1 ± this, a stable random factor per (cell, spot). The baked water and slope layers are coarser than a cell, so on
+ * flat inland ground scores tie or differ only by an interpolation slope; without the factor the best spot is the corner that slope points to,
+ * the same relative place in every cell, and a map of one group a cell reads as rows. */
+export const SCORE_NOISE = 0.35;
 /** A point is sea (or lake) when at least this share of the area around it is. */
 const WET_EDGE = 0.5;
 /** A spot is surely dry when less than this share of the area around it is sea or lake. Between the two it may be on the shore: the
@@ -54,14 +59,17 @@ const slopeDegrees = (() => {
 const waterMetres = Float32Array.from({ length: 256 }, (_, c) => WATER_MAX_M * (c / 255) ** 2);
 
 /** Candidate k's offset (cell widths from the centre) into ox[k], oy[k]: its stratum of a 4 × 4 grid, jittered by one mix of the cell
- * id and k. A pure function of the cell and k, so any candidate can be had without the others. */
-function place(cellId: number, k: number, ox: Float64Array, oy: Float64Array) {
+ * id and k. Returns the candidate's score factor in [1 - SCORE_NOISE, 1 + SCORE_NOISE) from the same mix. A pure function of the cell and k,
+ * so any candidate can be had without the others. */
+function place(cellId: number, k: number, ox: Float64Array, oy: Float64Array): number {
   let z = (Math.imul(cellId ^ 0x9e3779b9, 0x85ebca6b) + Math.imul(k + 1, 0x27d4eb2f)) | 0;
   z = Math.imul(z ^ (z >>> 15), 0x85ebca6b);
   z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35);
   z ^= z >>> 16;
-  ox[k] = (((k & 3) + 0.15 + 0.7 * ((z & 0xff) / 256)) / SIDE - 0.5) * 2 * MARGIN;
-  oy[k] = (((k >> 2) + 0.15 + 0.7 * (((z >>> 8) & 0xff) / 256)) / SIDE - 0.5) * 2 * MARGIN;
+  const lo = (1 - STRATUM_JITTER) / 2;
+  ox[k] = (((k & 3) + lo + STRATUM_JITTER * ((z & 0xff) / 256)) / SIDE - 0.5) * 2 * MARGIN;
+  oy[k] = (((k >> 2) + lo + STRATUM_JITTER * (((z >>> 8) & 0xff) / 256)) / SIDE - 0.5) * 2 * MARGIN;
+  return 1 + SCORE_NOISE * ((((z >>> 16) & 0xff) / 128) - 1);
 }
 
 /** The fixed offsets of a cell's candidates, by cell id alone. */
@@ -101,6 +109,7 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
   const ox = new Float64Array(CANDIDATES);
   const oy = new Float64Array(CANDIDATES);
   const score = new Float64Array(CANDIDATES);
+  const factor = new Float64Array(CANDIDATES);
   const wetness = new Float64Array(CANDIDATES);
   const ranked = new Uint8Array(CANDIDATES);
   let sigA = 0;
@@ -200,7 +209,7 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
       }
     }
     const cos = Math.cos((90 - (row + 0.5) * (360 / cellsAcross)) * Math.PI / 180);
-    for (let k = 0; k < CANDIDATES; k++) place(cellId, k, ox, oy);
+    for (let k = 0; k < CANDIDATES; k++) factor[k] = place(cellId, k, ox, oy);
     let dry = 0;
     let doubtful = 0;
     for (let k = 0; k < CANDIDATES; k++) {
@@ -230,7 +239,7 @@ export function createSiteRanker({ terrain, water }: SiteLayers, cellsAcross: nu
         }
         coast = 1 + COAST_BONUS / (1 + (Math.sqrt(best) * PIXEL_M) / COAST_DECAY_M);
       }
-      score[k] = flat * near * coast;
+      score[k] = flat * near * coast * factor[k];
     }
     // insertion sort of the candidate indices: dry by score (best first), then wet by wetness (driest first); ties keep index order
     for (let k = 0; k < CANDIDATES; k++) {

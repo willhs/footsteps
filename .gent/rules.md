@@ -55,7 +55,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   (research 0012, part 2); read by `siteRanking.ts` under `?settlements=1`. Present-day courses; the Green Sahara is not modelled (`--extra-water` is the hook). See `docs/ops/water-distance.md`.
 - `footstep-generator/site_terrain.py`: AWS Terrarium zoom-6 tiles + Natural Earth 10m land and lakes v5.1.2 (pinned) → one year-independent lossless WebP on a 2.5′ grid
   (`footsteps-web/public/sites/site_terrain.webp`, 2.4 MB, with a `site_terrain.json` sidecar): depth of each pixel's sea below today's, its sea share, a lake flag and a regional slope class.
-  Under `?settlements=1` only, `components/footsteps/layers/siteRanking.ts` ranks 16 candidate spots per 5′ cell (flat × near fresh water × near the year's coast, never sea or lake at
+  Under `?settlements=1` only, `components/footsteps/layers/siteRanking.ts` ranks 16 candidate spots per 5′ cell (flat × near fresh water × near the year's coast × a stable per-spot factor of 1 ± 0.35 that stops the ties lining up in rows, never sea or lake at
   `seaLevelAt(year)`) and `settlementUnits.ts` puts group *k* at spot *k*; cell totals and ids unchanged, `?sites=0` keeps the old positions. Modelled rule, imagined spot.
   `site_check.py` counts groups in the sea against Natural Earth's polygons. See `docs/ops/site-terrain.md`.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,

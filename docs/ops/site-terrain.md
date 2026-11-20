@@ -2,7 +2,7 @@
 id: site-terrain
 type: reference
 purpose: "Where a group sits inside its cell under ?settlements=1: the baked terrain image, the ranking rule, how to regenerate and measure it, and what it cannot do"
-updated: 2026-11-19
+updated: 2026-11-20
 ---
 
 # Site terrain and ranked spots (`?settlements=1`)
@@ -15,15 +15,22 @@ Before this, the two Units builders put groups at seeded random points in the ce
 
 ## The rule
 
-Each populated 5′ cell has a fixed list of **16 candidate spots** (a jittered 4 × 4 grid, spread over ±0.45 cell around the centre, a pure
-function of the cell id). The list is ranked by
+Each populated 5′ cell has a fixed list of **16 candidate spots** (a jittered 4 × 4 grid covering the whole cell, each spot in the middle 80 % of its
+stratum, a pure function of the cell id). The list is ranked by
 
 ```
-score = flat × near water × near coast
+score = flat × near water × near coast × noise
+noise       = 1 ± 0.35, a stable factor per (cell, spot)
 flat        = 1 / (1 + (slope / 3°)²)                       slope: the baked 2.5′ slope class, bilinear
 near water  = 1 / (1 + metres to fresh water / 3 km)        the baked water-distance layer (docs/ops/water-distance.md), bilinear
 near coast  = 1 + 0.6 / (1 + metres to the year's sea / 5 km)   1 when there is no sea within two pixels
 ```
+
+The noise factor breaks ties. The water layer is one value per 5′ cell and the slope is a 2.5′ class, both coarser than the spread of a cell's spots, so on flat
+inland ground the scores tie or differ only by the slope of the bilinear interpolation. Before the factor, the best spot was the corner that gradient points to
+(candidates 0, 3, 12 and 15, the four corners of the 4 × 4, won 65 % of the time against 25 % if even), the same relative place in cell after cell, and a map of
+about one group a cell read as rows (see "Regularity"). ±0.35 is the smallest tried that brought the square order to the random level; ±0.2 left it at 0.15-0.19.
+Real preferences still win: a river 3 km away changes the score by far more than 35 %.
 
 The slope scale (3°) is from the Yangshao/Longshan site studies in research 0012 (slope about 2–3°); the water and coast decay lengths are
 **invented**, because the literature gave nothing to fit foragers to. Sea and lakes are left out: a spot is **surely dry** when under 5 %
@@ -108,6 +115,10 @@ Measured 2026-11-19 (people are identical before and after in every year; so are
 | 10,000 BCE | −50 m | 1,170,094 | 1,141 → 72 | 3,413 → 706 |
 | 21,000 BCE (modelled, people on land sub-cells) | −129 m | 1,156,358 | 867 → 38 | 6,317 → 3,895 |
 
+**Re-measured 2026-11-20 after the score factor and full-cell spots** (same builder; groups and people identical to before in every year): in the sea 14,295 (1900 CE, was 13,924), 6,065 (1000 BCE; 20,410 with the old positions),
+73 (10,000 BCE, was 72), 38 (21,000 BCE, was 38); on a lake 2,754, 990, 706, 3,895. Spots now reach the cell's edge, so a few more coastal ones fall on the shore (+2.7 % in 1900); the no-dry-spot cells are
+unchanged in kind (3,088 cells in 1900). The 1900 build costs 29.9 s cold (23.3 s before: noise and a wider spread cost a little per candidate), 6.5 s for 1000 BCE.
+
 **Against Natural Earth's exact polygons, 1900 CE:** in the sea 46,746 (1.79 %) → 10,508 (0.40 %), on a lake 8,392 → 1,636.
 
 **The target was zero; it is not zero, and cannot be with this image.** What is left:
@@ -129,6 +140,35 @@ every cell once), then 5.1 → 6.0 s for 1000 CE (the cache already holds nearly
 1900 CE is 7.1 s. So the experiment's first load costs about 17 s more in the worker, once per page, and later years cost under 1 s more.
 Numbers are from a loaded machine and a Node worker, not the browser; they are for comparison, not a promise.
 
+## Regularity
+
+`siteRegularity.ts` measures how regular a set of group positions is, and `settlementRegularity.real.test.ts` runs it on the shipped data (same variables as "Measure"; `FOOTSTEPS_SITES_FILE`
+names the output). Three numbers: the nearest-neighbour spread `cv` (0.52 for a random scatter, 0 for a lattice), the Clark-Evans ratio (1 random, above 1
+more even than random; density is groups per occupied cell), and the **square order** (|mean exp(4iθ)| of the directions to nearest neighbours: about 0.11-0.13 for the
+old random positions, near 1 for rows and columns). Box: Italy 7-19° E, 36-47.5° N at 1000 BCE; the Nile 29-35° E, 22-31.5° N at 1500 CE. The screenshots are zoom 7 flat and zoom 9.5 tilted 3D
+(`scripts/verify-regularity.mjs`).
+
+| Place, way of placing | Groups in box | cv | Clark-Evans | Square order | Spot candidates 0/3/12/15 |
+|---|---|---|---|---|---|
+| Italy 1000 BCE, default (no flag) | 40,373 | 0.745 | 0.95 | 0.018 | n/a |
+| Italy, `?settlements=1&sites=0` | 17,511 | 0.767 | 0.99 | 0.134 | n/a |
+| Italy, `?settlements=1` **before** | 17,511 | 0.669 | 0.94 | **0.450** | 14 + 15 + 15 + 21 = 65 % of first groups |
+| Italy, `?settlements=1` **after** | 17,511 | 0.561 | 1.03 | **0.144** | 8 + 8 + 8 + 11 = 35 % |
+| Nile 1500 CE, default | 5,288 | 1.086 | 1.09 | 0.022 | n/a |
+| Nile, `?sites=0` | 3,433 | 1.292 | 1.03 | 0.113 | n/a |
+| Nile, `?settlements=1` **before** | 3,433 | 1.128 | 1.10 | **0.420** | 14 + 14 + 14 + 23 = 65 % |
+| Nile, `?settlements=1` **after** | 3,433 | 1.017 | 1.19 | **0.139** | 8 + 7 + 8 + 9 = 32 % |
+
+(The default path has more groups in the box because it does not allocate cities and cells the same way; compare its shape, not its count.) The 2D measure that stood out is the
+square order: the grid showed as nearest neighbours lying due east-west or north-south far more often than in a scatter (0.42-0.45 against 0.11-0.13), while the within-cell position (`alignX`, `alignY`) stayed low
+because the four corners cancel. After the change the screenshots show a scatter with no rows in Italy and in the Nile's farmland, flat and in 3D
+(`evidence/regularity-*-before.png` and `-after.png` in the job workspace).
+
+**Group counts per cell stay exact, deliberately.** The task offered varying how many groups a cell draws (some 0, some 2-3) with totals conserved over a neighbourhood, if per-cell exactness forced a
+lattice. It did not: with full-cell spots and the noise factor, one group a cell already measures random (square order 0.14, cv 0.56). Varying the count would move a zero-draw cell's people to
+a neighbour's group, so cell totals, group ids (the year morph pairs marks by id) and the per-cell invariant the tests and hover card use would all go. The bigger option, a clustered point process over a block,
+is written up as research 0012 follow-up 5 and not built.
+
 ## Limits
 
 - Present-day coasts, lakes and rivers stand in for the past; nothing palaeo is invented. The Green Sahara and the exposed shelves' rivers are
@@ -137,4 +177,4 @@ Numbers are from a loaded machine and a Node worker, not the browser; they are f
 - The coast is known to a 2.5′ pixel (about 4.6 km). A spot named "dry" can be on a beach or a spit a few hundred metres inside the sea.
 - Slope is regional (2.4 km pixels, median-filtered); flat means "a plain", not "a terrace".
 - Seasonal scenarios (`?seasons=1`) move mobile bands to illustrative gathering sites that are **not** checked against the sea.
-- Candidate spots are a 4 × 4 jittered grid; a cell with more groups than usable spots stacks them (rare: it takes 20 bands, 600 foragers in a cell).
+- Candidate spots are a 4 × 4 jittered grid over the whole cell, so two groups of different cells can stand close across a cell edge (as close as the jitter allows); a cell with more groups than usable spots stacks them (rare: it takes 20 bands, 600 foragers in a cell).

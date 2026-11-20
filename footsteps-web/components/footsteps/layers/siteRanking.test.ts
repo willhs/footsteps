@@ -40,7 +40,38 @@ test('candidate offsets depend on the cell alone and stay inside it', () => {
   expect(candidateOffsets(12).x).not.toEqual(candidateOffsets(13).x);
   const { x, y } = candidateOffsets(12);
   expect(x).toHaveLength(CANDIDATES);
-  for (let k = 0; k < CANDIDATES; k++) expect(Math.max(Math.abs(x[k]), Math.abs(y[k]))).toBeLessThanOrEqual(0.45);
+  for (let k = 0; k < CANDIDATES; k++) expect(Math.max(Math.abs(x[k]), Math.abs(y[k]))).toBeLessThan(0.5);
+});
+
+test('candidates span the whole cell, right out to its edges', () => {
+  let edge = 0;
+  for (let cell = 0; cell < 200; cell++) {
+    const { x, y } = candidateOffsets(cell);
+    for (let k = 0; k < CANDIDATES; k++) if (Math.max(Math.abs(x[k]), Math.abs(y[k])) > 0.45) edge++;
+  }
+  // the old spots never went past 0.45; now about 1 in 9 does (the outer strata of the 4 × 4 grid reach 0.475)
+  expect(edge).toBeGreaterThan(200 * CANDIDATES * 0.08);
+});
+
+test('on ground that scores the same everywhere the best spot is not the same place in every cell', () => {
+  // an all-land test world, flat with no water near: every candidate ties on slope, water and coast
+  const ranker = createSiteRanker(world(undefined, 0), CELLS);
+  const stratum = new Set<number>();
+  const quadrants = new Set<string>();
+  for (const row of [0, 1, 2, 3]) {
+    for (const col of [2, 3, 4]) {
+      const cell = row * CELLS + col;
+      const best = ranker.spotsFor(cell, 0, 1);
+      const { x, y } = candidateOffsets(cell);
+      let k = 0;
+      for (let c = 1; c < CANDIDATES; c++) if (Math.hypot(x[c] - best.x[0], y[c] - best.y[0]) < Math.hypot(x[k] - best.x[0], y[k] - best.y[0])) k = c;
+      stratum.add(k);
+      quadrants.add(`${Math.sign(best.x[0])},${Math.sign(best.y[0])}`);
+    }
+  }
+  // 12 cells: before the score factor every one took candidate 0 (index order), the same corner of the cell
+  expect(stratum.size).toBeGreaterThanOrEqual(6);
+  expect(quadrants.size).toBe(4);
 });
 
 test('no dry spot is in the sea at today\'s sea level; the wet ones come last', () => {

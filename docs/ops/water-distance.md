@@ -76,6 +76,10 @@ variant (a second WebP, used only in the humid window) needs a sourced hydrograp
 and palaeo-drainage maps in Drake et al. 2011 or the Quaternary lake compilations; that is a follow-up, not part of this layer.
 Until then part 2 should treat "far from water" in the Sahara, Arabia and the Thar between 11 and 5 ka as unreliable.
 
+**One basin is now modelled, behind `?pastwater=1`:** Lake Mega-Chad's highstand (`past_water.py`) adds a dated, regional distance patch
+(`public/pastwater/mega_chad_water.webp`, 8 KB, min of this image and the distance to the lake) that the ranker reads only in the scenario's years and
+only inside the patch; this image and its bytes are untouched. See [past water](past-water.md).
+
 ## Other limits
 
 - Natural Earth 10m omits small streams, springs and ephemeral channels, so inland cells can read tens of km from water that was there.

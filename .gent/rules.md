@@ -65,6 +65,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   In the settlement model (the default Units view; `?settlements=0` turns it off), `components/footsteps/layers/siteRanking.ts` ranks 16 candidate spots per 5′ cell (flat × near fresh water × near the year's coast × a stable per-spot factor of 1 ± 0.35 that stops the ties lining up in rows, never sea or lake at
   `seaLevelAt(year)`) and `settlementUnits.ts` puts group *k* at spot *k*; cell totals and ids unchanged, `?sites=0` keeps the old positions. Modelled rule, imagined spot.
   `site_check.py` counts groups in the sea against Natural Earth's polygons. See `docs/ops/site-terrain.md`.
+- `footstep-generator/past_water.py`: a dated, basin-connected Lake Mega-Chad highstand (329 m, calendar BP 11.5–5 ka = app years -9550…-3050; Terrarium DEM flood-filled from Lake Chad, ~359,000 km²) → a 646 B lake mask,
+  an 8 KB freshwater-distance patch and a manifest in `footsteps-web/public/pastwater/`; **one** geometry and epoch read by `terrain_image.py --pastwater`, the ranker's wet exclusion and distances (`siteRanking.ts`, epoch-keyed cache; groups
+  with no dry spot are counted `unresolved`, never forced in or dropped), and the close-up lake plane (`lib/close3d.ts` `lakeVertices`). Behind `?pastwater=1` (off until reviewed; Dots is static and says so; outside the window the
+  scenario is inactive: geography unknown, not dry). `past_water_check.py` is the independent placement check. See `docs/ops/past-water.md`.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
   See `docs/ops/hyde-climate-spread.md`.

@@ -72,6 +72,8 @@ poetry run python footstep-generator/terrain_image.py -6000    # one year
    out 4250→2750 BCE (full ~8250–4250 BCE). Lake Mega-Chad = Chad-basin land
    (10.5–19.5N, 12.5–20.5E) between 150 m and 329 m (Drake & Bristow 2006 highstand
    shoreline), with the same weight. Guide: Li, Dallmeyer et al. 2025 megabiomes.
+   **That lake is a box-and-elevation approximation and fades with `sahara_weight`; with `?pastwater=1` it is replaced by the shared, basin-connected
+   highstand of `past_water.py` (`terrain_image.py --pastwater` writes `data/tiles/terrain/pastwater/`, 7 frames, -9000…-3000): [past water](past-water.md).**
 7. **Farmland.** Calibrated to reality: Blue Marble (July 2004) is a photo of farmed
    Earth, so step 2's removed "farm look" (photo minus natural colour) is put back in
    proportion to how farmed a cell was then versus 1900 (`farm_weight`), with

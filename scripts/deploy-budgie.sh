@@ -37,6 +37,12 @@ sync_grid() {
   else
     echo "warning: no local terrain images; skipping (see docs/ops/terrain-images.md)" >&2
   fi
+  # ?pastwater=1 Earth images (terrain_image.py --pastwater): a subfolder the rule above excludes. The app falls back to the ordinary image if one is missing.
+  if compgen -G "$ROOT/data/tiles/terrain/pastwater/earth_*.webp" >/dev/null; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/terrain/pastwater"
+    rsync -az --include='earth_*.webp' --exclude='*' \
+      "$ROOT/data/tiles/terrain/pastwater/" "$REMOTE:$DEST/app/terrain/pastwater/"
+  fi
   # Hover card lookups: ~100 lossless WebPs of 70-90 KB (footstep-generator/habitat_lookup.py)
   if compgen -G "$ROOT/data/tiles/habitat/bp_*.webp" >/dev/null; then
     ssh "$REMOTE" "mkdir -p $DEST/app/habitat"

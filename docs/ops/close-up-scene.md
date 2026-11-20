@@ -13,6 +13,7 @@ From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/co
 |---|---|---|
 | Relief | AWS Terrarium elevation tiles, drawn 1.6 times taller | measured |
 | Water | flat at the year's sea level (`lib/climate.ts`) | modelled |
+| Lake Mega-Chad (`?pastwater=1`, -9550…-3050 only) | a second water plane at 329 m on the DEM's own datum, where the shared basin-connected mask says lake and the ground is below it ([past water](past-water.md)) | modelled, experimental |
 | Ground colour | the year's Earth image (`terrain_image.py`) with a baked hillshade, sand shore, rock, snow | modelled |
 | Biome under each spot | Krapp2021 biome per 0.5° cell, Beyer climate ([habitat-lookup](habitat-lookup.md)) | modelled |
 | Plant marks (`?plants=1`) | cones and blobs by biome, hand-placed | imagined (off: they read as toys) |

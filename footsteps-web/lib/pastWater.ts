@@ -131,7 +131,7 @@ export function pastWaterNote(year: number, mode: PeopleMode, unresolved: Unreso
       ? `${unresolved.groups.toLocaleString()} group${unresolved.groups === 1 ? '' : 's'} (${Math.round(unresolved.people).toLocaleString()} people) sit in cells that are all lake: not drawn, still counted in the totals.`
       : 'Every group is placed on dry ground; none is in the lake.';
   return {
-    label: `Mega-Chad lake: modelled, ${when}${mode === 'grid' || !unresolved ? '' : unresolved.groups ? `. ${unresolved.groups.toLocaleString()} groups unplaced (all lake)` : '. groups kept off the water'}`,
+    label: `Mega-Chad lake (experimental): modelled, ${when}${mode === 'grid' || !unresolved ? '' : unresolved.groups ? `. ${unresolved.groups.toLocaleString()} groups unplaced (all lake)` : '. groups kept off the water'}`,
     title: `${placed} ${basis}`,
   };
 }

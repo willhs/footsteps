@@ -171,7 +171,8 @@ is written up as research 0012 follow-up 5 and not built.
 
 ## Limits
 
-- Present-day coasts, lakes and rivers stand in for the past; nothing palaeo is invented. The Green Sahara and the exposed shelves' rivers are
+- Present-day coasts, lakes and rivers stand in for the past; nothing palaeo is invented, except, behind `?pastwater=1`, Lake Mega-Chad's highstand
+  (the ranker's lake and freshwater distance become epoch-keyed there: [past water](past-water.md)). The Green Sahara and the exposed shelves' rivers are
   missing (see `docs/ops/water-distance.md`), so "far from water" in the Sahara, Arabia and the Thar between 11 and 5 ka is unreliable
   and the ranking there reduces to flat × coast.
 - The coast is known to a 2.5′ pixel (about 4.6 km). A spot named "dry" can be on a beach or a spit a few hundred metres inside the sea.

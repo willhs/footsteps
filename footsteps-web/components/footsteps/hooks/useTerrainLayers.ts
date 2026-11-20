@@ -34,7 +34,9 @@ const loading = new Map<number, Promise<ImageBitmap>>();
 function loadTerrain(year: number): Promise<ImageBitmap> {
   let p = loading.get(year);
   if (!p) {
+    // A `?pastwater=1` image that is not deployed falls back to the ordinary one: the terrain must never go blank for a flag.
     p = fetch(terrainUrl(year))
+      .then((r) => (r.ok || !terrainUrl(year).includes('/pastwater/') ? r : fetch(`/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`)))
       .then((r) => {
         if (!r.ok) throw new Error(`terrain ${year}: HTTP ${r.status}`);
         return r.blob();

@@ -15,7 +15,7 @@
 // so the card never calls a place smaller than the one under the cursor.
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { WayOfLife } from './waysOfLife';
-import { blockOf, forEachCellInBlock, REGION_MAX_LEVEL } from './regionalGroup';
+import { blockOf, forEachCellInBlock } from './regionalGroup';
 import { cityPopulation, layoutOfPattern, profileAt, type Layout, type SettlementCatalog, type SettlementProfile } from './settlements';
 
 /** Assumed rank-size exponents by settlement layout. Imagined: see the top of the file. */
@@ -53,9 +53,27 @@ export type LargestSettlement = {
   city: string | null;
   /** Edge of the block it is the biggest of, km (north-south). */
   blockKm: number;
+  /** What limits a tail figure: the block's own farming people (not capped), the biggest known city nearby, or the fixed town ceiling
+   * where none is known. Always set; `capped` says whether the cap actually lowered the figure. */
+  bound: { kind: 'block' } | { kind: 'city'; name: string; people: number; capped: boolean } | { kind: 'ceiling'; capped: boolean };
 };
 
 const KM_PER_DEG = 111.2;
+
+/** The block the tail is the biggest of: 2^4 cells (1.3°, about 150 km). The old 590 km block let a whole country's farmers feed one
+ * tail, which gave 36,000 for central Italy in 1000 BCE. */
+export const SETTLEMENT_BLOCK_LEVEL = 4;
+/** A tail village is never bigger than the biggest known city this near (km) in that year: a region's largest place is its capital. */
+export const NEARBY_CITY_KM = 1500;
+/** With no larger known city within NEARBY_CITY_KM, no place is called bigger than this: the largest Neolithic and Bronze Age towns
+ * (Jericho, Catalhoyuk, early Mediterranean towns) held a few thousand. */
+export const TOWN_CEILING = 5000;
+
+const kmBetween = (lon: number, lat: number, x: number, y: number) => {
+  const rad = Math.PI / 180;
+  const a = Math.sin((y - lat) * rad / 2) ** 2 + Math.cos(lat * rad) * Math.cos(y * rad) * Math.sin((x - lon) * rad / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(Math.min(1, a)));
+};
 
 /** The biggest settlement in the block around (lon, lat), or null where the model has nothing to say: no one in the cell, a year
  * before farming is mapped, or fewer farming people around than one village of the region's analogs. */
@@ -67,23 +85,37 @@ export function largestSettlementAt(
   const height = Math.round(180 / grid.cellDeg);
   const col = Math.floor((((lon + 180) % 360 + 360) % 360) / grid.cellDeg);
   const row = Math.min(height - 1, Math.floor((90 - lat) / grid.cellDeg));
-  const block = blockOf(row, col, REGION_MAX_LEVEL, grid.cellDeg);
+  const block = blockOf(row, col, SETTLEMENT_BLOCK_LEVEL, grid.cellDeg);
   let settled = 0;
   let town = 0;
   let here = 0;
+  let hereWay: number = WayOfLife.Forager;
   forEachCellInBlock(grid, block, (i) => {
-    if (grid.cellIds[i] === row * width + col) here = grid.people[i];
+    if (grid.cellIds[i] === row * width + col) { here = grid.people[i]; hereWay = grid.ways[i]; }
     if (grid.ways[i] === WayOfLife.Farmer || grid.ways[i] === WayOfLife.Urban) settled += grid.people[i];
     if (grid.ways[i] === WayOfLife.Urban) town = Math.max(town, grid.people[i]);
   });
-  if (!(here > 0)) return null;
+  // A forager or herder cell gets no figure: its farming neighbours are not "around here" in the way the card describes the cell.
+  if (!(here > 0) || (hereWay !== WayOfLife.Farmer && hereWay !== WayOfLife.Urban)) return null;
   const profile = profileAt(catalog, (col + 0.5) * grid.cellDeg - 180, 90 - (row + 0.5) * grid.cellDeg, WayOfLife.Farmer, year, null);
   const weight = profile.components.reduce((s, c) => s + c.weight, 0);
   if (!(weight > 0)) return null;
   const mean = profile.components.reduce((s, c) => s + c.size * c.weight, 0) / weight;
   if (!(settled >= mean)) return null;
   const exponent = regionExponent(profile);
-  const model = Math.max(largestOf(settled, settled / mean, exponent), town);
+  const clon = (block.west + block.east) / 2;
+  const clat = (block.north + block.south) / 2;
+  let near: { name: string; people: number } | null = null;
+  for (const c of catalog.cities) {
+    if (Math.abs(c.lat - clat) > NEARBY_CITY_KM / KM_PER_DEG) continue;
+    const people = cityPopulation(c, year);
+    if (people > (near?.people ?? 0) && kmBetween(clon, clat, c.lon, c.lat) <= NEARBY_CITY_KM) near = { name: c.name, people };
+  }
+  if (near && near.people <= TOWN_CEILING) near = null; // a town the size of the ceiling or smaller adds nothing to it
+  const cap = near ? near.people : TOWN_CEILING;
+  const tail = largestOf(settled, settled / mean, exponent);
+  const model = Math.max(Math.min(tail, cap), town);
+  const capped = tail > cap;
   let city: { name: string; people: number } | null = null;
   for (const c of catalog.cities) {
     if (c.lon < block.west || c.lon >= block.east || c.lat < block.south || c.lat >= block.north) continue;
@@ -96,5 +128,6 @@ export function largestSettlementAt(
     exponent,
     city: named ? city!.name : null,
     blockKm: Math.round((block.north - block.south) * KM_PER_DEG / 10) * 10,
+    bound: near ? { kind: 'city', name: near.name, people: near.people, capped } : capped ? { kind: 'ceiling', capped } : { kind: 'block' },
   };
 }

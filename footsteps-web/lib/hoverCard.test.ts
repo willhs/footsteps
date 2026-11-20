@@ -161,13 +161,14 @@ describe('largest settlement row (?settlements=1)', () => {
   it('only appears when given, in two figures, with the assumed exponent called imagined', () => {
     expect(hoverCardRows(base).some((r) => r.id === 'largest')).toBe(false);
     expect(hoverCardRows({ ...base, largest: null }).some((r) => r.id === 'largest')).toBe(false);
-    const row = hoverCardRows({ ...base, largest: { people: 12_345, exponent: 0.9, city: null, blockKm: 590 } }).find((r) => r.id === 'largest')!;
+    const row = hoverCardRows({ ...base, largest: { people: 12_345, exponent: 0.9, city: null, blockKm: 150, bound: { kind: 'ceiling', capped: true } } }).find((r) => r.id === 'largest')!;
     expect(row).toMatchObject({ text: 'Largest settlement around here: about 12,000 people', evidence: 'modelled' });
     expect(row.detail).toContain('exponent 0.9 assumed (imagined)');
-    expect(row.detail).toContain('590 km');
+    expect(row.detail).toContain('150 km');
+    expect(row.detail).toContain('capped at 5,000');
   });
   it('names a city when one is the biggest, without an exponent', () => {
-    const row = hoverCardRows({ ...base, largest: { people: 450_000, exponent: 0.9, city: 'Rome', blockKm: 590 } }).find((r) => r.id === 'largest')!;
+    const row = hoverCardRows({ ...base, largest: { people: 450_000, exponent: 0.9, city: 'Rome', blockKm: 150, bound: { kind: 'block' } } }).find((r) => r.id === 'largest')!;
     expect(row.text).toBe('Largest settlement around here: Rome, about 450,000 people');
     expect(row.detail).not.toContain('exponent');
   });

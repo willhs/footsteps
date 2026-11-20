@@ -1,5 +1,5 @@
 import type { GridData } from '@/components/footsteps/hooks/gridData';
-import { harmonic, largestOf, largestSettlementAt, RANK_SIZE_EXPONENT, regionExponent } from './rankSize';
+import { harmonic, largestOf, largestSettlementAt, RANK_SIZE_EXPONENT, regionExponent, TOWN_CEILING } from './rankSize';
 import { layoutOfPattern, type HistoricalCity, type SettlementCatalog, type SettlementProfile } from './settlements';
 import { WayOfLife, type WayOfLifeValue } from './waysOfLife';
 
@@ -71,19 +71,19 @@ describe('largestSettlementAt', () => {
     grid([[R, 2900, people / 2], [R + 3, 2903, people / 2]]), catalog([component(pattern, size)]), lon, lat, 1000);
 
   it('is the rank-size tail of the block: more than a mean village, less than everyone, bigger with more people', () => {
-    const small = model(20_000, 200)!;
-    const big = model(200_000, 200)!;
+    const small = model(2_000, 20)!;
+    const big = model(4_000, 20)!;
     expect(small.city).toBeNull();
-    expect(small.people).toBeGreaterThan(200);
-    expect(small.people).toBeLessThan(20_000);
+    expect(small.people).toBeGreaterThan(20);
+    expect(small.people).toBeLessThan(2_000);
     expect(big.people).toBeGreaterThan(small.people);
     expect(small.exponent).toBe(0.8);
-    expect(small.blockKm).toBeGreaterThan(550);
-    expect(small.blockKm).toBeLessThan(640);
+    expect(small.blockKm).toBeGreaterThan(130);
+    expect(small.blockKm).toBeLessThan(170);
   });
 
   it('is smaller where the analogs say farms are scattered, for the same people', () => {
-    expect(model(100_000, 200, 5)!.people).toBeLessThan(model(100_000, 200, 7)!.people);
+    expect(model(4_000, 20, 5)!.people).toBeLessThan(model(4_000, 20, 7)!.people);
   });
 
   it('says nothing for an empty cell, before farming, or with less than one village around', () => {
@@ -91,13 +91,14 @@ describe('largestSettlementAt', () => {
     expect(largestSettlementAt(g, catalog([component(7, 200)]), lon, lat, 1000)).toBeNull();
     expect(largestSettlementAt(grid([[R, 2900, 5000]]), catalog([component(7, 200)]), lon, lat, -12_000)).toBeNull();
     expect(largestSettlementAt(grid([[R, 2900, 150]]), catalog([component(7, 200)]), lon, lat, 1000)).toBeNull();
+    expect(largestSettlementAt(grid([[R, 2900, 5000, WayOfLife.Forager], [R + 1, 2901, 90_000]]), catalog([component(7, 200)]), lon, lat, 1000)).toBeNull(); // foraging cell, farming neighbour
     expect(largestSettlementAt(grid([[R, 2900, 5000, WayOfLife.Forager]]), catalog([component(7, 200)]), lon, lat, 1000)).toBeNull();
     expect(largestSettlementAt(grid([[R, 2900, 5000]]), catalog([component(7, 200)]), NaN, lat, 1000)).toBeNull();
   });
 
   it('counts only the block around the cursor', () => {
     const inside = largestSettlementAt(grid([[R, 2900, 20_000]]), catalog([component(7, 200)]), lon, lat, 1000)!;
-    const withFar = largestSettlementAt(grid([[R, 2900, 20_000], [R + 64, 2900, 900_000]]), catalog([component(7, 200)]), lon, lat, 1000)!;
+    const withFar = largestSettlementAt(grid([[R, 2900, 20_000], [R + 16, 2900, 900_000]]), catalog([component(7, 200)]), lon, lat, 1000)!;
     expect(withFar.people).toBe(inside.people);
   });
 
@@ -120,5 +121,36 @@ describe('largestSettlementAt', () => {
   it('never calls the place smaller than the town cell it is drawn as', () => {
     const g = grid([[R, 2900, 60_000, WayOfLife.Urban], [R + 1, 2901, 3000]]);
     expect(largestSettlementAt(g, catalog([component(7, 200)]), lon, lat, 1000)!.people).toBeGreaterThanOrEqual(60_000);
+  });
+});
+
+describe('the cap on the tail', () => {
+  const [lon, lat] = near(0);
+  const city = (id: string, lon: number, lat: number, pop: number, year = 1000): HistoricalCity => ({ id, name: id, lon, lat, source: 't', observations: [[year, pop]] });
+  const big = grid([[R, 2900, 400_000], [R + 1, 2901, 400_000]]); // a tail of tens of thousands without a cap
+  it('stops at the town ceiling where no known city is within 1,500 km', () => {
+    const r = largestSettlementAt(big, catalog([component(7, 200)]), lon, lat, -1000)!;
+    expect(r.people).toBe(TOWN_CEILING);
+    expect(r.bound).toEqual({ kind: 'ceiling', capped: true });
+  });
+  it('stops at the biggest known city nearby, and a city in the block still wins by name', () => {
+    const [flon, flat] = lonLat(R - 90, 2900); // ~1,000 km away, outside the block
+    const r = largestSettlementAt(big, catalog([component(7, 200)], [city('Far', flon, flat, 9_000)]), lon, lat, 1000)!;
+    expect(r).toMatchObject({ people: 9_000, city: null, bound: { kind: 'city', name: 'Far', capped: true } });
+    const [clon, clat] = near(5);
+    const rome = largestSettlementAt(big, catalog([component(7, 200)], [city('Rome', clon, clat, 100_000)]), lon, lat, 1000)!;
+    expect(rome).toMatchObject({ city: 'Rome', people: 100_000 });
+  });
+  it('ignores a city beyond 1,500 km or with no observation that year', () => {
+    const [flon, flat] = lonLat(R - 200, 2900);
+    expect(largestSettlementAt(big, catalog([component(7, 200)], [city('Distant', flon, flat, 9_000)]), lon, lat, 1000)!.bound.kind).toBe('ceiling');
+    const [clon, clat] = lonLat(R - 300, 2900);
+    expect(largestSettlementAt(big, catalog([component(7, 200)], [city('Old', clon, clat, 9_000, -3000)]), lon, lat, 1000)!.bound.kind).toBe('ceiling');
+  });
+  it('is not capped when the tail is already small, but still stays at or above the town cell under the cursor', () => {
+    const r = largestSettlementAt(grid([[R, 2900, 2_000]]), catalog([component(7, 20)]), lon, lat, 1000)!;
+    expect(r.bound).toEqual({ kind: 'block' });
+    const town = largestSettlementAt(grid([[R, 2900, 60_000, WayOfLife.Urban]]), catalog([component(7, 200)]), lon, lat, -1000)!;
+    expect(town.people).toBe(60_000);
   });
 });

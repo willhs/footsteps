@@ -42,6 +42,12 @@ const signed = (n: number, digits: number, unit: string) => {
 const twoFigures = (n: number) => Number(n.toPrecision(2)).toLocaleString('en-US');
 const share = (s: number) => (s > 0 && s < 0.005 ? '<1%' : `${Math.round(s * 100)}%`);
 
+function boundText(b: LargestSettlement['bound']): string {
+  if (b.kind === 'city') return b.capped ? `capped at ${b.name}, the biggest known city within 1,500 km (${twoFigures(b.people)})` : 'bounded by the block\'s farming people';
+  if (b.kind === 'ceiling') return 'capped at 5,000: no known city within 1,500 km then';
+  return 'bounded by the block\'s farming people';
+}
+
 export function formatPlace(lon: number, lat: number): string {
   return `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
 }
@@ -130,7 +136,7 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
         : `Largest settlement around here: about ${twoFigures(l.people)} people`,
       detail: l.city
         ? `a named city, population estimated · in ${block}`
-        : `a tail of bigger and smaller villages, exponent ${l.exponent} assumed (imagined) · in ${block}`,
+        : `a tail of bigger and smaller villages, exponent ${l.exponent} assumed (imagined) · ${boundText(l.bound)} · in ${block}`,
       evidence: 'modelled',
     });
   }

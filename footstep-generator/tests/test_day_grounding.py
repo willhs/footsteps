@@ -226,3 +226,24 @@ def test_dockerfile_ships_every_module_and_data_file_the_api_reads():
                  if (API / f"{m}.py").exists()}
     assert imported <= copied, imported - copied
     assert {"anthropology.json.gz", "ethnography.json.gz", "time_use.json"} <= copied
+
+
+# --- other kinds of human -----------------------------------------------------------------------
+
+def test_a_neanderthal_day_says_so_and_drops_our_head_counts_and_analogs():
+    f = request(44.5, 4.8, -50000, kindOfHuman="neanderthals", groupPeople=15)
+    facts = facts_of(f)
+    assert "Neanderthals" in facts["kind_of_human"] and "not Homo sapiens" in facts["kind_of_human"]
+    assert facts["person"].startswith("a Neanderthal woman of about 30")
+    assert facts["group"] == "a band of about 15 Neanderthals"
+    assert "guessed" in facts["head_counts"]
+    assert not any(k.startswith("people_in_") for k in facts) and "density_class" not in facts
+    assert "nearest_recorded_societies" not in facts
+    assert day_api.cache_key(f) != day_api.cache_key(request(44.5, 4.8, -50000, groupPeople=15))
+
+
+def test_latin_named_kinds_read_naturally_and_unknown_kinds_are_ignored():
+    facts = facts_of(request(-8.5, 120.5, -70000, kindOfHuman="floresiensis", female=False, groupPeople=15))
+    assert facts["person"].startswith("a man of Homo floresiensis of about 30")
+    plain = facts_of(request(44.5, 4.8, -50000, kindOfHuman="martians"))
+    assert "kind_of_human" not in plain

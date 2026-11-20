@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Other kinds of human walk at street zoom like our own people
+
+Will asked for footsteps and "the rest of the human things" when zoomed in. At street zoom each guessed band in view becomes its ~15 people in lavender footprints (`walkersOf`, `PeopleLayer`), with name tags and the same click card, which names their kind and says the band is a guess. "Imagine their day" sends `kindOfHuman`: the day API names the kind, drops our own head counts and recorded-forager analogies, and limits the day to what archaeology supports. The portrait is still our generic template ("not a likeness"). `docs/ops/other-humans.md` "Walkers".
+
 ## [2026-11-20] add | "No one here at this date" note for an empty view
 
 A blurry, empty close-up (UK, 50,000 BCE) read as still loading. `lib/emptyView.ts` totals the people in cells inside the view box (pitch included, half a cell of margin, dateline-safe) and counts other-human bands; when no one of our species is there, the left column says whether the model or HYDE puts no one in view, or that the lavender sparks are another kind of human. Shown only zoomed in (≥ 4), on the flat map, once the year's data has loaded; checked 400 ms after the view settles. Checked: UK 50,000 BCE (note), Croatia 50,000 BCE (other humans only), central Africa (no note).

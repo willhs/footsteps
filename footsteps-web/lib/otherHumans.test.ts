@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { OTHER_HUMANS, kaToYear, lastSeenLabel, otherHumansAt, presenceAt, siteAgeLabel } from './otherHumans';
-import { bandShare, siteActive } from '@/components/footsteps/hooks/useOtherHumansLayer';
+import { bandShare, siteActive, walkersOf, type BandDatum } from '@/components/footsteps/hooks/useOtherHumansLayer';
+import { describePerson } from '@/components/footsteps/layers/people';
 import { bandStepKa, bandsAt, type BandsFile } from './otherHumanBands';
 
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
@@ -131,5 +132,38 @@ describe('guessed bands', () => {
     expect(bandStepKa(file, -100000)).toBe(100);
     expect(bandStepKa(file, kaToYear(41))).toBe(41);
     expect(bandStepKa(file, -10000)).toBe(30);
+  });
+});
+
+describe('walkers at street zoom', () => {
+  const band = (id: string, position: [number, number]): BandDatum => ({
+    position,
+    hinted: false,
+    rank: 0,
+    human: byId(id),
+    people: 15,
+  });
+  const box = { west: 4, south: 44, east: 5, north: 45 };
+
+  it('turns each band in view into its 15 people, lavender, tagged with their kind', () => {
+    const walkers = walkersOf([band('neanderthals', [4.5, 44.5]), band('neanderthals', [20, 50])], box, -50000);
+    expect(walkers).toHaveLength(15);
+    for (const w of walkers) {
+      expect(w.kindOfHuman).toBe('neanderthals');
+      expect(w.color[2]).toBeGreaterThan(w.color[1]); // blue over green: lavender, not our warm colours
+      expect(w.id).toBeGreaterThanOrEqual(50_000_000);
+    }
+    // Stable: the same band gives the same people.
+    expect(walkersOf([band('neanderthals', [4.5, 44.5])], box, -50000)).toEqual(walkers);
+  });
+
+  it('describes them as their own kind of human, with the band a guess', () => {
+    const [w] = walkersOf([band('neanderthals', [4.5, 44.5])], box, -50000);
+    const d = describePerson(w);
+    expect(d.title).toMatch(/^A Neanderthal (man|woman|boy|girl), about \d+$/);
+    expect(d.detail).toContain('band of about 15 Neanderthals');
+    expect(d.detail).toContain('not Homo sapiens');
+    const [f] = walkersOf([band('floresiensis', [4.5, 44.5])], box, -70000);
+    expect(describePerson(f).title).toMatch(/^A (man|woman|boy|girl) of Homo floresiensis, about \d+$/);
   });
 });

@@ -17,6 +17,8 @@ export type DayRequest = {
     role: string;
     groupKind: number;
     groupPeople: number;
+    /** Another kind of human (lib/otherHumans.ts id), e.g. 'neanderthals'; unset for Homo sapiens. */
+    kindOfHuman?: string;
   };
 };
 

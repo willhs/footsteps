@@ -95,6 +95,24 @@ for that region and time support. Mention other kinds of humans only if the fact
 label them as the facts do. Say what is invented: the summary must open with "Imagined:", and the \
 uncertainty note must say plainly that the day is speculation built on a model."""
 
+# Other kinds of human (footsteps-web/lib/otherHumans.ts ids): (adjective or None, plural name).
+OTHER_HUMANS = {
+    "neanderthals": ("Neanderthal", "Neanderthals"),
+    "denisovans": ("Denisovan", "Denisovans"),
+    "floresiensis": (None, "Homo floresiensis"),
+    "luzonensis": (None, "Homo luzonensis"),
+}
+
+# Added when the clicked person is one of them: their band is a guess and they are not us.
+OTHER_HUMAN_SYSTEM = """
+
+This person is not Homo sapiens: they belong to the other kind of human named in kind_of_human. \
+Their band, its size and its place are guesses. Much less is known about their lives than about \
+recorded foragers: use only what well-established archaeology supports for them in that region and \
+time (tools, fire, food, shelter), and do not give them speech, beliefs, art or customs the evidence \
+does not show. Do not describe them as if they were Homo sapiens hunter-gatherers. Say in the \
+uncertainty note that they are another kind of human and how thin the evidence is."""
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -151,7 +169,15 @@ def cache_key(f: dict) -> str:
     ]
     if year < atlas.HYDE_FIRST:
         parts.append(f"deep{DEEP_PROMPT_VERSION}")
+    if kind := other_human(f):
+        parts.append(f"kind:{kind}")
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest()[:32]
+
+
+def other_human(f: dict) -> str | None:
+    """The clicked person's kind of human when it is not Homo sapiens (a known id), else None."""
+    kind = f.get("person", {}).get("kindOfHuman")
+    return kind if kind in OTHER_HUMANS else None
 
 
 def prompt(f: dict, record: dict | None = None) -> str:
@@ -175,11 +201,22 @@ def prompt(f: dict, record: dict | None = None) -> str:
     }
     if deep:
         facts["head_counts"] = "modelled, not measured: a model of where foragers would live, scaled to a published total"
+    if kind := other_human(f):
+        adjective, name = OTHER_HUMANS[kind]
+        # Our own head counts and later recorded foragers describe Homo sapiens, not them.
+        for k in list(facts):
+            if k.startswith("people_in_") or k == "density_class":
+                del facts[k]
+        facts["kind_of_human"] = f"{name}: another kind of human, not Homo sapiens"
+        facts["person"] = (f"a {adjective} {who}" if adjective else f"a {who} of {name}") + f" of about {p['age']}, role: {p['role']}"
+        facts["group"] = f"a band of about {round(float(p['groupPeople']))} {name}"
+        facts["head_counts"] = "guessed: no census of them exists; their band, its size and its place are guesses"
     if record:
         # Real data with its sources, plus any cached model gap-fill (marked "model"), so the
         # day agrees with the portrait drawn from the same record.
         facts["what_we_know_about_this_region_and_era"] = atlas.known_facts(record)
-        facts.update(grounding_facts(record))
+        if not other_human(f):
+            facts.update(grounding_facts(record))
     return fit_budget(facts)
 
 
@@ -271,6 +308,8 @@ def call_model(system: str, user: str, schema: dict, name: str) -> tuple[dict, s
 
 def generate(f: dict, record: dict | None = None) -> tuple[dict, str]:
     system = SYSTEM + (DEEP_SYSTEM if int(f["year"]) < atlas.HYDE_FIRST else "") + GROUNDING_SYSTEM
+    if other_human(f):
+        system += OTHER_HUMAN_SYSTEM
     return call_model(system, prompt(f, record), SCHEMA, "day_in_the_life")
 
 

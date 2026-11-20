@@ -32,6 +32,15 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
   On the flat map and in the close-up 3D relief (zoom 8+) bands and sites always draw over the ground (`depthCompare: 'always'`, as
   our own group marks in `people.ts`); before 2026-11-20 the relief hid them at high zoom, because luma 9 ignores the old `depthTest`
   name in `FIRE_BLEND`. On the globe they stay depth-tested so the far side does not show through.
+- **Walkers** (street zoom, 11.5+, flat map): each band in view becomes its ~15 people walking in footprints, exactly as ours
+  do (`layers/people.ts` `peopleForGroups`, `PeopleLayer`; `walkersOf` in `hooks/useOtherHumansLayer.ts`), in lavender by age.
+  They get name tags, and a click opens the same person card: "A Neanderthal girl, about 9 … in a band of about 15 Neanderthals:
+  another kind of human, not Homo sapiens. The band, its size and its place are guesses." Ages, roles and footwear come from the
+  same imagined pre-modern tables as ours, which are a *Homo sapiens* yardstick. The portrait is the same SVG template as ours
+  ("Illustration, not a likeness"): it does not draw Neanderthal or Denisovan features.
+  "Imagine their day" sends `kindOfHuman`; the day API (`deploy/budgie/api/day_api.py` `OTHER_HUMANS`, `OTHER_HUMAN_SYSTEM`)
+  then names their kind, drops our own head counts and the recorded-forager analogies (both describe *Homo sapiens*), says the
+  band is a guess, and tells the model to use only what archaeology supports for them. Separate cache key.
 - **Fade**: each species is drawn fully until the earliest of its last dates and fades to nothing by the latest
   (`presenceAt`); its bands drop out one by one in a fixed random order, so half-way through the fade half are left. The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
   anthropology atlas (`anthropology/deep.py`) also reads; keep the two in step.

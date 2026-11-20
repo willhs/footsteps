@@ -189,6 +189,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     time,
     zoom: viewState.zoom,
     globe: is3DMode,
+    view: viewState,
+    size: typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight },
   });
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
@@ -233,8 +235,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // On by default; ?tags=0 turns them off (to compare frame rates, or for a plain view of the prints).
   const [tagsOn, setTagsOn] = useState(true);
   useEffect(() => setTagsOn(new URLSearchParams(window.location.search).get('tags') !== '0'), []);
+  // Their walkers (other kinds of human) get tags too.
+  const taggedPeople = useMemo(
+    () => (otherHumans.people.length ? [...people, ...otherHumans.people] : people),
+    [people, otherHumans.people],
+  );
   const tagLayers = usePersonTags({
-    people,
+    people: taggedPeople,
     view: deckViewState,
     size: screenSize,
     enabled: tagsOn && renderMode !== 'dots' && !is3DMode,
@@ -409,6 +416,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                         role: selectedPerson.role,
                         groupKind: selectedPerson.groupKind,
                         groupPeople: selectedPerson.groupPeople,
+                        ...(selectedPerson.kindOfHuman && { kindOfHuman: selectedPerson.kindOfHuman }),
                       },
                     };
                   })()

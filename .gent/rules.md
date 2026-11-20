@@ -74,7 +74,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.
   `evidence/aadr.py`: AADR ancient-DNA individuals (date, place, hominin) as a second kind of evidence
-  (`data/evidence/aadr_samples.json.gz`); not used by the app yet. See its README and research 0010.
+  (`data/evidence/aadr_samples.json.gz`); drawn with the radiocarbon marks behind `?evidence=1` (`lib/aadr.ts`). See its README and research 0010.
   `model_vs_evidence.py` compares the modelled pre-HYDE people with the p3k14c sites per region (research 0009: box-order bugs in `arrivals.yaml`, west Europe glacial-maximum shape, proposals).
   `regions.py` loads the same `arrivals.yaml` boxes for p3k14c and AADR (one source of truth); `arrival_check.py` tabulates modelled arrival against the earliest p3k14c and direct AADR dates per region (research 0010).
 - `footsteps-web/lib/constants.ts`: authoritative `TARGET_YEARS`, `TERRAIN_YEARS` and `DOT_TILE_YEARS`.

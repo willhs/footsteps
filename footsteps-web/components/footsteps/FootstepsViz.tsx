@@ -37,6 +37,7 @@ import useSolarClock from './hooks/useSolarClock';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
+import { SettlementNote } from './SettlementNote';
 import ToggleButton from '@/components/ui/ToggleButton';
 
 const NIGHT = new NightExtension();
@@ -386,15 +387,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
         {/* Legend: hidden while the details panel is open, which needs the height. */}
         {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
-          <div className="absolute left-4 top-20 z-10 max-w-xs rounded bg-black/80 p-3 text-xs text-white">
-            <strong>Settlement experiment · modelled</strong>
-            <p>Named cities use local population budgets. Group sizes and clusters are scenarios from ethnographic analogs, not known settlements.</p>
-            <p>Foragers: mobile bands, seasonal gatherings and semi-settled groups. Storage unknown. Tiny marks are fractional population allocations.</p>
-            <p>Where a group sits in its cell: modelled rule (flat ground, near fresh water, near the coast, never in the sea or a lake, at the year&apos;s sea level); the exact spot is imagined.</p>
-            <p>Households (about 4–5 people, after Binford) stand round each group&apos;s spot at street level: the layout is imagined. Hover a place to tint the regional group it is part of (a few hundred people): the people are modelled, the edge is imagined.</p>
-            <p>Farmers&apos; groups sit scattered, in hamlets or in villages apart, as the settlement patterns of their analog societies say (modelled; the places are imagined). The hover card&apos;s &ldquo;largest settlement around here&rdquo; is a modelled tail of bigger and smaller villages whose exponent is an assumption (imagined).</p>
-            {season !== 'off' && <p>Seasonal rounds · modelled ({season === 'june' ? 'June' : 'December'}). Nearby mobile foragers gather in local winter; herders shift pastures within their cell. Latitude sets the contrast. Sites, territories and timing are illustrative; head counts stay the same.</p>}
-          </div>
+          <SettlementNote season={season} />
         )}
         {peopleView && !selectedPlace ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">

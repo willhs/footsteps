@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Settlement experiment panel collapses to one line
+
+Under `?settlements=1` the "Settlement experiment · modelled" note is one line until tapped (`SettlementNote.tsx`). Expanded it is seven short plain-word lines; Pin keeps it open on later visits (localStorage, try/catch), Close folds it. Checked flat and phone width.
+
 ## [2026-11-20] fix | Capped the "largest settlement around here" figure (?settlements=1)
 Central Italy 1000 BCE showed "about 36,000" on a foraging-with-a-little-farming cell. `lib/rankSize.ts` now: gives no figure unless the hovered cell is farmer or urban; uses a ~150 km block (level 4) instead of ~590 km; caps the tail at the biggest Reba city within 1,500 km that year (if above 5,000) else at a 5,000 town ceiling (`TOWN_CEILING`); never goes below the HYDE town cell under the cursor; a named city in the block still wins. The card line says what bounded it. Checked against the catalog: Italy 1000 BCE → 5,000 ceiling; Nile 1500 CE → Cairo 400,000; Mesopotamia 3000 BCE → Uruk 40,000; Rome 1 CE → Rome 800,000 (named). The cap numbers are assumptions (the ceiling is a round figure for the largest Neolithic/Bronze Age towns), not data.
 

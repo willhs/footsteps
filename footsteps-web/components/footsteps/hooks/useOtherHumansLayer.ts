@@ -1,33 +1,32 @@
 'use client';
 
-// Other kinds of human (Neanderthals, Denisovans, H. floresiensis, H. luzonensis): rough ranges under the
-// people, key dated sites and names above them. On by default; the View panel or ?humans=0 turns it off.
-// Data and sources: lib/otherHumans.ts.
-import { useCallback, useMemo, useState } from 'react';
-import { PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+// Other kinds of human (Neanderthals, Denisovans, H. floresiensis, H. luzonensis): guessed bands under the
+// people (one mark per band, a shape per species), key dated sites and names above them. On by default; the
+// View panel or ?humans=0 turns it off. Data and sources: lib/otherHumans.ts, lib/otherHumanBands.ts.
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { IconLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import type { LayersList } from '@deck.gl/core';
 import {
   kaToYear,
   lastSeenLabel,
   otherHumansAt,
   type OtherHuman,
-  type Range,
   type Site,
 } from '@/lib/otherHumans';
+import { BANDS_URL, bandIconUrl, bandStepKa, bandsAt, type Band, type BandsFile } from '@/lib/otherHumanBands';
 
 // Lavender: cool like the evidence marks (blue, teal) but distinct; people are the only warm colour.
 export const OTHER_HUMANS_RGB: [number, number, number] = [190, 150, 255];
 const RGB = OTHER_HUMANS_RGB;
 
-type RangeDatum = Range & { presence: number };
+export type BandDatum = Band & { human: OtherHuman; presence: number; people: number };
 type SiteDatum = Site & { human: OtherHuman; presence: number; active: boolean };
 type LabelDatum = { human: OtherHuman; presence: number };
 
-export interface OtherHumansHover {
-  site: SiteDatum;
+export type OtherHumansHover = ({ kind: 'site'; site: SiteDatum } | { kind: 'band'; band: BandDatum }) & {
   x: number;
   y: number;
-}
+};
 
 /** Is a site's date range around `year`? Minimum ages count from the far past. */
 export function siteActive(site: Site, year: number): boolean {
@@ -61,44 +60,66 @@ export default function useOtherHumansLayer({
   const shown = useMemo(() => (enabled ? otherHumansAt(year) : []), [enabled, year]);
   const key = shown.map((d) => `${d.human.id}:${d.presence.toFixed(2)}`).join('|');
 
+  // The bands file (~100 KB) loads the first time anyone is shown; a failed fetch leaves sites and names.
+  const [bandsFile, setBandsFile] = useState<BandsFile | null>(null);
+  const wantBands = shown.length > 0;
+  useEffect(() => {
+    if (!wantBands || bandsFile) return;
+    let live = true;
+    fetch(BANDS_URL)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((f: BandsFile | null) => live && f && setBandsFile(f))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [wantBands, bandsFile]);
+  const stepKa = bandsFile ? bandStepKa(bandsFile, year) : null;
+
   const data = useMemo(() => {
-    const ranges: RangeDatum[] = [];
+    const bands: BandDatum[] = [];
     const sites: SiteDatum[] = [];
     const labels: LabelDatum[] = [];
     for (const { human, presence } of shown) {
-      for (const r of human.ranges) ranges.push({ ...r, presence });
+      const rows = bandsFile?.species[human.id]?.bands;
+      if (rows && stepKa !== null) {
+        for (const b of bandsAt(rows, stepKa, presence)) bands.push({ ...b, human, presence, people: bandsFile.band_people });
+      }
       for (const s of human.sites) sites.push({ ...s, human, presence, active: siteActive(s, year) });
       labels.push({ human, presence });
     }
-    return { ranges, sites, labels };
-    // `key` and the rounded thousand capture every change that matters.
+    return { bands, sites, labels };
+    // `key`, the band step and the rounded thousand capture every change that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, Math.round(year / 1000)]);
+  }, [key, bandsFile, stepKa, Math.round(year / 1000)]);
 
-  const onHover = useCallback((info: { object?: SiteDatum | null; x: number; y: number }) => {
-    setHover(info.object ? { site: info.object, x: info.x, y: info.y } : null);
+  const onSiteHover = useCallback((info: { object?: SiteDatum | null; x: number; y: number }) => {
+    setHover(info.object ? { kind: 'site', site: info.object, x: info.x, y: info.y } : null);
+  }, []);
+  const onBandHover = useCallback((info: { object?: BandDatum | null; x: number; y: number }) => {
+    setHover(info.object ? { kind: 'band', band: info.object, x: info.x, y: info.y } : null);
   }, []);
 
+  const bandSize = zoom >= 5 ? 13 : zoom >= 3 ? 10 : 8;
   const below = useMemo<LayersList>(
     () =>
-      data.ranges.length
+      data.bands.length
         ? [
-            new PolygonLayer<RangeDatum>({
-              id: 'other-humans-ranges',
-              data: data.ranges,
-              getPolygon: (r) => r.polygon,
-              getFillColor: (r) => [...RGB, Math.round((r.confidence === 'hinted' ? 14 : 34) * r.presence)],
-              getLineColor: (r) => [...RGB, Math.round((r.confidence === 'hinted' ? 70 : 150) * r.presence)],
-              lineWidthUnits: 'pixels',
-              getLineWidth: (r) => (r.confidence === 'hinted' ? 1 : 1.5),
-              stroked: true,
-              filled: true,
-              pickable: false,
-              updateTriggers: { getFillColor: key, getLineColor: key },
+            new IconLayer<BandDatum>({
+              id: 'other-humans-bands',
+              data: data.bands,
+              getPosition: (b) => b.position,
+              getIcon: (b) => ({ id: b.human.id, url: bandIconUrl(b.human.id), width: 48, height: 48, mask: true }),
+              getSize: bandSize,
+              sizeUnits: 'pixels',
+              getColor: (b) => [...RGB, Math.round((b.hinted ? 110 : 215) * (0.5 + 0.5 * b.presence))],
+              pickable: true,
+              onHover: onBandHover,
+              updateTriggers: { getColor: key },
             }),
           ]
         : [],
-    [data, key],
+    [data, key, bandSize, onBandHover],
   );
 
   const islandsNamed = zoom >= 3;
@@ -132,7 +153,7 @@ export default function useOtherHumansLayer({
               stroked: true,
               radiusUnits: 'pixels',
               pickable: true,
-              onHover,
+              onHover: onSiteHover,
               updateTriggers: { getRadius: year, getFillColor: [key, year], getLineColor: [key, year] },
             }),
             ...(['name', 'about'] as const).map(
@@ -161,7 +182,7 @@ export default function useOtherHumansLayer({
             ),
           ]
         : [],
-    [data, key, labels, detailed, onHover, year],
+    [data, key, labels, detailed, onSiteHover, year],
   );
 
   return { below, above, hover: enabled ? hover : null, shown: shown.length > 0 };

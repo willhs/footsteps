@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { OTHER_HUMANS, kaToYear, lastSeenLabel, otherHumansAt, presenceAt, siteAgeLabel } from './otherHumans';
 import { facing, siteActive } from '@/components/footsteps/hooks/useOtherHumansLayer';
+import { bandStepKa, bandsAt, type BandsFile } from './otherHumanBands';
 
 jest.mock('@deck.gl/layers', () => ({}));
 
@@ -29,18 +30,11 @@ describe('other kinds of human', () => {
     expect(presenceAt(d, -50000)).toBeLessThan(1);
   });
 
-  it('keeps the table sane: closed ranges in bounds, sites dated old to young, sources given', () => {
+  it('keeps the table sane: sites dated old to young, sources given', () => {
     for (const h of OTHER_HUMANS) {
       expect(h.lastKa.early).toBeGreaterThanOrEqual(h.lastKa.central);
       expect(h.lastKa.central).toBeGreaterThanOrEqual(h.lastKa.late);
       expect(h.source).not.toBe('');
-      for (const r of h.ranges) {
-        expect(r.polygon.length).toBeGreaterThanOrEqual(3);
-        for (const [lon, lat] of r.polygon) {
-          expect(Math.abs(lon)).toBeLessThanOrEqual(180);
-          expect(Math.abs(lat)).toBeLessThanOrEqual(90);
-        }
-      }
       expect(h.sites.length).toBeGreaterThan(0);
       for (const s of h.sites) {
         expect(s.ka[0]).toBeGreaterThanOrEqual(s.ka[1]);
@@ -90,5 +84,50 @@ describe('globe names', () => {
   it('hides names round the back of the globe', () => {
     expect(facing([30, 47], [40, 42])).toBe(true);
     expect(facing([30, 47], [-120, -10])).toBe(false);
+  });
+});
+
+describe('guessed bands', () => {
+  const file: BandsFile = JSON.parse(readFileSync(join(__dirname, '../public/other_humans/bands.json'), 'utf8'));
+
+  it('has bands for every kind of human, near each guessed number, on the slider span', () => {
+    expect(file.first_ka).toBe(100);
+    for (const h of OTHER_HUMANS) {
+      const { people, bands } = file.species[h.id];
+      const target = people / file.band_people;
+      for (const ka of [100, 70, h.lastKa.early]) {
+        const n = bandsAt(bands, ka, 1).length;
+        expect(n).toBeGreaterThan(target * 0.6);
+        expect(n).toBeLessThan(target * 1.4);
+      }
+    }
+  });
+
+  it('places Neanderthal bands in western Eurasia and Flores bands on Flores', () => {
+    for (const b of bandsAt(file.species.neanderthals.bands, 60, 1)) {
+      expect(b.position[0]).toBeGreaterThan(-12);
+      expect(b.position[0]).toBeLessThan(92);
+      expect(b.position[1]).toBeGreaterThan(28);
+    }
+    for (const b of bandsAt(file.species.floresiensis.bands, 70, 1)) {
+      expect(b.position[0]).toBeGreaterThan(119);
+      expect(b.position[0]).toBeLessThan(123.5);
+      expect(b.position[1]).toBeLessThan(-7.5);
+    }
+  });
+
+  it('thins a fading species out band by band', () => {
+    const rows = file.species.neanderthals.bands;
+    const full = bandsAt(rows, 40, 1);
+    const half = bandsAt(rows, 40, 0.5);
+    expect(half.length).toBeLessThan(full.length * 0.65);
+    expect(half.length).toBeGreaterThan(full.length * 0.35);
+    expect(bandsAt(rows, 40, 0)).toEqual([]);
+  });
+
+  it('picks the 1 ka step for a year, clamped to the file', () => {
+    expect(bandStepKa(file, -100000)).toBe(100);
+    expect(bandStepKa(file, kaToYear(41))).toBe(41);
+    expect(bandStepKa(file, -10000)).toBe(30);
   });
 });

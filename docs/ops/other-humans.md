@@ -21,11 +21,12 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
 
 ## What is on screen
 
-- **Ranges** (`footsteps-web/lib/otherHumans.ts`): hand-drawn outlines around the known fossil and DNA sites. They are
-  approximate, not measured territories, and the legend says so whenever they are shown. The Denisovan Wallacea area is
-  inferred only from Denisovan DNA in Papuans and Aboriginal Australians; it is drawn fainter.
+- **Bands** (`footsteps-web/public/other_humans/bands.json`, read by `lib/otherHumanBands.ts`): one mark per guessed band of
+  about 15 people, like the Units view of our own species: ▲ Neanderthals, ■ Denisovans, ✦ *H. floresiensis*, ★ *H. luzonensis*.
+  How many and where are **guesses** (the legend and the hover card say so); see "Guessed bands" below. Denisovan bands in the
+  Wallacea area, inferred only from Denisovan DNA in Papuans and Aboriginal Australians, are fewer and drawn fainter.
 - **Fade**: each species is drawn fully until the earliest of its last dates and fades to nothing by the latest
-  (`presenceAt`). The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
+  (`presenceAt`); its bands drop out one by one in a fixed random order, so half-way through the fade half are left. The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
   anthropology atlas (`anthropology/deep.py`) also reads; keep the two in step.
 - **Sites**: 24 key dated sites with the find, a source and its DOI; brighter when the year shown is within the site's dates.
   Each is `checked: true` or has a `couldNotVerify` reason, which the tooltip shows. See "Source check" below.
@@ -33,6 +34,37 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
   zoom 3; the subtitle shows from zoom 2. On the globe, names draw over the ground and are hidden round the back.
 
 Lavender, so it reads as cool next to the evidence marks (blue, teal) and never as people (the only warm colour).
+
+## Guessed bands (2026-11-20)
+
+Will asked for points like the people, not areas. `footstep-generator/other_humans_bands.py` makes them from
+`footstep-generator/other_humans/bands.yaml`:
+
+| | People (guess) | Bands of 15 | Basis |
+|---|---|---|---|
+| Neanderthals | 20,000 | ~1,350 | Bocquet-Appel & Degioanni 2013 (doi:10.1086/673725): nine scenarios, census of the order of 5,000–70,000; 20,000 is a choice inside it |
+| Denisovans | 10,000 | ~660 | none: no census estimate exists; half the Neanderthal figure |
+| *H. floresiensis* | 500 | ~30 | none found; one island of ~14,000 km² |
+| *H. luzonensis* | 1,000 | ~67 | none found; Luzon is ~110,000 km² |
+
+Band size 15: Skov et al. 2022 (doi:10.1038/s41586-022-05283-y) read Chagyrskaya's low genetic diversity as a community of
+10–20 people; one Altai community, used for all four. Numbers are held constant until each species fades.
+
+Where, every 1,000 years from 100 to 30 ka BP:
+
+1. **Habitat**: the pre-HYDE model's potential forager density (`prehistory_population.Model.potential_and_climate`: Beyer
+   climate → Miami NPP → Tallavaara's fit × habitat rules, Krapp land and ice at the time). It is a yardstick fitted to
+   recent *Homo sapiens* foragers, used only to say which places were richer, not how many lived there.
+2. **Range**: the hand-drawn outline around each species' fossils and DNA (moved here from `lib/otherHumans.ts`),
+   softened by about a cell, except Flores and Luzon, which stay on their island. The Wallacea area counts at 0.3.
+3. **Placing**: each 0.5° cell gets its share of the bands, rounded with a fixed random number per cell, so a cell that
+   stays good keeps its bands from step to step (~2,000 Neanderthal spots in all for ~1,350 a step). Bands go at fixed
+   random spots in the cell, skipping any in the year's sea or a lake (the app's `site_terrain.webp` at that sea level).
+
+So the pattern says "more where it was warmer and wetter inside the range", which follows from a sapiens yardstick
+and may be wrong for cold-adapted Neanderthals; the exact spots are imagined. Regenerate with
+`poetry run python footstep-generator/other_humans_bands.py` (~30 s; needs `data/raw/beyer2020` and Krapp); tests in
+`footstep-generator/tests/test_other_humans_bands.py` and `lib/otherHumans.test.ts`.
 
 ## Source check (2026-11-19)
 

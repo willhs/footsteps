@@ -1,0 +1,68 @@
+# Guessed bands of the other kinds of human (Neanderthals, Denisovans, H. floresiensis, H. luzonensis).
+# Read by footstep-generator/other_humans_bands.py. Everything here is a GUESS: no one has counted these
+# people. Band size and Neanderthal numbers lean on the papers named; the rest are choices, said so.
+# Dates (when each was last seen) live in footsteps-web/lib/otherHumans.ts and arrivals.yaml other_hominins.
+
+band:
+  people: 15
+  source: "Skov et al. 2022 Nature 610:519 (Chagyrskaya: low genetic diversity consistent with a community of 10-20 people)"
+  doi: ["10.1038/s41586-022-05283-y"]
+  note: "One Altai community, perhaps unusual at the species' eastern edge. Used for all four kinds: a choice."
+
+species:
+  - id: neanderthals
+    people: 20000
+    source: "Bocquet-Appel & Degioanni 2013 Curr Anthropol 54(S8):S202 (nine scenarios, census of the order of 5,000-70,000)"
+    doi: ["10.1086/673725"]
+    note: "20,000 is a choice inside that range, held constant from 100,000 BCE to the end; their numbers surely rose and fell."
+    ranges:
+      - confidence: likely
+        polygon: [
+          [-9.5, 36.5], [-9.5, 43.5], [-4, 48], [1, 51], [6, 52.5], [13, 52.5], [22, 51],
+          [32, 50], [42, 48], [52, 47.5], [62, 48], [72, 50], [82, 52.5], [88, 52.5], [88, 49.5],
+          [80, 47], [72, 42], [66, 37], [56, 35.5], [48, 32.5], [40, 32], [36, 30.5], [34, 31],
+          [35.5, 36], [30, 36.5], [24, 37.5], [20, 38.5], [16, 37.5], [12, 37.5], [8, 40],
+          [3, 41], [-1, 37.5], [-5, 36]]
+
+  - id: denisovans
+    people: 10000
+    source: "none: there is no census estimate for Denisovans"
+    doi: []
+    note: "10,000 is a pure guess, half the Neanderthal figure, for a group known from a handful of bones."
+    ranges:
+      - confidence: likely
+        polygon: [
+          [78, 53], [92, 54.5], [108, 53], [122, 50], [132, 47], [130, 41], [124, 35], [122, 27],
+          [121, 21], [112, 18], [107, 13], [101, 14], [97, 21], [92, 27.5], [86, 30.5],
+          [80, 35], [76, 42], [76, 49]]
+      # Papuans and Aboriginal Australians carry up to ~5% Denisovan DNA, so Denisovans (or a close
+      # group) likely lived around Wallacea; no fossils there yet. Fewer bands, drawn fainter.
+      - confidence: hinted
+        weight: 0.3
+        polygon: [
+          [117, 2], [125, 4], [132, 0], [141, -2], [150, -6], [147, -11], [138, -9], [128, -10],
+          [119, -9], [115, -5]]
+
+  - id: floresiensis
+    people: 500
+    source: "none: no estimate found"
+    doi: []
+    note: "500 is a guess for small-bodied foragers on one island of about 14,000 km2."
+    ranges:
+      - confidence: likely
+        soften: 0          # stay on Flores, not the islands around it
+        polygon: [
+          [119.8, -8.4], [120.6, -8.2], [121.6, -8.3], [122.4, -8.1], [123.0, -8.3], [122.4, -8.8],
+          [121.3, -8.9], [120.2, -8.9]]
+
+  - id: luzonensis
+    people: 1000
+    source: "none: no estimate found"
+    doi: []
+    note: "1,000 is a guess for Luzon (about 110,000 km2), known from a few teeth and bones in one cave."
+    ranges:
+      - confidence: likely
+        soften: 0          # stay on Luzon
+        polygon: [
+          [120.0, 18.5], [121.0, 18.6], [122.3, 18.4], [122.4, 16.5], [122.1, 14.0], [121.0, 13.8],
+          [120.5, 14.5], [119.8, 16.0], [120.3, 17.2]]

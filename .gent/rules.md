@@ -62,9 +62,11 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
   See `docs/ops/hyde-climate-spread.md`.
-- `footsteps-web/lib/otherHumans.ts`: other kinds of human (Neanderthals, Denisovans, *H. floresiensis*, *H. luzonensis*): hand-drawn
-  approximate ranges, cited end dates (in step with `arrivals.yaml` `other_hominins`) and 24 key dated sites, drawn by
-  `hooks/useOtherHumansLayer.ts` until each was last seen. On by default (View panel; `?humans=0` off). See `docs/ops/other-humans.md`.
+- `footsteps-web/lib/otherHumans.ts`: other kinds of human (Neanderthals, Denisovans, *H. floresiensis*, *H. luzonensis*): cited end
+  dates (in step with `arrivals.yaml` `other_hominins`) and 24 key dated sites, plus guessed bands of ~15 (one mark each, a shape per
+  species) placed by `footstep-generator/other_humans_bands.py` (guessed numbers in `other_humans/bands.yaml` × the pre-HYDE habitat
+  model inside hand-drawn ranges → `footsteps-web/public/other_humans/bands.json`, committed), drawn by `hooks/useOtherHumansLayer.ts`
+  until each was last seen. On by default (View panel; `?humans=0` off). See `docs/ops/other-humans.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.

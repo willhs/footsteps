@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Other kinds of human drawn as guessed bands, not areas
+
+Will asked for the other humans to be drawn like the people: points, even if guessed. The hand-drawn ranges moved to `footstep-generator/other_humans/bands.yaml` with guessed numbers (Neanderthals 20,000 inside Bocquet-Appel & Degioanni's 5,000-70,000; Denisovans 10,000, Flores 500, Luzon 1,000, all said to be guesses) and a band of 15 (Skov 2022). `other_humans_bands.py` spreads the bands by the pre-HYDE habitat model inside each range, on dry land at each 1 ka step's sea level, with stable cells so bands persist (`public/other_humans/bands.json`, 97 KB). The app draws one mark per band, ▲ Neanderthals, ■ Denisovans, ✦ Flores, ★ Luzon, hoverable, thinning out band by band as a species fades. `docs/ops/other-humans.md` "Guessed bands".
+
 ## [2026-11-20] change | Hover card docked in the left column; plant marks off
 
 Will asked to dock the hover card in the left pane and to drop the trees unless they could look much more real. The card now sits in the left column (`FootstepsViz.tsx`) in place of the legend while the cursor is on the map; over the column the card goes and the legend returns, so "About the data" stays reachable. It shrinks to fit (ground picture capped at 22vh); on a ~715 px tall window the lower rows (regional group, animals) are cut. The column's top tracks the stats panel's measured height (`--ov-stats-h`), and the settlement note is in the column's flow above the card instead of absolute. The close-up 3D plant marks (cones and blobs) are off; `?plants=1` draws them, and the 3D label reads "3D: ground measured". The cursor-anchor helpers (`cardAnchor`, `cardHeightFor`) are gone.

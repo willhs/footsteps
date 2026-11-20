@@ -454,9 +454,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             )}
             {otherHumans.shown && (
               <p className="ov-note mt-1">
-                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>■</span> Other kinds of human ·
-                approximate ranges drawn around known fossils and DNA, not measured territories.
-                {notesOpen && ' Dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. The faint area east of Borneo is hinted only by Denisovan DNA in Papuans today.'}
+                <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>▲ ■ ✦ ★</span> Other kinds of human
+                (Neanderthals, Denisovans, Flores, Luzon) · each mark a guessed band of ~15; numbers and places imagined.
+                {notesOpen && ' Places follow climate and habitat inside rough ranges drawn around known fossils and DNA. Round dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. Faint marks east of Borneo are hinted only by Denisovan DNA in Papuans today.'}
               </p>
             )}
             {notesOpen && showTerrain && <TerrainNote />}
@@ -487,7 +487,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             </ToggleButton>
           </ControlRow>
           <ControlRow label="Other humans">
-            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: approximate ranges and key dated sites, until each was last seen">
+            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: guessed bands and key dated sites, until each was last seen">
               {otherHumansOn ? 'On' : 'Off'}
             </ToggleButton>
           </ControlRow>

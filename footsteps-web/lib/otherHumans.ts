@@ -1,6 +1,6 @@
-// Other kinds of human alive during the slider's range (100,000 BCE onwards): where they lived (rough,
-// hand-drawn ranges), when they were last seen, and the key dated sites behind that. Ranges are
-// approximate outlines around the known sites, not measured territories. End dates follow
+// Other kinds of human alive during the slider's range (100,000 BCE onwards): when they were last seen and
+// the key dated sites behind that. Where their bands are drawn is a guess made offline from hand-drawn ranges
+// and the habitat model (footstep-generator/other_humans/bands.yaml, lib/otherHumanBands.ts). End dates follow
 // footstep-generator/prehistory/arrivals.yaml `other_hominins` (keep the two in step).
 //
 // Every site and species was checked on 2026-11-19 against the paper's abstract or full text (via
@@ -28,17 +28,10 @@ export type Site = {
   doi: string[];
 } & Verification;
 
-export interface Range {
-  polygon: Lonlat[];
-  /** 'likely' = around known fossils/DNA; 'hinted' = inferred only from DNA in later people. */
-  confidence: 'likely' | 'hinted';
-}
-
 export type OtherHuman = {
   id: 'neanderthals' | 'denisovans' | 'floresiensis' | 'luzonensis';
   name: string;
   latin: string;
-  ranges: Range[];
   label: Lonlat;
   /** Last seen, thousands of years before 1950: fully drawn until `early`, gone by `late`. */
   lastKa: { central: number; early: number; late: number };
@@ -55,18 +48,6 @@ export const OTHER_HUMANS: OtherHuman[] = [
     name: 'Neanderthals',
     latin: 'Homo neanderthalensis',
     label: [30, 47],
-    ranges: [
-      {
-        confidence: 'likely',
-        polygon: [
-          [-9.5, 36.5], [-9.5, 43.5], [-4, 48], [1, 51], [6, 52.5], [13, 52.5], [22, 51],
-          [32, 50], [42, 48], [52, 47.5], [62, 48], [72, 50], [82, 52.5], [88, 52.5], [88, 49.5],
-          [80, 47], [72, 42], [66, 37], [56, 35.5], [48, 32.5], [40, 32], [36, 30.5], [34, 31],
-          [35.5, 36], [30, 36.5], [24, 37.5], [20, 38.5], [16, 37.5], [12, 37.5], [8, 40],
-          [3, 41], [-1, 37.5], [-5, 36],
-        ],
-      },
-    ],
     lastKa: { central: 40, early: 41, late: 39 },
     note: 'Lived across Europe and western Asia for some 300,000 years. Most people outside Africa carry about 2% Neanderthal DNA.',
     source: 'Higham et al. 2014 Nature 512:306 (Mousterian ended 41,030-39,260 cal BP, 95.4%); Iasi et al. 2024 Science 386:eadq3010 (mixing with modern humans 50.5-43.5 ka).',
@@ -97,25 +78,6 @@ export const OTHER_HUMANS: OtherHuman[] = [
     name: 'Denisovans',
     latin: 'no agreed species name; possibly Homo longi',
     label: [108, 38],
-    ranges: [
-      {
-        confidence: 'likely',
-        polygon: [
-          [78, 53], [92, 54.5], [108, 53], [122, 50], [132, 47], [130, 41], [124, 35], [122, 27],
-          [121, 21], [112, 18], [107, 13], [101, 14], [97, 21], [92, 27.5], [86, 30.5],
-          [80, 35], [76, 42], [76, 49],
-        ],
-      },
-      {
-        // Papuans and Aboriginal Australians carry up to ~5% Denisovan DNA, so Denisovans (or a close
-        // group) likely lived somewhere around Wallacea; no fossils there yet.
-        confidence: 'hinted',
-        polygon: [
-          [117, 2], [125, 4], [132, 0], [141, -2], [150, -6], [147, -11], [138, -9], [128, -10],
-          [119, -9], [115, -5],
-        ],
-      },
-    ],
     lastKa: { central: 45, early: 60, late: 32 },
     note: 'Known mostly from DNA and a few bones. Papuans and Aboriginal Australians carry up to ~5% Denisovan DNA.',
     source: 'Chen et al. 2019 Nature 569:409; Xia et al. 2024 Nature 632:108 (Baishiya rib 48-32 ka); Jacobs et al. 2019 Cell 177:1010 (Denisovan mixing in Papuans ~46 and ~30 ka).',
@@ -134,15 +96,6 @@ export const OTHER_HUMANS: OtherHuman[] = [
     name: 'Homo floresiensis',
     latin: 'Homo floresiensis ("hobbits")',
     label: [121.3, -8.5],
-    ranges: [
-      {
-        confidence: 'likely',
-        polygon: [
-          [119.8, -8.4], [120.6, -8.2], [121.6, -8.3], [122.4, -8.1], [123.0, -8.3], [122.4, -8.8],
-          [121.3, -8.9], [120.2, -8.9],
-        ],
-      },
-    ],
     lastKa: { central: 50, early: 60, late: 50 },
     note: 'About a metre tall, on the island of Flores. Whether they met modern humans is unknown.',
     source: 'Sutikna et al. 2016 Nature 532:366 (bones ~100-60 ka, tools ~190-50 ka).',
@@ -157,15 +110,6 @@ export const OTHER_HUMANS: OtherHuman[] = [
     name: 'Homo luzonensis',
     latin: 'Homo luzonensis',
     label: [121.2, 16.6],
-    ranges: [
-      {
-        confidence: 'likely',
-        polygon: [
-          [120.0, 18.5], [121.0, 18.6], [122.3, 18.4], [122.4, 16.5], [122.1, 14.0], [121.0, 13.8],
-          [120.5, 14.5], [119.8, 16.0], [120.3, 17.2],
-        ],
-      },
-    ],
     lastKa: { central: 50, early: 50, late: 45 },
     note: 'Known from a few teeth and bones on Luzon. The fossils are at least 50,000 years old; how long they lasted after that is unknown.',
     source: 'Détroit et al. 2019 Nature 568:181 (minimum ages 50 and 67 ka).',

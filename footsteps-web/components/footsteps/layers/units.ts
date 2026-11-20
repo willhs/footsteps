@@ -51,6 +51,8 @@ export type Units = {
   counts: [bands: number, villages: number, glows: number, camps: number];
   /** Experiment only: relative residential movement; zero is semi-settled. */
   mobility?: Float32Array;
+  /** Settlement model only: index of the analog society the group was drawn from, in the dwelling table (lib/dwellings.ts). */
+  society?: Uint16Array;
 };
 
 // Small deterministic PRNG (mulberry32) so placement is stable per cell.

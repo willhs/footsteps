@@ -105,7 +105,7 @@ function role(age: number, kind: number, r: () => number) {
   return roles[Math.floor(r() * roles.length)];
 }
 
-const groupSeed = (lon: number, lat: number) =>
+export const groupSeed = (lon: number, lat: number) =>
   (Math.round(lon * 1e4) * 73856093) ^ (Math.round(lat * 1e4) * 19349663);
 
 /** A group as it stands at the two data years either side of the time: `from` people
@@ -119,7 +119,7 @@ export type MorphGroupInView = {
 };
 
 /** How many individuals a group of `people` is drawn as (none for a glow or a sparse cell). */
-function peopleDrawn(kind: number, people: number) {
+export function peopleDrawn(kind: number, people: number) {
   if (kind === UnitKind.Glow || people < MIN_GROUP_PEOPLE) return 0;
   return Math.min(MAX_PER_GROUP, Math.round(people));
 }

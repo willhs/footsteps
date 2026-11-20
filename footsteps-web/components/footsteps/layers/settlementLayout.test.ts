@@ -4,6 +4,9 @@ import type { CellSpots, SiteRanker } from './siteRanking';
 import type { GridData } from '../hooks/gridData';
 import type { Layout, SettlementCatalog } from '@/lib/settlements';
 import { WayOfLife } from '@/lib/waysOfLife';
+import { NO_SOCIETY, parseDwellings } from '@/lib/dwellings';
+import { buildUnitMorph } from '../hooks/unitMorph';
+import { sliceUnits, WORLD } from '../hooks/unitRegion';
 
 /** A ranked list of `n` usable spots: the best four run up the east side (a river bank, a fifth of a cell apart, as the 4 × 4 grid makes
  * real candidates), the worse ones are spread west. */
@@ -152,5 +155,26 @@ describe('farming layouts through buildSettlementUnits', () => {
     const u = buildSettlementUnits(data, farmCatalog(7), 0, null, ranker);
     const first = u.positions[0] - data.positions[0];
     expect(first / data.cellDeg).toBeCloseTo(spotsOf(16).x[0], 5);
+  });
+});
+
+describe('the analog society a group was drawn from travels with it (for the close-up shelters)', () => {
+  const table = parseDwellings({
+    version: 1, caveat: '', codes: { plan: {}, walls: {}, roof: {} }, columns: ['id', 'name', 'year', 'plan', 'walls', 'roof'],
+    societies: [['a', 'A', 1900, 5, 3, 8], ['s', 'S', 1930, 2, 11, 8]],
+  });
+
+  it('indexes each group’s society in the dwelling table, and leaves NO_SOCIETY without one', () => {
+    const withTable = buildSettlementUnits(farmGrid(), farmCatalog(7), 0, null, ranker, table);
+    expect(Array.from(withTable.society!)).toEqual(Array(withTable.length).fill(1));
+    const without = buildSettlementUnits(farmGrid(), farmCatalog(7), 0, null, ranker);
+    expect(Array.from(without.society!)).toEqual(Array(without.length).fill(NO_SOCIETY));
+  });
+
+  it('survives slicing a region and the year morph', () => {
+    const units = buildSettlementUnits(farmGrid(), farmCatalog(7), 0, null, ranker, table);
+    const morph = buildUnitMorph(sliceUnits(units, 3600, WORLD), units);
+    expect(Array.from(morph.info.society)).toEqual(Array(morph.length).fill(1));
+    expect(buildUnitMorph(units, units).info.society.length).toBe(units.length);
   });
 });

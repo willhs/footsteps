@@ -92,3 +92,17 @@ def test_site_diagnostic_reads_habitat_pixels_and_retains_source_societies(tmp_p
     assert result["checks"][0]["precip_mm"] == 0
     assert result["checks"][0]["profile"]["components"][0]["size"] == 80
     assert result["checks"][0]["societies"]["a"]["name"] == "Recorded analog"
+
+
+def test_dwellings_table_lists_exactly_the_societies_the_catalog_names_with_their_house_codes():
+    catalog = json.loads(settlements.OUT.read_text())
+    table = json.loads(settlements.DWELLINGS.read_text())
+    assert table == settlements.build_dwellings(catalog, settlements.load()), "run settlements.py --dwellings"
+    named = {c["society"] for p in [*catalog["climate"].values(), *(p for row in catalog["regions"].values() for p in row)]
+             for c in p["components"]}
+    rows = {r[0]: r for r in table["societies"]}
+    assert set(rows) == named
+    assert [r[0] for r in table["societies"]] == sorted(rows)
+    # !Kung: a circular house whose walls and roof are one thing, grass (D-PLACE EA079 2, EA081 11, EA083 8).
+    assert rows["xd1"][1:] == ["!Kung", 1950, 2, 11, 8]
+    assert table["codes"]["plan"]["2"] == "Circular"

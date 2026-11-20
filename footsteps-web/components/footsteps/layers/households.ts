@@ -67,3 +67,10 @@ export function* householdsOf(seed: number, spacing: number): Generator<Househol
     };
   }
 }
+
+/** A point `x` metres east and `y` north of a spot, as lon/lat (longitude scaled by latitude), as people stand round it. */
+export function offsetByMetres(lon: number, lat: number, x: number, y: number): [number, number] {
+  const mPerDegLat = 111_320;
+  const mPerDegLon = mPerDegLat * Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  return [lon + x / mPerDegLon, lat + y / mPerDegLat];
+}

@@ -65,6 +65,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
   See `docs/ops/hyde-climate-spread.md`.
+- `footsteps-web/lib/dwellings.ts` + `layers/shelters.ts` + `public/dwellings.json`: close-up shelters, behind `?shelters=1` (off until reviewed). One dwelling per household of a group in view
+  (and dense roof clusters for towns and cities), drawn by `Close3DLayer` as six low-poly instanced shapes standing on the Terrarium ground height, never on water. The TYPE is modelled from the house codes
+  (EA079 plan, EA081 walls, EA083 roof) of the analog society the settlement model drew the group from (`Units.society` indexes the 15 KB table; `settlements.py --dwellings` regenerates it), or from two cited
+  dug types (mammoth-bone huts, Near East mud-brick); the PLACE is imagined (where its household stands); the hover line says both and "the ethnographic present is not the past". See `docs/ops/settlements.md` "Shelters in the close-up".
 - `footsteps-web/lib/otherHumans.ts`: other kinds of human (Neanderthals, Denisovans, *H. floresiensis*, *H. luzonensis*): cited end
   dates (in step with `arrivals.yaml` `other_hominins`) and 24 key dated sites, plus guessed bands of ~15 (drawn as
   our own people's fires, lavender) placed by `footstep-generator/other_humans_bands.py` (guessed numbers in `other_humans/bands.yaml` × the pre-HYDE habitat

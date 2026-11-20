@@ -72,6 +72,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
             morph.info.kind,
             morph.info.people,
             morph.info.fromPeople,
+            morph.info.society,
           ]),
         );
       })

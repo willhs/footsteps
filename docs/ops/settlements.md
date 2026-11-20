@@ -1,7 +1,7 @@
 ---
 id: settlements
 type: reference
-purpose: "The settlement model (the default Units view since 2026-11-20; ?settlements=0 turns it off): real cities, regional settlement mixes, deep-time forager types, households, a hover-only regional group, farm settlement layouts and a largest-settlement hover line — how to turn it on, regenerate it, and what it does not claim"
+purpose: "The settlement model (the default Units view since 2026-11-20; ?settlements=0 turns it off): real cities, regional settlement mixes, deep-time forager types, households, a hover-only regional group, farm settlement layouts, a largest-settlement hover line and close-up shelters (?shelters=1) — how to turn it on, regenerate it, and what it does not claim"
 updated: 2026-11-20
 ---
 
@@ -138,6 +138,42 @@ Tests: `settlementLayout.test.ts` (rank order, scatter vs cluster, no sea, prefi
 
 Browser check: `node footsteps-web/scripts/verify-layouts.mjs http://localhost:4444 /abs/evidence/dir` (production data proxied; headed) hovers Rome, the Nile, NW Europe, Hausaland, Luzon, New Guinea highlands and the Amazon at zoom 9-10 and records the card line, the
 legend sentence and that the card fits the viewport; with `SUFFIX=-before` and the layouts temporarily forced to nucleated it takes the comparison shots. Hover-card heights are reserved per row (`cardHeightFor`): the first cut let the new row run off the bottom of a 900 px window.
+
+## Shelters in the close-up (2026-11-21, `?shelters=1`)
+
+Part of the close-up scene goal ("structures where groups live"). **Off by default** until Will has looked at it on prod; `?shelters=1` draws one dwelling per household at street zoom (11.5 and closer, on the flat map's 3D relief; not on the globe, with `?close3d=0` or `?settlements=0`).
+Three layers, kept apart in the legend, the settlement note and the hover line:
+
+| What | Status | How |
+| --- | --- | --- |
+| The **type** (shape and material) | **modelled** | the house codes of the analog society the settlement model drew the group from: Ethnographic Atlas EA079 plan, EA081 walls, EA083 roof (`public/dwellings.json`); or, in two cases, a cited dug type |
+| **Where** each dwelling stands | **imagined** | at its household's centre: the same places `layers/households.ts` puts the people (one dwelling per household of about 4-5, so a band of 30 has about 7) |
+| Size, colour, how many roofs a town gets | drawing choices | `SHAPE_SIZE`, `MATERIALS` and `townRoofs` |
+
+**Data.** `Units.society` (a `Uint16Array`, `NO_SOCIETY` = none) carries the analog society each group was drawn from through `buildSettlementUnits` → `sliceUnits` → `buildUnitMorph` (`info.society`) to the main thread, as an index into `public/dwellings.json`:
+`[id, name, year recorded, plan, walls, roof]` rows for the 425 societies the catalog names, 15 KB, plus the Atlas's code labels. The catalog itself (4 MB) is unchanged. Regenerate with
+`python3 footstep-generator/anthropology/settlements.py --dwellings` (reads the committed catalog and `ethnography.json.gz`; no raw Reba files needed; the full build writes it too). 53 of the 425 societies (Binford-only hunter-gatherers, mostly) have no house codes at all: their groups get a plain default for the kind of group (band: brush dome, camp: felt tent, village: thatched gable) and the hover line says so.
+
+**Type rules** (`lib/dwellings.ts` `shelterSpec`, pure and unit-tested), first match wins:
+1. An *archaeological type* covering the place, era and kind of group (`ARCHAEOLOGICAL_TYPES`, two of them, each a box, a date range and a source):
+   mammoth-bone and hide huts for bands on the mammoth steppe (lat 44-62, lon 15-140, 45,000-10,000 BCE; Mezhyrich, Mezin, Kostenki: Pidoplichko 1998, Soffer 1985), and flat-roofed packed mud-brick houses for farmers in Anatolia and the Levant (lat 30-42, lon 25-50, 8500-5000 BCE; Çatalhöyük: Hodder 2006). One dug site stands for a region and era, which the hover line says.
+2. The analog's codes: roof of ice or snow, a dome (igloo); semicircular plan, a windbreak; hide or fabric walls or roof, a yurt for herders and felt, a cone for foragers' hides, a ridge tent where rectangular;
+   circular, elliptical or polygonal plan, a drum (solid walls) or a dome/cone (walls and roof one); rectangular or courtyard plan, a gable, or a flat-roofed block where the roof is clay or earth. The colour is the roof's material (else the walls').
+3. Otherwise the kind of group's default.
+
+Six shapes (windbreak, dome, cone, drum, gable, block; flat-shaded `SimpleMeshLayer` instances, one layer per shape, colour per instance) so it stays cheap.
+
+**Towns and cities.** A glow cell (the model's urban way of life) or a named historical city (Reba) is a dense cluster of roofs round its spot: `townRoofs(people)` = 2.2 × √people, 8 to 900, on a jittered sunflower inside `townRadius` = 12 m × √people, at most 3 km, each roof standing for an equal share of the households (the hover line says how many).
+A glow cell has a society and uses its type; a named city has none, so its roofs follow `townMix`, a four-row table over regions and eras (the Roman world: tiled gables among stone blocks; the Near East: flat-roofed mud-brick; East Asia: grey-tiled gables; the Americas: stone and mud blocks; elsewhere thatch and timber), labelled as guessed from region and era.
+Nothing is drawn where the model puts no group: a zero-people endpoint, or a cell with no unit, city or glow, draws no roof. A thin cell's unit (under 15 people: one whole group with probability people ÷ group size, `units.ts`) *is* a group, so it gets the dwellings of a typical one of its kind (`nominalPeople`: band 30, camp 60, village 300), although `people.ts` draws none of its members: sparse deep-time cells (Ohalo II, Mezhyrich) show roofs and no walkers. Roofs are read at the nearer data year, like the people.
+
+**On the ground.** The roofs ride in `Close3DLayer` (the `shelters` prop, from `FootstepsViz`): each tile samples its Terrarium height under every dwelling (× the relief's exaggeration, on the highest of the four mesh vertices round it, 1 m up, so the 4-pixel-step relief does not cut the floor) and drops those on water at the year's sea level.
+A dwelling is never drawn under 4 px across: at zoom 12 a 5 m hut is a fraction of a pixel, so it is enlarged (real size from about zoom 15); they fade in with the people (zoom 11.5-12.5). Hover one: the left column says "Modelled: ... like the X, recorded 19xx: circular plan; walls and roof one, of grass" (or the dug type and its source, or "no analog society was recorded for this city"), "Imagined: ..." and "The ethnographic present is not the past".
+
+**Known, not mine:** with the flag off, Rome at 100 CE zoom 12 draws the ground as sea almost everywhere (only hilltops dry), so the city's roofs, which skip water, show on a few islands there; the relief, not the shelters, floods it (see the `rome-off` screenshot). A dwelling picked at zoom 16 in Mongolia was not drawn in one headed run (the ground tiles had not drawn after the scroll-zoom); at Mezhyrich zoom 15-16 the domes and the hover card were fine.
+
+Tests: `lib/dwellings.test.ts` (type choice for each code family, the dug types, town mixes, the hover words), `layers/shelters.test.ts` (one per household, standing where the household's people stand, nothing for sparse or empty groups, determinism, prefix stability, town roofs, meshes), `settlementLayout.test.ts` (society through units, slice and morph), `test_settlements.py` (the table is the catalog's societies).
+Browser check: `node footsteps-web/scripts/verify-shelters.mjs http://localhost:4444 /abs/evidence/dir [scene]` (production data proxied; headed) at Ohalo II 21,000 BCE, Mezhyrich 15,000 BCE, Çatalhöyük 7000 BCE, Rome 100 CE, the Mongolian steppe 1000 CE and the Amazon 1000 CE, with and without the flag.
 
 ## What changes
 

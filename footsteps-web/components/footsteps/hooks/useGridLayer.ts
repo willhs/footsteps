@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { blendCities, type AllocatedCity } from '@/lib/settlements';
+import type { DwellingTable } from '@/lib/dwellings';
+import { sheltersForGroups, sheltersForTown, type Shelter, type ShelterGroup, type TownInView } from '../layers/shelters';
+import { UnitKind } from '../layers/units';
 import { cityLayers as buildCityLayers } from '../layers/cityLayers';
 import { PEOPLE_YEARS } from '@/lib/constants';
 import { type GridData, type PointBuffers, type YearGrid } from './gridData';
@@ -28,6 +31,7 @@ import {
 } from '../layers/people';
 
 const NO_PEOPLE: readonly Person[] = [];
+const NO_SHELTERS: readonly Shelter[] = [];
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -58,6 +62,7 @@ export default function useGridLayer({
   households = false,
   routineEpoch = null,
   figures = false,
+  dwellings = null,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -76,6 +81,8 @@ export default function useGridLayer({
   /** The daily routine's plan hour (lib/routine.ts `epochHour`), or null for the old always-the-same gait (`?routine=1`). */
   routineEpoch?: number | null;
   figures?: boolean;
+  /** `?shelters=1`: the dwelling table; the dwellings in view are returned as `shelters` (layers/shelters.ts). Null: none. */
+  dwellings?: DwellingTable | null;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -88,6 +95,8 @@ export default function useGridLayer({
   /** The people drawn at full strength (present at both data years): what name tags are for. */
   people: readonly Person[];
   scenePeople: readonly Person[];
+  /** One dwelling per household in view, and roof clusters for towns, at the nearer data year (`?shelters=1`; else empty). */
+  shelters: readonly Shelter[];
 } {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
@@ -327,6 +336,31 @@ export default function useGridLayer({
   }, [peopleOn, morphScene, boundsKey, households]);
   const nearerPart = morphProgress < 0.5 ? 'leaving' : 'entering';
   const scenePeople = useMemo(() => people ? [...people.steady, ...people[nearerPart]] : NO_PEOPLE, [people, nearerPart]);
+  // Dwellings (`?shelters=1`): the same groups in view, read at the nearer data year, so a roof never stands without its people.
+  const nearTo = morphProgress >= 0.5;
+  const shelters = useMemo(() => {
+    if (!dwellings || !peopleOn || !morphScene || !bounds) return NO_SHELTERS;
+    const pad = 0.05;
+    const { west, south, east, north } = bounds;
+    const inView = (lon: number, lat: number) => lon >= west - pad && lon <= east + pad && lat >= south - pad && lat <= north + pad;
+    const pos = morphScene.data.attributes.getPosition.value;
+    const { kind, people: to, fromPeople: from, society } = morphScene.data.info;
+    const year = nearTo ? morphScene.y1 : morphScene.y0;
+    const groups: ShelterGroup[] = [];
+    const towns: TownInView[] = [];
+    for (let i = 0; i < kind.length; i++) {
+      const lon = pos[i * 2];
+      const lat = pos[i * 2 + 1];
+      const count = nearTo ? to[i] : from[i];
+      if (count <= 0 || !inView(lon, lat)) continue;
+      if (kind[i] === UnitKind.Glow) towns.push({ lon, lat, people: count, society: society[i] });
+      else groups.push({ lon, lat, kind: kind[i], people: count, society: society[i] });
+    }
+    for (const city of nearTo ? morphScene.citiesTo : morphScene.citiesFrom)
+      if (city.people > 0 && inView(city.position[0], city.position[1])) towns.push({ lon: city.position[0], lat: city.position[1], people: city.people });
+    return [...sheltersForGroups(groups, year, dwellings), ...towns.flatMap((town) => sheltersForTown(town, year, dwellings))];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dwellings, peopleOn, morphScene, boundsKey, nearTo]);
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
   // years stay put; the ones that leave or arrive fade out or in.
@@ -430,5 +464,6 @@ export default function useGridLayer({
     loading: unitsWaiting ? [y0, y1] : null,
     people: people?.steady ?? NO_PEOPLE,
     scenePeople,
+    shelters,
   };
 }

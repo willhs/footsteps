@@ -8,7 +8,7 @@ const PIN_KEY = 'footsteps.settlementNote.pinned';
  * The settlement model's explainer (on by default; `?settlements=0` hides it with the model): one line until tapped. Tapping opens it for now;
  * "Pin" keeps it open on later visits (remembered per viewer), "Close" folds it away.
  */
-export function SettlementNote({ season }: { season: 'off' | 'june' | 'december' }) {
+export function SettlementNote({ season, shelters = false }: { season: 'off' | 'june' | 'december'; shelters?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   useEffect(() => {
@@ -79,6 +79,12 @@ export function SettlementNote({ season }: { season: 'off' | 'june' | 'december'
         <li>Households: about 4–5 people each, round a group&apos;s spot (imagined layout).</li>
         <li>Hover a place to tint its regional group, a few hundred people (people modelled, edge imagined).</li>
         <li>Farm layouts: scattered, hamlet or villages apart, by analog society (modelled; places imagined).</li>
+        {shelters && (
+          <li>
+            Dwellings (close in): the type is modelled from the house codes of the analog society (or a dug type where one covers the place and era;
+            &ldquo;the ethnographic present is not the past&rdquo;); one per household; where they stand is imagined.
+          </li>
+        )}
         {season !== 'off' && (
           <li>Seasonal rounds ({season === 'june' ? 'June' : 'December'}): foragers gather and herders shift; head counts stay the same (illustrative).</li>
         )}

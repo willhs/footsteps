@@ -1,6 +1,7 @@
 import { UnitKind, WAY_OF_KIND, type Units } from '../layers/units';
 import { LOOKS } from '@/lib/waysOfLife';
 import type { PointBuffers } from './gridData';
+import { NO_SOCIETY } from '@/lib/dwellings';
 
 // Alpha at full brightness. Zoom dims bands and villages with a uniform
 // (`brightness`), so changing zoom never rebuilds or re-uploads marks.
@@ -15,7 +16,7 @@ export type MorphPoints = PointBuffers & {
     getMobility: { value: Float32Array; size: 2 };
   };
   /** CPU-only endpoint populations; zero means absent at that endpoint. */
-  info: { kind: Uint8Array; people: Float32Array; fromPeople: Float32Array };
+  info: { kind: Uint8Array; people: Float32Array; fromPeople: Float32Array; society: Uint16Array };
 };
 export function isMorphPoints(
   points: PointBuffers | MorphPoints,
@@ -82,6 +83,7 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
   const kinds = new Uint8Array(length);
   const people = new Float32Array(length);
   const fromPeople = new Float32Array(length);
+  const society = new Uint16Array(length).fill(NO_SOCIETY);
   a = 0;
   b = 0;
   for (let i = 0; i < length; i++) {
@@ -103,6 +105,7 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
     kinds[i] = hasNew ? to.kind[b] : kind;
     people[i] = hasNew ? newPeople : 0;
     fromPeople[i] = hasOld ? oldPeople : 0;
+    society[i] = (hasNew ? to.society?.[b] : from.society?.[a]) ?? NO_SOCIETY;
     mobility[i * 2] = hasOld ? (from.mobility?.[a] ?? 1) : (to.mobility?.[b] ?? 1);
     mobility[i * 2 + 1] = hasNew ? (to.mobility?.[b] ?? 1) : (from.mobility?.[a] ?? 1);
     if (hasOld) a++;
@@ -118,6 +121,6 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
       getTargetFillColor: { value: targetColors, size: 4 },
       getMobility: { value: mobility, size: 2 },
     },
-    info: { kind: kinds, people, fromPeople },
+    info: { kind: kinds, people, fromPeople, society },
   };
 }

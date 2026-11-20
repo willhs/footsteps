@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] add | Close-up shelters behind ?shelters=1: dwellings from Ethnographic Atlas house codes
+
+At street zoom (11.5+, flat map's 3D relief) `?shelters=1` draws one dwelling per household of each group in view, and dense roof clusters for glow cells and named cities, as six low-poly instanced shapes (windbreak, dome, cone, drum, gable, block) standing on the Terrarium ground height, never on water. The type is modelled: `Units.society` carries the analog society the settlement model drew each group from, and `public/dwellings.json` (15 KB, `settlements.py --dwellings`) holds its EA079/EA081/EA083 house codes; two dug types (mammoth-bone huts on the Russian Plain, Near East mud-brick) override where they cover the place, era and kind of group. Where each dwelling stands is imagined (its household's place). Hover one for "Like the X, recorded 19xx: ..." / "Imagined: ..." / "the ethnographic present is not the past"; legend and settlement note say the same. Off by default until Will reviews it on prod. `docs/ops/settlements.md` "Shelters in the close-up"; browser check `scripts/verify-shelters.mjs`.
+
 ## [2026-11-21] feature | Opt-in people figures and nearby animals
 
 Added `?figures=1`: the newest footprint becomes an upright adult/child silhouette, with the remaining prints as its trail. The merged daily routine (`20d321b`) supplies sleep, rest, trip poses and carried equipment. Person objects, ids and picking remain unchanged, including other kinds of human.

@@ -60,6 +60,7 @@ export function sliceUnits(units: Units, width: number, region: Region): Units {
     ids: new Uint32Array(total),
     counts: [0, 0, 0, 0],
     ...(units.mobility ? { mobility: new Float32Array(total) } : {}),
+    ...(units.society ? { society: new Uint16Array(total) } : {}),
   };
   let j = 0;
   for (let r = 0; r < runs.length; r += 2) {
@@ -69,6 +70,7 @@ export function sliceUnits(units: Units, width: number, region: Region): Units {
     out.kind.set(units.kind.subarray(start, end), j);
     out.ids.set(units.ids.subarray(start, end), j);
     if (units.mobility) out.mobility!.set(units.mobility.subarray(start, end), j);
+    if (units.society) out.society!.set(units.society.subarray(start, end), j);
     j += end - start;
   }
   for (let i = 0; i < total; i++) out.counts[out.kind[i]]++;

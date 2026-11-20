@@ -3,6 +3,7 @@ import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
 import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
+import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
 import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { seaLevelAt } from '@/lib/climate';
@@ -120,11 +121,11 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
-  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null },
+  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null; dwellings?: DwellingTable | null },
 ): DecodedYearGrid {
   const allocation = settlement ? allocateCities(data, settlement.catalog.cities, year) : null;
   const units = settlement && allocation
-    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites)
+    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites, settlement.dwellings)
     : buildUnits(
     data.cellIds,
     data.positions,
@@ -303,6 +304,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
       sites: sites ? await loadSiteRanker() : null,
+      // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
+      dwellings: await loadDwellings().catch(() => null),
     } : undefined,
   );
 }

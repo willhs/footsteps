@@ -5,6 +5,7 @@ import { layoutOfPattern, profileAt, type Layout, type SettlementCatalog } from 
 import { seaLevelAt } from '@/lib/climate';
 import type { SiteRanker } from './siteRanking';
 import { DISPERSE_POOL, layGroups } from './settlementLayout';
+import { NO_SOCIETY, type DwellingTable } from '@/lib/dwellings';
 
 const slots = [0, 20, 24, 25];
 const laidInto = { x: new Float64Array(20), y: new Float64Array(20) }; // layGroups' scratch: at most 20 groups a cell
@@ -29,6 +30,7 @@ function random(seed: number) {
  * scattered farmsteads, a tight hamlet, or villages apart); without `sites`, at invented positions that ignore land and water. */
 export function buildSettlementUnits(
   data: GridData, catalog: SettlementCatalog, year: number, habitat: Uint8ClampedArray | null, sites?: SiteRanker | null,
+  dwellings?: DwellingTable | null,
 ): Units {
   const seaLevel = seaLevelAt(year);
   const per = new Uint8Array(data.length);
@@ -61,7 +63,7 @@ export function buildSettlementUnits(
   const out: Units = {
     length: total, positions: new Float32Array(total * 2), people: new Float32Array(total),
     kind: new Uint8Array(total), ids: new Uint32Array(total), counts: [0, 0, 0, 0],
-    mobility: new Float32Array(total),
+    mobility: new Float32Array(total), society: new Uint16Array(total).fill(NO_SOCIETY),
   };
   let j = 0;
   for (let i = 0; i < data.length; i++) {
@@ -74,6 +76,7 @@ export function buildSettlementUnits(
     const sizes: number[] = [];
     const mobility: number[] = [];
     const layouts: Layout[] = [];
+    const societies: number[] = [];
     const rand = random(data.cellIds[i] * 2246822519 + 7);
     const centres = [rand() - 0.5, rand() - 0.5, rand() - 0.5, rand() - 0.5];
     const choice = random(data.cellIds[i] * 2654435761);
@@ -82,6 +85,7 @@ export function buildSettlementUnits(
       const component = components.find((item) => (target -= item.weight) <= 0);
       // Truncated Pareto tail; normalisation below preserves every cell's budget.
       layouts.push(layoutOfPattern(component?.pattern ?? null));
+      societies.push((component && dwellings?.index.get(component.society)) ?? NO_SOCIETY);
       sizes.push((component?.size ?? 1) * Math.min(8, (1 - choice()) ** -0.8));
       mobility.push(!component || component.mode === 'settled' ? 0 : component.mode === 'aggregation' ? 0.1
         : component?.moves !== null && component?.moves !== undefined ? Math.min(1, component.moves / 12) : 0.5);
@@ -114,6 +118,7 @@ export function buildSettlementUnits(
       assigned += out.people[j];
       out.kind[j] = kind;
       out.mobility![j] = mobility[c];
+      out.society![j] = societies[c];
       out.ids[j] = data.cellIds[i] * 32 + slots[kind] + c;
       out.counts[kind]++;
       j++;

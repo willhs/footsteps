@@ -22,6 +22,7 @@ from analogs import load, nearest_analogs  # noqa: E402
 
 RAW = ROOT / "data/raw/reba"
 OUT = ROOT / "footsteps-web/public/settlements.json"
+DWELLINGS = ROOT / "footsteps-web/public/dwellings.json"
 REBA = {
     "modelski": ("https://ndownloader.figshare.com/files/5356132", "f5757dbeeeacb6dc33c26522866eff57"),
     "chandler": ("https://ndownloader.figshare.com/files/5407640", "aeff29534fb11c4f320cd79fbcba9c8b"),
@@ -187,6 +188,32 @@ def build_catalog(raw: Path = RAW) -> dict:
             }}
 
 
+def build_dwellings(catalog: dict, export: dict) -> dict:
+    """House codes (Ethnographic Atlas EA079 plan, EA081 walls, EA083 roof) of every society the catalog draws a
+    settlement from, for the close-up shelters (`?shelters=1`). Small: the web table is the societies the catalog
+    names (about 425 of 1,404), as `[id, name, year recorded, plan, walls, roof]` rows; a missing code is null.
+    The list order is the index `Units.society` carries, so keep it sorted and stable."""
+    used = {c["society"] for profile in [*catalog["climate"].values(), *(p for row in catalog["regions"].values() for p in row)]
+            for c in profile["components"]}
+    by_id = {s["id"]: s for s in export["societies"]}
+    rows = []
+    for sid in sorted(used):
+        s = by_id[sid]
+        v = s["values"]
+        rows.append([sid, s["name"], s.get("year"), v.get("house_plan"), v.get("house_walls"), v.get("house_roof")])
+    codes = {key: {k: label for k, label in export["variables"][name]["codes"].items()}
+             for key, name in (("plan", "house_plan"), ("walls", "house_walls"), ("roof", "house_roof"))}
+    return {"version": 1, "caveat": export["caveat"], "codes": codes,
+            "columns": ["id", "name", "year", "plan", "walls", "roof"], "societies": rows}
+
+
+def write_dwellings(catalog: dict, out: Path = DWELLINGS) -> dict:
+    table = build_dwellings(catalog, load())
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(table, ensure_ascii=False, separators=(",", ":")) + "\n")
+    return {"societies": len(table["societies"]), "bytes": out.stat().st_size, "output": str(out)}
+
+
 def site_diagnostics(catalog: dict, public: Path = ROOT / "footsteps-web/public") -> dict:
     """Read real habitat pixels for archaeological scenario checks, not validation.
 
@@ -235,6 +262,8 @@ def main() -> None:
     parser.add_argument("--fetch", action="store_true")
     parser.add_argument("--raw", type=Path, default=RAW)
     parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--dwellings", action="store_true",
+                        help="Rewrite only dwellings.json from the shipped catalog (needs no raw Reba files)")
     parser.add_argument("--check-sites", type=Path, help="Inspect shipped catalog against real habitat pixels; write diagnostic JSON without rebuilding")
     args = parser.parse_args()
     if args.check_sites:
@@ -242,6 +271,9 @@ def main() -> None:
         args.check_sites.parent.mkdir(parents=True, exist_ok=True)
         args.check_sites.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
         print(json.dumps({"checks": len(result["checks"]), "output": str(args.check_sites)}))
+        return
+    if args.dwellings:
+        print(json.dumps(write_dwellings(json.loads(args.out.read_text()), args.out.parent / "dwellings.json")))
         return
     args.raw.mkdir(parents=True, exist_ok=True)
     if args.fetch:
@@ -253,6 +285,7 @@ def main() -> None:
     catalog = build_catalog(args.raw)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")) + "\n")
+    print(json.dumps(write_dwellings(catalog, args.out.parent / "dwellings.json")))
     print(json.dumps({"cities": len(catalog["cities"]), "regions": len(catalog["regions"]),
                       "climate_bins": len(catalog["climate"]), "bytes": args.out.stat().st_size,
                       "output": str(args.out)}))

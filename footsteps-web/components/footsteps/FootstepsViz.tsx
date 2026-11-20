@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
-import { WebMercatorViewport, type LayersList } from '@deck.gl/core';
+import { WebMercatorViewport, type LayersList, type PickingInfo } from '@deck.gl/core';
 import { bandsInView, emptyViewNote, peopleInView } from '@/lib/emptyView';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
@@ -45,6 +45,9 @@ import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
 import ToggleButton from '@/components/ui/ToggleButton';
+import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
+import { shelterHoverOf, type ShelterHover } from './layers/Close3DLayer';
+import ShelterTooltip from './overlays/ShelterTooltip';
 
 const NIGHT = new NightExtension();
 
@@ -205,6 +208,16 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     figures,
   });
 
+  // Close-up dwellings (`?shelters=1`, off by default until reviewed): type modelled from analogs, place imagined (lib/dwellings.ts).
+  const [sheltersOn, setSheltersOn] = useState(false);
+  useEffect(() => setSheltersOn(sheltersParam(window.location.search)), []);
+  const [dwellings, setDwellings] = useState<DwellingTable | null>(null);
+  useEffect(() => {
+    if (sheltersOn) loadDwellings().then(setDwellings).catch((error) => console.warn('[shelters] failed to load', error));
+  }, [sheltersOn]);
+  const [shelterHover, setShelterHover] = useState<ShelterHover | null>(null);
+  // The dwelling under the cursor is gone when the set changes (a pan, zoom out or scrub): drop its card rather than leave it stale.
+
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalInstance | null>(null);
@@ -212,7 +225,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, blend, loading, people, scenePeople } = useGridLayer({
+  const { layers: gridLayers, grid, blend, loading, people, scenePeople, shelters } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -224,6 +237,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     households: settlements,
     routineEpoch,
     figures,
+    dwellings: sheltersOn && settlements && close3d ? dwellings : null,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -246,8 +260,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // One thing at a time in the column: a hovered site, band or evidence mark beats the place card under it.
   const evidenceHover = evidenceOn && evidence.hover && onMap(evidence.hover.x) ? evidence.hover : null;
   const otherHover = !evidenceHover && otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
-  const cardPoint = hoverCard && !evidenceHover && !otherHover && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
-  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || tooltipData);
+  const shelterInfo = sheltersOn && !evidenceHover && !otherHover && shelterHover && shelters.length && onMap(shelterHover.x) ? shelterHover : null;
+  const cardPoint = hoverCard && !evidenceHover && !otherHover && !shelterInfo && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
+  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || shelterInfo || tooltipData);
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
@@ -329,8 +344,17 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [emptyCheck, deckViewState.longitude, deckViewState.latitude, deckViewState.zoom, deckViewState.pitch, deckViewState.bearing, otherHumans.bands, modelled]);
+  // The dwellings stand on the close-up ground, so they ride in its layer (it samples the relief under each).
+  useEffect(() => setShelterHover(null), [shelters]);
+  const sceneBackground = useMemo(
+    () =>
+      sheltersOn && shelters.length
+        ? shadedBackground.map((layer) => (layer.id === 'close3d' ? layer.clone({ shelters, onHover: (info: PickingInfo) => setShelterHover(shelterHoverOf(info)) }) : layer))
+        : shadedBackground,
+    [shadedBackground, sheltersOn, shelters],
+  );
   const layers: LayersList = [
-    ...shadedBackground,
+    ...sceneBackground,
     ...otherHumans.below,
     ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...animalLayers, ...presenceLayers, ...tagLayers]),
     ...evidence.layers,
@@ -478,12 +502,13 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         )}
         {/* The settlement model's one-line note, above the hover card. */}
         {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
-          <SettlementNote season={season} />
+          <SettlementNote season={season} shelters={sheltersOn} />
         )}
         {/* Hover card, docked here rather than following the cursor; the details panel takes its place while open. */}
         {tooltipData && <PopulationTooltip data={tooltipData} onClose={() => setTooltipData(null)} />}
         {evidenceHover && <EvidenceTooltip hover={evidenceHover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
         {otherHover && <OtherHumansTooltip hover={otherHover} />}
+        {shelterInfo && <ShelterTooltip hover={shelterInfo} table={dwellings} />}
         {cardPoint && !selectedAnimal && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
@@ -503,6 +528,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
               ))}
               {!showGlowLegend && blend.pickable && (
                 <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>
+              )}
+              {shelters.length > 0 && (
+                <li className="text-[var(--ov-text-3)]">Dwellings: type modelled from analogs, place imagined. Hover one.</li>
               )}
             </ul>
             <button

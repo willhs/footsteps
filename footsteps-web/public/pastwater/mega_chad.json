@@ -1,0 +1,81 @@
+{
+  "id": "mega_chad",
+  "version": 1,
+  "label": "Mega-Chad highstand (modelled, experimental)",
+  "evidence": "modelled",
+  "flag": "?pastwater=1",
+  "level_m": 329.0,
+  "datum": "metres above the geoid (mean sea level) as in Terrarium and ETOPO1 heights; not relative to the year's global ocean level",
+  "epochs": [
+    {
+      "id": 1,
+      "name": "highstand",
+      "from_bp": 11500,
+      "to_bp": 5000,
+      "from_year": -9550,
+      "to_year": -3050,
+      "state": "highstand at level_m, no fade or partial stage",
+      "water": "fresh (assumed)"
+    }
+  ],
+  "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as a dry lakebed; the app draws and places as it does without the flag",
+  "mask": {
+    "file": "mega_chad_mask.webp",
+    "x0": 4596,
+    "y0": 1719,
+    "width": 196,
+    "height": 207,
+    "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+    "red": "255 = lake, 0 = not",
+    "bytes": 646,
+    "sha256": "84304cb0297e0718ff9590eb1c67ac5eee9449f3f8e96c867f5f7a6f2daa8278",
+    "lake_pixels": 17264
+  },
+  "distance": {
+    "file": "mega_chad_water.webp",
+    "x0": 2245,
+    "y0": 726,
+    "width": 219,
+    "height": 248,
+    "grid": "4320 x 2160 HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
+    "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
+    "rule": "min(static distance image, distance to the lake's cells); outside the patch the static image is exact",
+    "bytes": 8016,
+    "sha256": "027e858e9dbf44e8408a34a5f8cca63cd418f1e4541ffffbcae9a4b2f7f00ac4",
+    "cells_changed": 36249
+  },
+  "area_km2": 358873,
+  "area_reference_km2": {
+    "value": 361000,
+    "source": "Armitage, Bristow & Drake 2015 (early to mid-Holocene Mega-Chad area)"
+  },
+  "digest": "9864974824337c66",
+  "sources": {
+    "height": "AWS Terrarium elevation tiles, zoom 6, mean of 3 x 3 samples per 2.5' pixel (as site_terrain.py)",
+    "level": "Drake & Bristow 2006, The Holocene 16: 901-911 (shorelines of palaeolake Chad; spill to the Benue at ~330 m); 329 m is the level terrain_image.py already used",
+    "chronology": "Armitage, Bristow & Drake 2015, PNAS 112 (28): highstand by ~11.5 ka BP, held to ~5 ka BP; calendar BP from 1950",
+    "freshwater": "assumed: the overflowing highstand lake is counted as fresh water (Natural Earth rivers and lakes stay as they are)",
+    "static_water": "footsteps-web/public/water/water_distance.webp (Natural Earth 10m v5.1.2)"
+  },
+  "uncertainty": [
+    "The shoreline is the 329 m contour of a modern 2.4 km DEM connected to Lake Chad: sediment, tectonics and DEM error since move it by km on flat ground.",
+    "The highstand was not constant between ~11.5 and ~5 ka BP; fluctuations inside the window are not modelled.",
+    "Dates are the published highstand window, not dated shorelines at every year.",
+    "Whether the shore water was fresh, brackish or seasonal is assumed, not measured.",
+    "Nothing is said outside the window: not dry, not wet."
+  ],
+  "build": {
+    "fill_window": [
+      5.0,
+      26.0,
+      6.0,
+      27.0
+    ],
+    "seed": [
+      13.0,
+      14.3
+    ],
+    "window_min_m": 2.777777671813965,
+    "window_max_m": 3144.0
+  }
+}

@@ -24,7 +24,9 @@ fi
 curl -fsS --max-time 15 "$BASE/" | grep -q '<html' || { echo "FAIL app: $BASE/ is not HTML"; exit 1; }
 echo "ok   app"
 # The day API, behind Caddy's /api proxy: a real atlas record (needs the API image's data files), not just a 200.
-curl -fsS --max-time 15 "$BASE/api/anthropology?lat=48.85&lon=2.35&year=0" | grep -q '"sources"' \
+# Watchtower restarts the API container separately from the web one, so right after the web image goes live
+# Caddy can answer 502 for a minute: retry for up to ~2 minutes before calling it a failure.
+curl -fsS --max-time 15 --retry 8 --retry-delay 15 --retry-all-errors "$BASE/api/anthropology?lat=48.85&lon=2.35&year=0" | grep -q '"sources"' \
   || { echo "FAIL api: /api/anthropology gave no atlas record"; exit 1; }
 echo "ok   api"
 

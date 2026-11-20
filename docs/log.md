@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] fix | Smoke retries the API check through the Watchtower restart window
+
+The live smoke got a 502 from /api/anthropology because the API container restarts separately from the web one. scripts/smoke.sh now retries that request for ~2 minutes (curl --retry-all-errors).
+
 ## [2026-11-20] update | Groups no longer line up in rows under ?settlements=1
 
 Will's screenshot (Italy 1000 BCE, zoom 7) showed groups in a grid. Premise checked and quantified first: `siteRanking.ts` ranked a cell's 16 spots by a score that ties or follows a smooth interpolation slope on flat inland ground (the water layer is one value per 5′ cell, the slope a 2.5′ class), and ties kept index order, so the best spot was a corner of the cell: candidates 0/3/12/15 won 65 % of first groups (25 % if even). Measured with a new `siteRegularity.ts` (nearest-neighbour spread, Clark-Evans, and a square order: how often nearest neighbours lie on the grid axes): square order 0.45 (Italy 1000 BCE) and 0.42 (Nile 1500 CE) with `?settlements=1`, against 0.13 and 0.11 for `?sites=0`. Fix, behind the flag only: candidates now cover the whole cell (middle 80 % of each stratum, was ±0.45) and the score gets a stable per-(cell, spot) factor of 1 ± 0.35 (±0.2 left the square order at 0.15-0.19). After: 0.144 and 0.139, cv 0.56 and 1.02, no rows in the screenshots flat or in 3D. Cell totals, group counts, ids and the stability of a group's spot across years are unchanged (tests). Group counts per cell stay exact on purpose: the metrics show per-cell exactness did not force a lattice once spots and noise were fixed, and varying counts would break cell totals and the morph's ids. The clustered-point-process option is written up as research 0012 follow-up 5, not built. `docs/ops/site-terrain.md` "Regularity", `scripts/verify-regularity.mjs`, `settlementRegularity.real.test.ts`.

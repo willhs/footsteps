@@ -10,6 +10,7 @@ import { LOOKS } from '@/lib/waysOfLife';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
 import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
+import { OTHER_HUMANS, type OtherHuman } from '@/lib/otherHumans';
 
 export type Person = {
   id: number;
@@ -25,6 +26,8 @@ export type Person = {
   gait: number; // hash in [0, 1) of their spot: sets how they walk (lib/gait.ts), shared with the shader
   /** Index of their household within the group; set only with `households` (`?settlements=1`). Imagined layout. */
   household?: number;
+  /** Another kind of human (lib/otherHumans.ts); unset for Homo sapiens. Their band is a guess. */
+  kindOfHuman?: OtherHuman['id'];
 };
 
 /** How people stand in camp. `hearths` is the default: a few random clusters. `households` (`?settlements=1`):
@@ -238,6 +241,15 @@ export function describePerson(p: Person) {
         ? 'A woman'
         : 'A man';
   const group = LOOKS[WAY_OF_KIND[p.groupKind as keyof typeof WAY_OF_KIND]].mark;
+  if (p.kindOfHuman) {
+    const kind = OTHER_HUMANS.find((h) => h.id === p.kindOfHuman)!;
+    const noun = who.slice(2).toLowerCase();
+    const title = kind.adjective ? `A ${kind.adjective} ${noun}` : `A ${noun} of ${kind.name}`;
+    return {
+      title: `${title}, about ${p.age}`,
+      detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).`,
+    };
+  }
   return {
     title: `${who}, about ${p.age}`,
     detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).`,

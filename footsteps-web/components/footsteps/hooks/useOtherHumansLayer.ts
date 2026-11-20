@@ -174,5 +174,7 @@ export default function useOtherHumansLayer({
     above,
     hover: enabled ? hover : null,
     shown: shown.length > 0,
+    /** Guessed bands drawn now (positions only matter to the empty-view check). */
+    bands: enabled ? data.bands : [],
   };
 }

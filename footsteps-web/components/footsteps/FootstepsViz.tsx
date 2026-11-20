@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
-import type { LayersList } from '@deck.gl/core';
+import { WebMercatorViewport, type LayersList } from '@deck.gl/core';
+import { bandsInView, emptyViewNote, peopleInView } from '@/lib/emptyView';
 import SupportingText from '@/components/footsteps/overlays/SupportingText';
 import DeckGLView from '@/components/footsteps/views/DeckGLView';
 import useGlobeViewState from '@/components/footsteps/hooks/useGlobeViewState';
@@ -273,6 +274,31 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   // From 10,000 BCE people are HYDE's (measured); before that they are the model's.
   const modelled = evidenceAt(Math.round(time)) === 'modelled';
+
+  // An empty view reads as "still loading": say when no one is on screen (zoomed in, flat map, data loaded).
+  // Checked 400 ms after the view settles, not every frame.
+  const [emptyNote, setEmptyNote] = useState<string | null>(null);
+  const emptyCheck = !is3DMode && viewState.zoom >= 4 && grid && !loading ? grid : null;
+  useEffect(() => {
+    if (!emptyCheck) {
+      setEmptyNote(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const [west, south, east, north] = new WebMercatorViewport({
+        longitude: deckViewState.longitude,
+        latitude: deckViewState.latitude,
+        zoom: deckViewState.zoom,
+        pitch: deckViewState.pitch ?? 0,
+        bearing: deckViewState.bearing ?? 0,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }).getBounds();
+      const box = { west, south: Math.max(-90, south), east, north: Math.min(90, north) };
+      setEmptyNote(emptyViewNote(peopleInView(emptyCheck, box), bandsInView(otherHumans.bands, box), modelled));
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [emptyCheck, deckViewState.longitude, deckViewState.latitude, deckViewState.zoom, deckViewState.pitch, deckViewState.bearing, otherHumans.bands, modelled]);
   const layers: LayersList = [
     ...shadedBackground,
     ...otherHumans.below,
@@ -396,6 +422,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           />
         )}
 
+        {emptyNote && peopleView && (
+          <div className="ov-panel ov-note shrink-0 px-3.5 py-2.5 text-[var(--ov-text-2)]" data-testid="empty-view-note" role="status">
+            {emptyNote}
+          </div>
+        )}
         {/* The settlement model's one-line note, above the hover card. */}
         {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
           <SettlementNote season={season} />

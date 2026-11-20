@@ -31,6 +31,8 @@ export type Site = {
 export type OtherHuman = {
   id: 'neanderthals' | 'denisovans' | 'floresiensis' | 'luzonensis';
   name: string;
+  /** "A Neanderthal woman"; unset where the name is Latin ("a woman of Homo floresiensis"). */
+  adjective?: string;
   latin: string;
   label: Lonlat;
   /** Last seen, thousands of years before 1950: fully drawn until `early`, gone by `late`. */
@@ -46,6 +48,7 @@ export const OTHER_HUMANS: OtherHuman[] = [
   {
     id: 'neanderthals',
     name: 'Neanderthals',
+    adjective: 'Neanderthal',
     latin: 'Homo neanderthalensis',
     label: [30, 47],
     lastKa: { central: 40, early: 41, late: 39 },
@@ -76,6 +79,7 @@ export const OTHER_HUMANS: OtherHuman[] = [
   {
     id: 'denisovans',
     name: 'Denisovans',
+    adjective: 'Denisovan',
     latin: 'no agreed species name; possibly Homo longi',
     label: [108, 38],
     lastKa: { central: 45, early: 60, late: 32 },

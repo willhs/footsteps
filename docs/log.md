@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] add | "No one here at this date" note for an empty view
+
+A blurry, empty close-up (UK, 50,000 BCE) read as still loading. `lib/emptyView.ts` totals the people in cells inside the view box (pitch included, half a cell of margin, dateline-safe) and counts other-human bands; when no one of our species is there, the left column says whether the model or HYDE puts no one in view, or that the lavender sparks are another kind of human. Shown only zoomed in (≥ 4), on the flat map, once the year's data has loaded; checked 400 ms after the view settles. Checked: UK 50,000 BCE (note), Croatia 50,000 BCE (other humans only), central Africa (no note).
+
 ## [2026-11-20] change | Modern coastline lines off by default
 
 Will saw solid lines over the UK at 50,000 BCE, zoom 7: the faint modern coastline (Natural Earth 110m, `useTerrainLayers.ts`), whose long straight segments show close in and sit inland in the Ice Age. Off now; `?coast=1` draws it. Checked at the same time: that view is fully drawn after ~10 s (no pending requests; zoom 7 is below the 3D close-up, so no elevation tiles); it looks unfinished because the era image is ~20 km per pixel and the model has no one in Britain then (hover card: "No one modelled"). The sharpness is goal 4cb72add.

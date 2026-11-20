@@ -307,6 +307,11 @@ def run(tiles: Path, out: Path, baseline_image: Path) -> dict:
     dist_file = out / f"{NAME}_water.webp"
     write_gray(dist_file, dcodes)
     manifest = manifest_for(lake, patch, mask_file, dpatch, dist_file, changed, elev)
+    import terrain_image  # the years whose Earth picture differs under the flag (a manifest field, so the app has no second list)
+    manifest["terrain"] = {
+        "years": terrain_image.pastwater_years(),
+        "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images",
+    }
     (out / f"{NAME}.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"lake {int(lake.sum())} pixels, {manifest['area_km2']:,} km2; mask patch {patch} {mask_file.stat().st_size} B; "
           f"distance patch {dpatch} {dist_file.stat().st_size} B, {changed} cells nearer than the static image")

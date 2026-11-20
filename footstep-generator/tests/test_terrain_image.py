@@ -77,3 +77,23 @@ def test_frame_years_match_the_web_client():
     steps = np.diff(terrain.TERRAIN_YEARS)
     assert steps.max() == 1000 and steps.min() == 100
 
+
+
+# --- ?pastwater=1: Mega-Chad from the shared highstand mask ------------------------------------------------------------
+
+def test_pastwater_years_are_where_the_picture_differs():
+    # the old lake fades in over -9750..-8250 and out over -4250..-2750; the scenario holds -9550..-3050: 1,000-year steps in between
+    assert terrain.pastwater_years() == list(range(-9000, -2000, 1000))
+
+
+def test_pastwater_lake_is_the_shared_mask_at_output_resolution():
+    import past_water
+    lake = terrain.pastwater_lake()
+    assert lake.shape == (terrain.H, terrain.W) and 0 <= lake.min() and lake.max() <= 1
+    _, mask, _ = past_water.load_lake()
+    # an output pixel is 10.5' = 4.2 mask pixels across: the shared lake's area survives the resampling within a pixel's rim
+    per_pixel = (past_water.PIXEL_DEG * 60 / (360 * 60 / terrain.W)) ** 2
+    assert abs(lake.sum() - mask.sum() * per_pixel) / (mask.sum() * per_pixel) < 0.01
+    # it sits on Lake Chad's basin, nowhere near the old box's far corners
+    row, col = int((90 - 13.5) / 180 * terrain.H), int((15.5 + 180) / 360 * terrain.W)
+    assert lake[row, col] > 0.9

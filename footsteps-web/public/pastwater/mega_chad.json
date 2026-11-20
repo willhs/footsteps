@@ -77,5 +77,17 @@
     ],
     "window_min_m": 2.777777671813965,
     "window_max_m": 3144.0
+  },
+  "terrain": {
+    "years": [
+      -9000,
+      -8000,
+      -7000,
+      -6000,
+      -5000,
+      -4000,
+      -3000
+    ],
+    "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images"
   }
 }

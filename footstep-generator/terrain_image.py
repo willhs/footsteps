@@ -26,8 +26,13 @@ How a frame is painted (all grids north-up, column 0 = 180W):
 
 Images are undimmed; the client dims and tints them.
 
-Usage: python footstep-generator/terrain_image.py [--quality Q] [years ...]
-       (no years: every TERRAIN_YEAR)
+Usage: python footstep-generator/terrain_image.py [--quality Q] [--pastwater] [years ...]
+       (no years: every TERRAIN_YEAR; with --pastwater, every year whose picture differs)
+
+`--pastwater` (the images the app reads under `?pastwater=1`, written to `data/tiles/terrain/pastwater/`): Lake Mega-Chad is painted from
+the shared highstand mask of `past_water.py`, at full strength in the scenario's years (-9550 to -3050) and absent outside them, in place of
+the box-and-elevation lake above, whose strength fades with `sahara_weight`. The app cross-fades neighbouring 1,000-year images as it does
+for everything else; that blend is a picture, the lake's dates are `past_water.py`'s. See docs/ops/past-water.md.
 """
 import argparse
 from dataclasses import dataclass
@@ -309,6 +314,20 @@ def green_sahara(colour: np.ndarray, desertish: np.ndarray, year: float) -> np.n
     return colour + (target - colour) * strength * 0.9
 
 
+def pastwater_lake() -> np.ndarray:
+    """The shared Mega-Chad highstand mask (past_water.py) at output resolution, 0..1 (the share of each output pixel that is lake)."""
+    import past_water
+    patch, mask, _ = past_water.load_lake()
+    world = past_water.place_on_world(patch, mask.astype(np.float32), past_water.NX, past_water.NY)
+    return resize(world, W, H, Image.BOX)
+
+
+def pastwater_years() -> list[int]:
+    """Terrain years whose picture differs under --pastwater: where the old lake is drawn (sahara_weight above 0) or the scenario holds."""
+    import past_water
+    return [y for y in TERRAIN_YEARS if sahara_weight(y) > 0 or past_water.epoch_at(y) != past_water.INACTIVE]
+
+
 def mega_chad(year: float) -> np.ndarray:
     """Lake Mega-Chad at output resolution (0..1): Chad-basin land below its ~329 m
     highstand shoreline (Drake & Bristow 2006), scaled by the humid-period weight."""
@@ -339,7 +358,7 @@ def today() -> dict:
     }
 
 
-def frame(year: int) -> np.ndarray:
+def frame(year: int, pastwater: bool = False) -> np.ndarray:
     young_bp, old_bp, f = step_bracket(year)
     a, b = step(young_bp), step(old_bp)
     mix = lambda x, y: x * (1 - f) + y * f  # noqa: E731
@@ -380,15 +399,20 @@ def frame(year: int) -> np.ndarray:
     sea_rgb = np.where(t["sea"][..., None] > 0.5, bm_hi, p.sea)
     out = sea_rgb + (land_rgb - sea_rgb) * land_a
 
-    lake = mega_chad(year)[..., None] * land_a
+    if pastwater:
+        import past_water
+        lake = pastwater_lake()[..., None] * (past_water.epoch_at(year) != past_water.INACTIVE)
+    else:
+        lake = mega_chad(year)[..., None] * land_a
     out = out + (p.lake - out) * lake
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
-def encode(year: int, quality: int = 90) -> Path:
-    OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"earth_{year}.webp"
-    img = Image.fromarray(frame(year))
+def encode(year: int, quality: int = 90, pastwater: bool = False) -> Path:
+    folder = OUT / "pastwater" if pastwater else OUT
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"earth_{year}.webp"
+    img = Image.fromarray(frame(year, pastwater))
     q = quality
     while True:
         img.save(path, "WEBP", quality=q, method=6)
@@ -403,7 +427,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--quality", type=int, default=90)
+    parser.add_argument("--pastwater", action="store_true", help="the ?pastwater=1 images: Mega-Chad from the shared highstand mask")
     parser.add_argument("years", type=int, nargs="*")
     args = parser.parse_args()
-    for y in args.years or TERRAIN_YEARS:
-        encode(y, args.quality)
+    for y in args.years or (pastwater_years() if args.pastwater else TERRAIN_YEARS):
+        encode(y, args.quality, args.pastwater)

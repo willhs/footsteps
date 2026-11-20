@@ -163,3 +163,9 @@ def test_a_cell_the_lake_does_not_reach_keeps_its_static_distance(distances):
     _, base, merged, _ = distances
     r, c = int((90 - 30.0) / (180 / wd.NY)), int((10.0 + 180) / (360 / wd.NX))  # Algeria's Hoggar side: no lake nearer than a river
     assert merged[r, c] == base[r, c]
+
+
+def test_manifest_lists_the_terrain_years_the_flag_repaints(scenario):
+    import terrain_image
+    _, _, m = scenario
+    assert m["terrain"]["years"] == terrain_image.pastwater_years()

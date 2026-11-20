@@ -21,7 +21,7 @@ import day_api  # noqa: E402
 
 REAL = atlas.Atlas.load(API / "anthropology.json.gz")
 DATASETS = {atlas.HYDE, atlas.EA, atlas.TEOW, atlas.SESHAT, atlas.PREHISTORY, atlas.CULTURES, atlas.BIOME_PREY,
-            atlas.KRAPP, atlas.BEYER, atlas.PHYLACINE}
+            atlas.KRAPP, atlas.BEYER, atlas.PHYLACINE, atlas.GLOTTOLOG}
 
 FILL = {
     "dwelling": {"phrase": "hide tent", "material": "hides"},
@@ -212,6 +212,16 @@ def test_endpoint_gapfills_once_then_serves_from_cache(server, monkeypatch):
     _, again = get(f"{base}/api/anthropology?lat=-18&lon=24&year=-7100")  # same cell and era
     assert again["gapfill"] == "cached" and again["fields"] == first["fields"]
     assert len(calls) == 1 and calls[0]["name"] == "anthropology_gapfill"
+
+
+def test_endpoint_fill_0_never_calls_the_model_but_still_serves_the_languages(server, monkeypatch):
+    base, calls = server
+    monkeypatch.setenv(day_api.KEY_ENV, "test")
+    status, body = get(f"{base}/api/anthropology?lat=15&lon=-100&year=1500&fill=0")
+    assert status == 200 and body["gapfill"] == "skipped" and not calls
+    assert_record_shape(body)
+    assert body["fields"]["languages"]["source"] == atlas.GLOTTOLOG
+    assert atlas.GLOTTOLOG in body["sources"] and body["sources"][atlas.GLOTTOLOG]["licence"].startswith("CC BY 4.0")
 
 
 def test_endpoint_respects_the_shared_daily_cap(server, monkeypatch):

@@ -6,9 +6,10 @@ import { seaLevelLabel } from './climate';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
+import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -22,6 +23,8 @@ export type HoverCardInput = {
   /** Up to four notable large animals (lib/fauna.ts); null while loading, empty when none are modelled here. */
   animals?: string[] | null;
   food?: FoodItem[] | null;
+  /** Glottolog's languages for the cell (lib/languages.ts); shown only from LANGUAGES_FROM, whatever the caller passes. */
+  languages?: LanguageBlock | null;
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
@@ -117,6 +120,10 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
       detail: `${share(use.crop)} cropland, ${share(use.grazing)} grazing`,
       evidence: 'modelled',
     });
+  }
+  if (i.languages && i.time >= LANGUAGES_FROM) {
+    // A recorded baseline, not a measurement for this year: no family colours, nothing before it.
+    rows.push({ id: 'languages', ...languageLine(i.languages), evidence: 'measured' });
   }
   if (i.region) {
     rows.push({

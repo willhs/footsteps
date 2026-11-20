@@ -7,7 +7,8 @@ the model, and a hard daily cap bounds spend.
 
 GET /api/anthropology?lat=&lon=&year= returns the sourced record for that 5-degree
 cell and era (atlas.py). Fields no dataset covers are gap-filled by the model on the
-first request per cell x era, cached, and counted against the same daily cap.
+first request per cell x era, cached, and counted against the same daily cap; `&fill=0` skips
+the model (the hover card's language line wants only sourced fields).
 
 Env:
   OPENROUTER_API_KEY  required for real generations (absent -> canned demo text)
@@ -344,8 +345,9 @@ def cached_record(con: sqlite3.Connection, lat: float, lon: float, year: int) ->
     return atlas.merge_gapfill(record, json.loads(row[0]) if row else None)
 
 
-def anthropology(con: sqlite3.Connection, lat: float, lon: float, year: int, ip: str) -> dict | None:
-    """Record for a cell x era, gap-filling once (cached) when a key and budget allow."""
+def anthropology(con: sqlite3.Connection, lat: float, lon: float, year: int, ip: str, fill: bool = True) -> dict | None:
+    """Record for a cell x era, gap-filling once (cached) when a key and budget allow. `fill=False` (query `fill=0`)
+    never calls the model: for readers that only want the sourced fields, like the hover card, which fires per cell."""
     record = ATLAS.record(lat, lon, year)
     if record is None:
         return None
@@ -355,6 +357,8 @@ def anthropology(con: sqlite3.Connection, lat: float, lon: float, year: int, ip:
         return {**atlas.merge_gapfill(record, json.loads(row[0])), "gapfill": "cached", "gapfill_model": row[1]}
     if not atlas.needs_gapfill(record):
         return {**record, "gapfill": "none-needed"}
+    if not fill:
+        return {**record, "gapfill": "skipped"}
     if not os.environ.get(KEY_ENV):
         return {**record, "gapfill": "off", "gapfill_note": "No model key on this server; unknown fields stay empty."}
     if refused := reserve_generation(con, ip):
@@ -408,7 +412,8 @@ class Handler(BaseHTTPRequestHandler):
         except (KeyError, ValueError):
             return self._send(400, {"error": f"Give lat (-90..90), lon (-180..180) and year "
                                              f"({atlas.FIRST_YEAR}..{atlas.LAST_YEAR})."})
-        record = anthropology(db(), lat, lon, year, self.client_ip())
+        fill = parse_qs(url.query).get("fill", ["1"])[0] != "0"
+        record = anthropology(db(), lat, lon, year, self.client_ip(), fill)
         if record is None:
             return self._send(404, {"error": "No land here in any era (HYDE 3.5, or the Ice Age climate model)."})
         self._send(200, {**record, "sources": ATLAS.sources})

@@ -158,3 +158,45 @@ describe('largest settlement row (?settlements=1)', () => {
     expect(row.detail).not.toContain('exponent');
   });
 });
+
+describe('hover card language line', () => {
+  const block = {
+    tier: 'attested' as const,
+    baseline_year: 1500,
+    n_languages: 194,
+    n_families: 5,
+    families: [
+      { glottocode: 'otom1299', name: 'Otomanguean', n: 165 },
+      { glottocode: 'utoa1244', name: 'Uto-Aztecan', n: 17 },
+      { glottocode: 'mixe1284', name: 'Mixe-Zoque', n: 8 },
+      { glottocode: 'tequ1244', name: 'Tequistlatecan', n: 3 },
+      { glottocode: 'huav1256', name: 'Huavean', n: 1 },
+    ],
+    nearest: [
+      { glottocode: 'diux1235', name: 'Diuxi-Tilantongo Mixtec', family: 'Otomanguean', km: 20 },
+      { glottocode: 'tida1235', name: 'Tidaá Mixtec', family: 'Otomanguean', km: 20 },
+    ],
+  };
+  const at = (time: number, languages: typeof block | null = block) =>
+    hoverCardRows({ time, habitat: land('Tropical savanna', 24, 800), today: null, people: null, landUse: null, languages });
+
+  test.each([1500, 1900])('is shown at %i, labelled as the recorded baseline', (time) => {
+    const row = at(time).find((r) => r.id === 'languages');
+    expect(row?.text).toBe('Languages recorded here (about 1500 CE): Otomanguean 165, Uto-Aztecan 17, Mixe-Zoque 8 and 2 more families');
+    expect(row?.detail).toContain('194 languages · nearest: Diuxi-Tilantongo Mixtec (20 km)');
+    expect(row?.detail).toContain('colonial and later movement not applied');
+    expect(row?.evidence).toBe('measured');
+  });
+
+  test.each([1499, 0, -3000, -80_000])('is never shown at %i, even when handed a block', (time) => {
+    expect(ids(at(time))).not.toContain('languages');
+  });
+
+  test('absent while loading or off land; a cell with no point says so and names the nearest', () => {
+    expect(ids(at(1500, null))).not.toContain('languages');
+    const empty = { ...block, n_languages: 0, n_families: 0, families: [], nearest: [block.nearest[0]] };
+    const row = at(1500, empty).find((r) => r.id === 'languages');
+    expect(row?.text).toBe('No language recorded in this cell (about 1500 CE)');
+    expect(row?.detail).toContain('nearest: Diuxi-Tilantongo Mixtec (20 km)');
+  });
+});

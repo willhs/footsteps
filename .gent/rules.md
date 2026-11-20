@@ -50,6 +50,9 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   year and way of life, with a score and a plain "the ethnographic present is not the past" caveat. The day API puts them in the "Imagine their day"
   prompt as "like the X (recorded 1930s)" (`grounding.py`), beside measured adult hours from `anthropology/time_use.yaml` (exported to `time_use.json` by
   `time_use.py`). The prompt's facts stay under `PROMPT_TOKEN_BUDGET`. See `docs/ops/ethnography.md`.
+- `footstep-generator/anthropology/languages.py`: Glottolog 5.4 (pinned sha256, CC BY 4.0) → a `languages` block per 5° cell in the atlas (families with language counts, the 3 nearest languages;
+  sign, pidgin, creole, artificial, post-1500 transplanted and ancient written languages dropped) and `fields.languages` in the record for eras 1500-1900 only: a recorded baseline for about 1500 CE, never earlier.
+  The hover card shows it from 1500 (`lib/languages.ts`, `hooks/useLanguages.ts`, `GET /api/anthropology?...&fill=0` which skips the model). D-PLACE societies carry their `glottocode`. See `docs/ops/languages.md`, research 0007.
 - `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
   tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
   staples by biome. A modelled dataset (origins checked against DOIs on 2026-11-19; fronts and the rest say why they were not, see `checked` and `unverified`); read by the hover card only with `?food=1`. See `docs/ops/food.md`, research 0008.

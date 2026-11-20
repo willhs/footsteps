@@ -31,6 +31,7 @@ builds the data they read (`deploy/budgie/api/anthropology.json.gz`, committed, 
 | [D-PLACE Ethnographic Atlas](https://github.com/D-PLACE/dplace-dataset-ea) (1,291 societies, mostly 1850–1950) | settlement pattern, house walls/roof/plan, staple crop, livestock, milking | **CC BY-NC 4.0** |
 | [D-PLACE TEOW](https://github.com/D-PLACE/dplace-dataset-teow) | present-day biome at the nearest society | CC BY-NC 4.0 |
 | [Seshat Equinox 2020](https://zenodo.org/records/6629022) (35 sites, per century) | polity names, language family, settlement hierarchy, largest settlement, metals, writing, markets | **CC BY-NC-SA 4.0** |
+| [Glottolog 5.4](https://glottolog.org) (`languages.py`, pinned sha256) | `languages` per cell: families with language counts and the nearest few languages, eras 1500-1900 only, as a baseline for about 1500 CE ([ops/languages.md](../../docs/ops/languages.md)) | CC BY 4.0 |
 | Claude Haiku via OpenRouter | clothing, hair and adornment, tools by role, skin and hair palettes, and anything above that is missing | generated; speculative |
 
 The atlas is a derived work of CC BY-NC and CC BY-NC-SA data, so it is **CC BY-NC-SA 4.0**:

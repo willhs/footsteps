@@ -15,6 +15,7 @@ import csv
 import gzip
 import io
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -34,7 +35,7 @@ import atlas as anth  # noqa: E402  the runtime shares eras, cells and source na
 import grid_image  # noqa: E402
 
 GRID = ROOT / "data" / "tiles" / "grid"
-RAW = ROOT / "data" / "raw"
+RAW = Path(os.environ.get("FOOTSTEPS_RAW") or ROOT / "data" / "raw")  # FOOTSTEPS_RAW: a scratch copy, e.g. in a job workspace
 OUT = ROOT / "deploy" / "budgie" / "api" / "anthropology.json.gz"
 VERSION = 1
 
@@ -78,12 +79,12 @@ SOURCES = {
 def fetch(downloads: dict[Path, str] = DOWNLOADS) -> None:
     for path, url in downloads.items():
         if path.exists():
-            print(f"have {path.relative_to(ROOT)}")
+            print(f"have {path}")
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
         with urllib.request.urlopen(url, timeout=120) as res:
             path.write_bytes(res.read())
-        print(f"fetched {path.relative_to(ROOT)} ({path.stat().st_size / 1e6:.1f} MB)")
+        print(f"fetched {path} ({path.stat().st_size / 1e6:.1f} MB)")
 
 
 def zip_member(z: zipfile.ZipFile, suffix: str) -> str:
@@ -231,7 +232,8 @@ def decode_societies(ea_zip: Path, teow_zip: Path) -> dict[str, dict]:
     for sid, s in societies.items():
         c = codes[sid]
         out[sid] = {
-            "name": s["Name"], "lat": float(s["Latitude"]), "lon": float(s["Longitude"]),
+            "name": s["Name"], "glottocode": s["Glottocode"] or None,
+            "lat": float(s["Latitude"]), "lon": float(s["Longitude"]),
             "year": int(s["main_focal_year"]) if s["main_focal_year"] else None,
             "region": s["region"], "class": way_class(c),
             "settlement": EA030_SETTLEMENT.get(c.get("EA030")),
@@ -317,7 +319,7 @@ def seshat_snapshots(zip_path: Path) -> dict[str, dict[str, dict]]:
     by_bucket: dict[tuple[str, int], list[dict]] = {}
     for r in xlsx_sheet(zip_path, "TSDat123"):
         time = float(r["Time"]) if r.get("Time") else None
-        if r.get("NGA") not in ngas or time is None or not anth.FIRST_YEAR <= time <= anth.LAST_YEAR + 99:
+        if r.get("NGA") not in ngas or time is None or not anth.HYDE_FIRST <= time <= anth.LAST_YEAR + 99:
             continue
         by_bucket.setdefault((r["NGA"], anth.era_of(min(int(time), anth.LAST_YEAR))), []).append(r)
     out: dict[str, dict[str, dict]] = {}
@@ -383,11 +385,12 @@ def main() -> None:
         return fetch()
     atlas = build()
     import deep  # the 100,000-11,000 BCE section; needs the habitat, prehistory and fauna data (see deep.py)
-    atlas = deep.add_to(atlas)
+    import languages  # the ~1500 CE language baseline; needs data/raw/glottolog (languages.py fetch)
+    atlas = languages.add_to(deep.add_to(atlas), RAW)
     args.out.write_bytes(gzip.compress(json.dumps(atlas, separators=(",", ":")).encode(), mtime=0))
     print(f"{len(atlas['cells'])} land cells, {len(atlas['societies'])} societies, "
           f"{sum('seshat' in c for c in atlas['cells'].values())} Seshat cells -> "
-          f"{args.out.relative_to(ROOT)} ({args.out.stat().st_size / 1e6:.2f} MB)")
+          f"{args.out} ({args.out.stat().st_size / 1e6:.2f} MB)")
 
 
 if __name__ == "__main__":

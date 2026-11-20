@@ -29,6 +29,7 @@ HYDE = "HYDE 3.5"
 EA = "D-PLACE EA"
 TEOW = "D-PLACE TEOW"
 SESHAT = "Seshat Equinox 2020"
+GLOTTOLOG = "Glottolog 5.4"
 # Deep-past sources (built by footstep-generator/anthropology/deep.py; see the README).
 PREHISTORY = "Footsteps prehistory model"      # arrivals.yaml + the modelled population (research 0002)
 CULTURES = "Footsteps technocomplex table"     # footstep-generator/anthropology/deep_past.yaml
@@ -44,6 +45,8 @@ SETTLEMENT = ("mobile camp", "seasonal camp", "hamlet", "village", "town", "city
 FIELDS = (
     "subsistence", "settlement", "dwelling", "clothing", "hair_adornment", "tools_by_role",
     "diet", "skin_hair", "climate", "technology", "polity",
+    # A baseline for about 1500 CE (languages.py): unknown before LANGUAGES_FROM, and never before 5 ka.
+    "languages",
     # Deep past only (HYDE-era records leave them unknown): who else lived there, big game, art.
     "hominins", "prey", "art",
 )
@@ -54,6 +57,7 @@ MODEL_FIELDS = (
     "climate", "technology",
 )
 
+LANGUAGES_FROM = 1500  # Glottolog points are a baseline for about 1500 CE and later; earlier eras say "unknown"
 ETHNOGRAPHIC_FROM = 1800  # D-PLACE's "ethnographic present" is ~1850-1950
 NEAR_KM = 500  # a society this close counts as describing the place itself
 # Farming: at least 0.1 ha of cropland per person (a 5-degree cell's share is diluted by desert
@@ -121,6 +125,13 @@ def typical_settlement(way: str, lived_density: float) -> str:
 def analogue_class(way: str) -> str | None:
     return {"foraging": "foraging", "fishing": "fishing", "herding": "herding",
             "farming": "farming", "mixed": "farming"}.get(way)
+
+
+LANGUAGES_NOTE = (
+    "Glottolog 5.4 languages whose documented point lies in this cell, by family, and the nearest few within "
+    f"{NEAR_KM} km of its centre. Read as the recorded baseline for about {LANGUAGES_FROM} CE: the points are mostly "
+    "19th-21st century and say where a language is documented, not where it was spoken in the year asked. Sign, pidgin, "
+    "creole, artificial and post-1500 transplanted languages are left out; later movement and replacement are not applied.")
 
 
 def analogue_note(soc: dict, km: float, era: int) -> str:
@@ -431,6 +442,10 @@ class Atlas:
                 fields["technology"] = field(snap["technology"], SESHAT, snap["site"])
             fields["polity"] = field(snap["polity"], SESHAT, snap["site"])
 
+        if era >= LANGUAGES_FROM and (block := cell.get("languages")):
+            fields["languages"] = field({"tier": "attested", "baseline_year": LANGUAGES_FROM, **block},
+                                        GLOTTOLOG, LANGUAGES_NOTE)
+
         return {
             "cell": {"key": key, "south": int(key.split(",")[0]), "west": int(key.split(",")[1]),
                      "size_deg": CELL_DEG},
@@ -500,7 +515,7 @@ def known_facts(record: dict, include_model: bool = True) -> dict:
         facts["evidence"] = ("MODELLED: the people, climate and toolkit here are a model and a regional table; "
                              "nothing was found at this place")
     for name, f in record["fields"].items():
-        if f["source"] != NONE and (include_model or f["source"] != MODEL):
+        if name != "languages" and f["source"] != NONE and (include_model or f["source"] != MODEL):
             facts[name] = {"value": f["value"], "source": f["source"]}
     facts["confidence"] = f"{record['confidence']['value']}: {record['confidence']['note']}"
     return facts

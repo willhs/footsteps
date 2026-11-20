@@ -84,6 +84,8 @@ Life-table metrics, TFR and snapshot shares have **not** been jointly calibrated
 
 ### Follow-up proposal: age sampling (no people.ts edits here)
 
+> **Implemented 2026-11-21** in `people.ts` per points 1–6 below: see [docs/ops/ages.md](../../ops/ages.md). Herding camps keep a labelled generic structure; the 13/55 role cut-offs and the tail-scale sensitivity check are still open.
+
 1. Compile the YAML into a small validated JSON/TypeScript asset at build time. Keep one source of truth; do not fetch YAML per hover or duplicate constants. Preserve profile IDs and modelled provenance in the generated schema.
 2. Pass an explicit demographic context into `peopleForGroups`: year, selected profile ID and provenance. A band is not proof of foraging, nor a village proof of farming. Resolve way of life from atlas facts; keep fishing, herding and mixed contexts explicitly unsupported until researched rather than silently equating them to farmers. Unknown contexts need an explicit product decision and label before rollout.
 3. Select early-farmer versus established agrarian only with regional transition evidence. Do not introduce a universal BCE cutoff. Keep urban selection independent of subsistence and require urban residence evidence; current city glow does not draw individual people.

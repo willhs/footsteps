@@ -1,4 +1,5 @@
-# Research priors, not observations for a particular map cell. Not loaded by the app.
+# Research priors, not observations for a particular map cell. Compiled into the app at build time by
+# footstep-generator/anthropology/demography_asset.py (-> footsteps-web/lib/demography.json); the app never reads this file.
 schema_version: 1
 evidence: modelled
 research: docs/research/0006-life-course/research.md
@@ -30,6 +31,11 @@ sources:
     citation: Footsteps life-course research, 14 November 2026.
     url: docs/research/0006-life-course/research.md
     locator: Prior construction and limitations; all age-share values and envelopes are editorial scenarios.
+sampling:
+  # Editorial choices of the age sampler (research 0006, recommendations 3 and 4); neither is fitted to data.
+  bins: [[0, 5], [5, 15], [15, 30], [30, 50]]  # integer ages [lo, hi) drawn uniformly; the 50+ share uses the tail
+  tail: {anchor: 50, scale: 12, max_age: 100, basis: "Editorial declining tail, age = 50 + floor(-scale * ln(1-u)) truncated to max_age; not a fitted mortality model. Review scales 8 and 16 before adoption."}
+  early_farmer_window_years: {value: 2000, basis: "Editorial. A farming village counts as early farmer until this many years after crops first reach its 5-degree cell in the food model (docs/ops/food.md), and as agrarian after; no single calendar cut-off. A village in a cell the food model never reaches has no transition evidence and is agrarian."}
 profiles:
   forager:
     way_of_life: foraging

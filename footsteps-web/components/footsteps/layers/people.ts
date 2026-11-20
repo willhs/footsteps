@@ -1,12 +1,13 @@
 // Individual people, imagined from head counts. At street-level zoom each band
 // or village in view becomes its people: how many comes from HYDE; age, sex
-// and role are drawn from a typical pre-modern population; where they stand in
-// camp is illustrative. Generation is deterministic per group, so the same
+// and role are drawn from a modelled age structure for the group's way of life
+// (lib/demography.ts, research 0006); where they stand in camp is illustrative. Generation is deterministic per group, so the same
 // people appear every time you look at the same place.
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
 import { LOOKS } from '@/lib/waysOfLife';
+import { AGE_LABEL, AGE_STRUCTURE_NAME, ageDraws, ageStructureFor, sampleLivingAge, type AgeStructureId } from '@/lib/demography';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
 import { WALK_MS, planAttributes, planOf, routineLine } from '@/lib/routine';
@@ -18,6 +19,8 @@ export type Person = {
   id: number;
   position: [number, number];
   age: number;
+  /** Which modelled age structure the age was drawn from (lib/demography.ts). The age itself is speculative. */
+  ageStructure: AgeStructureId;
   female: boolean;
   role: string;
   groupKind: number; // UnitKind.Band | Village | Camp
@@ -41,6 +44,8 @@ export type GroupInView = {
   lat: number;
   kind: number;
   people: number;
+  /** Override the age structure the group's people are drawn from; by default it follows the group's kind, place and year. */
+  ageStructure?: AgeStructureId;
 };
 
 /** Per-group cap: a large village shows its first N people. */
@@ -57,24 +62,6 @@ function rng(seed: number) {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-// Rough pre-modern age structure (high birth and death rates).
-const AGE_BANDS: [number, number, number][] = [
-  [0, 5, 0.15],
-  [5, 15, 0.25],
-  [15, 30, 0.27],
-  [30, 45, 0.18],
-  [45, 60, 0.1],
-  [60, 80, 0.05],
-];
-function sampleAge(r: () => number) {
-  let u = r();
-  for (const [lo, hi, p] of AGE_BANDS) {
-    if (u < p) return Math.floor(lo + r() * (hi - lo));
-    u -= p;
-  }
-  return 30;
 }
 
 const BAND_ROLES = [
@@ -96,13 +83,14 @@ const VILLAGE_ROLES = [
   'builder',
 ];
 
-function role(age: number, kind: number, r: () => number) {
+/** `roll` is a uniform draw, always taken so the stream does not depend on age. */
+function role(age: number, kind: number, roll: number) {
   if (age < 5) return 'young child';
   if (age < 13) return 'child';
   if (age >= 55) return 'elder';
   const roles =
     kind === UnitKind.Band ? BAND_ROLES : kind === UnitKind.Camp ? CAMP_ROLES : VILLAGE_ROLES;
-  return roles[Math.floor(r() * roles.length)];
+  return roles[Math.floor(roll * roles.length)];
 }
 
 export const groupSeed = (lon: number, lat: number) =>
@@ -171,6 +159,7 @@ export function peopleForGroups(groups: GroupInView[], year = 1900, layout: Camp
 /** The first `n` people of a group; person i never depends on n. */
 function* generate(g: GroupInView, n: number, firstId: number, year: number, layout: CampLayout): Generator<Person> {
   const r = rng(groupSeed(g.lon, g.lat));
+  const ageStructure = g.ageStructure ?? ageStructureFor(g.kind, g.lon, g.lat, year);
   // camp/village spread in metres → degrees (longitude scaled by latitude)
   const spread = g.kind === UnitKind.Village ? 520 : 260; // camps are as tight as bands
   const mPerDegLat = 111_320;
@@ -208,10 +197,14 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number, lay
       x = hx + Math.cos(a) * d;
       y = hy + Math.sin(a) * d;
     }
-    const sampledAge = sampleAge(r);
-    // Put an adult first, including when the view's total cap truncates a group.
-    const age = i === 0 && sampledAge < 18 ? 18 + Math.floor(r() * 37) : sampledAge;
+    // Age has its own stream (person i's draws never depend on n, the profile or anyone else), so a different age
+    // structure changes ages and roles only: never positions, sex or ids.
+    const [uBand, uPlace, uAnchor] = ageDraws(groupSeed(g.lon, g.lat), i);
+    const sampledAge = sampleLivingAge(ageStructure, uBand, uPlace);
+    // Put an adult first, including when the view's total cap truncates a group (a display bias, not the structure).
+    const age = i === 0 && sampledAge < 18 ? 18 + Math.floor(uAnchor * 37) : sampledAge;
     const female = r() < 0.5;
+    const roleRoll = r();
     const child = age < 13;
     const elder = age >= 55;
     const position: [number, number] = [g.lon + x / mPerDegLon, g.lat + y / mPerDegLat];
@@ -220,8 +213,9 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number, lay
       position,
       gait: gaitSeed(position[0], position[1]),
       age,
+      ageStructure,
       female,
-      role: role(age, g.kind, r),
+      role: role(age, g.kind, roleRoll),
       groupKind: g.kind,
       groupPeople: g.people,
       color: child ? [255, 244, 222, 235] : elder ? [222, 214, 200, 235] : [255, 226, 170, 245],
@@ -245,18 +239,19 @@ export function describePerson(p: Person, routineMs?: number) {
         ? 'A woman'
         : 'A man';
   const group = LOOKS[WAY_OF_KIND[p.groupKind as keyof typeof WAY_OF_KIND]].mark;
+  const ageNote = ` Age drawn from the ${AGE_STRUCTURE_NAME[p.ageStructure]}. ${AGE_LABEL}.`;
   if (p.kindOfHuman) {
     const kind = OTHER_HUMANS.find((h) => h.id === p.kindOfHuman)!;
     const noun = who.slice(2).toLowerCase();
     const title = kind.adjective ? `A ${kind.adjective} ${noun}` : `A ${noun} of ${kind.name}`;
     return {
       title: `${title}, about ${p.age}`,
-      detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${now}`,
+      detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${ageNote}${now}`,
     };
   }
   return {
     title: `${who}, about ${p.age}`,
-    detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${now}`,
+    detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${ageNote}${now}`,
   };
 }
 

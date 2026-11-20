@@ -7,6 +7,7 @@ const person: Person = {
   id: 1,
   position: [12, 34],
   age: 30,
+  ageStructure: 'forager',
   female: true,
   role: 'forager',
   groupKind: 0,

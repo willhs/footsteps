@@ -56,7 +56,7 @@ export default function GroundingPanel({
             </div>
             <p className="ov-note">
               Imagined: the head count is {modelled ? 'modelled' : 'a HYDE estimate'}; this person&apos;s age, role and place in
-              camp are drawn from a typical pre-modern population.
+              camp are drawn from a modelled age structure for their way of life.
             </p>
             {day && <PersonDay request={day} modelled={modelled} />}
           </div>

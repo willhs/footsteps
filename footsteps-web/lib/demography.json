@@ -1,0 +1,116 @@
+{
+ "schema_version": 1,
+ "evidence": "modelled",
+ "research": "docs/research/0006-life-course/research.md",
+ "generated_by": "footstep-generator/anthropology/demography_asset.py from demography.yaml; do not edit",
+ "label": "Modelled age structure; individual speculative",
+ "bins": [
+  [
+   0,
+   5
+  ],
+  [
+   5,
+   15
+  ],
+  [
+   15,
+   30
+  ],
+  [
+   30,
+   50
+  ]
+ ],
+ "tail": {
+  "anchor": 50,
+  "scale": 12,
+  "max_age": 100,
+  "basis": "Editorial declining tail, age = 50 + floor(-scale * ln(1-u)) truncated to max_age; not a fitted mortality model. Review scales 8 and 16 before adoption."
+ },
+ "early_farmer_window_years": 2000,
+ "profiles": {
+  "forager": {
+   "way_of_life": "foraging",
+   "era": "Mobile foraging analogues; extrapolation into prehistory has low confidence.",
+   "shares": [
+    0.14,
+    0.24,
+    0.26,
+    0.24,
+    0.12
+   ],
+   "sources": [
+    "EDITORIAL2026",
+    "GK2007"
+   ]
+  },
+  "early_farmer": {
+   "way_of_life": "farming",
+   "era": "Local transition to food production; no universal calendar cutoff.",
+   "shares": [
+    0.18,
+    0.27,
+    0.25,
+    0.21,
+    0.09
+   ],
+   "sources": [
+    "BA2011",
+    "EDITORIAL2026"
+   ]
+  },
+  "agrarian": {
+   "way_of_life": "farming",
+   "era": "Established pre-modern rural agrarian populations; English early-modern records are a regional anchor only.",
+   "shares": [
+    0.15,
+    0.24,
+    0.25,
+    0.24,
+    0.12
+   ],
+   "sources": [
+    "EDITORIAL2026",
+    "LANDERS1987"
+   ]
+  },
+  "urban": {
+   "way_of_life": "urban_residence",
+   "era": "Pre-sanitation towns and cities; London 1650\u20131799 is an anchor, not an ancient-world table.",
+   "shares": [
+    0.13,
+    0.2,
+    0.32,
+    0.25,
+    0.1
+   ],
+   "sources": [
+    "EDITORIAL2026",
+    "LANDERS1987"
+   ]
+  }
+ },
+ "sources": {
+  "GK2007": {
+   "citation": "Gurven and Kaplan (2007), Longevity Among Hunter-Gatherers, Population and Development Review 33(2), 321\u2013365.",
+   "url": "https://www.gurven.anth.ucsb.edu/sites/secure.lsit.ucsb.edu.anth.d7_gurven/files/sitefiles/papers/GurvenKaplan2007pdr.pdf",
+   "locator": "Table 2 (mortality); Figure 9 and pp. 346\u2013348 (fertility)."
+  },
+  "BA2011": {
+   "citation": "Bocquet-Appel (2011), When the world's population took off, Science 333, 560\u2013561.",
+   "url": "https://doi.org/10.1126/science.1208880",
+   "locator": "Abstract; relative fertility change, not absolute age shares."
+  },
+  "LANDERS1987": {
+   "citation": "Landers (1987), London's mortality in the long eighteenth century, Medical History Supplement 11, 1\u201328.",
+   "url": "https://doi.org/10.1017/S0025727300071088",
+   "locator": "Table 10 and accompanying England comparison tables."
+  },
+  "EDITORIAL2026": {
+   "citation": "Footsteps life-course research, 14 November 2026.",
+   "url": "docs/research/0006-life-course/research.md",
+   "locator": "Prior construction and limitations; all age-share values and envelopes are editorial scenarios."
+  }
+ }
+}

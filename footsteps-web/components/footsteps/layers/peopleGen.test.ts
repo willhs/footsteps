@@ -67,7 +67,7 @@ describe('people from head counts', () => {
   it('describes a person plainly', () => {
     const d = describePerson(peopleForGroups([band])[0]);
     expect(d.title).toMatch(/^(A girl|A boy|A woman|A man), about \d+$/);
-    expect(d.detail).toMatch(/in a band of about 31 people\. Footprints: [a-z ]+ \(imagined from era and climate\)\.$/);
+    expect(d.detail).toMatch(/in a band of about 31 people\. Footprints: [a-z ]+ \(imagined from era and climate\)\. Age drawn from the forager scenario\. Modelled age structure; individual speculative\.$/);
   });
 
   it('adds what they are doing now, labelled imagined, only when given the sun clock (?routine=1)', () => {

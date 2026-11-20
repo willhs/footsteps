@@ -11,7 +11,7 @@ import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
 import { readHabitat, readLandUse } from '@/lib/habitat';
 import { notableAnimals } from '@/lib/fauna';
-import { cardAnchor, cardHeightFor, formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
+import { formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
 import { groundImageUrl, groundView, type GroundView } from '@/lib/groundScene';
 import { HYDE_MIN } from '@/lib/time';
 import type { LargestSettlement } from '@/lib/rankSize';
@@ -27,7 +27,7 @@ function GroundPicture({ view, version }: { view: GroundView; version: number })
   if (status === 'failed') return null;
   return (
     <figure className="mb-2">
-      <div className="relative aspect-video overflow-hidden rounded-sm bg-[var(--ov-text-4)]/15">
+      <div className="relative aspect-video max-h-[22vh] w-full overflow-hidden rounded-sm bg-[var(--ov-text-4)]/15">
         {/* eslint-disable-next-line @next/next/no-img-element -- a tiny static painting; next/image needs a server */}
         <img
           src={groundImageUrl(view.scene, version)}
@@ -53,7 +53,7 @@ function GroundPicture({ view, version }: { view: GroundView; version: number })
 const WARM_ROWS: ReadonlySet<CardRow['id']> = new Set(['people', 'life']);
 
 /**
- * A small card that follows the cursor: the habitat, climate, people and way of life at the
+ * A card docked in the left column (above the legend; it shrinks to fit there): the habitat, climate, people and way of life at the
  * slider's year. Each row says whether it is measured or modelled. People are the only warm colour.
  * On by default; ?hover=0 turns it off.
  */
@@ -109,8 +109,8 @@ export default function HoverCard({
   return (
     <div
       role="tooltip"
-      className="ov-panel pointer-events-none fixed z-40 w-[232px] !px-3 !py-2.5"
-      style={cardAnchor(point.x, point.y, window.innerWidth, window.innerHeight, 16, cardHeightFor(rows))}
+      data-testid="hover-card"
+      className="ov-panel pointer-events-none min-h-0 shrink overflow-hidden !px-3 !py-2.5"
     >
       {view && ground?.scenes.includes(view.scene) && <GroundPicture view={view} version={ground.version} />}
       <p className="ov-debug">{formatPlace(point.lon, point.lat)}</p>

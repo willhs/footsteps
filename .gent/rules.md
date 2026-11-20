@@ -19,8 +19,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
 - Close-up 3D: from zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/layers/Close3DLayer.ts`,
-  `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour, plants by Krapp biome (placement
-  imagined, labelled on screen). On by default; `?close3d=0` keeps it flat.
+  `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour. Plant marks by Krapp biome
+  are off by default (`?plants=1`): cones and blobs read as toys, not trees. On by default; `?close3d=0` keeps it flat.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
   lossless WebP per year in `data/tiles/grid/`. Browser decoding is in

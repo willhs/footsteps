@@ -22,6 +22,8 @@ type Props = {
   /** Changes when `ground` describes a different year. */
   groundKey: string;
   seaLevel: number;
+  /** Draw the imagined plant marks (`?plants=1`; off by default). */
+  plants?: boolean;
 };
 
 type TileData = { heights: Float32Array };
@@ -52,8 +54,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground, groundKey, seaLevel } = this.props;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}`;
+    const { ground, groundKey, seaLevel, plants: drawPlants = false } = this.props;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM,
@@ -76,7 +78,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           b = {
             key,
             mesh: buildTerrainMesh(data.heights, bbox, seaLevel, ground),
-            plants: plantsForTile(data.heights, bbox, [x, y, z], seaLevel, ground),
+            plants: drawPlants ? plantsForTile(data.heights, bbox, [x, y, z], seaLevel, ground) : [],
           };
           built.set(data, b);
         }

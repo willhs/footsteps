@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-20] change | Hover card docked in the left column; plant marks off
+
+Will asked to dock the hover card in the left pane and to drop the trees unless they could look much more real. The card now sits in the left column (`FootstepsViz.tsx`) in place of the legend while the cursor is on the map; over the column the card goes and the legend returns, so "About the data" stays reachable. It shrinks to fit (ground picture capped at 22vh); on a ~715 px tall window the lower rows (regional group, animals) are cut. The column's top tracks the stats panel's measured height (`--ov-stats-h`), and the settlement note is in the column's flow above the card instead of absolute. The close-up 3D plant marks (cones and blobs) are off; `?plants=1` draws them, and the 3D label reads "3D: ground measured". The cursor-anchor helpers (`cardAnchor`, `cardHeightFor`) are gone.
+
 ## [2026-11-20] change | Settlement model is now the default Units view
 
 Will asked to make `?settlements=1` the default after the rows, panel and largest-settlement fixes. `lib/settlements.ts` `settlementsFromParams` (used by `FootstepsViz.tsx` and the grid worker) is now on unless `?settlements=0`; `?settlements=1` and `?seasons=1` still turn it on. The panel reads "Settlements · modelled" (was "Settlement experiment"). `?settlements=0` keeps the old even-groups path byte-for-byte. `docs/ops/settlements.md` "Turn it off", `scripts/verify-settlements.mjs` (baseline scene is now `settlements=0`).

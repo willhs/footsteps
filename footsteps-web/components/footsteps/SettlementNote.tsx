@@ -31,7 +31,7 @@ export function SettlementNote({ season }: { season: 'off' | 'june' | 'december'
         onClick={() => setOpen(true)}
         aria-expanded={false}
         data-testid="settlement-note-toggle"
-        className="ov-panel ov-note pointer-events-auto absolute left-4 top-20 z-10 flex items-center gap-1.5 px-3 py-1.5 text-[var(--ov-text-2)] hover:text-[var(--ov-text)]"
+        className="ov-panel ov-note pointer-events-auto flex shrink-0 items-center self-start gap-1.5 px-3 py-1.5 text-[var(--ov-text-2)] hover:text-[var(--ov-text)]"
       >
         <strong className="font-semibold">Settlements · modelled</strong>
         <span aria-hidden>ⓘ</span>
@@ -42,7 +42,7 @@ export function SettlementNote({ season }: { season: 'off' | 'june' | 'december'
 
   return (
     <div
-      className="ov-panel pointer-events-auto absolute left-4 top-20 z-10 max-w-xs px-3.5 py-3"
+      className="ov-panel pointer-events-auto max-w-xs shrink-0 self-start px-3.5 py-3"
       data-testid="settlement-note"
     >
       <div className="flex items-center justify-between gap-3">

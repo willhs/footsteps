@@ -211,6 +211,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
   // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.
   const regionOn = settlements && blend.pickable && (renderMode === 'auto' || renderMode === 'units');
+  // The left column swaps its legend for the hover card while the cursor is on the map; over the column itself
+  // (to reach the legend or "About the data") there is no card, so the legend comes back.
+  const columnRef = useRef<HTMLDivElement | null>(null);
+  const columnRight = columnRef.current?.getBoundingClientRect().right ?? 0;
+  const cardPoint = hoverCard && hoverPoint && hoverPoint.x > columnRight + 8 ? hoverPoint : null;
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
@@ -294,7 +299,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {evidenceOn && <EvidenceTooltip hover={evidence.hover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
       <OtherHumansTooltip hover={otherHumans.hover} />
-      {hoverCard && <HoverCard point={hoverPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />}
 
       {/* Data info overlay */}
       <SupportingText
@@ -327,13 +331,14 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
       {/* Bottom-left stack: details panel above the legend, both above the timeline. */}
       <div
+        ref={columnRef}
         className="pointer-events-none absolute z-20 flex flex-col justify-end gap-2 sm:w-[360px]"
         style={{
           left: 'var(--ov-left)',
           right: 'var(--ov-right)',
           bottom: 'calc(var(--ov-timeline-h) + 8px)',
           // stay clear of the year/population panel at the top
-          top: 'calc(var(--ov-top) + 150px)',
+          top: 'calc(var(--ov-top) + var(--ov-stats-h, 150px) + 8px)',
         }}
       >
         {peopleView && selectedPlace && (
@@ -386,11 +391,17 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           />
         )}
 
-        {/* Legend: hidden while the details panel is open, which needs the height. */}
+        {/* The settlement model's one-line note, above the hover card. */}
         {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
           <SettlementNote season={season} />
         )}
-        {peopleView && !selectedPlace ? (
+        {/* Hover card, docked here rather than following the cursor; the details panel takes its place while open. */}
+        {cardPoint && !(peopleView && selectedPlace) && (
+          <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
+        )}
+
+        {/* Legend: hidden while the details panel or the hover card is up, which need the height. */}
+        {peopleView && !selectedPlace && !cardPoint ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (

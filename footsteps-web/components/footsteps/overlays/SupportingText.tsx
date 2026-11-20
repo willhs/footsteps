@@ -5,6 +5,7 @@ import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time'
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
+import { plantsParam } from '@/lib/close3d';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -65,6 +66,21 @@ function SupportingText({
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
   const isDevelopment = process.env.NODE_ENV === 'development';
+  const [plantsOn, setPlantsOn] = useState(false);
+  // The left column (hover card, notes, legend) starts below this panel, whose height changes with its lines.
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => root.style.setProperty('--ov-stats-h', `${Math.ceil(el.getBoundingClientRect().height)}px`));
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--ov-stats-h');
+    };
+  }, []);
+  useEffect(() => setPlantsOn(plantsParam(window.location.search)), []);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(
@@ -228,6 +244,7 @@ function SupportingText({
   const modelled = evidenceAt(year) === 'modelled';
   return (
     <div
+      ref={panelRef}
       className="ov-panel ov-stats absolute z-30 px-3.5 py-3 sm:px-4"
       style={{ top: 'var(--ov-top)', left: 'var(--ov-left)' }}
     >
@@ -263,9 +280,11 @@ function SupportingText({
         <div
           className="ov-note mt-0.5"
           data-testid="close3d-note"
-          title="Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Each plant mark stands for many plants of the year's biome, placed and sized by hand."
+          title={plantsOn
+            ? "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Each plant mark stands for many plants of the year's biome, placed and sized by hand."
+            : "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level. Ground colour comes from the year's biome."}
         >
-          3D: ground measured, plants imagined
+          {plantsOn ? '3D: ground measured, plants imagined' : '3D: ground measured'}
         </div>
       )}
 

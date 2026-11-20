@@ -154,30 +154,6 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   return rows;
 }
 
-/** About as tall as the card gets (picture, caption, place and four rows; measured ~350 px), so it can be placed without measuring. */
-export const CARD_MAX_HEIGHT = 360;
-/** The two `?settlements=1` rows are long in a 232 px card (measured in the browser: the region row adds about 60 px, the largest-settlement row
- * about 150 px with its three-line detail), on top of the base above. Over-estimating only moves the card above the cursor. */
-export const SETTLEMENT_ROW_HEIGHT = { region: 70, largest: 150 } as const;
-
-/** The height to reserve for a card with these rows: the food row makes the tallest card, and each settlement row adds its own. */
-export function cardHeightFor(rows: readonly Pick<CardRow, 'id'>[]): number {
-  if (rows.some((row) => row.id === 'food')) return 720;
-  return rows.reduce((h, row) => h + (row.id === 'region' || row.id === 'largest' ? SETTLEMENT_ROW_HEIGHT[row.id] : 0), CARD_MAX_HEIGHT);
-}
-
-/**
- * Fixed-position anchor. The card sits below the cursor when it fits there, above it when it fits
- * there, else pinned inside the viewport (over the cursor, which it never blocks). It grows away from
- * the nearer side edge.
- */
-export function cardAnchor(x: number, y: number, vw: number, vh: number, gap = 16, maxHeight = CARD_MAX_HEIGHT) {
-  const horizontal = x > vw / 2 ? { right: vw - x + gap } : { left: x + gap };
-  if (vh - y - gap >= maxHeight) return { ...horizontal, top: y + gap };
-  if (y - gap >= maxHeight) return { ...horizontal, bottom: vh - y + gap };
-  return { ...horizontal, top: Math.max(gap / 2, Math.min(y + gap, vh - maxHeight - gap / 2)) };
-}
-
 /** The two viewport calls `lonLatAt` needs (deck.gl's `Viewport` has both). */
 export type PixelViewport = {
   unproject(xy: [number, number]): number[];

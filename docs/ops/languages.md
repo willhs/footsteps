@@ -96,3 +96,16 @@ A cell with no point says "No language recorded in this cell (about 1500 CE)" an
 
 - `build.py`'s Seshat filter used `anth.FIRST_YEAR` (now -100,000 BCE), so a full rebuild added Seshat snapshots for Kansai at 14,000-13,000 BCE that nothing reads. It now uses `anth.HYDE_FIRST`, and a full rebuild reproduces the committed atlas exactly apart from this job's additions.
 - Port 4444 may be taken on this machine; `verify-languages.mjs` takes the base URL, so run the dev server on another port.
+
+## Production confirmation (2026-11-21)
+
+Commit `9331154b25d3ff069ee7b036a79a0d73e226dafd` is deployed: `/version.txt` matches it.
+[CI](https://github.com/willhs/footsteps/actions/runs/44775815789) and
+[image deployment, quick smoke and full smoke](https://github.com/willhs/footsteps/actions/runs/44776848780) passed.
+Direct production requests to `/api/anthropology?lat=17.5&lon=-97.5&year=1500&fill=0` and the same cell at 1900
+return `fields.languages` sourced to Glottolog 5.4, with `baseline_year: 1500`, 194 languages, family counts and nearest languages.
+At `year=-3000`, the language value is unknown.
+
+The real-data browser harness also passed against production (both base and API URLs set to `https://footsteps.willhs.me`):
+Oaxaca 1500 and 1900 show the baseline and its caveats; Oaxaca 1400 and 3000 BCE show no language line and make no atlas request;
+Lagos 1500 shows Atlantic-Congo. Screenshots and JSON responses are retained in the follow-up job's workspace evidence directory.

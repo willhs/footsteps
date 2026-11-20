@@ -4,6 +4,10 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] verify | Glottolog language baseline confirmed on production
+
+Confirmed deployment of `9331154`: CI, image rollout, quick smoke and full smoke passed. The production anthropology API serves Glottolog 5.4 family counts and nearest languages for Oaxaca in 1500 and 1900 (194 languages, baseline year 1500), with no language value in 3000 BCE. The browser harness passed all five real-data scenes, including the absent line before 1500 and Atlantic-Congo at Lagos; screenshots retained with the follow-up job evidence. See `docs/ops/languages.md`.
+
 ## [2026-11-21] add | Hover card: a language line from Glottolog, a baseline for about 1500 CE (research 0007, step 1)
 
 `footstep-generator/anthropology/languages.py` reads Glottolog 5.4 (Zenodo 24104033, CC BY 4.0, both files pinned by sha256), drops sign, pidgin, creole, artificial, post-1500 transplanted (27) and ancient written (124) languages, and adds a `languages` block to 804 of the atlas's 904 land cells: families with language counts and the 3 nearest languages within 500 km. The record serves it as `fields.languages` for eras 1500-1900 and says unknown before (nothing before 5 ka; no family colours on the globe). The left-column hover card shows "Languages recorded here (about 1500 CE): ..." from 1500, with a caveat that points are documented positions and later movement is not applied. `GET /api/anthropology` takes `&fill=0` (never calls the model; the card asks per cell as the cursor moves). D-PLACE societies carry their `glottocode` through `build.py`. Record size 641,973 -> 699,872 bytes gzipped (+9.0%). Fixed on the way: `build.py` took Seshat snapshots back to 100,000 BCE, so a rebuild differed from the committed atlas; it now reproduces it. Browser check on real data (Oaxaca 1500, 1900, 3000 BCE, 1400; Oyo 1500): `scripts/verify-languages.mjs`. Not done: colonial replacement (step 2), deep-time expansions (step 3), Seshat family normalisation. `docs/ops/languages.md`.

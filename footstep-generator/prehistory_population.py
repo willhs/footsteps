@@ -57,6 +57,9 @@ FIRST_YEAR, LAST_YEAR, STEP = -100_000, -11_000, 1000
 HYDE_YEAR = -10_000
 BLEND_START = -14_000  # model weight 1 here, 0 at HYDE_YEAR; 4 ka long so people move at most ~50% a step between images, not ~70%
 EDGE_BLUR_CELLS = 1.5  # softens the straight region edges of arrivals.yaml (~80 km)
+# Rows marked `weight_evidence: none` could hold this many times fewer or more people (research 0009 P8;
+# a presentation choice: the size of west Europe's model-vs-evidence disagreement where evidence exists).
+UNEVIDENCED_FACTOR = 2.0
 
 # Tallavaara et al. 2018, Data_analyses.pdf section 4.1: segmented fit of ln(people / 100 km2)
 # on Miami NPP (g/m2/yr), n=299 ethnographic groups, R2 = 0.45. Slope above the break is
@@ -136,6 +139,23 @@ def occupancy(age: float, arrival_ka, ramp_ka):
     ramp_ka = np.asarray(ramp_ka, dtype=np.float64)
     return np.where(ramp_ka > 0, np.clip(elapsed / np.where(ramp_ka > 0, ramp_ka, 1.0), 0, 1),
                     (elapsed >= 0).astype(np.float64))
+
+
+def density_multiplier(curve, age: float) -> float:
+    """A region's `density_multiplier` (arrivals.yaml: [[ka_bp, m], ...], each m in 0..1) at `age`
+    ka BP: linear between the points, held at the end values outside them; no curve is 1. It scales
+    the region's occupancy, so the world rescale hands what it removes to the other regions."""
+    if not curve:
+        return 1.0
+    ages, values = zip(*sorted((float(a), float(m)) for a, m in curve))
+    return float(np.interp(age, ages, values))
+
+
+def widen_for_unevidenced(t: Totals, share: float, factor: float) -> Totals:
+    """Widen low / high for the people whose regional weight has no evidence behind it (research
+    0009 P8): if that `share` of the people could be `factor` times fewer or more, the world could
+    be that much smaller or larger. Central is unchanged."""
+    return Totals(t.low * (1 - share * (1 - 1 / factor)), t.central, t.high * (1 + share * (factor - 1)))
 
 
 def neighbours(a: np.ndarray, fill):
@@ -305,6 +325,7 @@ class Step:
     hyde_weight: float
     potential: float      # people if every habitable cell held Tallavaara density, all regions occupied
     occupied_cells: int
+    unevidenced_share: float = 0.0  # of the model's people (before the blend), in `weight_evidence: none` rows
 
 
 class Model:
@@ -317,6 +338,10 @@ class Model:
         self.region_index = assign_regions([r["bbox"] for r in regions])
         self.arrival = np.array([r["arrival_ka_bp"][dates] for r in regions], dtype=np.float64)
         self.ramp_ka = np.array([r["ramp_ka"] for r in regions], dtype=np.float64)
+        self.region_ids = [r["id"] for r in regions]
+        self.multiplier_curves = [r.get("density_multiplier") for r in regions]
+        self.unevidenced = np.array([r.get("weight_evidence") == "none" for r in regions])
+        self.hyde_after_arrival = np.array([bool(r.get("hyde_after_arrival")) for r in regions])
         self.area = grid_image.cell_areas_km2(NY, CELL_DEG, -90.0)[:, None]
         self._climate, self._hyde, self._water = climate, hyde, water
 
@@ -364,21 +389,34 @@ class Model:
         density_km2 = forager_density(npp) / 100.0 * self.habitat(npp, cold, land)
         return density_km2 * land.habitable * self.area, land
 
+    def hyde_target(self, arrived: np.ndarray, w: float) -> np.ndarray:
+        """HYDE's grid as the hand-over target: `hyde_after_arrival` regions hold nobody before
+        their arrival (research 0009 P9), their HYDE people given back pro rata to the rest so the
+        blend's total is HYDE's. At weight 1 (10,000 BCE) it is HYDE itself, the measured image."""
+        held = self.hyde_after_arrival[self.region_index] & ~arrived
+        if w >= 1 or not held.any():
+            return self.hyde
+        kept = np.where(held, 0.0, self.hyde)
+        return kept * (self.hyde.sum() / kept.sum())
+
     def step(self, year: int) -> Step:
         potential, _ = self.potential_and_climate(year)
-        occ = occupancy(age_ka(year), self.arrival[self.region_index], self.ramp_ka[self.region_index])
+        age = age_ka(year)
+        occ = occupancy(age, self.arrival[self.region_index], self.ramp_ka[self.region_index])
         arrived = occ > 0
+        mult = np.array([density_multiplier(c, age) for c in self.multiplier_curves])[self.region_index]
         # Soften density within occupied regions without leaking across an arrival frontier.
-        occ = np.where(arrived, np.clip(terrain_image.blur(occ, EDGE_BLUR_CELLS), 0.0, 1.0), 0.0)
+        occ = np.where(arrived, np.clip(terrain_image.blur(occ * mult, EDGE_BLUR_CELLS), 0.0, 1.0), 0.0)
         raw = potential * occ
         if raw.sum() <= 0:
             raise ValueError(f"{year}: nobody can live anywhere in the model")
-        totals = world_totals(year)
+        unevidenced = float(raw[self.unevidenced[self.region_index]].sum() / raw.sum())
+        totals = widen_for_unevidenced(world_totals(year), unevidenced, UNEVIDENCED_FACTOR)
         w = hyde_weight(year)
         hyde_total = float(self.hyde.sum())
-        people = blend_with_hyde(raw * (totals.central / raw.sum()), self.hyde, w)
+        people = blend_with_hyde(raw * (totals.central / raw.sum()), self.hyde_target(arrived, w), w)
         blended = Totals(*(float(blend_with_hyde(t, hyde_total, w)) for t in totals))
-        return Step(year, people, blended, w, float(potential.sum()), int((people > 0).sum()))
+        return Step(year, people, blended, w, float(potential.sum()), int((people > 0).sum()), unevidenced)
 
 
 def load_table(path: Path = ARRIVALS) -> dict:
@@ -436,6 +474,15 @@ def run(years: list[int], dates: str, out: Path, verify: bool) -> dict:
         "central": [round(s.totals.central) for s in rows],
         "high": [round(s.totals.high) for s in rows],
         "hyde_weight": [round(s.hyde_weight, 3) for s in rows],
+        "unevidenced_share": [round(s.unevidenced_share, 3) for s in rows],
+        "range_widening": {
+            "rows": [r for r, none in zip(model.region_ids, model.unevidenced) if none],
+            "factor": UNEVIDENCED_FACTOR,
+            "rule": "unevidenced_share = the model's people (before the HYDE blend) in rows whose regional weight "
+                    "no dated evidence tests (research 0009 P8). Those people could be `factor` times fewer or more: "
+                    "low x (1 - share x (1 - 1/factor)), high x (1 + share x (factor - 1)), then the HYDE blend. "
+                    "Central is the literature curve, unchanged.",
+        },
     }
     text = json.dumps(data, separators=(",", ":")) + "\n"
     (out / "totals.json").write_text(text)

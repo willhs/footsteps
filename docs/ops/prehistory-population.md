@@ -94,6 +94,13 @@ Rerun 2026-11-21 for research 0009 P3: `southeast_asia_mainland` capped at 22°N
 `totals.json` did not, Kunming, Guilin and Yuchanyan are empty until 40,000 BCE (was 68,000). Numbers and hashes in
 [research 0009](../research/0009-model-vs-evidence/research.md#after-p3-southern-china-split-from-mainland-southeast-asia-2026-11-21). Publishing the 36 images to budgie is a separate step (`GRID_ONLY=1 scripts/deploy-budgie.sh`).
 
+Rerun 2026-11-21 for research 0009 P5, P6, P8 and the rest of P9 (task 0012): west Europe at half density 26-20 ka (`density_multiplier`; its
+26-20 / 36-30 ka ratio 1.49 → 0.78), ramps steppe and central Asia 4 → 2 ka and east Asia 4 → 8 ka, the counter's range widened by the
+share of people with no evidence behind their regional weight (`weight_evidence: none`, `unevidenced_share` in `totals.json`: 40% at 20 ka,
+range 2.3–8.0 M → 1.8–11.2 M), and Madagascar, the Caribbean and Arctic Canada kept out of the HYDE blend until arrival (`hyde_after_arrival`).
+28 of 90 images changed; central totals unchanged. Numbers and hashes in
+[research 0009](../research/0009-model-vs-evidence/research.md#after-p5-p6-p8-and-p9-2026-11-21); published to budgie from the same job.
+
 ## Method
 
 For each slider year (BP = 1950 − year), on the 0.5° grid of Krapp and Beyer (row 0 = 90°N):
@@ -128,12 +135,17 @@ For each slider year (BP = 1950 − year), on the 0.5° grid of Krapp and Beyer 
    southern Iberia/Sicily before Africa, Tibet before South/East Asia, and the Japanese island boxes
    before East Asia. Primorye/Sakhalin explicitly use continental East Asian dates; Honduras/Nicaragua
    use North America's dates. Siberia's central onset is 40 ka BP with an 8 ka ramp (research 0009 P4).
-7. **Scale.** One multiplier per step so the world total equals the central curve below.
+   A row's optional `density_multiplier` ([[ka BP, m], ...], linear) scales its occupancy before the blur: west Europe is
+   halved 26-20 ka (research 0009 P5), so the glacial maximum shows the contraction the dated sites show.
+7. **Scale.** One multiplier per step so the world total equals the central curve below (so what P5 removes from
+   west Europe goes to every other region).
 8. **Hand-over.** `weight = clip((year + 14000) / 4000, 0, 1)`; each cell is
    `(1 − weight) · model + weight · HYDE`, with HYDE's 10,000 BCE people summed 6 × 6 to 0.5°.
    At 12,000 BCE it is half and half; at 10,000 BCE it is HYDE itself. The low and high totals
    blend toward HYDE's total the same way, so the range closes at the join. The window starts at
    14,000 BCE (the central Americas arrival), so HYDE's Americas never reach the map before people do.
+   Rows with `hyde_after_arrival` (Madagascar, the Caribbean, Arctic Canada) take no HYDE people before their arrival;
+   those people go pro rata to the rest of HYDE's grid, so the total is unchanged (research 0009 P9).
    It is 4,000 years because the model and HYDE disagree about *where* (below): a 2,000-year
    blend moved 73% and 66% of the world's people between 1,000-year images (12→11 ka, 11→10 ka),
    against 11–22% elsewhere. At 4,000 years the steps are 48, 52, 36 and 33%: smoother, but the
@@ -160,6 +172,11 @@ The columns come from different studies. Low and high are **not** one family of 
 column dips at 12 ka (6.0 M) below its LGM value (8.3 M). They are what the counter shows as a range, not a
 confidence interval. Every figure marked secondhand or synthesis needs its paper checked before it is shown as sourced.
 
+**Widened for weights no evidence tests** (research 0009 P8, a presentation choice): `unevidenced_share` is the share of the
+model's people in rows marked `weight_evidence: none` (South, mainland south of 22°N and island Southeast Asia, Sahul, Japan,
+Tibet; 0 before 70 ka BP, 40% at 20 ka, at most 45%). Those people could be half or double (`UNEVIDENCED_FACTOR` 2), so
+`totals.json` low = curve low × (1 − share / 2) and high = curve high × (1 + share), then blended toward HYDE. Central is the curve.
+
 ## What the first run says
 
 - Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000).
@@ -184,15 +201,15 @@ confidence interval. Every figure marked secondhand or synthesis needs its paper
   the gap; switching it is a decision for Will. `madagascar_indian_ocean` and `caribbean` were added to the
   table because the Africa and North America boxes would otherwise populate those islands from the start.
 - **Other hominins** (Neanderthals, Denisovans) are not drawn and not counted.
-- **Canada north of 56°N** belongs to the Arctic region (4.5 ka) and stays empty until the HYDE blend.
+- **Canada north of 56°N** belongs to the Arctic region (4.5 ka) and stays empty until HYDE's own 10,000 BCE image (kept out of the blend since 2026-11-21).
 - **NPP fit transfer.** Trained on recent foragers at present-day CO₂. No CO₂ term, no biodiversity or pathogen term.
 - **Not compared yet** with Timmermann & Friedrich 2016 (CC BY-NC); research 0002 step 7.
 - Sea-level uncertainty (±5 m) and Krapp's 0.5° land mask make coasts soft; exposed shelf is only as good as Krapp's mask.
 
-Arrival-mask clamping does not alter the HYDE hand-over: after 14,000 BCE the blend can still put
-people in late-settled islands (research 0009 P9's separate blend issue). The world curve and counter
-ranges are unchanged by the region corrections. A full run rewrites both copies of `totals.json`
-with the same values. The default interval has **90** images; 10,000 BCE is the separate measured HYDE image.
+Arrival-mask clamping does not alter the HYDE hand-over; `hyde_after_arrival` does, for Madagascar, the Caribbean and
+Arctic Canada only. The catch-all `pacific_remote` (which holds the Philippines) still takes HYDE's people from 14,000 BCE.
+The central curve is unchanged by every region change; the low/high range moves with `unevidenced_share`. A full run
+rewrites both copies of `totals.json`. The default interval has **90** images; 10,000 BCE is the separate measured HYDE image.
 
 ## Sources
 

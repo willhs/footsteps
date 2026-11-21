@@ -12,6 +12,10 @@ P1, P2 and P4 have now been applied, together with P9's post-blur arrival mask (
 change). The **After the region corrections** section reports the regenerated state; `results.json`
 and all five charts now use that state. The original findings remain here as the before comparison.
 
+**Update, 2026-11-21:** every proposal is now applied except P7 (leave alone, by design) and P10 (new
+evidence, out of scope): P3 earlier the same day, then P5, P6, P8 and the rest of P9 together. See
+[After P5, P6, P8 and P9](#after-p5-p6-p8-and-p9-2026-11-21); `results.json` and the charts are that state.
+
 ## Question
 
 [Research 0002](../0002-pre-hyde-population-model/research.md) built the pre-HYDE people (`prehistory_population.py`, arrival table `prehistory/arrivals.yaml`): productivity × dispersal, scaled to a published world curve. [Research 0003](../0003-p3k14c-earliest-dates-by-region/research.md) ingested p3k14c and listed the earliest dates. For each of the 20 arrival-table regions, from about 50 ka BP to the hand-over to HYDE: does the modelled population have the same **timing** and **relative shape** as the dated sites, and where does it not? This note proposes model changes; **it changes nothing in the model.**
@@ -174,8 +178,9 @@ Chart 1 compares each region's share of the world, model against evidence. The t
 
 These proposals were written against the original baseline. P1, P2, P3 and P4 are now applied; P9's
 arrival-mask part is also applied. P3 was applied on 2026-11-21 as a `south_china` row at 42 ka / ramp 8 (see
-[After P3](#after-p3-southern-china-split-from-mainland-southeast-asia-2026-11-21): Kunming, Guilin and Yuchanyan first have people at 40,000 BCE, was 68,000 BCE). All other proposals remain unchanged. Each says what to change,
-why, the confidence, and what would settle it.
+[After P3](#after-p3-southern-china-split-from-mainland-southeast-asia-2026-11-21): Kunming, Guilin and Yuchanyan first have people at 40,000 BCE, was 68,000 BCE). P5, P6, P8 and the rest of P9 were applied
+later on 2026-11-21 (see [After P5, P6, P8 and P9](#after-p5-p6-p8-and-p9-2026-11-21)); P7 is "leave alone" and P10 is new evidence, still to do.
+The table keeps each proposal as written, with its status in bold. Each says what to change, why, the confidence, and what would settle it.
 
 | # | Change | Evidence | Confidence | Effect |
 |---|---|---|---|---|
@@ -183,11 +188,11 @@ why, the confidence, and what would settle it.
 | P2 | **Make the `tibetan_plateau` row apply**: list it before `south_asia`, `east_asia` and `central_asia_siberia_south` (central 38 ka, ramp 8 as written). Also move `japan` before `east_asia` and shrink it to the islands (Kyushu to Hokkaido plus Ryukyu), not Primorye/Sakhalin. | Section 1: 0 cells; Lhasa and Xiahe fall to other regions; Kyushu is `east_asia` | **High** for the order; **low** for the date (evidence silent: plateau-interior dates start at 6.5 ka, Japan's at 8.3 ka) | Plateau gets its slow ramp (arrival 38 ka instead of 48/42 ka); Primorye leaves the Japan row |
 | P3 | **(Applied 2026-11-21.)** **Split southern China from mainland Southeast Asia.** Cap `southeast_asia_mainland` at ~22°N (or add a `south_china` row that takes `east_asia`'s dates: central 42-45 ka, ramp ~8). Keep 70 ka only for the mainland south of it, and flag the date as resting on two bones (it already is). | Kunming, Guilin, Yuchanyan fall in the 70 ka region; the oldest date in the region is 34.0 ka (Longtanshan, Yunnan) and 21.5 ka (Yuchanyan); nothing is old enough to support 70 ka, nor can it refute it | Medium for the split (geography); low for 42 ka (the dated sites say "not before 34 ka" but there are 5 of them) | Southern China gets people from ~45 ka rather than 70 ka; mainland Southeast Asia's early people shrink (not quantified) |
 | P4 | **Siberia: move `siberia_arctic` central from 32 to 40 ka, ramp 4 → 8**; keep 45 early and 28 late. | Section 2: Ust'-Ishim (44 ka, a sapiens genome) is in the box; evidence ≥ 2 sites per ka from 41 ka; Yana RHS (31.6 ka) is then the *first dense* occupation, not the first | **Medium**: Ust'-Ishim is one individual and Mamontovaya Kur'ya's ~40 ka is weakly dated; the cold limit already removes people in the cold stretches | Small in people (Siberia holds ~500 at 30 ka), visible on the map (Siberian occupation starts ~8 ka earlier) |
-| P5 | **West Europe glacial-maximum weight.** Between 36 and 20 ka scale density in `europe_west` so its 26-20 ka / 36-30 ka ratio is about 0.75 (the middle of the raw and corrected evidence, 0.51-1.01 across filters) instead of 1.5, i.e. a multiplier of about 0.5 at the maximum, rising back to 1 by ~16 ka; let the other regions absorb the difference so the world total (a separate choice) is unchanged. Implement as a per-region multiplier curve in `arrivals.yaml`, not by editing `WORLD_CURVE`. Central Asia and the steppe: a smaller multiplier (about 0.7) is suggested, **low confidence**, revisit with ROAD. Do not change Africa or East Asia. | Section 4: robust under all three filters for west Europe only | **Medium** for west Europe (direction robust, size depends on the correction); **low** for the others | West Europe holds ~100k fewer people at 22 ka (200k → about 100k), the other regions slightly more; the glacial-maximum map would show the contraction the documentation describes but the numbers do not |
-| P6 | **Ramps: `europe_east_steppe` 4 → 2 ka, `central_asia_siberia_south` 4 → 2 ka, `east_asia` 4 → 8 ka.** | Section 2: the steppe and central Asia fill within 1 ka of onset; east Asia stays thin to 35 ka | **Low** (a few sites per bin; Neanderthal contamination in the first two) | Steeper start in the steppe and central Asia, slower start in east Asia; changes the shape of the first 4-6 ka only |
+| P5 | **(Applied 2026-11-21: ratio 1.49 → 0.78, west Europe at 22 ka 196k → 104k.)** **West Europe glacial-maximum weight.** Between 36 and 20 ka scale density in `europe_west` so its 26-20 ka / 36-30 ka ratio is about 0.75 (the middle of the raw and corrected evidence, 0.51-1.01 across filters) instead of 1.5, i.e. a multiplier of about 0.5 at the maximum, rising back to 1 by ~16 ka; let the other regions absorb the difference so the world total (a separate choice) is unchanged. Implement as a per-region multiplier curve in `arrivals.yaml`, not by editing `WORLD_CURVE`. Central Asia and the steppe: a smaller multiplier (about 0.7) is suggested, **low confidence**, revisit with ROAD. Do not change Africa or East Asia. | Section 4: robust under all three filters for west Europe only | **Medium** for west Europe (direction robust, size depends on the correction); **low** for the others | West Europe holds ~100k fewer people at 22 ka (200k → about 100k), the other regions slightly more; the glacial-maximum map would show the contraction the documentation describes but the numbers do not |
+| P6 | **(Applied 2026-11-21.)** **Ramps: `europe_east_steppe` 4 → 2 ka, `central_asia_siberia_south` 4 → 2 ka, `east_asia` 4 → 8 ka.** | Section 2: the steppe and central Asia fill within 1 ka of onset; east Asia stays thin to 35 ka | **Low** (a few sites per bin; Neanderthal contamination in the first two) | Steeper start in the steppe and central Asia, slower start in east Asia; changes the shape of the first 4-6 ka only |
 | P7 | **Leave these dates alone**: `africa`, `europe_west` 45 (evidence is Neanderthal-era), `europe_east_steppe` 45, `central_asia_siberia_south` 45, `east_asia` 42, `beringia` 24 (oldest charcoal 23.0 ka), `north_america` 16, `south_america` 15. | Section 2: all within about 2 ka of evidence a reader can trust for people | Medium-high | None |
-| P8 | **Leave the unconstrained rows (`south_asia`, `sahul`, `island_se_asia_wallacea`, `japan`, plateau) on the literature, but widen their low-high ranges** in `totals.json`/the counter: 41% of the 20 ka population has no evidence behind its *weight*. | Section 5 | High that the weights are untested; the range widening is a presentation choice | Counter range, not map |
-| P9 | **Clamp edge leakage and the HYDE blend outside the table's regions**: zero the occupancy mask in a region before its arrival after blurring, and exclude Caribbean, Madagascar, Arctic Canada from the HYDE blend until their arrival dates. | Section 1: Madagascar 1,047 at 50 ka; `pacific_remote` 900 at 50 ka and 57,796 at 14 ka | High | Removes <1% of people and keeps "empty until arrival" empty |
+| P8 | **(Applied 2026-11-21: 40% of the people at 20 ka; range at 18,000 BCE 2.3–8.0 M → 1.8–11.2 M.)** **Leave the unconstrained rows (`south_asia`, `sahul`, `island_se_asia_wallacea`, `japan`, plateau) on the literature, but widen their low-high ranges** in `totals.json`/the counter: 41% of the 20 ka population has no evidence behind its *weight*. | Section 5 | High that the weights are untested; the range widening is a presentation choice | Counter range, not map |
+| P9 | **(Applied: the arrival mask on 2026-11-14, the HYDE-blend part for Madagascar, the Caribbean and Arctic Canada on 2026-11-21; `pacific_remote` left in the blend.)** **Clamp edge leakage and the HYDE blend outside the table's regions**: zero the occupancy mask in a region before its arrival after blurring, and exclude Caribbean, Madagascar, Arctic Canada from the HYDE blend until their arrival dates. | Section 1: Madagascar 1,047 at 50 ka; `pacific_remote` 900 at 50 ka and 57,796 at 14 ka | High | Removes <1% of people and keeps "empty until arrival" empty |
 | P10 | **Get evidence that can test the unconstrained rows.** ROAD (CC BY-SA; Africa and Eurasia 3 Ma-20 ka) for south Asia, Levant, Siberia and the Altai; AustArch (Australia, plus Pleistocene sites) or the literature for Sahul; the Niah and Tam Pa Ling papers for Island/mainland Southeast Asia (which also resolves the 70 ka date). Add a hominin attribution column so Neanderthal sites stop counting. | Sections 2, 3 | n/a | Needed before any of P3, P4, or P5's non-European weights can be tightened |
 
 Ordering by value: P1 and P2 are bugs against the table's own text and should go first; P5 changes the story the map tells at the glacial maximum, for west Europe; P3 and P4 are the best-supported date changes; P6, P8 and P9 are tuning.
@@ -282,6 +287,98 @@ Hong Kong and Guangzhou were already `east_asia`; Lhasa is still `tibetan_platea
 - Tests: `poetry run pytest footstep-generator/tests/ -q`, see the job envelope.
 
 **Publishing** (the data is not in git): `GRID_ONLY=1 scripts/deploy-budgie.sh`, then `scripts/smoke.sh https://footsteps.willhs.me`, after the change lands. Only the 36 images from `humans_-68000.webp` to `humans_-33000.webp` differ from what is live; purge those URLs in Cloudflare if cached.
+
+## After P5, P6, P8 and P9 (2026-11-21)
+
+Steady task `0ed61c4f-51ec-45c3-a033-bd393d8c41e6`, plan [docs/tasks/0012](../../tasks/0012-pre-hyde-research-0009-rest/plan.md). Each proposal is
+a field on its rows in `arrivals.yaml` (documented at the top of the file), read by `prehistory_population.py`. The baseline was regenerated first
+and matched [`rerun-p3/`](rerun-p3/)'s manifest byte for byte, and `results.json` and the arrival check were identical to the committed ones; then
+each proposal was run on top of the last. Every number below is from [`rerun-0012/compare_0012.txt`](rerun-0012/compare_0012.txt)
+(`compare_0012.py`, re-runnable); the hashes of the published images are in [`rerun-0012/prehistory-manifest.sha256`](rerun-0012/prehistory-manifest.sha256).
+
+| Step | Images changed (of 90) | Years |
+|---|---|---|
+| P6 ramps | 11 | 43,000 to 33,000 BCE |
+| P5 west Europe | 14 | 28,000 to 15,000 BCE |
+| P9 HYDE blend (and P8, which changes no image) | 3 | 13,000 to 11,000 BCE |
+
+**World totals still follow the literature curve.** `central` in `totals.json` is identical to before in every year, equal to
+`WORLD_CURVE` before the blend (difference 0 people), and each image's people sum is within 0.01% of it.
+
+### P5: applied
+
+`europe_west` has `density_multiplier: [[30, 1.0], [26, 0.5], [20, 0.5], [16, 1.0]]` (ka BP, multiplier on its occupancy): full density to 30 ka,
+half from 26 to 20 ka, full again by 16 ka. The per-step world rescale gives the difference to every other region.
+
+| | Before | After |
+|---|---|---|
+| Model 26-20 / 36-30 ka | 1.49 | **0.78** (evidence 0.87 raw, 0.55 corrected) |
+| West Europe people at 21.95 ka (20,000 BCE) | 196,387 | **103,768** |
+| West Europe people at 33.95 ka | 117,864 | 117,864 (untouched) |
+| West Europe share of the world at 20 ka | 4.9% | 2.6% |
+| Rank correlation with corrected evidence, 50-16 ka | 0.30 | **0.69** |
+| Africa / Sahul / east Asia share at 20 ka | 42.8% / 11.1% / 6.5% | 43.8% / 11.4% / 6.7% |
+
+0.78 is "about 0.75" with a round multiplier of 0.5 and sits inside the evidence's 0.51-1.01 across filters, so it was not tuned further.
+The small `europe_south_iberia` box is not scaled; its share still drops a hair (0.19% → 0.18%) because the edge blur reaches
+into it from the scaled box around it. The steppe and central Asia multiplier (about 0.7, low confidence) was not applied.
+
+### P6: applied
+
+`europe_east_steppe` and `central_asia_siberia_south` ramp 4 → 2 ka, `east_asia` 4 → 8 ka.
+
+| Region | Model first ≥2% ka | Model half-rise ka | Evidence (onset; half-rise corrected) | rho corrected / raw |
+|---|---|---|---|---|
+| `europe_east_steppe` | 43.95 → 43.95 | 41.95 → **42.95** | 44.95; 43.95 | 0.52 → 0.51 / 0.79 → 0.77 |
+| `central_asia_siberia_south` | 42.95 → **43.95** | 40.95 → **42.95** | 44.95; 44.95 | 0.33 → 0.31 / 0.79 → 0.78 |
+| `east_asia` | 40.95 → 40.95 | 37.95 → **35.95** | 34.95; 44.95 | 0.57 → 0.57 / 0.77 → 0.77 |
+
+The steppe and central Asia now fill closer to the evidence's onset (half-rise within 1-2 ka of it, was 2-4 ka). For east Asia the two
+evidence measures disagree: corrected site occupancy reaches half its 30-20 ka level by 44.95 ka (the Surovell correction lifts old bins),
+raw sites only by 33.95 ka. The 8 ka ramp moves the model's half-rise from 37.95 to 35.95 ka, toward the raw evidence and the
+proposal's "thin to 35 ka", away from the corrected one; rank correlation is unchanged. It is kept, low confidence, as written.
+The rank correlations of the two fast rows fall by 0.01-0.02: the change is in the first 2-4 ka only, where there are few sites.
+
+### P8: applied
+
+Rows marked `weight_evidence: none`: `south_asia`, `southeast_asia_mainland` (south of 22°N), `island_se_asia_wallacea`, `sahul`, the three
+Japan rows and `tibetan_plateau`. Mainland Southeast Asia is not in P8's short list, but section 5's 41% counts it ("southern and island
+Southeast Asia"), and its oldest p3k14c date is 9.4 ka. `totals.json` (and `footsteps-web/public/prehistory_totals.json`) now carry
+`unevidenced_share` per year and the rule (`range_widening`): those people could be **half or double** what the model gives (factor 2, the size
+of west Europe's own model-vs-evidence disagreement where evidence exists), so low × (1 − share / 2) and high × (1 + share), before the HYDE blend.
+Central is unchanged. A presentation choice; the counter (`lib/time.ts`) shows the wider range with no code change.
+
+| Year | People with no evidence behind their weight | Range before (M) | Range after (M) |
+|---|---|---|---|
+| 48,000 BCE | 28% | 0.67–2.08 | 0.58–2.66 |
+| 28,000 BCE | 40% | 1.40–5.01 | 1.13–6.99 |
+| 18,000 BCE (19.95 ka) | 40% | 2.26–7.99 | 1.81–11.18 |
+| 13,000 BCE | 35% | 3.57–6.16 | 3.14–7.92 |
+| 11,000 BCE | 26% | 4.37–5.00 | 4.25–5.40 |
+
+The share peaks at 45% (43,000 BCE) and is 0 before 70 ka BP (Africa and the Levant only). Before the blend it is of the model's people; the
+HYDE part of the 14,000-11,000 BCE blend is not counted. At 10,000 BCE the range still closes on HYDE's single figure.
+
+### P9 (rest): applied for Madagascar, the Caribbean and Arctic Canada
+
+`hyde_after_arrival: true` on `madagascar_indian_ocean`, `caribbean` and `greenland_arctic_canada`: in the 14,000-10,000 BCE hand-over, HYDE's
+10,000 BCE people in those boxes count only after the region's arrival date (never, in this window), and are given back pro rata to the rest
+of HYDE's grid so the blend's total is HYDE's.
+
+| Region | People at 13,000 / 12,000 / 11,000 BCE before | After |
+|---|---|---|
+| Madagascar | 3.6 / 4.6 / 5.9 | 0 / 0 / 0 |
+| Caribbean | 269 / 537 / 806 | 0 / 0 / 0 |
+| Arctic Canada and Greenland | 213 / 426 / 638 | 0 / 0 / 0 |
+
+- **`pacific_remote` was not excluded** (12.7 k / 25.4 k / 38.2 k people, unchanged but for the pro-rata give-back): the catch-all box holds the
+  Philippines, which no earlier box covers and which HYDE populates at 10,000 BCE; zeroing it would make the join jump. A Philippines
+  row (Island Southeast Asia's dates) would be the fix, a region change for a later task.
+- The 10,000 BCE image is HYDE's own measured grid and still has its people there (about 1,075 in the Caribbean box, 851 in Arctic Canada and 8 on Madagascar, the 11,000 BCE figures above ÷ 0.75), so they appear at the join instead of fading in.
+
+**Arrival check** (`rerun-0012/arrival_check.txt`): identical to before; none of these change a date.
+**Atlas**: `deploy/budgie/api/anthropology.json.gz` `deep` section regenerated with `anthropology/deep.py`; only its per-cell `cells` (people) changed, every other atlas section is identical.
+**Publishing**: from this job, see the log entry.
 
 ## What we don't know
 

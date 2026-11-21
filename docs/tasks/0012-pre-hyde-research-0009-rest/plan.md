@@ -45,25 +45,25 @@ blended literature curve (unchanged by any of the four); low < central < high be
 ## Plan
 
 ### Phase 1: P6 ramps (yaml only)
-- [ ] `europe_east_steppe` and `central_asia_siberia_south` ramp 4 → 2; `east_asia` 4 → 8; notes cite research 0009 P6.
-- [ ] Run model + `model_vs_evidence.py` + `arrival_check.py` to scratch; record half-rise / first / rho before and after.
+- [x] `europe_east_steppe` and `central_asia_siberia_south` ramp 4 → 2; `east_asia` 4 → 8; notes cite research 0009 P6.
+- [x] Run model + `model_vs_evidence.py` + `arrival_check.py` to scratch; record half-rise / first / rho before and after.
 
 ### Phase 2: P5 west Europe glacial maximum
-- [ ] `density_multiplier` support in `Model.step` (multiplier × occupancy before the edge blur, so box edges soften as today); unit test.
-- [ ] `europe_west`: `[[30, 1], [26, m], [20, m], [16, 1]]`, `m` tuned so the model LGM ratio is ~0.75; rerun, record ratio, people at 22 ka, share at 20 ka.
+- [x] `density_multiplier` support in `Model.step` (multiplier × occupancy before the edge blur, so box edges soften as today); unit test.
+- [x] `europe_west`: `[[30, 1], [26, m], [20, m], [16, 1]]`, `m` tuned so the model LGM ratio is ~0.75; rerun, record ratio, people at 22 ka, share at 20 ka.
 
 ### Phase 3: P9 rest, HYDE blend after arrival
-- [ ] `hyde_after_arrival` support: HYDE grid masked to arrived cells of flagged regions, the masked people given back pro rata to the rest of HYDE so the blend total is unchanged; unit test.
-- [ ] Flag `madagascar_indian_ocean`, `caribbean`, `greenland_arctic_canada`; rerun, record people there per image 14,000-11,000 BCE.
+- [x] `hyde_after_arrival` support: HYDE grid masked to arrived cells of flagged regions, the masked people given back pro rata to the rest of HYDE so the blend total is unchanged; unit test.
+- [x] Flag `madagascar_indian_ocean`, `caribbean`, `greenland_arctic_canada`; rerun, record people there per image 14,000-11,000 BCE.
 
 ### Phase 4: P8 wider ranges
-- [ ] `weight_evidence: none` on the rows with no evidence behind their weight; `Step.unevidenced_share`; widen low/high before the blend; write both to `totals.json`; unit test.
-- [ ] Rerun; counter range test (`lib/time.test.ts`) still passes; record the range at 20, 30, 50 ka before/after.
+- [x] `weight_evidence: none` on the rows with no evidence behind their weight; `Step.unevidenced_share`; widen low/high before the blend; write both to `totals.json`; unit test.
+- [x] Rerun; counter range test (`lib/time.test.ts`) still passes; record the range at 20, 30, 50 ka before/after.
 
 ### Phase 5: publish and document
-- [ ] Final full run `--verify` into `data/tiles/prehistory`; `totals.json` → `footsteps-web/public/prehistory_totals.json`; research charts and `results.json` regenerated; `rerun-0012/` with manifest, arrival check and comparison output.
-- [ ] Research 0009 section "After P5, P6, P8, P9" with numbers; proposals table marks each applied/skipped; ops doc updated; log/index fragments.
-- [ ] Tests: `poetry run pytest footstep-generator/tests/ -q`, `pnpm --dir footsteps-web test -- --runInBand lib/time.test.ts`.
+- [x] Final full run `--verify` into `data/tiles/prehistory`; `totals.json` → `footsteps-web/public/prehistory_totals.json`; research charts and `results.json` regenerated; `rerun-0012/` with manifest, arrival check and comparison output.
+- [x] Research 0009 section "After P5, P6, P8, P9" with numbers; proposals table marks each applied/skipped; ops doc updated; log/index fragments.
+- [x] Tests: `poetry run pytest footstep-generator/tests/ -q`, `pnpm --dir footsteps-web test -- --runInBand lib/time.test.ts`.
 - [ ] Commit; `GRID_ONLY=1 scripts/deploy-budgie.sh`; `scripts/smoke.sh https://footsteps.willhs.me`; two published WebPs against the manifest.
 
 ## Assumptions _(unattended run: decisions made without the user)_

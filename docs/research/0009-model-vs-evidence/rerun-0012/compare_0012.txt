@@ -1,0 +1,97 @@
+## Images changed
+
+| Step | Images changed (of 90) | Years |
+|---|---|---|
+| before → p6 | 11 | -43,000 to -33,000 |
+| p6 → p5 | 14 | -28,000 to -15,000 |
+| p5 → p9p8 | 3 | -13,000 to -11,000 |
+
+## World totals (literature curve)
+
+| Stage | central == before, every year | max |central − curve| before the blend (people) | max |image sum − central| / central |
+|---|---|---|---|
+| before | yes | 0 | 0.01% |
+| p6 | yes | 0 | 0.01% |
+| p5 | yes | 0 | 0.01% |
+| p9p8 | yes | 0 | 0.01% |
+
+## P5: west Europe at the glacial maximum
+
+| Stage | model 26-20 / 36-30 ka | evidence raw | evidence corrected | people at 21.95 ka | people at 33.95 ka | share of world at 20 ka | rho 50-16 ka |
+|---|---|---|---|---|---|---|---|
+| before | 1.49 | 0.87 | 0.55 | 196,387 | 117,864 | 4.9% | 0.30 |
+| p6 | 1.48 | 0.87 | 0.55 | 196,387 | 117,864 | 4.9% | 0.29 |
+| p5 | 0.78 | 0.87 | 0.55 | 103,768 | 117,864 | 2.6% | 0.69 |
+| p9p8 | 0.78 | 0.87 | 0.55 | 103,768 | 117,864 | 2.6% | 0.69 |
+
+| Stage (share of world at 20 ka) | africa | europe_south_iberia | europe_east_steppe | sahul | east_asia |
+|---|---|---|---|---|---|
+| before | 42.78% | 0.19% | 1.19% | 11.12% | 6.50% |
+| p6 | 42.78% | 0.19% | 1.19% | 11.12% | 6.50% |
+| p5 | 43.79% | 0.18% | 1.21% | 11.39% | 6.66% |
+| p9p8 | 43.79% | 0.18% | 1.21% | 11.39% | 6.66% |
+
+## P6: ramps
+
+| Region | Stage | ramp ka | model first ≥2% ka | evidence onset ka | model half-rise ka | evidence half-rise ka | rho (corrected) | rho (raw) |
+|---|---|---|---|---|---|---|---|---|
+| europe_east_steppe | before | 4 | 43.95 | 44.95 | 41.95 | 43.95 | 0.52 | 0.79 |
+| europe_east_steppe | p6 | 2 | 43.95 | 44.95 | 42.95 | 43.95 | 0.51 | 0.77 |
+| europe_east_steppe | p5 | 2 | 43.95 | 44.95 | 42.95 | 43.95 | 0.51 | 0.77 |
+| europe_east_steppe | p9p8 | 2 | 43.95 | 44.95 | 42.95 | 43.95 | 0.51 | 0.77 |
+| central_asia_siberia_south | before | 4 | 42.95 | 44.95 | 40.95 | 44.95 | 0.33 | 0.79 |
+| central_asia_siberia_south | p6 | 2 | 43.95 | 44.95 | 42.95 | 44.95 | 0.31 | 0.78 |
+| central_asia_siberia_south | p5 | 2 | 43.95 | 44.95 | 42.95 | 44.95 | 0.30 | 0.78 |
+| central_asia_siberia_south | p9p8 | 2 | 43.95 | 44.95 | 42.95 | 44.95 | 0.30 | 0.78 |
+| east_asia | before | 4 | 40.95 | 34.95 | 37.95 | 44.95 | 0.57 | 0.77 |
+| east_asia | p6 | 8 | 40.95 | 34.95 | 35.95 | 44.95 | 0.57 | 0.77 |
+| east_asia | p5 | 8 | 40.95 | 34.95 | 35.95 | 44.95 | 0.57 | 0.76 |
+| east_asia | p9p8 | 8 | 40.95 | 34.95 | 35.95 | 44.95 | 0.57 | 0.76 |
+
+## P9: people from the HYDE blend before arrival
+
+| Region | Stage | 14,000 BCE | 13,000 BCE | 12,000 BCE | 11,000 BCE |
+|---|---|---|---|---|---|
+| madagascar_indian_ocean | before | 0.00 | 3.62 | 4.60 | 5.85 |
+| madagascar_indian_ocean | p6 | 0.00 | 3.62 | 4.60 | 5.85 |
+| madagascar_indian_ocean | p5 | 0.00 | 3.62 | 4.60 | 5.85 |
+| madagascar_indian_ocean | p9p8 | 0.00 | 0.00 | 0.00 | 0.00 |
+| caribbean | before | 0.00 | 269 | 537 | 806 |
+| caribbean | p6 | 0.00 | 269 | 537 | 806 |
+| caribbean | p5 | 0.00 | 269 | 537 | 806 |
+| caribbean | p9p8 | 0.00 | 0.00 | 0.00 | 0.00 |
+| greenland_arctic_canada | before | 0.00 | 213 | 426 | 638 |
+| greenland_arctic_canada | p6 | 0.00 | 213 | 426 | 638 |
+| greenland_arctic_canada | p5 | 0.00 | 213 | 426 | 638 |
+| greenland_arctic_canada | p9p8 | 0.00 | 0.00 | 0.00 | 0.00 |
+| pacific_remote | before | 0.00 | 12,711 | 25,439 | 38,161 |
+| pacific_remote | p6 | 0.00 | 12,711 | 25,439 | 38,161 |
+| pacific_remote | p5 | 0.00 | 12,711 | 25,439 | 38,161 |
+| pacific_remote | p9p8 | 0.00 | 12,711 | 25,441 | 38,175 |
+
+## P8: range and the share of people with no evidence behind their weight
+
+| Year | Stage | low M | central M | high M | no-evidence share (model) |
+|---|---|---|---|---|---|
+| 48,000 BCE | before | 0.67 | 1.21 | 2.08 | - |
+| 48,000 BCE | p6 | 0.67 | 1.21 | 2.08 | - |
+| 48,000 BCE | p5 | 0.67 | 1.21 | 2.08 | 0% |
+| 48,000 BCE | p9p8 | 0.58 | 1.21 | 2.66 | 28% |
+| 28,000 BCE | before | 1.40 | 2.81 | 5.01 | - |
+| 28,000 BCE | p6 | 1.40 | 2.81 | 5.01 | - |
+| 28,000 BCE | p5 | 1.40 | 2.81 | 5.01 | 0% |
+| 28,000 BCE | p9p8 | 1.13 | 2.81 | 6.99 | 40% |
+| 18,000 BCE | before | 2.26 | 4.07 | 7.99 | - |
+| 18,000 BCE | p6 | 2.26 | 4.07 | 7.99 | - |
+| 18,000 BCE | p5 | 2.26 | 4.07 | 7.99 | 0% |
+| 18,000 BCE | p9p8 | 1.81 | 4.07 | 11.18 | 40% |
+| 13,000 BCE | before | 3.57 | 4.44 | 6.16 | - |
+| 13,000 BCE | p6 | 3.57 | 4.44 | 6.16 | - |
+| 13,000 BCE | p5 | 3.57 | 4.44 | 6.16 | 0% |
+| 13,000 BCE | p9p8 | 3.14 | 4.44 | 7.92 | 35% |
+| 11,000 BCE | before | 4.37 | 4.58 | 5.00 | - |
+| 11,000 BCE | p6 | 4.37 | 4.58 | 5.00 | - |
+| 11,000 BCE | p5 | 4.37 | 4.58 | 5.00 | 0% |
+| 11,000 BCE | p9p8 | 4.25 | 4.58 | 5.40 | 26% |
+
+Stages: before, p6, p5, p9p8

@@ -255,3 +255,81 @@ def test_real_handover_moves_people_no_faster_than_the_years_around_it():
     grids = [m.step(y).people for y in years]
     moved = [np.abs(a - b).sum() / max(a.sum(), b.sum()) for a, b in zip(grids, grids[1:])]
     assert max(moved) < 0.6, moved
+
+
+# --- research 0009 P5, P8, P9: per-region multiplier, range widening, HYDE after arrival ---------
+
+def _table_with(region_id: str, **fields) -> dict:
+    import copy
+    table = copy.deepcopy(TABLE)
+    for r in table["regions"]:
+        r.pop("density_multiplier", None)
+        r.pop("hyde_after_arrival", None)
+        r.pop("weight_evidence", None)
+        if r["id"] == region_id:
+            r.update(fields)
+    return table
+
+
+def _synthetic(table: dict, hyde: np.ndarray | None = None) -> "pp.Model":
+    if hyde is None:
+        hyde = np.zeros((pp.NY, pp.NX))
+        hyde[100:200, 200:400] = 4.6e6 / (100 * 200)
+    zero = np.zeros((pp.NY, pp.NX), dtype=bool)
+    return pp.Model(table, climate=FlatClimate(), hyde=hyde, water=(zero, zero), land_fn=flat_land)
+
+
+def _mask(model, region_id):
+    return model.region_index == model.region_ids.index(region_id)
+
+
+def test_density_multiplier_is_linear_between_points_and_held_outside():
+    curve = [[30, 1], [26, 0.5], [20, 0.5], [16, 1]]
+    assert pp.density_multiplier(None, 22) == 1
+    assert pp.density_multiplier(curve, 40) == 1
+    assert pp.density_multiplier(curve, 28) == pytest.approx(0.75)
+    assert pp.density_multiplier(curve, 23) == pytest.approx(0.5)
+    assert pp.density_multiplier(curve, 18) == pytest.approx(0.75)
+    assert pp.density_multiplier(curve, 12) == 1
+
+
+def test_a_region_multiplier_moves_people_to_the_rest_of_the_world_keeping_the_total():
+    plain = _synthetic(_table_with("europe_west"))
+    halved = _synthetic(_table_with("europe_west", density_multiplier=[[30, 1], [26, 0.5], [20, 0.5], [16, 1]]))
+    west = _mask(plain, "europe_west")
+    a, b = plain.step(-21_000), halved.step(-21_000)
+    assert b.people.sum() == pytest.approx(a.people.sum(), rel=1e-9) == pytest.approx(pp.world_totals(-21_000).central)
+    # the box's interior (away from the edge blur) holds half, the rest of the world a little more
+    assert b.people[west].sum() / a.people[west].sum() == pytest.approx(0.5, abs=0.03)
+    assert b.people[~west].sum() > a.people[~west].sum()
+    assert np.array_equal(plain.step(-40_000).people, halved.step(-40_000).people)  # outside the curve: unchanged
+
+
+def test_unevidenced_rows_widen_the_range_but_not_the_central_curve():
+    assert pp.widen_for_unevidenced(pp.Totals(2, 4, 8), 0.0, 2) == pp.Totals(2, 4, 8)
+    w = pp.widen_for_unevidenced(pp.Totals(2.0, 4.0, 8.0), 0.4, 2.0)
+    assert (w.low, w.central, w.high) == pytest.approx((1.6, 4.0, 11.2))
+    m = _synthetic(_table_with("sahul", weight_evidence="none"))
+    s = m.step(-30_000)
+    curve = pp.world_totals(-30_000)
+    sahul = _mask(m, "sahul")
+    assert s.unevidenced_share == pytest.approx(s.people[sahul].sum() / s.people.sum(), rel=0.02)
+    assert 0 < s.unevidenced_share < 1
+    assert s.totals.central == pytest.approx(curve.central)
+    assert s.totals.low < curve.low and s.totals.high > curve.high
+
+
+def test_hyde_after_arrival_keeps_a_late_island_empty_through_the_handover():
+    table = _table_with("madagascar_indian_ocean", hyde_after_arrival=True)
+    hyde = np.zeros((pp.NY, pp.NX))
+    hyde[100:200, 200:400] = 4.6e6 / (100 * 200)
+    probe = _synthetic(table, hyde)
+    madagascar = _mask(probe, "madagascar_indian_ocean")
+    hyde[madagascar] = 10.0  # HYDE puts a few people there at 10,000 BCE
+    m, plain = _synthetic(table, hyde), _synthetic(_table_with("madagascar_indian_ocean"), hyde)
+    for year in (-13_000, -12_000, -11_000):
+        s = m.step(year)
+        assert s.people[madagascar].sum() == 0, year
+        assert plain.step(year).people[madagascar].sum() > 0, year
+        assert s.people.sum() == pytest.approx(plain.step(year).people.sum(), rel=1e-9)  # given back elsewhere
+    assert np.allclose(m.step(pp.HYDE_YEAR).people, hyde)  # 10,000 BCE is HYDE's own measured grid

@@ -7,9 +7,10 @@ import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
 import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
+import { EXPANSIONS_FLOOR_YEAR, expansionLine, type ExpansionRow } from './languageExpansions';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages';
+  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -25,6 +26,8 @@ export type HoverCardInput = {
   food?: FoodItem[] | null;
   /** Glottolog's languages for the cell (lib/languages.ts); shown only from LANGUAGES_FROM, whatever the caller passes. */
   languages?: LanguageBlock | null;
+  /** `?langs=deep` only: cited expansions spreading in this cell by this year (lib/languageExpansions.ts); never before 5 ka. */
+  expansions?: ExpansionRow[] | null;
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
@@ -124,6 +127,10 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   if (i.languages && i.time >= LANGUAGES_FROM) {
     // A recorded baseline, not a measurement for this year: no family colours, nothing before it.
     rows.push({ id: 'languages', ...languageLine(i.languages), evidence: 'measured' });
+  }
+  if (i.expansions?.length && i.time >= EXPANSIONS_FLOOR_YEAR && i.habitat?.surface === 'land') {
+    // Cited spreads drawn as hand-made 5° areas: modelled, even where the date is a written record.
+    rows.push({ id: 'spread', ...expansionLine(i.expansions), evidence: 'modelled' });
   }
   if (i.region) {
     rows.push({

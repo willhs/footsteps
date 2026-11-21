@@ -8,3 +8,7 @@ when	decision	why	evidence	result
 2026-11-21	Bantu rows use narr1281 Narrow Bantu	research said no node named Bantu; glottolog.org resolves narr1281 as Narrow Bantu family	glottolog.org/resource/languoid/id/narr1281.json	glottocode narr1281
 2026-11-21	Show from the older end of the range, clamped to 3050 BCE; TS refuses years before the floor too	the spread may have started at the older end; the floor is the research's hard rule so it is enforced twice	research 0007 Recommendation	from_year in the asset + EXPANSIONS_FLOOR_YEAR guard
 2026-11-21	Row evidence always modelled	even a dated conquest becomes a spreading area only through hand-drawn boxes	vision.md measured/modelled/imagined	evidence modelled
+2026-11-21	Phase 1 verified	table, compiler and rules tests	poetry run pytest footstep-generator/tests/test_languages_expansions.py -q: 16 passed; asset 6,579 B (1,698 gzipped)	done
+2026-11-21	Tests read the committed asset, not fixtures	the lookup is tested against the rows the browser actually gets (behaviour, not a copy)	footsteps-web/lib/languageExpansions.test.ts	34 tests pass with hoverCard
+2026-11-21	Browser check forwards missing data to production	a worktree has no grid/habitat images (gitignored); forwarding read-only GETs gives the real card around the new line	verify-language-expansions.mjs FORWARD list	Mexico 1700 card shows baseline + Spanish line
+2026-11-21	Floor scene added (4000 BCE with the flag)	proves the 5 ka floor on the real surface, not only in unit tests	verify script SCENES	see evidence/browser

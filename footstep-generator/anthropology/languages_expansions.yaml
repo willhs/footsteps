@@ -1,0 +1,455 @@
+# Language expansions: where a family was spreading, from when, on whose authority.
+#
+# Research 0007 (docs/research/0007-languages-over-time/research.md), plan steps 2 (historical and colonial
+# movements) and 3 (deep-time expansions, Findings §2). Read docs/ops/languages.md before using. Rules:
+#  - One row per movement. `kind: historical` rows have `start_year` (CE, negative BCE); `kind: deep` rows have
+#    `start_bp: [lo, hi]`, years before 1950, the study's range (lo = recent end, hi = older end).
+#  - `boxes`: the area, as 5° boxes [south, west, north, east] on the atlas grid (all multiples of 5; south < north,
+#    west < east). Boxes are a coarse hand-drawn area, not a boundary. Only a `disputed` row may have no boxes, and
+#    then it is never shown (Indo-European, Afro-Asiatic and Uto-Aztecan until a model is chosen).
+#  - `checked: true` means the date (and, for deep rows, the place) was read this session in the source's abstract or
+#    text, fetched from its DOI or publisher page; `source` then carries the doi: or URL. `checked: false` means it was
+#    not, and `unverified` says why. A test enforces both. Wikipedia counts as secondary: a date read only there is
+#    unverified (Britannica, Te Ara, NZHistory and the NMA refused automated fetches on 2026-11-21).
+#  - Nothing is ever shown before 5 ka (5,000 BP = 3050 BCE), whatever a row says: the floor is applied when the asset
+#    is built and again by the web lookup.
+#  - No family colours on the globe. This table feeds one hover-card line behind ?langs=deep.
+#
+# Compile: poetry run python footstep-generator/anthropology/languages_expansions.py
+#   -> footsteps-web/public/languages/expansions.json
+version: 1
+checked_on: "2026-11-21"
+floor_bp: 5000
+
+rows:
+  # ---- Step 2: historical and colonial movements (start year CE) ----
+  - id: spanish-caribbean
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1493
+    boxes: [[15, -85, 25, -60]]
+    disputed: false
+    note: "La Isabela on Hispaniola, the first lasting Spanish town in the Americas (late 1493 to early 1494); Taino languages were gone within a century"
+    cite: "La Isabela, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/La_Isabela"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: spanish-mexico
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1519
+    boxes: [[15, -110, 30, -85]]
+    disputed: false
+    note: "Cortés's conquest, 1519-1521. Nahuatl, Otomi, Mixtec and others stayed the majority languages long after; Spanish spread, it did not replace at once"
+    cite: "Spanish conquest of the Aztec Empire, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Aztec_Empire"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: spanish-central-america
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1524
+    boxes: [[5, -95, 15, -75]]
+    disputed: false
+    note: "Alvarado arrived in Guatemala early in 1524; the conquest of the Maya kingdoms ran to 1697"
+    cite: "Spanish conquest of Guatemala, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Spanish_conquest_of_Guatemala"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary)"
+
+  - id: spanish-andes
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1532
+    boxes: [[-25, -85, 5, -65]]
+    disputed: false
+    note: "Pizarro's conquest of the Inca from 1532. Quechua and Aymara remained the languages of most Andean people to 1900 and after"
+    cite: "Spanish conquest of the Inca Empire, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Inca_Empire"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: spanish-chile
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1541
+    boxes: [[-55, -80, -25, -65]]
+    disputed: false
+    note: "Valdivia founded Santiago on 12 February 1541; Mapuche lands south of the Biobío stayed outside Spanish rule until the 1880s"
+    cite: "Pedro de Valdivia, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Pedro_de_Valdivia"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: spanish-rio-de-la-plata
+    family: Spanish
+    glottocode: stan1288
+    kind: historical
+    start_year: 1536
+    boxes: [[-40, -65, -25, -55]]
+    disputed: false
+    note: "Mendoza's first Buenos Aires (1536, abandoned 1541, refounded 1580) and Asunción (1537)"
+    cite: "Buenos Aires, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Buenos_Aires"
+    checked: false
+    unverified: "The 1536 date is only in a summary of the Wikipedia page, not read verbatim; the Britannica page refused automated fetches"
+
+  - id: portuguese-brazil
+    family: Portuguese
+    glottocode: port1283
+    kind: historical
+    start_year: 1532
+    boxes: [[-35, -55, 5, -35], [-15, -65, 5, -55]]
+    disputed: false
+    note: "São Vicente, made a village in 1532 by Martim Afonso de Sousa, the first lasting Portuguese settlement. Língua geral (Tupi-based) was the common language of much of the colony into the 1700s"
+    cite: "São Vicente, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/S%C3%A3o_Vicente,_S%C3%A3o_Paulo"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: english-north-america-east
+    family: English
+    glottocode: stan1293
+    kind: historical
+    start_year: 1607
+    boxes: [[30, -85, 45, -65]]
+    disputed: false
+    note: "Jamestown, England's first lasting colony, 1607. Box stops at 45° N to leave out French Quebec"
+    cite: "National Park Service, Jamestown"
+    source: "https://www.nps.gov/jame/learn/historyculture/index.htm ('in 1607 ... England established her first permanent colony called Jamestown')"
+    checked: true
+    unverified: ""
+
+  - id: english-north-america-interior
+    family: English
+    glottocode: stan1293
+    kind: historical
+    start_year: 1803
+    boxes: [[30, -125, 50, -85]]
+    disputed: false
+    note: "The Louisiana Purchase, 1803, opened the interior to English-speaking settlement; the Pacific coast came later (Oregon 1846, California 1848)"
+    cite: "US Office of the Historian, Louisiana Purchase"
+    source: "https://history.state.gov/milestones/1801-1829/louisiana-purchase ('purchased from France in 1803'; the page is a retired milestone)"
+    checked: true
+    unverified: ""
+
+  - id: english-australia
+    family: English
+    glottocode: stan1293
+    kind: historical
+    start_year: 1788
+    boxes: [[-45, 110, -10, 155]]
+    disputed: false
+    note: "The First Fleet reached Sydney Cove in January 1788; Pama-Nyungan and other Aboriginal languages remained across most of the continent through the 1800s"
+    cite: "First Fleet, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/First_Fleet"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the National Museum of Australia and Britannica pages refused automated fetches"
+
+  - id: english-new-zealand
+    family: English
+    glottocode: stan1293
+    kind: historical
+    start_year: 1840
+    boxes: [[-50, 165, -35, 180]]
+    disputed: false
+    note: "Treaty of Waitangi, 1840, and organised British settlement; Māori was the majority language until the late 1800s"
+    cite: "Treaty of Waitangi, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Treaty_of_Waitangi"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); NZHistory, Te Ara and Britannica refused automated fetches"
+
+  - id: arabic-egypt
+    family: Arabic
+    glottocode: arab1395
+    kind: historical
+    start_year: 639
+    boxes: [[20, 25, 35, 35]]
+    disputed: false
+    note: "Arab conquest of Egypt, 639-642. Arabic replaced Coptic as the everyday language over several centuries, not at the conquest"
+    cite: "Arab conquest of Egypt, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Arab_conquest_of_Egypt"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: arabic-maghreb
+    family: Arabic
+    glottocode: arab1395
+    kind: historical
+    start_year: 670
+    boxes: [[25, -15, 40, 25]]
+    disputed: false
+    note: "Kairouan founded about 670; the countryside was Arabised mostly after the Banu Hilal migrations of the 11th century (Kairouan taken 1057). Berber languages remain across the region"
+    cite: "Kairouan, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Kairouan"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: turkic-anatolia
+    family: Turkic
+    glottocode: turk1311
+    kind: historical
+    start_year: 1071
+    boxes: [[35, 25, 40, 45], [40, 25, 45, 40]]
+    disputed: false
+    note: "After the Seljuk victory at Manzikert, 26 August 1071, Turkic speakers moved into Anatolia; Greek, Armenian and Kurdish stayed beside Turkish for centuries"
+    cite: "Battle of Manzikert, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/Battle_of_Manzikert"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  - id: turkic-central-asia
+    family: Turkic
+    glottocode: turk1311
+    kind: historical
+    start_year: 552
+    boxes: [[35, 50, 55, 90]]
+    disputed: false
+    note: "The First Turkic Khaganate (Göktürks, from 552) and its successors carried Turkic west across the steppe; Iranian languages (Sogdian, Khwarazmian) were replaced over the next centuries. Orkhon inscriptions, early 8th century"
+    cite: "First Turkic Khaganate, Wikipedia"
+    source: "https://en.wikipedia.org/wiki/First_Turkic_Khaganate"
+    checked: false
+    unverified: "Date read on Wikipedia only (secondary); the Britannica page refused automated fetches"
+
+  # ---- Step 3: deep-time expansions (start range, years before 1950) ----
+  - id: bantu-west-central
+    family: Bantu
+    glottocode: narr1281
+    kind: deep
+    start_bp: [4040, 5000]
+    boxes: [[-10, 5, 10, 30]]
+    disputed: false
+    note: "From the Cameroon Grassfields through the Central African forest. Grollemund et al. 2015 give a start about 5,000 years ago and a savanna-corridor route; Koile et al. 2022 a rainforest route at 4,420 BP. The route is disputed, the start is not"
+    cite: "Koile et al. 2022"
+    source: "Koile, Greenhill, Blasi et al. 2022 PNAS 119(32):e2112853119, doi:10.1073/pnas.2112853119 (abstract: 4,420 BP, 4,040-5,000 95% HPD); Grollemund et al. 2015 PNAS, doi:10.1073/pnas.1503793112 (abstract: beginning ~5,000 y ago)"
+    checked: true
+    unverified: ""
+
+  - id: bantu-east
+    family: Bantu
+    glottocode: narr1281
+    kind: deep
+    start_bp: [2500, 3000]
+    boxes: [[-10, 30, 5, 45]]
+    disputed: false
+    note: "Farming sites in eastern Africa by 3000 BP; Urewe pottery in the Great Lakes from about 2500 BP, read as the arrival of eastern Bantu speakers"
+    cite: "Russell et al. 2014"
+    source: "Russell, Silva & Steele 2014 PLoS ONE 9(1):e87854, doi:10.1371/journal.pone.0087854 (full text, PMC3909244)"
+    checked: true
+    unverified: ""
+
+  - id: bantu-south
+    family: Bantu
+    glottocode: narr1281
+    kind: deep
+    start_bp: [1500, 3000]
+    boxes: [[-25, 10, -10, 45], [-35, 25, -25, 35]]
+    disputed: false
+    note: "Farming reaches southern Africa between 3000 and 2000 BP, with a clear signal in north-east South Africa and southern Mozambique by 1500 BP. The south-west (Namib, Cape) stayed Khoe and San: no box"
+    cite: "Russell et al. 2014"
+    source: "Russell, Silva & Steele 2014 PLoS ONE 9(1):e87854, doi:10.1371/journal.pone.0087854 (full text, PMC3909244)"
+    checked: true
+    unverified: ""
+
+  - id: austronesian-taiwan
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [5230, 5230]
+    boxes: [[20, 120, 25, 125]]
+    disputed: false
+    note: "Origin in Taiwan; a rival 'slow-boat' origin in Wallacea is a minority view. Older than 5 ka, so shown only from the floor"
+    cite: "Gray et al. 2009"
+    source: "Gray, Drummond & Greenhill 2009 Science 323:479, doi:10.1126/science.1166858 (abstract: origin in Taiwan ~5230 years ago)"
+    checked: true
+    unverified: ""
+
+  - id: austronesian-island-southeast-asia
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [3500, 4000]
+    boxes: [[5, 115, 20, 130], [-10, 95, 5, 130]]
+    disputed: false
+    note: "Philippines, Borneo, Sulawesi, the Sunda islands and the Malay peninsula's south"
+    cite: "Gray et al. 2009"
+    source: "Gray, Drummond & Greenhill 2009 Science 323:479, doi:10.1126/science.1166858"
+    checked: false
+    unverified: "The abstract dates only the Taiwan origin; the 3,500-4,000 BP figure is the research's secondary reading, not read in the paper"
+
+  - id: austronesian-west-polynesia
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [2900, 3200]
+    boxes: [[-25, 175, -10, 180], [-25, -180, -10, -170]]
+    disputed: false
+    note: "Lapita settlement of Fiji, Tonga and Samoa"
+    cite: "Gray et al. 2009"
+    source: "Gray, Drummond & Greenhill 2009 Science 323:479, doi:10.1126/science.1166858"
+    checked: false
+    unverified: "Not in the abstract; the 2,900-3,200 BP figure is from the research's secondary reading"
+
+  - id: austronesian-madagascar
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [1300, 1300]
+    boxes: [[-30, 40, -10, 55]]
+    disputed: false
+    note: "Malagasy is an Austronesian language from Borneo; Bantu speakers also settled the island"
+    cite: "research 0007"
+    source: "docs/research/0007-languages-over-time/research.md Findings §2 (background knowledge)"
+    checked: false
+    unverified: "From the research's background knowledge, not looked up in a source"
+
+  - id: austronesian-society-islands
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [830, 925]
+    boxes: [[-20, -155, -15, -145]]
+    disputed: false
+    note: "First people in East Polynesia, A.D. ~1025-1120: the language came with the settlers"
+    cite: "Wilmshurst et al. 2011"
+    source: "Wilmshurst, Hunt, Lipo & Anderson 2011 PNAS 108(5):1815, doi:10.1073/pnas.1015876108 (abstract: Society Islands A.D. ~1025-1120)"
+    checked: true
+    unverified: ""
+
+  - id: austronesian-east-polynesia
+    family: Austronesian
+    glottocode: aust1307
+    kind: deep
+    start_bp: [660, 760]
+    boxes: [[15, -165, 25, -150], [-10, -145, -5, -135], [-25, -165, -15, -155], [-30, -110, -25, -105], [-50, 165, -35, 180]]
+    disputed: false
+    note: "Hawaii, the Marquesas, the Cook and Austral Islands, Rapa Nui and New Zealand, settled in one pulse A.D. ~1190-1290"
+    cite: "Wilmshurst et al. 2011"
+    source: "Wilmshurst, Hunt, Lipo & Anderson 2011 PNAS 108(5):1815, doi:10.1073/pnas.1015876108 (abstract: remaining islands A.D. ~1190-1290)"
+    checked: true
+    unverified: ""
+
+  - id: pama-nyungan
+    family: Pama-Nyungan
+    glottocode: pama1250
+    kind: deep
+    start_bp: [4455, 6966]
+    boxes: [[-45, 110, -20, 155], [-20, 140, -10, 155]]
+    disputed: false
+    note: "From the Gulf Plains in the mid-Holocene, replacing earlier languages over most of Australia; the Kimberley and Top End (non-Pama-Nyungan) have no box"
+    cite: "Bouckaert et al. 2018"
+    source: "Bouckaert, Bowern & Atkinson 2018 Nature Ecology & Evolution 2:741, doi:10.1038/s41559-018-0489-3 (abstract: Gulf Plains origin, mid-Holocene)"
+    checked: false
+    unverified: "The abstract gives the place and 'mid-Holocene' but no figure; 5,671 (4,455-6,966) BP is the research's secondary reading and the paper is paywalled"
+
+  - id: sino-tibetan
+    family: Sino-Tibetan
+    glottocode: sino1245
+    kind: deep
+    start_bp: [4200, 7800]
+    boxes: [[30, 100, 40, 120]]
+    disputed: false
+    note: "Northern China, the Yellow River basin (Yangshao, Majiayao). Zhang et al. ~5,900 BP (4,200-7,800); Sagart et al. ~7,200 BP. Later spread to the Himalaya and Myanmar is not dated here"
+    cite: "Zhang et al. 2019; Sagart et al. 2019"
+    source: "Zhang, Yan, Pan & Jin 2019 Nature 569:112, doi:10.1038/s41586-019-1153-z (abstract: ~4,200-7,800 BP, mean ~5,900); Sagart et al. 2019 PNAS 116(21):10317, doi:10.1073/pnas.1817972116 (abstract: north Chinese millet farmers ~7200 BP)"
+    checked: true
+    unverified: ""
+
+  - id: uralic
+    family: Uralic
+    glottocode: ural1272
+    kind: deep
+    start_bp: [5300, 5300]
+    boxes: [[50, 45, 65, 65]]
+    disputed: false
+    note: "Around the Urals and the middle Volga; the homeland may lie further east"
+    cite: "Honkola et al. 2013"
+    source: "Honkola et al. 2013 Journal of Evolutionary Biology 26(6):1244, doi:10.1111/jeb.12107"
+    checked: false
+    unverified: "The abstract gives no date; the ~5,300 BP root is the research's secondary reading and the full text did not load (Wiley)"
+
+  - id: quechua-wari
+    family: Quechuan
+    glottocode: quec1387
+    kind: deep
+    start_bp: [950, 1350]
+    boxes: [[-15, -80, -5, -70]]
+    disputed: false
+    note: "First major Quechua spread with the Wari Middle Horizon, not the Inca (too late for the family's time depth)"
+    cite: "Beresford-Jones & Heggarty 2012"
+    source: "Beresford-Jones & Heggarty 2012, 'Broadening our horizons', in Archaeology and Language in the Andes (British Academy), doi:10.5871/bacad/9780197265031.003.0003"
+    checked: false
+    unverified: "The chapter abstract names the Wari Middle Horizon but gives no years; A.D. 600-1000 is the usual span of that period, not read in the text"
+
+  - id: quechua-inca
+    family: Quechuan
+    glottocode: quec1387
+    kind: deep
+    start_bp: [418, 550]
+    boxes: [[-25, -80, 0, -65]]
+    disputed: false
+    note: "The Inca spread Quechua again, about A.D. 1400-1532, from Ecuador to northern Chile and Argentina"
+    cite: "Beresford-Jones & Heggarty 2012"
+    source: "Beresford-Jones & Heggarty 2012, doi:10.5871/bacad/9780197265031.003.0003"
+    checked: false
+    unverified: "The abstract says only that the Incas came too late for the family's age; the A.D. 1400-1532 span is the research's background reading"
+
+  - id: aymara-early-horizon
+    family: Aymaran
+    glottocode: ayma1253
+    kind: deep
+    start_bp: [2150, 2850]
+    boxes: [[-15, -80, -10, -70]]
+    disputed: true
+    note: "Tentatively tied to the Early Horizon (Chavín) in the central Andes; the authors call it tentative"
+    cite: "Beresford-Jones & Heggarty 2012"
+    source: "Beresford-Jones & Heggarty 2012, doi:10.5871/bacad/9780197265031.003.0003 (abstract: Aymara 'tentatively associated with the Early Horizon')"
+    checked: false
+    unverified: "The abstract names the Early Horizon but gives no years; about 900-200 BCE is the usual span, not read in the text"
+
+  # ---- Disputed, no boxes until a model is chosen (never shown) ----
+  - id: indo-european
+    family: Indo-European
+    glottocode: indo1319
+    kind: deep
+    start_bp: [6000, 9000]
+    boxes: []
+    disputed: true
+    note: "Steppe (~6,000 BP) vs Anatolian farmers (~9,000 BP) vs a hybrid root ~8,120 BP south of the Caucasus. Do not draw a single origin"
+    cite: "Heggarty et al. 2023"
+    source: "Heggarty et al. 2023 Science 381:eabg0818, doi:10.1126/science.abg0818 (abstract: Anatolia ~9000 vs Steppe ~6000 yr BP; root ~8120 yr BP)"
+    checked: true
+    unverified: ""
+
+  - id: afro-asiatic
+    family: Afro-Asiatic
+    glottocode: afro1255
+    kind: deep
+    start_bp: [5750, 5750]
+    boxes: []
+    disputed: true
+    note: "Only Semitic is dated (Levant, ~5,750 BP; Ethiosemitic from southern Arabia ~2,800 BP). The Afro-Asiatic root and homeland are unresolved"
+    cite: "Kitchen et al. 2009"
+    source: "Kitchen, Ehret, Assefa & Mulligan 2009 Proc R Soc B 276:2703, doi:10.1098/rspb.2009.0408 (abstract: Semitic ~5750 years ago in the Levant)"
+    checked: true
+    unverified: ""
+
+  - id: uto-aztecan
+    family: Uto-Aztecan
+    glottocode: utoa1244
+    kind: deep
+    start_bp: [8850, 8850]
+    boxes: []
+    disputed: true
+    note: "Merrill et al. argue a Great Basin homeland and a north-south split ~6900 cal BC (~8,850 BP); others argue south-central Mexico"
+    cite: "Merrill et al. 2009"
+    source: "Merrill, Hard, Mabry et al. 2009 PNAS 106(50):21019, doi:10.1073/pnas.0906075106 (abstract: Great Basin homeland, breakup ~6900 cal B.C.)"
+    checked: true
+    unverified: ""

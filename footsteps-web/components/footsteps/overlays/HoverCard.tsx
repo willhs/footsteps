@@ -7,6 +7,8 @@ import useFood from '../hooks/useFood';
 import { foodHere } from '@/lib/food';
 import useFauna from '../hooks/useFauna';
 import useLanguages from '../hooks/useLanguages';
+import useLanguageExpansions from '../hooks/useLanguageExpansions';
+import { expansionsHere } from '@/lib/languageExpansions';
 import useGroundIndex from '../hooks/useGroundIndex';
 import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
@@ -80,6 +82,7 @@ export default function HoverCard({
   const food = useFood(point !== null);
   const fauna = useFauna(point, time);
   const languages = useLanguages(point, time);
+  const expansionData = useLanguageExpansions(point !== null);
   const ground = useGroundIndex(point !== null);
   const { rows, view } = useMemo(() => {
     if (!point) return { rows: [], view: null };
@@ -93,7 +96,12 @@ export default function HoverCard({
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     };
     return {
-      rows: hoverCardRows({ ...input, languages, region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null }),
+      rows: hoverCardRows({
+        ...input,
+        languages,
+        expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,
+        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null,
+      }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:
         year >= HYDE_MIN && !(input.landUse && input.people)
@@ -105,7 +113,7 @@ export default function HoverCard({
               peopleModelled: input.people?.evidence === 'modelled' && input.people.count > 0,
             }),
     };
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, languages, region, largest]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, languages, expansionData, region, largest]);
 
   if (!point) return null;
   return (

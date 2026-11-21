@@ -4,6 +4,20 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Cited language expansions behind ?langs=deep (research 0007 steps 2-3)
+
+`footstep-generator/anthropology/languages_expansions.yaml`: 33 hand-written rows. Step 2 covers historical and colonial
+movements: Spanish (6 areas), Portuguese, English (4), Arabic (2) and Turkic (2). Step 3 covers deep-time expansions: Bantu (3),
+Austronesian (6), Pama-Nyungan, Sino-Tibetan, Uralic, Quechua (2), Aymara, and Indo-European, Afro-Asiatic and Uto-Aztecan as
+disputed rows with no area. Every source was fetched (Crossref + Europe PMC abstracts, one open full text, publisher pages): 12
+rows checked, 21 `unverified` with the reason. Britannica, Te Ara, NZHistory and the NMA refuse automated fetches, so most
+historical dates were read on Wikipedia only. `languages_expansions.py` validates the table and writes
+`footsteps-web/public/languages/expansions.json` (6,579 bytes, 1,698 gzipped). The hover card adds "Languages spreading here:
+Bantu (from about 4,000-5,000 years ago; Koile et al. 2022)" only with `?langs=deep`, only on land, never before 3050 BCE
+(5 ka, enforced in the asset and again in the lookup). The atlas and the API are unchanged. Browser check
+`footsteps-web/scripts/verify-language-expansions.mjs`: Mexico 1700, central Africa 1000 BCE and Anatolia 1200, plus 4000 BCE for the
+floor, each with the flag on and off. Spec and plan: `docs/tasks/0008-languages-cited-expansions/`. See `docs/ops/languages.md`.
+
 ## [2026-11-21] deploy | Terrain colour pyramid published to budgie
 
 Rebuilt `data/tiles/terrain/detail/` with `footstep-generator/terrain_tiles.py` from fresh Blue Marble 500 m

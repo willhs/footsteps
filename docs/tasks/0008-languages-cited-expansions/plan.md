@@ -81,43 +81,43 @@ See task.md Won't Do: no globe drawing, nothing before 5 ka, no cells for IE / A
 
 ## Phase 1: The table and its compiler
 
-- [ ] Write `footstep-generator/anthropology/languages_expansions.yaml` (header with the rules; step-2 rows: Spanish Caribbean,
+- [x] Write `footstep-generator/anthropology/languages_expansions.yaml` (header with the rules; step-2 rows: Spanish Caribbean,
       Mexico, Central America, Andes, Chile, Río de la Plata; Portuguese Brazil; English eastern and interior North America, Australia,
       New Zealand; Arabic Egypt, Maghreb; Turkic Anatolia, Central Asia. Step-3 rows: Bantu forest, east, south; Austronesian Taiwan,
       island SE Asia, West Polynesia, Madagascar, Society Islands, rest of East Polynesia; Pama-Nyungan; Sino-Tibetan; Uralic; Quechua
       (Wari, Inca); Aymara; Indo-European, Afro-Asiatic, Uto-Aztecan disputed with no boxes)
-- [ ] Write `footstep-generator/anthropology/languages_expansions.py`: `load()`, `validate(rows)` (raises on a broken rule),
+- [x] Write `footstep-generator/anthropology/languages_expansions.py`: `load()`, `validate(rows)` (raises on a broken rule),
       `export(rows)` → dict, `main()` writes `footsteps-web/public/languages/expansions.json` and prints its size
-- [ ] Write `footstep-generator/tests/test_languages_expansions.py`: rules (checked/unverified, grid, disputed rows, required families),
+- [x] Write `footstep-generator/tests/test_languages_expansions.py`: rules (checked/unverified, grid, disputed rows, required families),
       `from_year` and the floor, the committed asset equals a fresh export
-- [ ] Run: `poetry run python footstep-generator/anthropology/languages_expansions.py` — writes the asset, prints bytes
-- [ ] Run: `poetry run pytest footstep-generator/tests/test_languages_expansions.py -q` — pass
+- [x] Run: `poetry run python footstep-generator/anthropology/languages_expansions.py` — writes the asset, prints bytes
+- [x] Run: `poetry run pytest footstep-generator/tests/test_languages_expansions.py -q` — pass
 
 ## Phase 2: Lookup, hook and card row
 
-- [ ] `footsteps-web/lib/languageExpansions.ts`: types, `EXPANSIONS_FLOOR_YEAR`, `langsDeepEnabled`, `expansionsHere`, `expansionLine`
-- [ ] `footsteps-web/components/footsteps/hooks/useLanguageExpansions.ts`: fetch the asset once, only with the flag and while hovering
-- [ ] `lib/hoverCard.ts`: input `expansions`, row id `spread` after `languages`, land only, floor re-checked
-- [ ] `overlays/HoverCard.tsx`: pass `expansionsHere(...)` into `hoverCardRows`
-- [ ] `lib/languageExpansions.test.ts`: lookup by cell and year, the floor, box edges, wording (range, CE, disputed, not verified),
+- [x] `footsteps-web/lib/languageExpansions.ts`: types, `EXPANSIONS_FLOOR_YEAR`, `langsDeepEnabled`, `expansionsHere`, `expansionLine`
+- [x] `footsteps-web/components/footsteps/hooks/useLanguageExpansions.ts`: fetch the asset once, only with the flag and while hovering
+- [x] `lib/hoverCard.ts`: input `expansions`, row id `spread` after `languages`, land only, floor re-checked
+- [x] `overlays/HoverCard.tsx`: pass `expansionsHere(...)` into `hoverCardRows`
+- [x] `lib/languageExpansions.test.ts`: lookup by cell and year, the floor, box edges, wording (range, CE, disputed, not verified),
       the flag, the card row only with input on land
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand languageExpansions hoverCard` — pass
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand languageExpansions hoverCard` — pass
 
 ## Phase 3: Prove it in the browser
 
-- [ ] `footsteps-web/scripts/verify-language-expansions.mjs`: Mexico 1700, central Africa 1000 BCE, Anatolia 1200, plus 4000 BCE
+- [x] `footsteps-web/scripts/verify-language-expansions.mjs`: Mexico 1700, central Africa 1000 BCE, Anatolia 1200, plus 4000 BCE
       (floor), each with `?langs=deep` and without; asserts the line and its absence; screenshots + JSON into the evidence dir
-- [ ] Run it against `pnpm --dir footsteps-web dev` on a free port (and the local day API for the step-1 line)
+- [x] Run it against `pnpm --dir footsteps-web dev` on a free port (and the local day API for the step-1 line)
 
 ## Phase 4: Docs and checks
 
-- [ ] `docs/ops/languages.md`: steps 2-3 section (table, rules, asset size, card line, limits); update the step-2/3 "not built" text
-- [ ] `docs/log.d/<job>.md`, `docs/index.d/<job>.md` (if a new doc), AGENTS.md architecture line for languages
-- [ ] Run: `poetry run pytest footstep-generator/tests/ -q`, `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`,
+- [x] `docs/ops/languages.md`: steps 2-3 section (table, rules, asset size, card line, limits); update the step-2/3 "not built" text
+- [x] `docs/log.d/<job>.md`, `docs/index.d/<job>.md` (if a new doc), AGENTS.md architecture line for languages
+- [x] Run: `poetry run pytest footstep-generator/tests/ -q`, `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`,
       `test -- --runInBand`, `build`, `git diff --check`
 
 ## Phase 5: Wrap
-- [ ] Commit (stage named paths only); write the envelope
+- [x] Commit (stage named paths only); write the envelope
 
 ## References
 - Task: `docs/tasks/0008-languages-cited-expansions/task.md`

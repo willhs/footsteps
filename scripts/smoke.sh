@@ -56,11 +56,14 @@ done
 # Terrain colour pyramid (footstep-generator/terrain_tiles.py, published by deploy-budgie.sh): the manifest, the
 # reference photo and a UK tile. The app draws the era images alone without it, and code deploys before the data is
 # published, so an unpublished pyramid is a warning; once the manifest is there, every file must be what it claims.
-magic=$(curl -fsS --max-time 20 -r 0-7 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/manifest.png" | od -An -tx1 | tr -d ' \n') || magic=""
+# Ask with the app's ?v= (DETAIL_VERSION in lib/terrainDetail.ts): the edge can keep a 404 for the bare URL from
+# before the pyramid was published, while the app's versioned URL is fine.
+DETAIL_V=$(sed -n 's/^export const DETAIL_VERSION = \([0-9]*\);/\1/p' "$(dirname "$0")/../footsteps-web/lib/terrainDetail.ts")
+magic=$(curl -fsS --max-time 20 -r 0-7 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/manifest.png?v=${DETAIL_V:-0}" | od -An -tx1 | tr -d ' \n') || magic=""
 if [[ "$magic" == 89504e470d0a1a0a* ]]; then
   echo "ok   terrain detail manifest"
   for f in ref.webp 7/63/41.webp; do
-    magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/$f" | od -An -tx1 | tr -d ' \n') || magic=""
+    magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/terrain/detail/$f?v=${DETAIL_V:-0}" | od -An -tx1 | tr -d ' \n') || magic=""
     if [[ "${magic:0:8}" == 52494646 && "${magic:16:8}" == 57454250 ]]; then echo "ok   terrain detail $f"; else echo "FAIL terrain detail $f"; fail=1; fi
   done
 else

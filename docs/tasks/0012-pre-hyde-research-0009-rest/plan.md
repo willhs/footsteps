@@ -64,7 +64,7 @@ blended literature curve (unchanged by any of the four); low < central < high be
 - [x] Final full run `--verify` into `data/tiles/prehistory`; `totals.json` → `footsteps-web/public/prehistory_totals.json`; research charts and `results.json` regenerated; `rerun-0012/` with manifest, arrival check and comparison output.
 - [x] Research 0009 section "After P5, P6, P8, P9" with numbers; proposals table marks each applied/skipped; ops doc updated; log/index fragments.
 - [x] Tests: `poetry run pytest footstep-generator/tests/ -q`, `pnpm --dir footsteps-web test -- --runInBand lib/time.test.ts`.
-- [ ] Commit; `GRID_ONLY=1 scripts/deploy-budgie.sh`; `scripts/smoke.sh https://footsteps.willhs.me`; two published WebPs against the manifest.
+- [x] Commit; `GRID_ONLY=1 scripts/deploy-budgie.sh`; `scripts/smoke.sh https://footsteps.willhs.me`; two published WebPs against the manifest.
 
 ## Assumptions _(unattended run: decisions made without the user)_
 

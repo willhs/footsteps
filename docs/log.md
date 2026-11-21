@@ -4,6 +4,19 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] update | Pre-HYDE model: research 0009 P5, P6, P8 and the rest of P9 applied, rerun and published
+
+Three new optional `arrivals.yaml` row fields, read by `prehistory_population.py` ([task 0012](tasks/0012-pre-hyde-research-0009-rest/plan.md)):
+`density_multiplier` (P5: `europe_west` at half density 26-20 ka; its 26-20 / 36-30 ka people ratio 1.49 → 0.78 against evidence 0.87 raw / 0.55 corrected,
+22 ka people 196k → 104k, rank correlation with the evidence 0.30 → 0.69), `weight_evidence: none` (P8: eight rows; `totals.json` gains `unevidenced_share`,
+40% at 20 ka, and the counter's range at 18,000 BCE goes 2.3–8.0 M → 1.8–11.2 M) and `hyde_after_arrival` (P9: Madagascar, the Caribbean and Arctic Canada
+get no HYDE people before 10,000 BCE; was up to 806 / 638 / 6). P6: ramps steppe and central Asia 4 → 2 ka, east Asia 4 → 8 ka. P7 left alone, P10 not started;
+`pacific_remote` (holds the Philippines) left in the blend. Reran `prehistory_population.py --verify` (28 of 90 images changed, central totals unchanged),
+`model_vs_evidence.py`, `arrival_check.py` (unchanged) and `anthropology/deep.py`. Published with `GRID_ONLY=1 scripts/deploy-budgie.sh` from this job.
+See [research 0009](research/0009-model-vs-evidence/research.md#after-p5-p6-p8-and-p9-2026-11-21).
+Origin: all 90 images match `rerun-0012/prehistory-manifest.sha256`; prod smoke passes; `humans_-20000.webp` and `humans_-11000.webp` through Cloudflare match with a
+cache-busting query, while the plain URL was still the old cached copy (24 h `max-age`, no purge credentials), so the new images show once it expires.
+
 ## [2026-11-21] feature | World population chart under the counter, behind `?chart=1`
 
 A small SVG chart (300 × 70, the app's panel style, no chart library) under the counter in the time panel: world people on a log

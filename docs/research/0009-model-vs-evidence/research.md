@@ -378,7 +378,11 @@ of HYDE's grid so the blend's total is HYDE's.
 
 **Arrival check** (`rerun-0012/arrival_check.txt`): identical to before; none of these change a date.
 **Atlas**: `deploy/budgie/api/anthropology.json.gz` `deep` section regenerated with `anthropology/deep.py`; only its per-cell `cells` (people) changed, every other atlas section is identical.
-**Publishing**: from this job, see the log entry.
+**Publishing** (2026-11-21, from this job at `92749d2`): `GRID_ONLY=1 scripts/deploy-budgie.sh`; all 90 images on budgie's origin match the manifest;
+`scripts/smoke.sh https://footsteps.willhs.me` passes (its three "grid adjusted not published" warnings are the separate `?spread=1` data). Through
+Cloudflare, `humans_-20000.webp` and `humans_-11000.webp` match the manifest when fetched with a cache-busting query; the plain URL still gave
+the old `-20000` bytes (`cf-cache-status: HIT`, age 22.5 h of a 24 h `max-age`), so the edge serves the new images once that copy expires.
+No purge was possible from the job (no Cloudflare credentials).
 
 ## What we don't know
 

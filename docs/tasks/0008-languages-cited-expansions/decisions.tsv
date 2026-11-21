@@ -1,0 +1,10 @@
+when	decision	why	evidence	result
+2026-11-21	Premise holds: steps 2-3 not built	languages.md says steps 2 and 3 are not built; no languages_expansions file or langs flag in the repo	grep -rn langs footsteps-web; docs/ops/languages.md	proceed, feature playbook, size L
+2026-11-21	Static asset in public/languages, not the atlas record	deep rows answer for years before 1500, where the hover card makes no atlas request; no API change or data deploy	hooks/useLanguages.ts only asks from LANGUAGES_FROM	option B in plan.md
+2026-11-21	Areas as 5-degree boxes on the atlas grid	hundreds of cell keys by hand for the Americas is error-prone; boxes expand 1:1 to atlas cells	useAnthropology.ts atlasKey floors to 5 degrees	boxes field, validator checks multiples of 5
+2026-11-21	Sources read via Crossref + Europe PMC abstracts, scripted	a lever: one script for every DOI, raw JSON kept as evidence	evidence/scripts/doi.sh, evidence/sources/*.json	12 DOIs read; numbers only from abstract or full text
+2026-11-21	Pama-Nyungan and Uralic figures unverified	figures not in abstracts; nature.com and Wiley full text not readable by fetch	evidence/sources/pama.html (no figures), uralic.html (5 KB block page)	checked false with reason
+2026-11-21	Wikipedia-only historical dates are unverified	Britannica, Te Ara, NMA, NZHistory return 403 to fetch; Wikipedia is secondary, not the publisher page	web-fetch report; curl 403s	only Jamestown (NPS) and Louisiana (state.gov) checked among historical rows
+2026-11-21	Bantu rows use narr1281 Narrow Bantu	research said no node named Bantu; glottolog.org resolves narr1281 as Narrow Bantu family	glottolog.org/resource/languoid/id/narr1281.json	glottocode narr1281
+2026-11-21	Show from the older end of the range, clamped to 3050 BCE; TS refuses years before the floor too	the spread may have started at the older end; the floor is the research's hard rule so it is enforced twice	research 0007 Recommendation	from_year in the asset + EXPANSIONS_FLOOR_YEAR guard
+2026-11-21	Row evidence always modelled	even a dated conquest becomes a spreading area only through hand-drawn boxes	vision.md measured/modelled/imagined	evidence modelled

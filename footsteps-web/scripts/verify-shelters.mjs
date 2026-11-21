@@ -17,7 +17,7 @@ const SCENES = [
   { name: 'mongolia', year: 1000, lat: 47.5, lon: 105, zoom: 12 },
   { name: 'amazon', year: 1000, lat: -3.3, lon: -60, zoom: 12 },
 ];
-const browser = await chromium.launch({ channel: 'chrome', headless: false,
+const browser = await chromium.launch({ channel: 'chrome', headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];

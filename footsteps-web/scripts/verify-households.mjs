@@ -1,6 +1,6 @@
 // Real browser proof for households + the hover-only regional tint (?settlements=1). Production data is proxied.
 // node scripts/verify-households.mjs http://localhost:4444 /absolute/evidence/path
-// Runs headed (headless Chromium throttles requestAnimationFrame, so its frame rates mean nothing).
+// Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window.
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import path from 'node:path';
 const [base, out] = process.argv.slice(2);
 if (!base || !out) throw new Error('Expected base URL and evidence directory');
 fs.mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: false,
+const browser = await chromium.launch({ channel: 'chrome', headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];

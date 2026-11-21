@@ -49,8 +49,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   Off until reviewed: `?terrain_tiles=1` turns it on. `node scripts/terrain-detail-shots.mjs out <dir>` takes before/after shots.
 - `node scripts/terrain-bench.mjs` is the terrain scoreboard (`--query terrain_tiles=0` compares a flag on one build; time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
 >- `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
-  and measures pan/scrub fps on the real GPU. It runs headed: headless Chromium
-  throttles requestAnimationFrame, so its fps numbers are meaningless.
+  and measures pan/scrub fps on the real GPU. Like the other
+  verify/bench scripts it runs headless (60 rAF/s on the Metal GPU, so it never steals focus); `HEADED=1` shows the browser.
 - The 90 modelled pre-HYDE images (100,000–11,000 BCE, 0.5°) come from `../footstep-generator/prehistory_population.py`
   and load through the same path (`/grid/humans_{year}.webp`); `gridData.ts` decodes each as 6 × 6 cells of HYDE's grid so ids, glow
   and the year morph line up. `lib/time.ts` splits people into `evidenceAt(time)`: `'measured'` (HYDE, from 10,000 BCE) or `'modelled'`;

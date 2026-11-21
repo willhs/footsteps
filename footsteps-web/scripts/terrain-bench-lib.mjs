@@ -233,7 +233,7 @@ export function renderMarkdown(file) {
   const lines = [
     `# Terrain benchmark ${meta.label ? `(${meta.label}) ` : ''}${meta.date}`,
     '',
-    `Commit \`${meta.commit}\`${meta.dirty ? ' (dirty tree)' : ''}, load average ${meta.loadavg ? meta.loadavg.join(' / ') : '?'} (start / end), ${meta.base}, ${meta.viewport.width}x${meta.viewport.height}, ${meta.headless ? 'HEADLESS (fps is not meaningful)' : 'headed'}, GPU: ${meta.renderer ?? 'unknown'}.`,
+    `Commit \`${meta.commit}\`${meta.dirty ? ' (dirty tree)' : ''}, load average ${meta.loadavg ? meta.loadavg.join(' / ') : '?'} (start / end), ${meta.base}, ${meta.viewport.width}x${meta.viewport.height}, ${meta.headless ? 'headless' : 'headed'}, GPU: ${meta.renderer ?? 'unknown'}.`,
     'Times are seconds from navigation start to the terrain loaded and drawn. fps and long tasks come from a fixed 600 px drag. Texel = one colour texel in screen px (east-west x north-south) at the screen centre.',
     '',
     '| scene | zoom | mode | load | cold s | warm s | fps (warm) | long tasks cold (n / max ms) | terrain MB cold | terrain MB warm | terrain req cold | total MB cold | texel px |',

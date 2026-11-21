@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 const [base = 'http://localhost:4444', out = 'terrain-evidence'] = process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ headless: false, args: ['--use-angle=metal', '--enable-gpu'] });
+const browser = await chromium.launch({ headless: !process.env.HEADED, args: ['--use-angle=metal', '--enable-gpu'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 const navigationErrors = [];

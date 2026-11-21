@@ -42,7 +42,7 @@ const VIEWS = [
   { name: 'globe-20000bce', q: { lat: 45, lon: 10, zoom: 1.6, year: -20000 }, globe: true },
 ];
 
-const browser = await chromium.launch({ channel: 'chrome', headless: false, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ channel: 'chrome', headless: !process.env.HEADED, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 for (const view of VIEWS) {
   for (const [label, tiles] of [['before', '0'], ['after', '1']]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });

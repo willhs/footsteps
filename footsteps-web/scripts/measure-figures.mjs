@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Real-data screenshots, GPU picking and street-zoom frame rate. Headed Chromium required for fps.
+// Real-data screenshots, GPU picking and street-zoom frame rate. Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window.
 // node footsteps-web/scripts/measure-figures.mjs http://localhost:4444 <evidence-dir>
 // Missing gitignored data is fetched from public production by the browser test harness only.
 import { chromium } from '@playwright/test';
@@ -9,7 +9,7 @@ const [base = 'http://localhost:4444', out = 'figures-evidence'] =
   process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({
-  headless: false,
+  headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
 });
 const context = await browser.newContext({

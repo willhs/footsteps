@@ -1,7 +1,7 @@
 // Real browser proof that groups no longer line up in rows under ?settlements=1 (docs/ops/site-terrain.md "Regularity").
 // node scripts/verify-regularity.mjs http://localhost:4466 /absolute/evidence/path      (ONLY=name filters scenes, SUFFIX=-before names the files)
 // Each scene is flat (close3d=0, zoom 7: about one group a cell) or in the tilted 3D landscape (zoom 9.5), in Italy 1000 BCE or on the Nile 1500 CE.
-// Needs the local data linked into public/ (grid, habitat, terrain, fauna: see footsteps-web/AGENTS.md); headed, because headless Chromium throttles frames.
+// Needs the local data linked into public/ (grid, habitat, terrain, fauna: see footsteps-web/AGENTS.md). Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window.
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +9,7 @@ import path from 'node:path';
 const [base, out] = process.argv.slice(2);
 if (!base || !out) throw new Error('Expected base URL and evidence directory');
 fs.mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: false, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ channel: 'chrome', headless: !process.env.HEADED, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));

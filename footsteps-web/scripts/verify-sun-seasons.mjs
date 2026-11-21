@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 const [base, out, only] = process.argv.slice(2);
 if (!base || !out) throw new Error('Expected base URL and evidence directory');
 fs.mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: false,
+const browser = await chromium.launch({ channel: 'chrome', headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await page.clock.setFixedTime(new Date('2026-06-21T12:00:00Z'));

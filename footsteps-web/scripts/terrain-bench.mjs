@@ -2,7 +2,7 @@
 // The terrain benchmark: fixed camera positions, measured the same way every time (docs/ops/terrain-bench.md).
 //
 //   node scripts/terrain-bench.mjs [--query terrain_tiles=0] [--base URL] [--out DIR] [--scenes alps,nile] [--zooms 8,10] [--modes flat,3d]
-//                                  [--no-warm] [--headless] [--label text] [--build] [--max-load N] [--max-wait SECONDS]
+//                                  [--no-warm] [--headed] [--label text] [--build] [--max-load N] [--max-wait SECONDS]
 //   node scripts/terrain-bench.mjs --compare old.json new.json
 //
 // Without --base it serves `out/` (a static export: `pnpm build`, or --build here) on a free port with the
@@ -18,7 +18,8 @@
 // plus one screenshot per variant. It never touches rendering: only the URL's lat/lon/zoom/year and `close3d=0`.
 // A busy machine ruins every number here: each result records the 1-minute load average when it started, and
 // --max-load N makes it wait (up to --max-wait seconds, default 300) for the load to fall to N before each variant.
-// Headed by default: headless Chromium throttles requestAnimationFrame, so its fps is meaningless.
+// Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window.
+// Compare runs made in the same mode: the committed baselines were headed.
 import { chromium } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -240,7 +241,7 @@ if (!base) {
   ({ server, base } = await serveStatic(root));
 }
 
-const headless = args.flags.has('headless');
+const headless = !(args.flags.has('headed') || process.env.HEADED);
 const wantWarm = !args.flags.has('no-warm');
 const picked = variants({ scenes: list(args.values.scenes), zooms: list(args.values.zooms)?.map(Number), modes: list(args.values.modes) });
 if (!picked.length) throw new Error('No scene matches --scenes/--zooms/--modes');

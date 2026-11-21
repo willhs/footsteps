@@ -14,7 +14,7 @@ const years = [
   1600, 1700, 1800, 1900,
 ];
 const browser = await chromium.launch({
-  headless: process.env.HEADLESS === 'true',
+  headless: !process.env.HEADED,
 });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },

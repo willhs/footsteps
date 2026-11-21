@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // Scripted pan/zoom/scrub measurement for the people view, on the real GPU.
-//   node scripts/measure-view.mjs <base-url> <out-dir> [--headless]
-// Runs a headed browser by default: headless Chromium throttles
-// requestAnimationFrame (~18 fps on about:blank), which makes fps meaningless.
+//   node scripts/measure-view.mjs <base-url> <out-dir> [--headed]
+// Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window.
 // Serve a static build first, e.g. `python3 -m http.server -d out 4600`.
 // For each scene it screenshots the settled view, then (for 1900) drags the map
 // for ~4 s and wheels in/out while counting requestAnimationFrame frames, and
@@ -13,7 +12,7 @@ import path from 'node:path';
 
 const [base = 'http://localhost:4600', outDir = 'perf-out'] =
   process.argv.slice(2).filter((a) => !a.startsWith('--'));
-const headed = !process.argv.includes('--headless');
+const headed = process.argv.includes('--headed') || !!process.env.HEADED;
 const mode = process.env.MODE ? `&mode=${process.env.MODE}` : '';
 fs.mkdirSync(outDir, { recursive: true });
 

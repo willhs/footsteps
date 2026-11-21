@@ -19,7 +19,7 @@ It changes no rendering: it only sets the URL's `lat`, `lon`, `zoom`, `year` and
 pnpm --dir footsteps-web build            # a static export in footsteps-web/out (data linked into public/, see footsteps-web/AGENTS.md)
 node footsteps-web/scripts/terrain-bench.mjs --label "after X"
 # options: --base URL (a running server instead of out/)  --build (run pnpm build first)  --out DIR
-#          --scenes alps,nile  --zooms 8,10  --modes flat,3d  --no-warm  --headless  --max-load N  --max-wait SECONDS
+#          --scenes alps,nile  --zooms 8,10  --modes flat,3d  --no-warm  --headed  --max-load N  --max-wait SECONDS
 node footsteps-web/scripts/terrain-bench.mjs --compare old.json new.json     # deltas, per variant
 node footsteps-web/scripts/terrain-bench.mjs --query terrain_tiles=1 --label "pyramid on"   # a URL flag on one build
 ```
@@ -31,8 +31,8 @@ gzip). The full run is 40 variants and takes about 15 minutes on a quiet machine
 
 **Run it on a quiet machine.** Each result records the 1-minute load average when it started. Another job, a game or a
 second browser at load 60+ makes cold times two to three times longer and fps a quarter (see "Noise" below).
-`--max-load 16` waits (up to `--max-wait`, default 300 s) for the load to fall before each variant. Headed matters:
-headless Chromium throttles `requestAnimationFrame`, so its fps means nothing (`--headless` exists for smoke runs only).
+`--max-load 16` waits (up to `--max-wait`, default 300 s) for the load to fall before each variant. It runs headless by default
+so it never steals focus (headless Chrome measured 60 rAF/s on the Metal GPU, 2026-11-21); the baselines below were headed, so pass `--headed` to compare against them.
 
 ## What it measures
 

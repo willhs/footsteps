@@ -3,8 +3,8 @@
 //   node scripts/terrain-shots.mjs <base-url> <out-dir> [--keys] [--2d|--globe]
 //   YEARS=-10000,1900 limits the years.
 // Years open with ?year=; --keys instead steps the time bar with the arrow keys
-// until the label passes the year (for builds without ?year=). Runs headed: the
-// globe needs the real GPU.
+// until the label passes the year (for builds without ?year=). Headless with Metal
+// flags (real GPU); HEADED=1 shows the window.
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +23,7 @@ const VIEWS = [
 ];
 
 const browser = await chromium.launch({
-  headless: false,
+  headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

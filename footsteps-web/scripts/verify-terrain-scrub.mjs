@@ -2,7 +2,7 @@
 // Scrub the time bar across terrain steps and sample a Sahara patch: it must
 // never go dark (blank terrain) or jump between samples (a flash).
 //   node scripts/verify-terrain-scrub.mjs <base-url> <evidence-dir>
-// Runs headed (real GPU). Writes samples.json and first/last screenshots.
+// Headless by default (measured 2026-11-21: headless Chrome gets 60 rAF/s and the Metal GPU); HEADED=1 shows the window. Writes samples.json and first/last screenshots.
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ import path from 'node:path';
 const [base = 'http://localhost:4455', outDir = 'terrain-scrub'] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch({
-  headless: false,
+  headless: !process.env.HEADED,
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
 });
 const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });

@@ -12,7 +12,7 @@ import Close3DLayer from '../layers/Close3DLayer';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
 import { groundParam, plantsParam } from '@/lib/close3d';
-import { lakePlaneFor, loadPastWater, pastWaterEpoch, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
+import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
 import TerrainDetailLayer from '../layers/TerrainDetailLayer';
 import {
   DETAIL_REF_URL,
@@ -33,7 +33,7 @@ import {
 // Bump when the images are regenerated: Cloudflare caches /terrain for a day.
 // v3: farmland calibrated to the Blue Marble photo (2026-11-11).
 const TERRAIN_VERSION = 3;
-// `?pastwater=1`: the years the dated Mega-Chad lake repaints come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
+// `?pastwater=1`: the years the past-water scenarios repaint come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
 const pastWaterOn = () => typeof window !== 'undefined' && pastWaterParam(window.location.search);
 const terrainUrl = (year: number) => (pastWaterOn() && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
 
@@ -163,7 +163,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
       live = false;
     };
   }, [enabled, close3d, ka]);
-  // The modelled lake (small patches, ~9 KB) is fetched only with the flag and the close-up on; the plane exists only in the scenario's epoch.
+  // The past-water patches (~105 KB) are fetched only with the flag and the close-up on; the water exists only in its epochs.
   const [lakeLayers, setLakeLayers] = useState<PastWaterLayers | null>(null);
   useEffect(() => {
     if (!enabled || !close3d || !pastWaterOn()) return;
@@ -173,9 +173,10 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
       live = false;
     };
   }, [enabled, close3d]);
-  const epoch = pastWaterEpoch(clampTime(time));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the plane depends on the epoch, not on every tick of `time`
-  const lake = useMemo(() => lakePlaneFor(lakeLayers, clampTime(time)), [lakeLayers, epoch]);
+  const epochs = pastWaterEpochs(clampTime(time)).join(',');
+  const lakeSea = Math.round(seaLevelAt(clampTime(time)) * 10) / 10;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the water depends on the active epochs (and the sea, for marine ones), not on every tick of `time`
+  const lake = useMemo(() => lakePlaneFor(lakeLayers, clampTime(time), lakeSea), [lakeLayers, epochs, lakeSea]);
   // The pair on screen: the wanted one once both images are decoded, until then
   // the last complete pair (never a blank frame while scrubbing).
   const [shown, setShown] = useState<Pair | null>(null);

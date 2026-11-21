@@ -23,7 +23,7 @@ type Endpoint = { units: Units; width: number };
 // the UI. This cache is independent of the UI's five decoded snapshots.
 const units = new Map<number, Endpoint>();
 let settlements = false;
-let pastWater = false; // `?pastwater=1`: the dated Mega-Chad lake keeps groups out of it (lib/pastWater.ts); a year's epoch is a function of the year, so the year-keyed cache below stays right
+let pastWater = false; // `?pastwater=1`: the past-water scenarios keep groups out of their water (lib/pastWater.ts); a year's epochs are a function of the year, so the year-keyed cache below stays right
 let spread = false; // `?spread=1`: the climate-adjusted HYDE images for the years they cover (lib/adjustedSpread.ts); fixed per page, so the year-keyed caches stay right
 let sites = true; // ranked spots inside cells (`?sites=0` keeps the old invented positions, to compare)
 function remember(year: number, source: Endpoint) {

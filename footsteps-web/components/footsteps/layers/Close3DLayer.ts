@@ -38,7 +38,7 @@ type Props = {
    * over it. Fixed for the page load (it comes from the URL), so tiles never need fetching again when its manifest arrives. */
   colourTiles?: boolean;
   seaLevel: number;
-  /** `?pastwater=1`, in the scenario's epoch: the modelled lake (lib/pastWater.ts). Its vertices are water at the lake's own level, not `seaLevel`. */
+  /** `?pastwater=1`, in a scenario's epoch: its water (lib/pastWater.ts). Its vertices are water at the epoch's own level, not `seaLevel`. */
   lake?: LakePlane | null;
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;

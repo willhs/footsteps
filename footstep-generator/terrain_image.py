@@ -343,13 +343,14 @@ def pastwater_years() -> list[int]:
 
 
 def pastwater_paint(year: int, land_a: np.ndarray, p) -> tuple[np.ndarray, np.ndarray]:
-    """(share 0..1, colour) of past water to paint at a year: every active epoch's mask at full strength, only on what the frame draws as
-    land (a scenario never repaints the sea), lake colour for lakes and sea colour for marine water ("paint" in the epoch)."""
+    """(share 0..1, colour) of past water to paint at a year: every active epoch's mask at full strength. A lake ("paint": "lake") is painted
+    in lake colour wherever its mask is, over the frame's sea too (a lake over today's Caspian is one lake, not Blue Marble's water with a
+    lake round it); marine water ("paint": "sea") in sea colour only on what the frame draws as land, so it never repaints the sea."""
     import past_water
     share = np.zeros((H, W, 1), np.float32)
     colour = np.zeros((H, W, 3), np.float32)
     for _, epoch in past_water.active_epochs(year):
-        m = pastwater_mask(epoch)[..., None] * land_a
+        m = pastwater_mask(epoch)[..., None] * (land_a if epoch["paint"] == "sea" else 1.0)
         colour += (p.sea if epoch["paint"] == "sea" else p.lake) * m
         share += m
     return np.clip(share, 0, 1), np.where(share > 0, colour / np.maximum(share, 1e-9), 0)

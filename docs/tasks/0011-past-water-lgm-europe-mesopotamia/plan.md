@@ -69,49 +69,49 @@ Water level rule per epoch (`level` in the manifest):
   is inside (lakes smaller than a pixel vanish; counted in the manifest).
 - Source files are downloaded by the build scripts into the git-ignored `data/pastwater_src/` and checked by sha256;
   the derived patches are committed as Mega-Chad's are.
-- The Earth paint multiplies the mask by the frame's land share, so a scenario never repaints sea; Mega-Chad lies
-  inland, so its frames do not change. Marine water is painted sea colour, lakes lake colour.
+- The Earth paint: lakes in lake colour wherever their mask is (as Mega-Chad always was, so its frames do not change);
+  marine water in sea colour only where the frame draws land, so it never repaints the sea.
 - Real-data checks read `data/tiles` of the primary checkout read-only (`FOOTSTEPS_DATA`), as job 0009 did.
 
 ---
 
 ## Phase 1: Shared multi-scenario machinery (Python)
 
-- [ ] `past_water.py`: manifest v2 (per-epoch `mask`, `distance`, `level`, `water`), `SCENARIOS`, `load_manifest(name)`,
+- [x] `past_water.py`: manifest v2 (per-epoch `mask`, `distance`, `level`, `water`), `SCENARIOS`, `load_manifest(name)`,
       `active_epochs(year) → list[(manifest, epoch)]`, `load_mask(epoch)` (wet bool + level metres), keep `epoch_at` for Mega-Chad
-- [ ] Regenerate Mega-Chad in v2: `poetry run python footstep-generator/past_water.py --tiles data/terrarium` — patch sha256 unchanged
-- [ ] `terrain_image.py`: `pastwater_paint(year)` (union of active epochs, × land share, sea/lake colour), `pastwater_years()` over all scenarios
-- [ ] `past_water_check.py`: per positions file, its year's active epochs; mask count per epoch; Mega-Chad DEM fill; LGM source-polygon test
-- [ ] Run: `poetry run pytest footstep-generator/tests/test_past_water.py footstep-generator/tests/test_terrain_image.py -q`
+- [x] Regenerate Mega-Chad in v2: `poetry run python footstep-generator/past_water.py --tiles data/terrarium` — patch sha256 unchanged
+- [x] `terrain_image.py`: `pastwater_paint(year)` (union of active epochs, × land share, sea/lake colour), `pastwater_years()` over all scenarios
+- [x] `past_water_check.py`: per positions file, its year's active epochs; mask count per epoch; Mega-Chad DEM fill; LGM source-polygon test
+- [x] Run: `poetry run pytest footstep-generator/tests/test_past_water.py footstep-generator/tests/test_terrain_image.py -q`
 
 ## Phase 2: European LGM scenario
 
-- [ ] `footstep-generator/past_water_lgm.py`: download + sha check, rasterise lakes (2.5′, per-polygon shore level), rivers + fresh lakes → distance patch, manifest `lgm_europe.json`
-- [ ] Tests: dates (-24550..-17050), Caspian area order of magnitude, no Black Sea, saline lakes not in the distance, patch sha in manifest
-- [ ] Run the build and tests; record sizes
+- [x] `footstep-generator/past_water_lgm.py`: download + sha check, rasterise lakes (2.5′, per-polygon shore level), rivers + fresh lakes → distance patch, manifest `lgm_europe.json`
+- [x] Tests: dates (-24550..-17050), Caspian area order of magnitude, no Black Sea, saline lakes not in the distance, patch sha in manifest
+- [x] Run the build and tests; record sizes
 
 ## Phase 3: Mesopotamian coast stages
 
-- [ ] `footstep-generator/past_water_mesopotamia.py`: download Fig 6 + sha check, georeference, extract blue per panel inside the region, three epochs, manifest `mesopotamia.json`
-- [ ] Tests: stage windows, stage b wet at Lagash-side bay (31.5 N 46.8 E), dry at Baghdad, nothing outside the region box
-- [ ] Run the build and tests; record sizes
+- [x] `footstep-generator/past_water_mesopotamia.py`: download Fig 6 + sha check, georeference, extract blue per panel inside the region, three epochs, manifest `mesopotamia.json`
+- [x] Tests: stage windows, stage b wet at Lagash-side bay (31.5 N 46.8 E), dry at Baghdad, nothing outside the region box
+- [x] Run the build and tests; record sizes
 
 ## Phase 4: Frontend
 
-- [ ] `lib/pastWater.ts`: scenarios from the three manifests, `pastWaterEpochs`, `loadPastWater` (all epochs), `lakePlaneFor(layers, year, sea)`, note
-- [ ] `siteRanking.ts`: per-epoch regions, `epochs` argument; `settlementUnits.ts`, `gridData.ts`, `useTerrainLayers.ts`
-- [ ] `close3d.ts`: per-vertex water level
-- [ ] Tests: pastWater.test.ts (epochs, disjoint regions, note), siteRanking.test.ts, close3d.test.ts
-- [ ] Run: lint, tsc, jest
+- [x] `lib/pastWater.ts`: scenarios from the three manifests, `pastWaterEpochs`, `loadPastWater` (all epochs), `lakePlaneFor(layers, year, sea)`, note
+- [x] `siteRanking.ts`: per-epoch regions, `epochs` argument; `settlementUnits.ts`, `gridData.ts`, `useTerrainLayers.ts`
+- [x] `close3d.ts`: per-vertex water level
+- [x] Tests: pastWater.test.ts (epochs, disjoint regions, note), siteRanking.test.ts, close3d.test.ts
+- [x] Run: lint, tsc, jest
 
 ## Phase 5: Real data, pictures, docs
 
-- [ ] `pastWater.real.test.ts` over -20000, -26000, -6000, -4000, -2000, -12000, 0; `past_water_check.py` on its positions
-- [ ] Earth frames: `terrain_image.py --pastwater` for the new years (local only)
-- [ ] Screenshots flag on/off: Po plain + Caspian at -20000, Basra -4000; close-up of one
-- [ ] `pnpm visual`, `pnpm build`, full Python tests
-- [ ] `docs/ops/past-water.md`, log fragment
+- [x] `pastWater.real.test.ts` over -20000, -26000, -6000, -4000, -2000, -12000, 0; `past_water_check.py` on its positions
+- [x] Earth frames: `terrain_image.py --pastwater` for the new years (local only)
+- [x] Screenshots flag on/off: Po plain + Caspian + Black Sea at -20000, Basra -4000 / -2000; close-up at Basra -4000 (`scripts/pastwater-shots.mjs`)
+- [x] `pnpm visual`, `pnpm build`, full Python tests
+- [x] `docs/ops/past-water.md`, log fragment
 
 ## Phase 6: Wrap (commit & finalize)
 
-- [ ] Run: `git status`; commit (Manager job: commit only)
+- [x] Run: `git status`; commit (Manager job: commit only)

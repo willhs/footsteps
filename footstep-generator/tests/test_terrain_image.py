@@ -100,7 +100,7 @@ def test_pastwater_lake_is_the_shared_mask_at_output_resolution():
     assert lake[row, col] > 0.9
 
 
-def test_pastwater_paint_is_every_active_epoch_on_land_only_in_its_own_colour():
+def test_pastwater_paint_is_every_active_epoch_in_its_own_colour_and_marine_water_only_on_land():
     from types import SimpleNamespace
     p = SimpleNamespace(sea=np.array([10.0, 20.0, 90.0], np.float32), lake=np.array([30.0, 60.0, 80.0], np.float32))
     land = np.ones((terrain.H, terrain.W, 1), np.float32)
@@ -111,4 +111,5 @@ def test_pastwater_paint_is_every_active_epoch_on_land_only_in_its_own_colour():
     share, _ = terrain.pastwater_paint(-20000, land, p)  # the LGM Caspian
     assert share[at(47.0, 48.0)] > 0.9 and share[at(13.5, 15.5)] == 0
     assert terrain.pastwater_paint(-12000, land, p)[0].max() == 0  # no scenario
-    assert terrain.pastwater_paint(-4000, np.zeros_like(land), p)[0].max() == 0  # never on the sea
+    on_sea, _ = terrain.pastwater_paint(-4000, np.zeros_like(land), p)  # the frame's sea: marine water is never painted on it, lakes are
+    assert on_sea[at(30.5, 47.8)] == 0 and on_sea[at(13.5, 15.5)] > 0.9

@@ -128,7 +128,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
   const [figures, setFigures] = useState(false);
   useEffect(() => setFigures(new URLSearchParams(window.location.search).get('figures') === '1'), []);
-  // `?pastwater=1`: the dated Mega-Chad lake (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
+  // `?pastwater=1`: the dated past-water scenarios (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
   const [pastWaterOn, setPastWaterOn] = useState(false);
   useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
   // `?spread=1`: HYDE's people moved toward where the climate then let them live, 10,000–4,000 BCE (lib/adjustedSpread.ts), off until reviewed.

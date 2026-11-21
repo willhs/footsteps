@@ -285,21 +285,45 @@ export function tileWater(heights: Float32Array, sea: number, step = 4): { n: nu
   return { n, water: openWater(below, n) };
 }
 
-/** Vertices of a tile's grid (`step` pixels apart, as tileWater) that are the modelled lake (`?pastwater=1`): inside the shared lake mask AND
- * below the lake's plane. The mask says where the basin-connected lake is, the DEM says where the water stands: a vertex above the plane
- * in the mask is an island or the shore, one below it outside the mask is a dry basin the lake never reached. The plane is `lake.level` on
- * the DEM's own datum, not the year's ocean. */
-export function lakeVertices(heights: Float32Array, bbox: Bbox, lake: LakePlane, step = 4): Uint8Array {
+/** Per vertex of a tile's grid (`step` pixels apart, as tileWater), the level of past water standing there (`?pastwater=1`), NaN where there is none.
+ * The epoch's rule decides (lib/pastWater.ts `LakePlane.levelAt`): Mega-Chad is water inside its mask AND below its 329 m plane (a vertex above
+ * the plane in the mask is an island or the shore, one below it outside the mask a dry basin the lake never reached); a lake traced from
+ * published outlines is water wherever its outline says, at its own level; a marine stage at the year's sea level. Levels are on the DEM's datum. */
+export function lakeVertices(heights: Float32Array, bbox: Bbox, lake: LakePlane, step = 4): Float32Array {
   const size = 256;
   const n = size / step + 1;
-  const out = new Uint8Array(n * n);
+  const out = new Float32Array(n * n).fill(NaN);
   for (let j = 0; j < n; j++) {
     const lat = bbox.north - ((bbox.north - bbox.south) * j) / (n - 1);
     for (let i = 0; i < n; i++) {
       const h = heights[Math.min(size - 1, j * step) * size + Math.min(size - 1, i * step)];
-      if (h < lake.level && lake.wetAt(bbox.west + ((bbox.east - bbox.west) * i) / (n - 1), lat)) out[j * n + i] = 1;
+      const level = lake.levelAt(bbox.west + ((bbox.east - bbox.west) * i) / (n - 1), lat, h);
+      if (level !== null) out[j * n + i] = level;
     }
   }
+  return out;
+}
+
+/** Per vertex, the level of past water within `reach` grid steps (the nearest such vertex's), NaN where there is none: the level its shore is
+ * measured from. */
+function nearLevel(levels: Float32Array, n: number, reach = 2): Float32Array {
+  const out = new Float32Array(n * n).fill(NaN);
+  const best = new Float32Array(n * n).fill(Infinity);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const level = levels[j * n + i];
+      if (Number.isNaN(level)) continue;
+      for (let dj = -reach; dj <= reach; dj++)
+        for (let di = -reach; di <= reach; di++) {
+          const a = i + di;
+          const b = j + dj;
+          const d = di * di + dj * dj;
+          if (a >= 0 && b >= 0 && a < n && b < n && d < best[b * n + a]) {
+            best[b * n + a] = d;
+            out[b * n + a] = level;
+          }
+        }
+    }
   return out;
 }
 
@@ -341,7 +365,7 @@ export type TerrainMesh = {
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
  * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. With `lake`, the
- * modelled lake's vertices (lakeVertices) are open water flat at the lake's own level, and low ground by it is shore relative to that level, not the sea's. */
+ * past water's vertices (lakeVertices) are open water flat at its own level, and low ground by it is shore relative to that level, not the sea's. */
 export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
@@ -360,13 +384,13 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   const hv = new Float32Array(n * n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) hv[j * n + i] = at(i * step, j * step);
   const ocean = tileWater(heights, sea, step).water;
-  const lakeWater = lake ? lakeVertices(heights, bbox, lake, step) : null;
-  const water = lakeWater ? ocean.map((w, v) => (w || lakeWater[v] ? 1 : 0)) : ocean;
+  const lakeLevel = lake ? lakeVertices(heights, bbox, lake, step) : null;
+  const water = lakeLevel ? ocean.map((w, v) => (w || !Number.isNaN(lakeLevel[v]) ? 1 : 0)) : ocean;
   const shore = nearWater(water, n);
-  const nearLake = lakeWater ? nearWater(lakeWater, n) : null;
+  const nearLake = lakeLevel ? nearLevel(lakeLevel, n) : null;
   // The drawn surface per vertex (water flat at its level), read 4 times more per vertex for the slope.
   const drawn = new Float32Array(n * n);
-  for (let v = 0; v < n * n; v++) drawn[v] = lakeWater?.[v] ? lake!.level : water[v] ? sea : hv[v];
+  for (let v = 0; v < n * n; v++) drawn[v] = lakeLevel && !Number.isNaN(lakeLevel[v]) ? lakeLevel[v] : water[v] ? sea : hv[v];
   const surfaceAt = (i: number, j: number) => drawn[(j < 0 ? 0 : j >= n ? n - 1 : j) * n + (i < 0 ? 0 : i >= n ? n - 1 : i)];
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
@@ -374,8 +398,8 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       const h = hv[v];
       const wet = water[v] === 1;
       const surface = surfaceAt(i, j);
-      // The level water stands at here: the lake's plane at and beside the lake, else the year's sea.
-      const level = nearLake?.[v] ? lake!.level : sea;
+      // The level water stands at here: past water's own level at and beside it, else the year's sea.
+      const level = nearLake && !Number.isNaN(nearLake[v]) ? nearLake[v] : sea;
       // Slope from neighbours, in metres per metre, on the drawn surface.
       const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j)) / (2 * dxM);
       const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1)) / (2 * dyM); // +y is north

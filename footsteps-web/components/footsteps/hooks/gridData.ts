@@ -7,7 +7,7 @@ import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
 import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/siteRanking';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { seaLevelAt } from '@/lib/climate';
-import { loadPastWater, NO_EPOCH, pastWaterEpoch, type PastWaterLayers } from '@/lib/pastWater';
+import { loadPastWater, NO_EPOCHS, pastWaterEpochs, type Epochs, type PastWaterLayers } from '@/lib/pastWater';
 import { landSubcells, type TerrainSea } from './landSubcells';
 import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
 
@@ -125,11 +125,11 @@ function points(
 export function prepareYearGrid(
   year: number,
   data: GridData,
-  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null; dwellings?: DwellingTable | null; epoch?: number },
+  settlement?: { catalog: SettlementCatalog; habitat: Uint8ClampedArray | null; sites?: SiteRanker | null; dwellings?: DwellingTable | null; epochs?: Epochs },
 ): DecodedYearGrid {
   const allocation = settlement ? allocateCities(data, settlement.catalog.cities, year) : null;
   const units = settlement && allocation
-    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites, settlement.dwellings, settlement.epoch ?? NO_EPOCH)
+    ? buildSettlementUnits(allocation.residual, settlement.catalog, year, settlement.habitat, settlement.sites, settlement.dwellings, settlement.epochs ?? NO_EPOCHS)
     : buildUnits(
     data.cellIds,
     data.positions,
@@ -314,8 +314,8 @@ function adjustedGridData(year: number, read: Pixels | Error, landUse: Pixels | 
 }
 
 export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false): Promise<DecodedYearGrid> {
-  // `?pastwater=1`: the lake patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
-  const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the Mega-Chad scenario is not applied', error); return null; }) : null;
+  // `?pastwater=1`: every scenario's patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
+  const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the scenarios are not applied', error); return null; }) : null;
   // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download. Without the flag the
   // requests go out exactly as before: population image, land use, then (modelled years) the site terrain.
   const adjustedRead = spread && adjustedSpreadYear(year)
@@ -335,7 +335,7 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
       sites: sites ? await loadSiteRanker(lake) : null,
-      epoch: lake ? pastWaterEpoch(year) : NO_EPOCH,
+      epochs: lake ? pastWaterEpochs(year) : NO_EPOCHS,
       // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
       dwellings: await loadDwellings().catch(() => null),
     } : undefined,

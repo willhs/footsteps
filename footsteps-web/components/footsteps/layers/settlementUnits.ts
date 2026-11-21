@@ -6,7 +6,7 @@ import { seaLevelAt } from '@/lib/climate';
 import type { SiteRanker } from './siteRanking';
 import { DISPERSE_POOL, layGroups } from './settlementLayout';
 import { NO_SOCIETY, type DwellingTable } from '@/lib/dwellings';
-import { NO_EPOCH } from '@/lib/pastWater';
+import { NO_EPOCHS, type Epochs } from '@/lib/pastWater';
 
 const slots = [0, 20, 24, 25];
 const laidInto = { x: new Float64Array(20), y: new Float64Array(20) }; // layGroups' scratch: at most 20 groups a cell
@@ -32,7 +32,7 @@ function random(seed: number) {
 export function buildSettlementUnits(
   data: GridData, catalog: SettlementCatalog, year: number, habitat: Uint8ClampedArray | null, sites?: SiteRanker | null,
   dwellings?: DwellingTable | null,
-  epoch = NO_EPOCH,
+  epochs: Epochs = NO_EPOCHS,
 ): Units {
   const seaLevel = seaLevelAt(year);
   const unresolved = { groups: 0, people: 0 };
@@ -61,8 +61,8 @@ export function buildSettlementUnits(
     const weight = components.reduce((sum, c) => sum + c.weight, 0);
     const size = weight ? components.reduce((sum, c) => sum + c.size * c.weight, 0) / weight : Infinity;
     per[i] = Math.min(limits[kind], Math.max(1, Math.round(data.people[i] / size)));
-    // A cell the modelled lake covers entirely has no dry ground: its people stay in the totals, its groups are not drawn (and counted here).
-    if (epoch !== NO_EPOCH && sites?.inPastWater(data.cellIds[i]) && sites.spotsFor(data.cellIds[i], seaLevel, 1, epoch).unresolved) {
+    // A cell modelled past water covers entirely has no dry ground: its people stay in the totals, its groups are not drawn (and counted here).
+    if (epochs.length && sites?.inPastWater(data.cellIds[i]) && sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs).unresolved) {
       unresolved.groups += per[i];
       unresolved.people += data.people[i];
       per[i] = 0;
@@ -74,7 +74,7 @@ export function buildSettlementUnits(
     length: total, positions: new Float32Array(total * 2), people: new Float32Array(total),
     kind: new Uint8Array(total), ids: new Uint32Array(total), counts: [0, 0, 0, 0],
     mobility: new Float32Array(total), society: new Uint16Array(total).fill(NO_SOCIETY),
-    ...(epoch !== NO_EPOCH ? { unresolved } : {}),
+    ...(epochs.length ? { unresolved } : {}),
   };
   let j = 0;
   for (let i = 0; i < data.length; i++) {
@@ -103,12 +103,12 @@ export function buildSettlementUnits(
     }
     const sum = sizes.reduce((a, b) => a + b, 0);
     let assigned = 0;
-    const spots = sites && kind !== UnitKind.Glow ? sites.spotsFor(data.cellIds[i], seaLevel, kind === UnitKind.Village ? Math.max(count, DISPERSE_POOL) : count, epoch) : null;
+    const spots = sites && kind !== UnitKind.Glow ? sites.spotsFor(data.cellIds[i], seaLevel, kind === UnitKind.Village ? Math.max(count, DISPERSE_POOL) : count, epochs) : null;
     // A city's glow is the cell, so it stays on the cell centre unless the centre is under water.
-    const glowSpot = sites && kind === UnitKind.Glow && sites.isWet(data.cellIds[i], 0, 0, seaLevel, epoch) ? sites.spotsFor(data.cellIds[i], seaLevel, 1, epoch) : null;
+    const glowSpot = sites && kind === UnitKind.Glow && sites.isWet(data.cellIds[i], 0, 0, seaLevel, epochs) ? sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs) : null;
     // Only farmers have a layout: bands and camps keep one ranked spot each (every group 'nucleated' is exactly that).
     const laid = spots && kind === UnitKind.Village
-      ? layGroups(layouts, spots, (x, y) => sites!.isWet(data.cellIds[i], x, y, seaLevel, epoch), data.cellIds[i], laidInto) : null;
+      ? layGroups(layouts, spots, (x, y) => sites!.isWet(data.cellIds[i], x, y, seaLevel, epochs), data.cellIds[i], laidInto) : null;
     for (let c = 0; c < count; c++) {
       if (laid) {
         out.positions[j * 2] = data.positions[i * 2] + laid.x[c] * data.cellDeg;

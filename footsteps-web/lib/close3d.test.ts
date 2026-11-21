@@ -206,14 +206,15 @@ test('the note says the surface is imagined only when ?ground=1 is on', () => {
 test('a modelled lake is water flat at its own level, not the sea\'s, only where the mask says and the ground is below the plane', () => {
   // Ground at 320 m in the west half (a basin), 340 m in the east; sea level 0. The mask covers the whole tile.
   const heights = heightsOf((x) => (x < 128 ? 320 : 340));
-  const lake = { level: 329, key: 'k', wetAt: () => true };
+  const plane = (wet: (lon: number) => boolean) => ({ key: 'k', levelAt: (lon: number, _lat: number, h: number) => (wet(lon) && h < 329 ? 329 : null) });
+  const lake = plane(() => true);
   const mesh = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, lake);
   const n = 256 / 4 + 1;
   expect(mesh.positions[2]).toBeCloseTo(329 * EXAGGERATION); // west: lake surface at 329 m, not 0 and not the ground's 320
   expect(mesh.positions[(n - 1) * 3 + 2]).toBeCloseTo(340 * EXAGGERATION); // east: above the plane, land
   expect(mesh.colors[2]).toBeGreaterThan(mesh.colors[0]); // water is blue
   // outside the mask the same low ground is dry basin, drawn at its own height
-  const dry = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, { ...lake, wetAt: () => false });
+  const dry = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, plane(() => false));
   expect(dry.positions[2]).toBeCloseTo(320 * EXAGGERATION);
   // with no lake at all the tile is what it was
   expect(buildTerrainMesh(heights, bbox, 0, flat(), 4, false, null).positions).toEqual(buildTerrainMesh(heights, bbox, 0, flat()).positions);
@@ -221,9 +222,18 @@ test('a modelled lake is water flat at its own level, not the sea\'s, only where
 
 test('the lake does not move the sea: ocean water in the same tile stays at the year\'s sea level', () => {
   const heights = heightsOf((x) => (x < 64 ? -30 : x < 160 ? 320 : 340));
-  const mesh = buildTerrainMesh(heights, bbox, -10, flat(), 4, false, { level: 329, key: 'k', wetAt: (lon) => lon > 0.1 });
+  const mesh = buildTerrainMesh(heights, bbox, -10, flat(), 4, false, { key: 'k', levelAt: (lon: number, _lat: number, h: number) => (lon > 0.1 && h < 329 ? 329 : null) });
   expect(mesh.positions[2]).toBeCloseTo(-10 * EXAGGERATION); // west: sea
   const n = 256 / 4 + 1;
   expect(mesh.positions[(n - 1) * 3 + 2]).toBeCloseTo(340 * EXAGGERATION);
   expect(mesh.positions[(30 * 3) + 2]).toBeCloseTo(329 * EXAGGERATION); // x = 120 px: in the mask and below 329
+});
+
+test('past water with a level per place is flat at each lake\'s own level, wherever its outline says, even above the ground', () => {
+  // two lakes side by side (an outline-traced scenario): west at 100 m, east at 150 m; the ground is 120 m everywhere
+  const heights = heightsOf(() => 120);
+  const mesh = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, { key: 'k', levelAt: (lon: number) => (lon < 0.17 ? 100 : 150) });
+  const n = 256 / 4 + 1;
+  expect(mesh.positions[2]).toBeCloseTo(100 * EXAGGERATION);
+  expect(mesh.positions[(n - 1) * 3 + 2]).toBeCloseTo(150 * EXAGGERATION);
 });

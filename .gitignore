@@ -55,3 +55,4 @@ footsteps-web/terrain-bench-out/
 # visual regression output: actual images, diff sheets, report (scripts/visual.mjs)
 footsteps-web/visual-out/
 footsteps-web/visual-cache/
+footsteps-web/pastwater-shots/

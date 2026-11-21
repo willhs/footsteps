@@ -241,9 +241,9 @@ test('without a ranker the builder keeps its old positions', () => {
 });
 
 // --- past water (?pastwater=1) ----------------------------------------------------------------------------------------------
-// The inland cell (row 1, col 6; terrain pixels x 12-13, y 2-3) is inside a modelled lake. The scenario epoch is 1; 0 means none.
+// The inland cell (row 1, col 6; terrain pixels x 12-13, y 2-3) is inside a modelled lake. The year's active epochs are [1]; [] means none.
 
-const EPOCH = 1;
+const EPOCH = [1];
 /** The lake over `pixels` (x, y) of the terrain grid, and (optionally) cells of the distance grid whose code the patch sets to 0. */
 function withLake(pixels: [number, number][], waterCells: [number, number][] = [], seaUntilPixel = 9): SiteLayers {
   const base = world(undefined, seaUntilPixel);
@@ -259,7 +259,7 @@ function withLake(pixels: [number, number][], waterCells: [number, number][] = [
     : { x0: 6, y0: 1, width: 1, height: 1, code: new Uint8Array(0) }; // static distances everywhere (the patch has none to give)
   patch.code = new Uint8Array(patch.width * patch.height).fill(255);
   for (const [c, r] of waterCells) patch.code[(r - patch.y0) * patch.width + (c - patch.x0)] = 0;
-  return { ...base, pastWater: { lake, water: patch } };
+  return { ...base, pastWater: { epochs: [{ id: 1, lake, water: patch, level: { kind: 'plane', m: 329, clip_to_dem: true } }] } };
 }
 // the lake over the cell and its neighbours (pixels x 10-15, y 0-5): a spot's bilinear reach is a pixel, so only a lake that goes past the cell wets all of it
 const LAKE_ALL: [number, number][] = Array.from({ length: 36 }, (_, i) => [10 + (i % 6), Math.floor(i / 6)]);
@@ -351,4 +351,11 @@ test('an epoch with no lake patch changes nothing and reports no unresolved grou
   const b = buildSettlementUnits(data, catalog(), -6000, null, ranker, null, EPOCH);
   expect(b.positions).toEqual(a.positions);
   expect(b.unresolved).toEqual({ groups: 0, people: 0 });
+});
+
+test('an epoch only applies while it is active: another active epoch elsewhere leaves this cell as without the flag', () => {
+  const plain = createSiteRanker(world(), CELLS);
+  const wet = createSiteRanker(withLake(LAKE_ALL), CELLS);
+  expect(snap(wet.spotsFor(INLAND_CELL, 0, CANDIDATES, [7]))).toEqual(snap(plain.spotsFor(INLAND_CELL, 0))); // id 7: not this cell's epoch
+  expect(wet.spotsFor(INLAND_CELL, 0, CANDIDATES, [7, 1]).unresolved).toBe(true);
 });

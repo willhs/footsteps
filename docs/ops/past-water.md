@@ -1,20 +1,32 @@
 ---
 id: past-water
 type: ops
-purpose: "The dated Mega-Chad highstand behind ?pastwater=1: what is modelled, its dates and datum, the one mask and epoch every consumer shares, how groups are kept out of the lake, how to regenerate and measure it"
+purpose: "The dated past-water scenarios behind ?pastwater=1 (Mega-Chad, European LGM lakes and rivers, Mesopotamian coast stages): what each models, its sources, licence, dates and datum, the epochs every consumer shares, how groups are kept out of the water, how to regenerate and measure them"
 scope: [terrain, freshwater, placement, close-up]
 tags: [modelled, experimental]
-related: ["terrain-images.md", "water-distance.md", "site-terrain.md", "close-up-scene.md", "../research/0014-past-terrain/research.md"]
+related: ["terrain-images.md", "water-distance.md", "site-terrain.md", "close-up-scene.md", "../research/0014-past-terrain/research.md", "../tasks/0011-past-water-lgm-europe-mesopotamia/task.md"]
 ---
 
-# Past water: a dated Mega-Chad highstand (`?pastwater=1`)
+# Past water: dated scenarios (`?pastwater=1`)
+
+Three scenarios, each a manifest in `footsteps-web/public/pastwater/` with its own dated epochs:
+
+| Scenario | Evidence | Epochs (calendar BP from 1950 → app years) | Water | Script |
+|---|---|---|---|---|
+| Mega-Chad highstand | modelled (329 m DEM contour) | id 1: 11,500–5,000 BP → -9550…-3050 | lake, fresh (assumed), 329 m plane | `past_water.py` |
+| European LGM lakes and rivers | published vectors (CRC806), levels estimated | id 2: 26,500–19,000 BP → -24550…-17050, one snapshot | lakes wet; rivers and fresh lakes fresh; a level per lake | `past_water_lgm.py` |
+| Mesopotamian coast stages | **interpreted**: traced from a published figure | ids 3/4/5: 8,000–6,501 / 6,500–5,500 / 4,500–3,500 BP → -6050…-4551 / -4550…-3550 / -2550…-1550 | sea (not fresh), at the year's sea level | `past_water_mesopotamia.py` |
+
+Outside its epochs a scenario says nothing: **geography unknown, not dry.** The Mega-Chad sections below were the first build; the
+European and Mesopotamian sections follow it, then what every scenario shares.
+
 
 Research 0014 found that Footsteps drew Lake Mega-Chad (a box-and-elevation approximation, faded by `sahara_weight`) while placing
 groups and counting freshwater distance against **today's** Natural Earth water. This is the first build of its ranked fix: **one modelled
 lake, one epoch**, read by every consumer, behind `?pastwater=1` (off until Will has reviewed it on prod). Flag off, nothing changes: the
 default images, distance image, ranker and close-up are byte-for-byte what they were.
 
-## What is modelled (and what is not)
+## Mega-Chad: what is modelled (and what is not)
 
 | | |
 |---|---|
@@ -32,92 +44,118 @@ Alpha fading is **not** a lake stage. The old paint faded the lake in and out wi
 highstand inside the window and absent outside it. (The Earth images are cross-faded between their 1,000-year frames, as everything is; that
 blend is a picture, the dates are the manifest's.)
 
-## One geometry, one epoch
+## European LGM lakes and rivers (`past_water_lgm.py`)
 
-`footstep-generator/past_water.py` writes to `footsteps-web/public/pastwater/` (committed, **9.3 KB** with the manifest):
+| | |
+|---|---|
+| Source | Verheul, Zickel, Becker & Willmes 2015, *LGM major inland waters of Europe – GIS dataset*, CRC806-Database, doi:10.5880/SFB806.14: `LGM_Lakes.zip` (227,113 B, 80 polygons) and `LGM_River.zip` (77,498 B, 94 lines), WGS84, compiled from published maps (Ehlers et al. 2011, Harrison et al. 1991, Toucanne et al. 2010, Grosswald 1980, Torfstein et al. 2013 …); some river reaches are GEBCO flow routes |
+| Licence | **CC-BY** (metadata PDF; dataset page: "attribution required, commercial use, derivations allowed"); the version is not stated. Verified 2026-11-21; both zips pinned by sha256 in the script, downloaded into git-ignored `data/pastwater_src/` |
+| Dates | the dataset's LGM interval, 26,500–19,000 yBP = app years **-24550…-17050**. **One snapshot**, held unchanged and never interpolated toward the Holocene; -26000 and -12000 say "no scenario" |
+| Lakes | wet: every 2.5′ pixel whose centre is inside a polygon: **95,433 pixels, 1,363,670 km²** (the Caspian outline alone ~806,000 km², the Aral ~369,000). 33 of the 80 polygons (mostly small Alpine lakes) are smaller than a pixel and vanish |
+| Level | per lake, the median ETOPO1 height of its shore pixels, carried in the mask (green × 256 + blue − 32768 m). An estimate for the close-up only: the Polish ice-dammed lakes come out 30–60 m below the altitudes their sources state, Lake Lisan at −263 m where its LGM stand was nearer −160 m, the Caspian at 9 m |
+| Fresh water | rivers and every lake except the Caspian, Aral, Sarygamysh and Lisan (brackish to hypersaline) are fresh, assumed: freshwater distance = min(static image, distance to them), **58,865 cells** nearer. Rivers are never wet (a line is not a 4.6 km pixel) |
+| Not in the data | **the Black Sea** (no polygon: the Steady task's Black Sea example cannot change; research 0014 found only competing levels), modern lakes under the ice (Natural Earth water is never removed), the ice sheets |
+
+## Mesopotamian coast stages (`past_water_mesopotamia.py`)
+
+| | |
+|---|---|
+| Source | Giosan & Goodman 2025, *PLOS ONE* 20(8): e0329084, **CC BY 4.0**. Its SI tables (DOCX) are geochemistry and radiocarbon dates, **not coastlines**; the stages exist only as **Fig 6** (three map panels on a 2° graticule). The geometry is traced from that figure: **interpreted**, attributed |
+| Tracing | the panels' blue at 2.5′ (≥ half of the figure under a pixel), georeferenced to the graticule ticks (plate carrée, 76.17 px per degree on both axes, residuals < 1 px); black outlines and arrows filled from their neighbours; the green tidal-freshwater zones are land with channels, left out. Figure pinned by sha256 |
+| Region | **44.0–49.5 E, 29.8–33.5 N**, the head of the Gulf; outside it the panels are today's coast generalised, and the app's own sea is better |
+| Stages | a "~8000 BP" on the panel, "7,000 years ago" in the caption: 8,000–6,501 BP (**-6050…-4551**, both readings); b ~6 ka: 6,500–5,500 BP (**-4550…-3550**), the bay open past Ur and Lagash, over Basra; c ~4 ka: 4,500–3,500 BP (**-2550…-1550**), a closed remnant bay. Areas 51,432 / 51,270 / 15,779 km² (including the Gulf inside the region). 5,500–4,501 BP is between stages: no scenario |
+| Water | **sea, not fresh**: it keeps groups out and gives no freshwater distance (no distance patch). Its level is the year's sea level; the close-up flattens the later delta sediment under it to the sea |
+
+## Every scenario: one manifest each, epochs as the unit
+
+Each script writes to `footsteps-web/public/pastwater/` (committed, **113 KB** in all):
 
 | File | Bytes | Holds |
 |---|---|---|
-| `mega_chad_mask.webp` | 646 | the lake on the 2.5′ world grid (8640 × 4320), cropped to a 196 × 207 patch; red 255 = lake |
-| `mega_chad_water.webp` | 8,016 | freshwater distance (`water_distance.py`'s encoding) on the HYDE 5′ grid, a 219 × 248 patch: `min(static image, distance to the lake)`; the 36,249 cells that change |
-| `mega_chad.json` | ~4 KB | epochs, level, datum, patch windows, sha256 of both patches, area, sources, uncertainty, the freshwater assumption, the Earth years the flag repaints |
+| `mega_chad.json`, `_mask.webp`, `_water.webp` | 4,061 + 646 + 8,016 | the lake on the 2.5′ world grid (196 × 207 patch); freshwater distance on the HYDE 5′ grid (219 × 248 patch, 36,249 cells changed) |
+| `lgm_europe.json`, `_mask.webp`, `_water.webp` | 6,735 + 4,134 + 82,990 | lakes and their levels (1,501 × 913 patch); freshwater distance (845 × 540 patch) |
+| `mesopotamia.json`, `_{a,b,c}_mask.webp` | 6,350 + 176 + 172 + 128 | each stage's water (132 × 89 patch); no distance patch |
 
-Everything reads these. Nothing keeps its own copy of the lake:
+A manifest (schema version 2) has the scenario's sources, licence, datum, uncertainty and digest, and its **epochs**: an id unique across
+scenarios (1 Mega-Chad, 2 LGM, 3/4/5 Mesopotamia), the calendar-BP window and app years, `water` (words), `paint` (lake or sea), `level`
+(`plane` 329 m clipped to the DEM; `pixel` from the mask; `sea`), `mask` and `distance` (or null) with window, bytes and sha256.
+`active_epochs(year)` (Python) and `pastWaterEpochs(year)` (TS, `lib/pastWater.ts`) give the ids holding at a year; both are tested on the same
+table of window ends. **Epochs that hold at the same time never reach the same 5′ cell** (both test suites check it), so a cell sees at most one.
 
-| Consumer | How it uses the scenario |
+| Consumer | How it uses the epochs |
 |---|---|
-| Earth picture | `terrain_image.py --pastwater` paints the mask at full strength where `epoch_at(year)` holds, nowhere else, instead of the box lake: 7 frames (-9000…-3000, ~190 KB each) in `data/tiles/terrain/pastwater/`, deployed by the existing terrain rsync as `/terrain/pastwater/earth_{year}.webp`; `useTerrainLayers.ts` swaps the URL for those years |
-| Wet exclusion | `siteRanking.ts`: with the epoch, a terrain pixel in the mask is lake. A spot the lake touches at all (share above 0) is never a "doubtful shore spot" |
-| Freshwater distance | `siteRanking.ts` `codeAt`: the patch's code inside its window, the static image elsewhere (they agree on the patch's edge) |
-| Close-up lake plane | `lib/close3d.ts` `lakeVertices`: a vertex is lake water when the mask says lake **and** the DEM is below 329 m; its surface is 329 m, not `seaLevel`. A basin below 329 m outside the mask stays dry (it was never joined to the lake) |
+| Earth picture | `terrain_image.py --pastwater` paints every active epoch's mask at full strength, lakes in lake colour (over the frame's own water too), marine stages in sea colour only where the frame draws land: 15 frames (-24000…-18000, -9000…-3000, -2000; 188–224 KB each, 2.9 MB) in `data/tiles/terrain/pastwater/`; `useTerrainLayers.ts` swaps the URL for those years. Mega-Chad's frames are painted exactly as before |
+| Wet exclusion | `siteRanking.ts`: in a cell inside an active epoch's region, a terrain pixel in its mask is water. A spot it touches at all is never a "doubtful shore spot" |
+| Freshwater distance | `siteRanking.ts` `codeAt`: the epoch's patch inside its window, the static image elsewhere |
+| Close-up water | `lib/close3d.ts` `lakeVertices`: per vertex, the level `LakePlane.levelAt(lon, lat, h)` gives: Mega-Chad where its mask says lake **and** the DEM is below 329 m; an LGM lake wherever its outline is, at its own level; a Mesopotamian stage at the year's sea. Shore colour is measured from the nearest such level |
 
-## Epochs and caches
+### Caches
 
-`epoch_at(year)` (Python) and `pastWaterEpoch(year)` (TS, `lib/pastWater.ts`, reading the manifest) are 0 (no scenario) or the epoch's id.
-Both are tested against -9550 / -3050.
-
-The ranker's per-cell cache keys on the sea state **and** the epoch. A cell with no sea around it used to keep one list at every sea level;
-a cell inside the patches' region (both patches plus 3 cells) now also stores the epoch it was ranked for, so crossing -9550 or -3050 re-ranks it
-even though the global sea level is nearly the same; a cell outside the region always ranks as epoch 0 (identical to the flag off, and cached
-once). `SiteRanker.inPastWater(cellId)` says which. The worker's year-keyed Units cache is right as it stands because the epoch is a function of
-the year; the flag is fixed per page load (the worker is configured once).
+The ranker's per-cell cache keys on the sea state **and** the epoch id in force in the cell (one byte). A cell outside every active
+epoch's region (its patches plus 3 cells) ranks as epoch 0, identical to the flag off. `SiteRanker.inPastWater(cellId)`: inside any epoch's
+region. The worker's year-keyed Units cache is right because the epochs are a function of the year.
 
 ## Population: kept, never forced, never silently dropped
 
 World and cell headcounts are untouched (`GridData.total`, per-cell people, HYDE/prehistory images are not regenerated). The Units builder
-(`settlementUnits.ts`) places a group on a ranked dry spot; a cell the lake covers has **no usable spot**, so its groups are **not drawn**
-and are counted in `Units.unresolved = { groups, people }` (present whenever an epoch is in force, even at 0). The Units note says it
-("3,263 groups unplaced (all lake)"); the hover text adds that their people are still in the totals. Grid mode places nobody (it shows people
-per cell), so cells under the lake keep their dots there and the note says so. **Dots is a static archive** (PMTiles): its positions do not
+(`settlementUnits.ts`) places a group on a ranked dry spot; a cell modelled water covers has **no usable spot**, so its groups are **not drawn**
+and are counted in `Units.unresolved = { groups, people }` (present whenever an epoch is in force, even at 0). The Units note names the active
+scenarios and says it ("Past water (experimental): LGM lakes and rivers, 26.5–19 ka BP. 13,908 groups unplaced (all water)"); the hover text adds
+that their people are still in the totals, each scenario's summary and every scenario's window. With no epoch: "Past water: no scenario at this
+date (geography unknown, not dry)". Grid mode places nobody (it shows people per cell), so cells under the water keep their dots there and the note says so. **Dots is a static archive** (PMTiles): its positions do not
 follow the model, and with the flag on its note says "Past water: not applied to Dots". With `?settlements=0` or `?sites=0` there is no ranker and
-the note says groups are not being kept out of the lake.
+the note says groups are not being kept out of the modelled water.
 
 ## Measure
 
 ```bash
-# Python: dates, connectivity, area, the committed patches, outside-region invariance, shore distance against brute force
-TERRARIUM_DIR=$PWD/data/terrarium poetry run pytest footstep-generator/tests/test_past_water.py footstep-generator/tests/test_terrain_image.py -q
-# Regenerate (fetches ~20 zoom-6 Terrarium tiles; always pass --tiles: the default is under data/raw)
+# Python: dates, ids, regions, the committed patches against their manifests, LGM mask against the source polygons, Mega-Chad geometry
+TERRARIUM_DIR=$PWD/data/terrarium poetry run pytest footstep-generator/tests/test_past_water.py footstep-generator/tests/test_past_water_scenarios.py footstep-generator/tests/test_terrain_image.py -q
+# Regenerate (Mega-Chad fetches ~20 zoom-6 Terrarium tiles: always pass --tiles; the others download their pinned sources into data/pastwater_src/)
 poetry run python footstep-generator/past_water.py --tiles data/terrarium
+poetry run python footstep-generator/past_water_lgm.py
+poetry run python footstep-generator/past_water_mesopotamia.py
 poetry run python footstep-generator/terrain_image.py --pastwater
-# Real-data placement: counts and positions, then the check that does not use the ranker
+# Real-data placement: counts and positions, then the check that does not use the ranker (exit 1 if a flag-on group is in modelled water)
 FOOTSTEPS_PASTWATER_REAL=1 FOOTSTEPS_DATA=$PWD/data/tiles FOOTSTEPS_PASTWATER_OUT=/abs/out pnpm --dir footsteps-web exec jest --runInBand pastWater.real
 poetry run python footstep-generator/past_water_check.py /abs/out --tiles data/terrarium
+# Screenshots flag off and on (after pnpm build): Po and Caspian at -20000, Black Sea, Basra -4000 / -2000, a close-up
+node footsteps-web/scripts/pastwater-shots.mjs --out /abs/shots
 ```
 
 Results of 2026-11-21 (real HYDE 3.5 and prehistory images, real site terrain; the full-world Units build, Node):
 
-| Year | Epoch | Groups off → on | In the lake off → on | Unresolved | World people | Outside the region moved |
+| Year | Epochs | Groups off → on | In modelled water off → on | Unresolved | People off = on + unresolved | Outside the regions moved |
 |---|---|---|---|---|---|---|
-| -6000 | 1 (highstand) | 1,272,868 → 1,269,605 | 3,410 → **0** | 3,263 groups, 9,552 people | 13,545,370; placed + unresolved = 13,545,370 | 0 of 1,245,992 |
-| -12000 | 0 (control) | 1,923,616 → 1,923,616 | 4,344 → 4,344 (unchanged: inactive) | none | 4,525,923 | 0 |
-| 0 | 0 (control) | 1,856,342 → 1,856,342 | 3,557 → 3,557 (unchanged: inactive) | none | 238,738,698 | 0 |
+| -20000 | 2 LGM | 1,147,383 → 1,133,475 | 14,242 → **0** | 13,908 groups, 5,694 people | yes | 0 of 867,793 |
+| -6000 | 1 Mega-Chad + 3 Meso ~7–8 ka | 1,272,868 → 1,269,045 | 4,002 (3,410 + 592) → **0** | 3,823 groups, 19,286 people | yes | 0 of 1,001,522 |
+| -4000 | 1 Mega-Chad + 4 Meso ~6 ka | 1,441,222 → 1,437,295 | 4,119 (3,483 + 636) → **0** | 3,927 groups, 74,279 people | yes | 0 of 1,156,621 |
+| -2000 | 5 Meso ~4 ka | 1,663,194 → 1,663,048 | 168 → **0** | 146 groups, 33,361 people | yes | 0 of 1,346,362 |
+| -26000, -12000, 0 | none (controls) | unchanged | – | none | yes | 0 (positions identical) |
 
-"In the lake" is a nearest-2.5′-pixel test of the mask file, and again in Python (`past_water_check.py`) both against the committed mask and
-against a fresh flood fill of the DEM: the same counts, 0 placed at -6000. The controls keep the groups they always had in the (unknown) basin.
-Build time of the full world at -6000: 21.1 s off, 21.3 s on (the ranker cost is the same; 1.9 M cells cached either way). The cache adds one
-byte per cached cell for the epoch.
+"In modelled water" is a nearest-2.5′-pixel test of each active epoch's mask file, and again in Python (`past_water_check.py`): against the
+masks, Mega-Chad also against a fresh DEM flood fill and the LGM against the source polygons themselves, the same counts, 0 with the flag on.
+Build time of the full world, off → on: -20000 18.4 → 20.7 s, -6000 11.3 → 16.2 s, -4000 6.5 → 6.8 s, -2000 9.2 → 13.2 s (one run each,
+machine busy; the epoch check per cell is a loop over at most 5 regions).
 
-Transfer: the flag fetches 8.7 KB of patches once per thread (the grid worker and, in the close-up, the page); the repainted Earth frames replace the
-ordinary ones for -9000…-3000, so they add no extra fetch (the standard pair is not fetched); flag off fetches nothing new. The manifest (~4 KB) is in
-the bundle. Decoded patches are about 95 KB per thread.
+Transfer: the flag fetches **105 KB** of patches once per thread (the grid worker and, in the close-up, the page): 83 KB of it the LGM
+distance patch. Lazy per-epoch loading would cut that to what a year needs; not done. The repainted Earth frames replace the ordinary ones for
+their years, no extra fetch; flag off fetches nothing new. The three manifests (~17 KB) are in the bundle.
 
-Flag-off parity: the existing placement measure (`settlementSites.real.test.ts`, ranker without the past-water layers) gives the numbers
-`site-terrain.md` recorded: in the sea 14,295 (1900), 6,065 (1000 BCE), 73 (10,000 BCE); on a lake 2,754, 990, 706. The ordinary -6000 and -12000
-Earth frames regenerate byte-identical.
+Flag off: `pnpm visual` passes on this tree (the ranker without past-water layers is unchanged; the Python LGM and Mesopotamian scripts touch
+no default file).
 
-Real-browser checks (1280 × 800, real data, dev server): `units_-6000_flagoff/on`, `grid_-6000_flagoff/on`, `dots_-6000_flagoff/on`,
-`units_-12000_flagon_control`, `units_0_flagon_control` at lat 14, lon 15.5, zoom 5.5, and the close-up `close_-6000_flagoff/on`,
-`close_-12000_flagon_control` at lat 13.0, lon 18.0, zoom 10.5 (the lake's east shore: water at 329 m, none of the groups in it). Notes seen:
-"Mega-Chad lake (experimental): modelled, 11.5–5 ka BP. 3,263 groups unplaced (all lake)" at -6000 (the same 3,263 as the Node run);
-"Mega-Chad: scenario inactive here (geography unknown, not dry)" at -12000 and 0; "Past water: not applied to Dots" in Dots. No Dots archive
-exists in this environment (`public/pmtiles` is empty), so Dots was checked for its note only, not for dots.
+Real-browser screenshots (1280 × 800, static build, real data, Units; `scripts/pastwater-shots.mjs`): `po-20000`, `caspian-20000`,
+`blacksea-20000` (unchanged: no Black Sea in the data), `basra-4000`, `basra-2000` and the close-up `basra-close-4000`, each `_off` and `_on`.
+The Mega-Chad-only shots of the first build (lat 14, lon 15.5, zoom 5.5; close-up at 13.0 N, 18.0 E) still hold: its files did not change.
 
 ## Limits and what comes next
 
 - A Terrarium-derived 329 m contour, 2.4 km pixels; the close-up cuts it with the finer DEM, so its shore follows the 329 m contour where the mask allows.
 - Plant marks (`?plants=1`, off by default) do not know the lake; shelters are only placed where the ranker found dry ground.
 - The Earth image colours near the shore still come from the 10′ painted frame.
-- Other palaeo-water (Agassiz, Black Sea, Persian Gulf, the Mesopotamian delta, the European LGM snapshot) is research 0014 ranks 3-5.
+- Other palaeo-water (Agassiz, the Black Sea, the exposed Persian Gulf floor) is research 0014 rank 5 and beyond.
+- The LGM is one map for 7,500 years and its lake levels are estimates; the Mesopotamian stages are a schematic figure traced at 2.5′.
+- The LGM frames (-24000…-18000) and -2000 are new: a deploy must run `terrain_image.py --pastwater` in the primary checkout before rsync; until then the app falls back to the ordinary frames.
 - Production rollout is a separate step after Will reviews the flag. `scripts/deploy-budgie.sh` now rsyncs `terrain/pastwater/` (nothing was deployed by this change); a missing frame falls back to the ordinary image.
 - The close-up shore is stair-stepped where the 2.4 km mask edge meets the finer DEM (visible in the screenshot below): modelled, not surveyed.

@@ -37,7 +37,7 @@ interface Props {
   is3DMode?: boolean; // For debugging which mode is active
   year: number; // Current year being rendered
   close3d?: boolean; // the tilted 3D close-up is on screen
-  /** `?pastwater=1`: what the Mega-Chad scenario says at this date and mode (lib/pastWater.ts `pastWaterNote`); null when the flag is off. */
+  /** `?pastwater=1`: what the past-water scenarios say at this date and mode (lib/pastWater.ts `pastWaterNote`); null when the flag is off. */
   pastWater?: { label: string; title: string } | null;
   /** `?spread=1`: whether the climate-adjusted spread is drawn at this date and mode (lib/adjustedSpread.ts `spreadNote`); null when the flag is off. */
   spread?: { label: string; title: string } | null;

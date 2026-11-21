@@ -330,6 +330,9 @@ def manifest_for(
         "id": NAME,
         "version": SCHEMA_VERSION,
         "label": "Mega-Chad highstand (modelled, experimental)",
+        "short": "Mega-Chad lake",
+        "summary": "Lake Mega-Chad: the basin-connected 329 m contour of a modern DEM (metres above the geoid, not the year's ocean), "
+                   "highstand 11.5–5 ka BP (calendar years BP from 1950), modelled; its water is assumed fresh.",
         "evidence": "modelled",
         "flag": "?pastwater=1",
         "level_m": LEVEL_M,

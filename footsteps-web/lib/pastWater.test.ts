@@ -1,4 +1,6 @@
-import { PAST_WATER, NO_EPOCH, lakePlaneFor, lakeShareAt, pastWaterEpoch, pastWaterNote, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from './pastWater';
+import { PAST_WATER_SCENARIOS, epochLayersFrom, lakePlaneFor, lakeShareAt, pastWaterEpochs, pastWaterNote, pastWaterParam, pastWaterTerrainYear, type EpochMeta, type PastWaterLayers } from './pastWater';
+
+const scenario = (id: string) => PAST_WATER_SCENARIOS.find((s) => s.id === id)!;
 
 test('the flag is ?pastwater=1 only', () => {
   expect(pastWaterParam('?pastwater=1')).toBe(true);
@@ -7,70 +9,126 @@ test('the flag is ?pastwater=1 only', () => {
   expect(pastWaterParam('?pastwater=true')).toBe(false);
 });
 
-test('the epoch is the manifest\'s calendar-BP window: -6000 is inside, -12000 and 0 are controls, ends inclusive', () => {
-  expect([PAST_WATER.epochs[0].from_year, PAST_WATER.epochs[0].to_year]).toEqual([1950 - 11_500, 1950 - 5_000]); // -9550, -3050
-  expect(pastWaterEpoch(-6000)).toBe(1);
-  expect(pastWaterEpoch(-9550)).toBe(1);
-  expect(pastWaterEpoch(-3050)).toBe(1);
-  expect(pastWaterEpoch(-9551)).toBe(NO_EPOCH);
-  expect(pastWaterEpoch(-3049)).toBe(NO_EPOCH);
-  expect(pastWaterEpoch(-12000)).toBe(NO_EPOCH);
-  expect(pastWaterEpoch(0)).toBe(NO_EPOCH);
+test('three scenarios; every epoch window is calendar BP from 1950 and every id is unique', () => {
+  expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia']);
+  const epochs = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs);
+  for (const e of epochs) expect([e.from_year, e.to_year]).toEqual([1950 - e.from_bp, 1950 - e.to_bp]);
+  expect(new Set(epochs.map((e) => e.id)).size).toBe(epochs.length);
+  expect(scenario('mega_chad').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-9550, -3050]]);
+  expect(scenario('lgm_europe').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-24550, -17050]]);
+  expect(scenario('mesopotamia').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-6050, -4551], [-4550, -3550], [-2550, -1550]]);
 });
 
-test('the Earth images repainted under the flag are the manifest\'s years', () => {
-  expect(PAST_WATER.terrain.years).toEqual([-9000, -8000, -7000, -6000, -5000, -4000, -3000]);
-  expect(pastWaterTerrainYear(-6000)).toBe(true);
-  expect(pastWaterTerrainYear(-12000)).toBe(false);
-  expect(pastWaterTerrainYear(-10000)).toBe(false);
+test.each([
+  [-26000, []], [-24550, [2]], [-20000, [2]], [-17050, [2]], [-17049, []], [-12000, []], [-9551, []], [-9550, [1]],
+  [-6000, [1, 3]], [-4551, [1, 3]], [-4550, [1, 4]], [-4000, [1, 4]], [-3550, [1, 4]], [-3549, [1]], [-3050, [1]], [-3049, []],
+  [-2000, [5]], [-1549, []], [0, []], [1900, []],
+])('active epochs at %i: %j (the same table as past_water.active_epochs)', (year, ids) => {
+  expect(pastWaterEpochs(year)).toEqual(ids);
 });
 
-const layers: PastWaterLayers = {
-  lake: { x0: 100, y0: 50, width: 2, height: 2, wet: Uint8Array.of(1, 1, 0, 0) },
-  water: { x0: 0, y0: 0, width: 1, height: 1, code: Uint8Array.of(0) },
-};
+test('epochs that hold at the same time never reach the same 5′ cell, so a cell sees at most one', () => {
+  const reach = 3;
+  const region = (e: EpochMeta) => {
+    const boxes = [[Math.floor(e.mask.x0 / 2), Math.floor(e.mask.y0 / 2), Math.ceil((e.mask.x0 + e.mask.width) / 2), Math.ceil((e.mask.y0 + e.mask.height) / 2)]];
+    if (e.distance) boxes.push([e.distance.x0, e.distance.y0, e.distance.x0 + e.distance.width, e.distance.y0 + e.distance.height]);
+    return [Math.min(...boxes.map((b) => b[0])) - reach, Math.min(...boxes.map((b) => b[1])) - reach, Math.max(...boxes.map((b) => b[2])) + reach, Math.max(...boxes.map((b) => b[3])) + reach];
+  };
+  const epochs = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs);
+  for (const a of epochs)
+    for (const b of epochs) {
+      if (a.id >= b.id || a.to_year < b.from_year || b.to_year < a.from_year) continue;
+      const [ax0, ay0, ax1, ay1] = region(a);
+      const [bx0, by0, bx1, by1] = region(b);
+      expect(ax1 <= bx0 || bx1 <= ax0 || ay1 <= by0 || by1 <= ay0).toBe(true);
+    }
+});
+
+test('the terrain years are every scenario\'s', () => {
+  for (const year of [-24000, -20000, -18000, -9000, -6000, -4000, -3000, -2000]) expect(pastWaterTerrainYear(year)).toBe(true);
+  for (const year of [-25000, -17000, -12000, -10000, -1000, 0]) expect(pastWaterTerrainYear(year)).toBe(false);
+});
+
 // the centre of pixel (col, row) of the 8640 × 4320 world grid
 const centre = (col: number, row: number): [number, number] => [-180 + ((col + 0.5) / 8640) * 360, 90 - ((row + 0.5) / 4320) * 180];
+const rgba = (width: number, height: number, px: [number, number, number][]) => ({ width, height, data: Uint8ClampedArray.from(px.flatMap(([r, g, b]) => [r, g, b, 255])) });
+/** Three test epochs, patch for patch like the real ones but tiny: Mega-Chad (plane 329), the LGM (a level per pixel), Mesopotamia ~6 ka (sea). */
+function testLayers(): PastWaterLayers {
+  const meta = (id: number) => PAST_WATER_SCENARIOS.flatMap((s) => s.epochs).find((e) => e.id === id)!;
+  const at = (e: EpochMeta, x0: number, y0: number): EpochMeta => ({ ...e, mask: { ...e.mask, x0, y0, width: 2, height: 2 }, distance: null });
+  const lvl = (m: number): [number, number, number] => [255, (m + 32768) >> 8, (m + 32768) & 255];
+  return {
+    epochs: [
+      epochLayersFrom(at(meta(1), 100, 50), rgba(2, 2, [[255, 255, 255], [255, 255, 255], [0, 0, 0], [0, 0, 0]]), null),
+      epochLayersFrom(at(meta(2), 300, 50), rgba(2, 2, [lvl(9), lvl(-263), [0, 0, 0], [0, 0, 0]]), null),
+      epochLayersFrom(at(meta(4), 500, 50), rgba(2, 2, [[255, 255, 255], [255, 255, 255], [0, 0, 0], [0, 0, 0]]), null),
+    ],
+  };
+}
 
 test('lake share is bilinear on the 2.5′ grid and zero outside the patch', () => {
-  expect(lakeShareAt(layers.lake, ...centre(100, 50))).toBeCloseTo(1);
-  expect(lakeShareAt(layers.lake, ...centre(100, 51))).toBeCloseTo(0);
+  const lake = testLayers().epochs[0].lake;
+  expect(lakeShareAt(lake, ...centre(100, 50))).toBeCloseTo(1);
+  expect(lakeShareAt(lake, ...centre(100, 51))).toBeCloseTo(0);
   const [lon, lat] = centre(100, 50);
-  expect(lakeShareAt(layers.lake, lon, lat - 90 / 4320 / 1)).toBeCloseTo(0.5, 1); // half way between the wet row and the dry one
-  expect(lakeShareAt(layers.lake, ...centre(5000, 3000))).toBe(0);
+  expect(lakeShareAt(lake, lon, lat - 90 / 4320)).toBeCloseTo(0.5, 1); // half way between the wet row and the dry one
+  expect(lakeShareAt(lake, ...centre(5000, 3000))).toBe(0);
 });
 
-test('the lake plane exists only in the epoch, at the manifest level, wet where at least half is lake', () => {
-  expect(lakePlaneFor(null, -6000)).toBeNull();
-  expect(lakePlaneFor(layers, -12000)).toBeNull();
-  expect(lakePlaneFor(layers, 0)).toBeNull();
-  const plane = lakePlaneFor(layers, -6000)!;
-  expect(plane.level).toBe(329);
-  expect(plane.wetAt(...centre(100, 50))).toBe(true);
-  expect(plane.wetAt(...centre(101, 51))).toBe(false);
-  expect(plane.key).toContain(PAST_WATER.digest);
+test('a mask whose level is per pixel decodes green and blue as metres; others carry none', () => {
+  const layers = testLayers();
+  expect(Array.from(layers.epochs[1].lake.level!.slice(0, 2))).toEqual([9, -263]);
+  expect(layers.epochs[0].lake.level).toBeUndefined();
+  expect(() => epochLayersFrom(PAST_WATER_SCENARIOS[0].epochs[0], rgba(1, 1, [[0, 0, 0]]), null)).toThrow(/do not match/);
 });
 
-test('the control years say the scenario is inactive and the geography unknown, not dry', () => {
-  for (const year of [-12000, 0]) {
+test('the water exists only in its epochs, at each epoch\'s own level', () => {
+  const layers = testLayers();
+  expect(lakePlaneFor(null, -6000, 0)).toBeNull();
+  expect(lakePlaneFor(layers, -12000, -60)).toBeNull();
+  expect(lakePlaneFor(layers, 0, 0)).toBeNull();
+  // -4000: Mega-Chad (329 m, only below its plane) and Mesopotamia's ~6 ka bay (the year's sea)
+  const plane = lakePlaneFor(layers, -4000, -2.5)!;
+  expect(plane.levelAt(...centre(100, 50), 300)).toBe(329);
+  expect(plane.levelAt(...centre(100, 50), 340)).toBeNull(); // in the mask but above the plane: shore
+  expect(plane.levelAt(...centre(101, 51), 300)).toBeNull();
+  expect(plane.levelAt(...centre(500, 50), 6)).toBe(-2.5); // the bay stands at the sea, over the later delta's 6 m
+  expect(plane.levelAt(...centre(300, 50), 0)).toBeNull(); // the LGM is not active at -4000
+  expect(plane.key).toContain(scenario('mega_chad').digest);
+  expect(plane.key).not.toBe(lakePlaneFor(layers, -4000, -3)!.key); // a marine epoch's water follows the sea
+  // -20000: the LGM lakes, each at its own level, wherever its outline is
+  const lgm = lakePlaneFor(layers, -20000, -120)!;
+  expect(lgm.levelAt(...centre(300, 50), 500)).toBe(9);
+  expect(lgm.levelAt(...centre(301, 50), -500)).toBe(-263);
+  expect(lgm.levelAt(...centre(100, 50), 0)).toBeNull();
+});
+
+test('outside every window the note says no scenario: geography unknown, not dry', () => {
+  for (const year of [-26000, -12000, -2700, 0]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one
+    expect(pastWaterEpochs(year)).toEqual([]);
     const note = pastWaterNote(year, 'units', undefined);
-    expect(note.label).toMatch(/inactive/);
+    expect(note.label).toMatch(/no scenario/);
     expect(note.label).toMatch(/unknown/);
     expect(note.title).toMatch(/not dry lakebed/);
   }
+  expect(pastWaterNote(-26000, 'units', undefined).title).toContain('26.5–19 ka BP');
 });
 
-test('in the epoch the note names the model, its datum and dates, and reports what could not be placed', () => {
+test('in an epoch the note names the scenarios, their datum and dates, and reports what could not be placed', () => {
   const none = pastWaterNote(-6000, 'units', { groups: 0, people: 0 });
+  expect(none.label).toContain('Mega-Chad lake, 11.5–5 ka BP');
+  expect(none.label).toContain('Mesopotamian coast');
   expect(none.title).toContain('329 m');
   expect(none.title).toMatch(/geoid/);
   expect(none.title).toMatch(/fresh/);
-  expect(none.title).toContain('11.5–5 ka BP');
-  expect(none.title).toMatch(/none is in the lake/);
-  const some = pastWaterNote(-6000, 'units', { groups: 12, people: 3400 });
+  expect(none.title).toMatch(/interpreted/);
+  expect(none.title).toMatch(/none is in modelled water/);
+  const some = pastWaterNote(-20000, 'units', { groups: 12, people: 3400 });
+  expect(some.label).toContain('LGM lakes and rivers, 26.5–19 ka BP');
   expect(some.label).toContain('12 groups unplaced');
   expect(some.title).toContain('3,400 people');
   expect(some.title).toMatch(/still counted in the totals/);
+  expect(some.title).toMatch(/No Black Sea/);
 });
 
 test('Dots says the experimental model does not apply there; Grid says it places nobody', () => {
@@ -81,5 +139,5 @@ test('Dots says the experimental model does not apply there; Grid says it places
 });
 
 test('with the model not running the note does not claim groups are kept dry', () => {
-  expect(pastWaterNote(-6000, 'units', undefined).title).toMatch(/not being kept out of the lake/);
+  expect(pastWaterNote(-6000, 'units', undefined).title).toMatch(/not being kept out of the modelled water/);
 });

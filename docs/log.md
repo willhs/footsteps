@@ -4,6 +4,19 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Past water: European LGM lakes and rivers, Mesopotamian coast stages (?pastwater=1)
+
+Task 0011 (`docs/tasks/0011-past-water-lgm-europe-mesopotamia/`), research 0014 ranks 3-4. Both sources checked first: the CRC806
+"LGM major inland waters of Europe" shapefiles are CC-BY (227 + 77 KB, pinned by sha256); Giosan & Goodman 2025 (PLOS ONE) is CC BY 4.0
+but its SI holds no coastlines, so the three coast stages are traced from its Fig 6 and labelled interpreted. The past-water machinery
+now takes several scenarios: the epoch is the unit (unique id, mask, optional freshwater-distance patch, level rule: plane, per pixel or
+the sea), a year has a set of active epochs, and epochs active together never share a cell, so the ranker's one-byte cache still holds.
+LGM: one snapshot, 26.5-19 ka BP only; lakes are wet, rivers and fresh lakes count as fresh water; no Black Sea in the data. Mesopotamia:
+~7-8, ~6 and ~4 ka BP stages at the head of the Gulf, sea (not fresh). Real data: 0 groups in modelled water with the flag on at -20000,
+-6000, -4000 and -2000 (14,242 / 4,002 / 4,119 / 168 off), people conserved (unplaced groups counted), nothing moved outside the regions;
+controls unchanged. Flag off: no change (`pnpm visual`). Patches 105 KB fetched only with the flag; 8 new Earth frames (local only).
+`docs/ops/past-water.md` rewritten for three scenarios.
+
 ## [2026-11-21] feature | Guided tour behind ?tour=1
 
 Task 0010 (`docs/tasks/0010-guided-tour/`). With `?tour=1` a card at the top of the left column walks a first-time visitor

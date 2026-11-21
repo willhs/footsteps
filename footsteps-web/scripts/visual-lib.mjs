@@ -7,6 +7,7 @@
 // A scene's URL always carries `still=1` (lib/still.ts: no time-based animation), so the same scene gives the same pixels.
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import pixelmatch from 'pixelmatch';
 import sharp from 'sharp';
@@ -140,3 +141,27 @@ export function describeVerdict(v) {
 }
 
 export const kib = (bytes) => `${(bytes / 1024).toFixed(1)} KiB`;
+
+/**
+ * The 3D landscape and the flat relief read elevation tiles from AWS (Terrarium: `s3.amazonaws.com/elevation-tiles-prod` and its twin `elevation-tiles-prod.s3.amazonaws.com`), the one thing
+ * the app loads from outside. They are kept on disk (`cacheDir`, `visual-cache/`, not in git) the first time and served from there after, so a run
+ * is the same offline, fast, and cannot change because a tile did. The first run needs the network. `onFail(url)` hears of a tile that could not be fetched.
+ * Shared by scripts/visual.mjs and scripts/verify-flags.mjs.
+ */
+export const EXTERNAL_DEM = /^https:\/\/(s3\.amazonaws\.com\/elevation-tiles-prod|elevation-tiles-prod\.s3\.amazonaws\.com)\//;
+export async function cacheElevationTiles(context, cacheDir, onFail) {
+  fs.mkdirSync(cacheDir, { recursive: true });
+  await context.route(EXTERNAL_DEM, async (route) => {
+    const url = route.request().url();
+    const file = path.join(cacheDir, `${createHash('sha1').update(url).digest('hex')}.png`);
+    if (fs.existsSync(file)) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(file) });
+    const res = await route.fetch().catch(() => null);
+    if (!res || !res.ok()) {
+      onFail(url);
+      return route.abort();
+    }
+    const body = await res.body();
+    fs.writeFileSync(file, body);
+    return route.fulfill({ response: res, body });
+  });
+}

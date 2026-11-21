@@ -15,13 +15,12 @@
 //   3. the scene's own selector (a note, a card) is on screen, and 4. STABLE_SHOTS screenshots taken STABLE_MS apart are pixel-identical.
 // The fourth is what makes this honest about work the first three cannot see (workers building marks, textures uploading).
 import { chromium } from '@playwright/test';
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { serveStatic } from './static-server.mjs';
-import { SCENES, VIEWPORT, compareToBaseline, dataRoots, describeVerdict, findDataRoot, kib, sceneUrl } from './visual-lib.mjs';
+import { SCENES, VIEWPORT, cacheElevationTiles, compareToBaseline, dataRoots, describeVerdict, findDataRoot, kib, sceneUrl } from './visual-lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WEB = path.resolve(HERE, '..');
@@ -69,29 +68,7 @@ if (!base) {
 
 const browser = await chromium.launch({ headless: !flags.has('headed'), args: GPU_ARGS });
 
-/**
- * The 3D landscape and the flat relief read elevation tiles from AWS (Terrarium: `s3.amazonaws.com/elevation-tiles-prod` and its twin `elevation-tiles-prod.s3.amazonaws.com`), the one thing
- * the app loads from outside. They are kept on disk (`visual-cache/`, not in git) the first time and served from there after, so a run
- * is the same offline, fast, and cannot change because a tile did. The first run needs the network.
- */
-const EXTERNAL_DEM = /^https:\/\/(s3\.amazonaws\.com\/elevation-tiles-prod|elevation-tiles-prod\.s3\.amazonaws\.com)\//;
 const DEM_CACHE = path.join(WEB, 'visual-cache');
-async function cacheElevationTiles(context, net) {
-  fs.mkdirSync(DEM_CACHE, { recursive: true });
-  await context.route(EXTERNAL_DEM, async (route) => {
-    const url = route.request().url();
-    const file = path.join(DEM_CACHE, `${createHash('sha1').update(url).digest('hex')}.png`);
-    if (fs.existsSync(file)) return route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(file) });
-    const res = await route.fetch().catch(() => null);
-    if (!res || !res.ok()) {
-      net.externalFailed.push(url);
-      return route.abort();
-    }
-    const body = await res.body();
-    fs.writeFileSync(file, body);
-    return route.fulfill({ response: res, body });
-  });
-}
 
 /** Watch a page's network: a count in flight and when the last request ended. Workers' requests are reported on the page too. */
 function watchNetwork(page) {
@@ -228,7 +205,7 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     const net = watchNetwork(page);
-    await cacheElevationTiles(context, net);
+    await cacheElevationTiles(context, DEM_CACHE, (url) => net.externalFailed.push(url));
     let row;
     try {
       await openScene(page, net, scene);

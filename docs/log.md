@@ -4,6 +4,12 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-22] update | Flag sweep: every URL flag on and off across six scenes, and the flag inventory
+
+Added `footsteps-web/scripts/verify-flags.mjs` (+ `flags-lib.mjs`): six scenes (globe 1900, Rome 1000 BCE z9, Nile 3000 BCE close-up 3D, UK 50,000 BCE z7, Sahara 6000 BCE z8, Croatia 50,000 BCE z10) x 29 variants (no flags, each opt-in flag alone, each off switch alone, `mode=units|grid|dots`, every opt-in together, with grid and with dots, every off switch together) = 174 loads on the real GPU and data. It fails on console or page errors, failed requests that are not known-optional data (each entry has its reason), no canvas, a flat-colour map, or a page that never settles. Result: 174/174 pass, no app bug found, so no fixes were needed. Known-optional data missing on this machine (terrain photo pyramid, past-water frames, adjusted spread grids, the day API) means those flags ran on their fallback path; `--strict` fails on them.
+
+Grepping the source for URL reads found 30 parameters (plus the aliases `lng` and `z`); `docs/ops/flags.md` lists each (default, what it does, ops doc, reviewed or not). `?ice` is not a flag. `lib/flags.test.ts` fails if the code reads a parameter that is not in the registry or the doc, so a new flag cannot land unlisted. `footsteps-web/AGENTS.md` points to it. The elevation-tile cache moved from `visual.mjs` to `visual-lib.mjs` so both scripts share it (`pnpm visual` re-checked on globe-1900 and nile-3000bce-3d). No defaults changed.
+
 ## [2026-11-22] lint | Docs audit: index created, links fixed, built research marked
 
 Docs-lint over 81 files in `docs/` (82 with the new index), links checked by script, not by eye. **Before: 124 error findings** — 81 orphans (the repo

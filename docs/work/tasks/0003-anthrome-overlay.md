@@ -1,4 +1,7 @@
 ---
+id: work-task-0003-anthrome-overlay
+type: note
+purpose: "Paused task record (2025-09-21): prototype anthrome overlay tiles and a UI toggle; not built"
 title: Prototype anthrome overlay tiles and UI toggle
 status: paused
 created: 2025-09-21

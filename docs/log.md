@@ -4,6 +4,37 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-22] lint | Docs audit: index created, links fixed, built research marked
+
+Docs-lint over 81 files in `docs/` (82 with the new index), links checked by script, not by eye. **Before: 124 error findings** — 81 orphans (the repo
+had **no `docs/index.md`**; the task's "refresh" was really "create"), 6 broken links (`docs/log.md` ×5 used `../ops/` and `../research/` from
+inside `docs/`, plus an old `../README.md#-how-to-use` anchor that no longer exists; two more `file.ts:25` links in research 0005 first
+showed as broken but are fine, and the checker now strips the line suffix) and 37 frontmatter findings across 29 files (10 with none, 4 task/history records missing `id`/`type`/`purpose`,
+15 reading `type: ops` or `research`). **After: 0 errors, 6 warnings.** 257 relative links, 0 broken (anchors included); 69 index entries, all
+with a description, every `docs/ops/*.md` among them; log headings 75 of 75 in `## [YYYY-MM-DD] verb | title` form, newest first.
+
+- **Index:** `docs/index.md` written (agent notice, sections Start here / Ops / Research / Tasks / Design). It notes the number collisions rather
+  than renaming: two `0005` research folders (`0005-time-use`, `0005-world-population-estimates`), a third unrelated `tasks/0005-settlement-patterns`,
+  and separate series for `research/`, `tasks/` and `work/tasks/` (research 0011 ≠ task 0011).
+- **Fragments:** `docs/log.d/` held only its README and there is no `docs/index.d/`, so there was nothing to fold. The convention is that the land
+  step stitches fragments (this entry is one); no fragment was folded by hand.
+- **Research status lines (each with the commit, checked with `git cat-file`):** 0006 ages `4ae7ab2`; 0007 step 1 `9331154` (production check
+  `05303f4`), steps 2-3 `0d4d440`; 0009 P1/P2/P4 `66b5c2d`, P3 `41fb3a6`, P5/P6/P8/P9 `c063e26` (published `0ac1ec6`), P7 and P10 not built;
+  0011 settlement experiment `7fd9ac4`, default `74b8f6e`; 0012 follow-ups 1-4 `2452090`, `9e03f5c`, `93079adf`, `c9b12e2` (5 and the polity name
+  not built); 0014 rank 1 `bb3f535`…`21be386`, ranks 3-4 `c2b598c` and `675a6b3` (2 and 5 not built).
+- **Frontmatter added** to 11 hand-written docs (design-system, grounding-facts, design-philosophy, one-pager, the two hosting notes, the GPU guide,
+  state-of-the-project, work/tasks 0001-0003). The two 2025-08 hosting notes also got a "superseded" banner (production is a static export on Caddy at
+  budgie). Content otherwise untouched.
+- **Left, explained:** `type: ops` / `type: research` (15 files) are this repo's own types, not the skill's five; no `front-matter-schema.json`
+  exists, so I accepted them rather than rewrite 15 files. The three `docs/ops/terrain-bench/*.md` are generated benchmark tables with no
+  frontmatter (indexed, kept as the tool wrote them). Three `work/tasks/` records are 427-444 days old (two done, one paused): history, not stale.
+- **Not run:** docs-lint checks 4, 6 and 9 (shared-tag cross-refs, contradictions, `related` inline links) were not run beyond the status checks above.
+  Not checked: whether research 0004 and 0008 want a "built" line like the others (`ops/ground-view.md` and `ops/food.md` suggest yes).
+  `docs/design-system.md` was last revised 2025-09 and I did not check it against today's UI.
+- **For Will, AGENTS.md / `.gent/rules.md` drift (not edited; `AGENTS.md` is a symlink to `.gent/rules.md`):** `docs/ops/climate-series.md` and
+  `docs/ops/grounding-facts.md` are not referenced from any of the three AGENTS.md files; every other `docs/` path they cite exists.
+  The link checker is `evidence/docs_check.py` in the job workspace; it is not committed (no code changes in this job).
+
 ## [2026-11-21] feature | Past water: European LGM lakes and rivers, Mesopotamian coast stages (?pastwater=1)
 
 Task 0011 (`docs/tasks/0011-past-water-lgm-europe-mesopotamia/`), research 0014 ranks 3-4. Both sources checked first: the CRC806
@@ -254,22 +285,22 @@ Research 0012 follow-up 4 (options A then B), behind `?settlements=1` only. A: e
 
 ## [2026-11-20] update | Households and a hover-only regional group (?settlements=1)
 
-Behind `?settlements=1` only. At street zoom a group's people now stand in households of 2-7 (mean 4.51, Binford 4.48 as cited in research 0012) round the group's ranked spot, laid out on a sunflower spiral (`layers/households.ts`, `people.ts`); age, sex, role and footwear are unchanged and person *i* never depends on group size, so the year morph's steady/leaving/entering split holds. The level above is a regional group of about 840 people (Binford 839): a block of 2^k x 2^k HYDE cells, nested and year-independent, sized to the smallest block that holds that many (`lib/regionalGroup.ts`); none is modelled where one cell already holds over 3,360 or the land is nearly empty. It is drawn only as one soft tint for the hovered or selected place (`layers/regionTint.ts`) with a hover-card line "Part of a regional group of about N people" (modelled); the legend says layout and edge are imagined. Checked in a real browser (`scripts/verify-households.mjs`): a forager band at 11,000 BCE and a 1500 CE village, flat and 3D, 110-120 fps. Deep-time sparse cells (Ohalo II, 21,000 BCE) never hold a group of 15, so no individuals appear there. See [settlements](../ops/settlements.md).
+Behind `?settlements=1` only. At street zoom a group's people now stand in households of 2-7 (mean 4.51, Binford 4.48 as cited in research 0012) round the group's ranked spot, laid out on a sunflower spiral (`layers/households.ts`, `people.ts`); age, sex, role and footwear are unchanged and person *i* never depends on group size, so the year morph's steady/leaving/entering split holds. The level above is a regional group of about 840 people (Binford 839): a block of 2^k x 2^k HYDE cells, nested and year-independent, sized to the smallest block that holds that many (`lib/regionalGroup.ts`); none is modelled where one cell already holds over 3,360 or the land is nearly empty. It is drawn only as one soft tint for the hovered or selected place (`layers/regionTint.ts`) with a hover-card line "Part of a regional group of about N people" (modelled); the legend says layout and edge are imagined. Checked in a real browser (`scripts/verify-households.mjs`): a forager band at 11,000 BCE and a 1500 CE village, flat and 3D, 110-120 fps. Deep-time sparse cells (Ohalo II, 21,000 BCE) never hold a group of 15, so no individuals appear there. See [settlements](ops/settlements.md).
 
 ## [2026-11-20] update | Modelled Ice Age people only on land sub-cells
 
-`gridData.ts` no longer shares a 0.5° modelled block's people equally over its 36 five-minute sub-cells: it gives them only to the sub-cells that are land at `seaLevelAt(year)`, read from the baked site terrain (`hooks/landSubcells.ts`; a sub-cell is land when under half of its 2 × 2 terrain pixels are sea). Block totals are now exact (no re-rounding to encoding levels), a block that is all sea at that level keeps its people (`GridData.seaBlocks`: 1 at 21,000 BCE). At 21,000 BCE people on wholly-sea sub-cells go 70,606 → 302, cells 1,175,040 → 1,156,314, the world total moves 0.03 % (3,703,509 → 3,702,465) as the old rounding goes; with `?settlements=1` groups in the sea there go 867 → 38. App-side only: `prehistory_population.py`, the images and `totals.json` are untouched, nothing to republish. The terrain image is now fetched for every modelled year. Checked in the browser at 21,000 BCE on Doggerland, the Sunda shelf and the Bay of Biscay coast. See [prehistory population](../ops/prehistory-population.md) and [site terrain](../ops/site-terrain.md).
+`gridData.ts` no longer shares a 0.5° modelled block's people equally over its 36 five-minute sub-cells: it gives them only to the sub-cells that are land at `seaLevelAt(year)`, read from the baked site terrain (`hooks/landSubcells.ts`; a sub-cell is land when under half of its 2 × 2 terrain pixels are sea). Block totals are now exact (no re-rounding to encoding levels), a block that is all sea at that level keeps its people (`GridData.seaBlocks`: 1 at 21,000 BCE). At 21,000 BCE people on wholly-sea sub-cells go 70,606 → 302, cells 1,175,040 → 1,156,314, the world total moves 0.03 % (3,703,509 → 3,702,465) as the old rounding goes; with `?settlements=1` groups in the sea there go 867 → 38. App-side only: `prehistory_population.py`, the images and `totals.json` are untouched, nothing to republish. The terrain image is now fetched for every modelled year. Checked in the browser at 21,000 BCE on Doggerland, the Sunda shelf and the Bay of Biscay coast. See [prehistory population](ops/prehistory-population.md) and [site terrain](ops/site-terrain.md).
 
 ## [2026-11-19] update | Ranked, stable group spots on land near water (?settlements=1)
 
-`?settlements=1` now puts group *k* of a cell at the cell's *k*-th ranked spot (16 candidates: flat ground x near fresh water x near the year's coast, never in the sea or a lake at that year's sea level) instead of a seeded random point; the default Units path is unchanged and `?sites=0` keeps the old positions. Baked `footsteps-web/public/sites/site_terrain.webp` (2.4 MB, 2.5' grid, Terrarium z6 + Natural Earth land and lakes) with `footstep-generator/site_terrain.py`; the ranker is `layers/siteRanking.ts`, cached by cell id in the grid worker. Measured first on the real data: 42,738 of 2.6 M groups were in the sea in 1900 CE (46,746 by Natural Earth's polygons); now 13,924 (10,508 by the polygons), not zero: the coast is only known to 4.6 km and about 3,970 cells have no surely dry spot; the modelled 21,000 BCE image puts 17,862 sub-cells' people in the sea, which a placement change cannot fix. First year load costs about 17 s more in the worker, later years under 1 s. See [site terrain](../ops/site-terrain.md).
+`?settlements=1` now puts group *k* of a cell at the cell's *k*-th ranked spot (16 candidates: flat ground x near fresh water x near the year's coast, never in the sea or a lake at that year's sea level) instead of a seeded random point; the default Units path is unchanged and `?sites=0` keeps the old positions. Baked `footsteps-web/public/sites/site_terrain.webp` (2.4 MB, 2.5' grid, Terrarium z6 + Natural Earth land and lakes) with `footstep-generator/site_terrain.py`; the ranker is `layers/siteRanking.ts`, cached by cell id in the grid worker. Measured first on the real data: 42,738 of 2.6 M groups were in the sea in 1900 CE (46,746 by Natural Earth's polygons); now 13,924 (10,508 by the polygons), not zero: the coast is only known to 4.6 km and about 3,970 cells have no surely dry spot; the modelled 21,000 BCE image puts 17,862 sub-cells' people in the sea, which a placement change cannot fix. First year load costs about 17 s more in the worker, later years under 1 s. See [site terrain](ops/site-terrain.md).
 
 ## [2026-11-19] update | Published the Hokkaido/Ryukyu prehistory rerun to budgie
 Regenerated the 90 modelled-population images (all matched the research 0013 manifest) and rsynced them to budgie; only `humans_-36000.webp` to `humans_-26000.webp` changed. Origin and public bytes match. No Cloudflare purge issued (no credentials). See [research 0013](research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).
 
 ## [2026-11-19] update | Prehistory model rerun for Hokkaido 38 -> 30 ka
 
-Reran `prehistory_population.py --verify`, `anthropology/deep.py` (full), `model_vs_evidence.py` and `arrival_check.py` against `arrivals.yaml` at `7e31399`. Hokkaido is empty until 28,000 BCE (was 36,000); 11 of 90 images changed (36,000 to 26,000 BCE), the other 79 are byte-identical; world totals and `totals.json` unchanged; the Ryukyu 38 -> 36 ka edit from the same commit also shows. The atlas `deep` cells were refreshed (only `people` changed). The images still need publishing from `main`. See [research 0013](../research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).
+Reran `prehistory_population.py --verify`, `anthropology/deep.py` (full), `model_vs_evidence.py` and `arrival_check.py` against `arrivals.yaml` at `7e31399`. Hokkaido is empty until 28,000 BCE (was 36,000); 11 of 90 images changed (36,000 to 26,000 BCE), the other 79 are byte-identical; world totals and `totals.json` unchanged; the Ryukyu 38 -> 36 ka edit from the same commit also shows. The atlas `deep` cells were refreshed (only `people` changed). The images still need publishing from `main`. See [research 0013](research/0013-arrivals-deep-past-source-check/research.md#rerun-2026-11-19).
 
 ## [2026-11-19] update | Baked a river and lake distance layer for placing groups
 
@@ -642,4 +673,4 @@ decoded request, keeping two GPU datasets and continuous brightness. GPU uploads
 are staged in hidden chunks before a fade starts. Units draws a single union of
 stable unit IDs, interpolating colours/radii on the GPU and keeping persistent
 bands at full brightness. See the
-[usage and verification instructions](../README.md#-how-to-use).
+[usage and verification instructions](../README.md#verification).

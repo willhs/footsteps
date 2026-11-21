@@ -1,4 +1,7 @@
 ---
+id: work-task-0002-static-export
+type: note
+purpose: "Done task record (2025-09-04): serve footsteps-web as a static Next.js export with no server runtime"
 title: Migrate footsteps-web to static export
 status: done
 created: 2025-09-04

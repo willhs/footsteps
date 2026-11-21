@@ -12,6 +12,10 @@ P1, P2 and P4 have now been applied, together with P9's post-blur arrival mask (
 change). The **After the region corrections** section reports the regenerated state; `results.json`
 and all five charts now use that state. The original findings remain here as the before comparison.
 
+**Built, with commits:** P1, P2, P4 and P9's arrival mask: `66b5c2d` (2026-11-14; the "After the region corrections" section);
+P3 (southern China split from mainland Southeast Asia): `41fb3a6`; P5, P6, P8 and the rest of P9: `c063e26`, results published in `0ac1ec6`
+(task [0012](../../tasks/0012-pre-hyde-research-0009-rest/plan.md)). Not built: P7 (by design) and P10.
+
 **Update, 2026-11-21:** every proposal is now applied except P7 (leave alone, by design) and P10 (new
 evidence, out of scope): P3 earlier the same day, then P5, P6, P8 and the rest of P9 together. See
 [After P5, P6, P8 and P9](#after-p5-p6-p8-and-p9-2026-11-21); `results.json` and the charts are that state.

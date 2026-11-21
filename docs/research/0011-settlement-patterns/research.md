@@ -6,6 +6,11 @@ purpose: "Sources, model decisions and limits for the flagged settlement experim
 
 # Settlement patterns: source audit and method
 
+> **Status (2026-11-22): the experiment this note scopes is built and is now the default Units view.** Real cities, regional and
+> forager settlement types: `7fd9ac4` (2026-11-15, behind `?settlements=1`); made the default, `?settlements=0` turns it off: `74b8f6e`
+> (2026-11-20). Placement, households and farm layouts followed from [research 0012](../0012-group-structure/research.md). See
+> [docs/ops/settlements.md](../../ops/settlements.md).
+
 Research date: 2026-11-14. Steady task: `33fe4184-9337-42ff-88a2-7800c8a3ff45`.
 
 ## Premise check

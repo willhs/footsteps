@@ -10,6 +10,12 @@ related: ["ops/terrain-images.md", "ops/site-terrain.md", "ops/water-distance.md
 
 # Past terrain and water
 
+> **Status (2026-11-22): recommendations 1, 3 and 4 are built behind `?pastwater=1`; 2 and 5 are not.** Rank 1, the shared Mega-Chad
+> trial: `bb3f535` (manifest and mask), `7acf5f2` (ranker, patch, close-up plane), `2a2b72e` (`terrain_image.py --pastwater`),
+> `f00b67c` (stricter lake exclusion and the independent check), `21be386` (docs). Ranks 3-4, the European LGM lakes and rivers and the
+> Mesopotamian coast stages: `c2b598c`, with every scenario's epochs in the app in `675a6b3`. See
+> [docs/ops/past-water.md](../../ops/past-water.md). Rank 2 (PaleoMIST ice and relief) and rank 5 (Agassiz, Black Sea, Persian Gulf) are open.
+
 Research date: 2026-11-21 (NZ). Steady `a2895bfe-9aeb-42f5-9c29-266db75d4bcd`.
 Vision alignment: **Footsteps of Time: vision** — a plausible, explicitly modelled landscape for ordinary lives; no claim to measured settlement locations or authoritative local geography.
 

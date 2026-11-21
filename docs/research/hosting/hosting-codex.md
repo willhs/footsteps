@@ -1,4 +1,14 @@
+---
+id: research-hosting-codex
+type: note
+purpose: "Superseded (2025-08): near-zero-cost hosting options (GitHub Pages + Cloudflare R2); production now serves a static export from Caddy on budgie"
+---
+
 # Hosting Research: Cheap Options for Footsteps of Time
+
+> **Superseded.** Written 2025-08. Production now serves the static export plus per-year images from Caddy on
+> budgie behind a Cloudflare Tunnel, deployed from main by CI: see [AGENTS.md](../../../AGENTS.md) and the
+> [README](../../../README.md). Kept as history.
 
 *Analysis conducted August 2025*
 

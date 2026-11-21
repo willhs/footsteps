@@ -1,3 +1,9 @@
+---
+id: one-pager
+type: note
+purpose: "Historical: the original one-page pitch for Footsteps; superseded by vision.md"
+---
+
 # Footsteps of Time
 
 > Historical: the original pitch. The current vision is [vision.md](vision.md).

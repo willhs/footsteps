@@ -1,4 +1,7 @@
 ---
+id: research-revitalisation-state-of-the-project
+type: note
+purpose: "Superseded (2026-11-09): the original outage investigation and revitalisation plan, kept as history; the current operating model is in README.md and AGENTS.md"
 title: State of the project — and what revitalising it takes
 status: superseded
 created: 2026-08-09

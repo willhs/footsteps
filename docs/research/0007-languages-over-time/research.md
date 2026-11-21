@@ -7,6 +7,10 @@ date: 2026-11-14
 
 # Languages over time: Glottolog and known expansions
 
+> **Status (2026-11-22): the recommendation is built.** Step 1 (Glottolog baseline, about 1500 CE) in commit `9331154`, confirmed on
+> production in `05303f4`; steps 2-3 (cited expansions table, `?langs=deep`, never before 5 ka) in commit `0d4d440`. See
+> [docs/ops/languages.md](../../ops/languages.md). No family is shown on the globe and none before 5 ka, as recommended.
+
 ## Question
 
 Can the hover card and details panel say "people here spoke a language of the X family" for a 5° cell × era? From when can it be said honestly, with what data, and how does it extend what Seshat already gives for 35 sites?

@@ -1,4 +1,14 @@
+---
+id: research-hosting-claude
+type: note
+purpose: "Superseded (2025-08): cheap hosting paths for the tiled app; production now serves a static export from Caddy on budgie (README, AGENTS.md)"
+---
+
 # Hosting Options: Cheap Paths
+
+> **Superseded.** Written 2025-08 for the MBTiles/Tile API app. Production now serves the static export
+> (`out/`) plus per-year images from Caddy on budgie behind a Cloudflare Tunnel, deployed from main by CI
+> (GHCR images, Watchtower): see [AGENTS.md](../../../AGENTS.md) and the [README](../../../README.md). Kept as history.
 
 Updated: 2025-08-10
 

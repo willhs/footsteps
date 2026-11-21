@@ -6,6 +6,12 @@ purpose: "Where groups should sit inside a cell, how to show nested levels, farm
 
 # Better human groups: placement, nesting, hierarchy, polities
 
+> **Status (2026-11-22): follow-up tasks 1-4 are built; 5 and the polity name are not.** 1 water-distance image: `2452090`
+> ([docs/ops/water-distance.md](../../ops/water-distance.md)); 2 ranked, stable, dry sites: `9e03f5c`
+> ([docs/ops/site-terrain.md](../../ops/site-terrain.md)); 3 households and the hover-only regional tint: `93079adf`; 4 EA030 farm
+> layouts and the largest-settlement line: `c9b12e2` ([docs/ops/settlements.md](../../ops/settlements.md)). The settlement model has
+> been the default Units view since `74b8f6e` (2026-11-20). Task 5 (clustered placement across cells) and the Cliopatria polity name remain proposals.
+
 Research date: 2026-11-19. Steady task `49ea43d2-787a-489f-b106-cc45cf534b3e`. Research only: no app code changed.
 Vision alignment: *Footsteps: how people lived (ways-of-life layer)*. This is about the shape and place of the groups
 that layer already colours.

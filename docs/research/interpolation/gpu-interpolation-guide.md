@@ -1,3 +1,9 @@
+---
+id: gpu-interpolation-guide
+type: reference
+purpose: "A guide (2025-08) to GPU interpolation of population between two years: grid advection, particles, optimal transport; none of it is built"
+---
+
 # GPU guide: interpolating human migration patterns over time (from start → end populations)
 
 Goal: given a start population density (and optionally a target/end density), generate a **plausible, mass-conserving** migration animation over time on the GPU, suitable for web viz (WebGL2 / WebGPU, deck.gl). This guide gives you three practical approaches:

@@ -9,6 +9,10 @@ tags: ["research", "modelled"]
 
 # Life course: who is alive, and how long might they live?
 
+> **Status (2026-11-22): the age-sampling proposal is built** in commit `4ae7ab2` (2026-11-21, "People's ages from modelled life-course
+> profiles by way of life"): see [docs/ops/ages.md](../../ops/ages.md). Still open: the life-course visual idea, herding-camp profiles,
+> the 13/55 role cut-offs and the tail-scale sensitivity check.
+
 ## Question
 
 What age structure, mortality and fertility priors can support believable people for foragers, early farmers, established agrarian populations and pre-modern cities?

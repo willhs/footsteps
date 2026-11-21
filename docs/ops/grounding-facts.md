@@ -1,3 +1,9 @@
+---
+id: grounding-facts
+type: reference
+purpose: "The 'What we know here' panel in Units mode: how a click's facts are summed from the decoded HYDE grid, and what the counts and density class mean"
+---
+
 # Grounding facts in Units mode
 
 Click the globe in Units mode to open **What we know here**. The selection follows

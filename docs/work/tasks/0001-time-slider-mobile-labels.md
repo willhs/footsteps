@@ -1,4 +1,7 @@
 ---
+id: work-task-0001-time-slider-mobile-labels
+type: note
+purpose: "Done task record (2025-09-04): stop the TimeSlider's labels overlapping on small screens"
 title: Fix mobile TimeSlider label overlap
 status: done
 created: 2025-09-04

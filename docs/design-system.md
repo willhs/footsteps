@@ -1,3 +1,9 @@
+---
+id: design-system
+type: reference
+purpose: "Practical UI rules for building screens that match the design philosophy (data-driven minimalism, time-first); last revised 2025-09, so check against the app before relying on it"
+---
+
 # Footsteps of Time: Design System (Practical Guide)
 
 Simple, action-oriented rules for building UI that matches our philosophy. Use this as the source of truth for agents and contributors.

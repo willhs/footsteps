@@ -1,3 +1,9 @@
+---
+id: design-philosophy
+type: note
+purpose: "Will's design philosophy for Footsteps: the experience wanted, and the design system that follows; the vision itself is vision.md"
+---
+
 # Footsteps of Time: Design Philosophy & System
 
 ## 1. Design Philosophy

@@ -61,28 +61,28 @@ Invariants: 8-10 stops, years ascending, each year a people-image year, evidence
 
 ## Phase 1: Stop data and logic
 
-- [ ] Create `footsteps-web/lib/tour.ts`: `TOUR_STOPS`, `ARRIVAL_KA`, `tourParam`, `stepTour`, `flyFrame`, `tourKeyAction`, `FLY_MS`.
-- [ ] Create `footsteps-web/lib/tour.test.ts`: stop count, years in range and on people years, ascending, evidence vs `evidenceAt`, two sentences each, every number in the text equals its source (totals, other-human dates, sea level, arrival dates read from `arrivals.yaml`), `flyFrame` endpoints and shortest longitude, key mapping.
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand lib/tour` — green.
+- [x] Create `footsteps-web/lib/tour.ts`: `TOUR_STOPS`, `ARRIVAL_KA`, `tourParam`, `stepTour`, `flyFrame`, `tourKeyAction`, `FLY_MS`.
+- [x] Create `footsteps-web/lib/tour.test.ts`: stop count, years in range and on people years, ascending, evidence vs `evidenceAt`, two sentences each, every number in the text equals its source (totals, other-human dates, sea level, arrival dates read from `arrivals.yaml`), `flyFrame` endpoints and shortest longitude, key mapping.
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand lib/tour` — green.
 
 ## Phase 2: Hook, panel, mount
 
-- [ ] Create `components/footsteps/hooks/useTour.ts`.
-- [ ] Create `components/footsteps/overlays/TourPanel.tsx`.
-- [ ] Mount in `FootstepsViz.tsx` (prop, hook call, panel in the column) and pass `setTime` from `app/page.tsx`.
-- [ ] Run: tsc and lint — clean.
+- [x] Create `components/footsteps/hooks/useTour.ts`.
+- [x] Create `components/footsteps/overlays/TourPanel.tsx`.
+- [x] Mount in `FootstepsViz.tsx` (prop, hook call, panel in the column) and pass `setTime` from `app/page.tsx`.
+- [x] Run: tsc and lint — clean.
 
 ## Phase 3: Prove it
 
-- [ ] Create `footsteps-web/scripts/tour-shots.mjs`: serve `out/` + real data, open `?tour=1&still=1`, step with ArrowRight, screenshot each stop, fail on console errors.
-- [ ] Run: `pnpm --dir footsteps-web build` then `node scripts/tour-shots.mjs <evidence dir>` — 9 shots, 0 console errors.
-- [ ] Run: `pnpm visual` — every scene passes (no flag, nothing changed).
+- [x] Create `footsteps-web/scripts/tour-shots.mjs`: serve `out/` + real data, open `?tour=1&still=1`, step with ArrowRight, screenshot each stop, fail on console errors.
+- [x] Run: `pnpm --dir footsteps-web build` then `node scripts/tour-shots.mjs <evidence dir>` — 9 shots, 0 console errors.
+- [x] Run: `pnpm visual` — every scene passes (no flag, nothing changed).
 
 ## Phase 4: Docs and wrap
 
-- [ ] Write `docs/ops/tour.md` (stops, sources, wording as a first draft for Will) with three committed shots.
-- [ ] Write `docs/log.d/3ec5bbd3-9ea1-4010-87db-fd3af1b79eda.md`; add a line to `footsteps-web/AGENTS.md`.
-- [ ] Run full frontend checks (lint, tsc, test, build); commit.
+- [x] Write `docs/ops/tour.md` (stops, sources, wording as a first draft for Will) with three committed shots.
+- [x] Write `docs/log.d/3ec5bbd3-9ea1-4010-87db-fd3af1b79eda.md`; add a line to `footsteps-web/AGENTS.md`.
+- [x] Run full frontend checks (lint, tsc, test, build); commit.
 
 ## References
 

@@ -30,6 +30,8 @@ import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
+import TourPanel from './overlays/TourPanel';
+import useTour from '@/components/footsteps/hooks/useTour';
 import WaySign from './overlays/WaySign';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
@@ -92,11 +94,13 @@ interface FootstepsVizProps {
   time: number;
   /** Reports the data years still loading for the current view (null = ready). */
   onLoadingChange?: (loading: [number, number] | null) => void;
+  /** Sets the slider year; the `?tour=1` guided tour (lib/tour.ts) moves it. Without it there is no tour. */
+  onTimeChange?: (time: number) => void;
 }
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
+function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsVizProps) {
   // Views that can only show whole data years use the nearest one; the glow
   // mixes the two data years either side of `time`.
   const year = nearestDataYear(time);
@@ -145,6 +149,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
+  // `?tour=1`: the guided tour flies the camera and sets the year through the same setters (docs/ops/tour.md).
+  const tour = useTour({ viewState, onViewStateChange, setTime: onTimeChange });
 
   const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -448,6 +454,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           top: 'calc(var(--ov-top) + var(--ov-stats-h, 150px) + 8px)',
         }}
       >
+        {tour && <TourPanel tour={tour} />}
         {figures && peopleView && blend.people > 0 && (
           <p className="ov-panel ov-body px-3 py-2">People’s positions and look imagined · animals’ ranges modelled, individuals imagined</p>
         )}

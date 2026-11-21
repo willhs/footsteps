@@ -25,7 +25,7 @@ export default function Home() {
     // data-loading: the time bar's loading flag as an attribute, for the visual regression run to wait on (docs/ops/visual-regression.md).
     <main className="relative w-full h-full overflow-hidden bg-black" data-loading={loading ? 'true' : 'false'}>
       <ErrorBoundary>
-        <FootstepsViz time={time} onLoadingChange={setLoading} />
+        <FootstepsViz time={time} onLoadingChange={setLoading} onTimeChange={setTime} />
       </ErrorBoundary>
       <Bar time={time} onChange={setTime} loading={loading} />
     </main>

@@ -45,6 +45,9 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `@deck.gl/mesh-layers` must stay aliased to its CommonJS
   build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
+- Guided tour, `?tour=1` only (`docs/ops/tour.md`): nine stops in `lib/tour.ts` (`TOUR_STOPS`; every number in the wording is computed from `PEOPLE_TOTALS`, `OTHER_HUMANS`, `seaLevelAt`
+  or pinned to `arrivals.yaml` by `lib/tour.test.ts`: never type a number in), driven by `hooks/useTour.ts` through `useGlobeViewState`'s setter and the page's `setTime` (FootstepsViz's `onTimeChange` prop),
+  card `overlays/TourPanel.tsx` at the top of the left column. A press, wheel or key stops a flight. `node scripts/tour-shots.mjs <dir>` steps through every stop on the build and fails on console errors.
 - `pnpm visual` is the screenshot regression: ten fixed scenes (Units, Grid, Dots, close-up 3D, hover card, a selected person) on real data and GPU, compared with `e2e/visual/*.webp`. **Run it after `pnpm build` and before committing any change that can move pixels**; a diff sheet (`visual-out/<scene>.diff.png`) shows what moved, and `pnpm visual --update --scenes <ids>` re-baselines on purpose. `?still=1` stops the time-based animation for it (`lib/still.ts`). Not in CI (no GPU, no data). `docs/ops/visual-regression.md`.
 - Terrain colour close in: `layers/TerrainDetailLayer.ts` draws the 500 m photo pyramid (`/terrain/detail/{z}/{x}/{y}.webp`, z3–8,
   a manifest says which tiles exist) recoloured by the two era images on the GPU (`recolour` in `lib/terrainDetail.ts`, GLSL twin

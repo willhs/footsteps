@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Guided tour behind ?tour=1
+
+Task 0010 (`docs/tasks/0010-guided-tour/`). With `?tour=1` a card at the top of the left column walks a first-time visitor
+through nine stops: Africa at 100,000 BCE, the first people outside Africa (60,000 BCE), Sahul (46,000 BCE), the
+Neanderthals fading (38,000 BCE), the Americas (12,000 BCE), HYDE's first year (10,000 BCE), the Nile (3000 BCE), Rome
+(year 0) and the world in 1900. Each stop flies the camera, sets the year and gives two sentences, labelled measured or
+modelled, whose numbers are computed from `PEOPLE_TOTALS`, `OTHER_HUMANS` and `seaLevelAt` or pinned to `arrivals.yaml`
+by `lib/tour.test.ts`. Arrows step, Esc leaves; a drag, wheel or key stops a flight. `scripts/tour-shots.mjs` steps through
+every stop on the real build with no console errors. Without the flag nothing changes (`pnpm visual`). The wording is a
+first draft for Will: `docs/ops/tour.md`.
+
 ## [2026-11-21] update | Pre-HYDE model: research 0009 P5, P6, P8 and the rest of P9 applied, rerun and published
 
 Three new optional `arrivals.yaml` row fields, read by `prehistory_population.py` ([task 0012](tasks/0012-pre-hyde-research-0009-rest/plan.md)):

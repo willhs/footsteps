@@ -29,10 +29,11 @@ Images are undimmed; the client dims and tints them.
 Usage: python footstep-generator/terrain_image.py [--quality Q] [--pastwater] [years ...]
        (no years: every TERRAIN_YEAR; with --pastwater, every year whose picture differs)
 
-`--pastwater` (the images the app reads under `?pastwater=1`, written to `data/tiles/terrain/pastwater/`): Lake Mega-Chad is painted from
-the shared highstand mask of `past_water.py`, at full strength in the scenario's years (-9550 to -3050) and absent outside them, in place of
-the box-and-elevation lake above, whose strength fades with `sahara_weight`. The app cross-fades neighbouring 1,000-year images as it does
-for everything else; that blend is a picture, the lake's dates are `past_water.py`'s. See docs/ops/past-water.md.
+`--pastwater` (the images the app reads under `?pastwater=1`, written to `data/tiles/terrain/pastwater/`): every past-water scenario of
+`past_water.py` (Mega-Chad, the European LGM lakes, the Mesopotamian coast stages) is painted from its shared masks, at full strength in its
+epochs' years and absent outside them, only where the frame draws land; Mega-Chad replaces the box-and-elevation lake above, whose strength
+fades with `sahara_weight`. The app cross-fades neighbouring 1,000-year images as it does for everything else; that blend is a picture,
+the scenarios' dates are their manifests'. See docs/ops/past-water.md.
 """
 import argparse
 from dataclasses import dataclass
@@ -314,18 +315,44 @@ def green_sahara(colour: np.ndarray, desertish: np.ndarray, year: float) -> np.n
     return colour + (target - colour) * strength * 0.9
 
 
-def pastwater_lake() -> np.ndarray:
-    """The shared Mega-Chad highstand mask (past_water.py) at output resolution, 0..1 (the share of each output pixel that is lake)."""
+def pastwater_mask(epoch: dict) -> np.ndarray:
+    """One past-water epoch's mask (past_water.py) at output resolution, 0..1 (the share of each output pixel that is its water)."""
     import past_water
-    patch, mask, _ = past_water.load_lake()
-    world = past_water.place_on_world(patch, mask.astype(np.float32), past_water.NX, past_water.NY)
+    patch, wet, _ = past_water.load_mask(epoch)
+    world = past_water.place_on_world(patch, wet.astype(np.float32), past_water.NX, past_water.NY)
     return resize(world, W, H, Image.BOX)
 
 
-def pastwater_years() -> list[int]:
-    """Terrain years whose picture differs under --pastwater: where the old lake is drawn (sahara_weight above 0) or the scenario holds."""
+def pastwater_lake() -> np.ndarray:
+    """The shared Mega-Chad highstand mask at output resolution, 0..1."""
     import past_water
-    return [y for y in TERRAIN_YEARS if sahara_weight(y) > 0 or past_water.epoch_at(y) != past_water.INACTIVE]
+    return pastwater_mask(past_water.load_manifest(past_water.NAME)["epochs"][0])
+
+
+def scenario_years(manifest: dict, old_lake: bool = False) -> list[int]:
+    """Terrain years whose picture differs under --pastwater because of one scenario: where any of its epochs holds, and (Mega-Chad,
+    `old_lake`) where the old faded box lake is drawn without the flag (sahara_weight above 0), since the flag takes it away."""
+    spans = [(e["from_year"], e["to_year"]) for e in manifest["epochs"]]
+    return [y for y in TERRAIN_YEARS if (old_lake and sahara_weight(y) > 0) or any(a <= y <= b for a, b in spans)]
+
+
+def pastwater_years() -> list[int]:
+    """Terrain years whose picture differs under --pastwater: the union of every scenario's years (each manifest lists its own)."""
+    import past_water
+    return sorted({y for m in past_water.manifests() for y in m["terrain"]["years"]})
+
+
+def pastwater_paint(year: int, land_a: np.ndarray, p) -> tuple[np.ndarray, np.ndarray]:
+    """(share 0..1, colour) of past water to paint at a year: every active epoch's mask at full strength, only on what the frame draws as
+    land (a scenario never repaints the sea), lake colour for lakes and sea colour for marine water ("paint" in the epoch)."""
+    import past_water
+    share = np.zeros((H, W, 1), np.float32)
+    colour = np.zeros((H, W, 3), np.float32)
+    for _, epoch in past_water.active_epochs(year):
+        m = pastwater_mask(epoch)[..., None] * land_a
+        colour += (p.sea if epoch["paint"] == "sea" else p.lake) * m
+        share += m
+    return np.clip(share, 0, 1), np.where(share > 0, colour / np.maximum(share, 1e-9), 0)
 
 
 def mega_chad(year: float) -> np.ndarray:
@@ -400,11 +427,10 @@ def frame(year: int, pastwater: bool = False) -> np.ndarray:
     out = sea_rgb + (land_rgb - sea_rgb) * land_a
 
     if pastwater:
-        import past_water
-        lake = pastwater_lake()[..., None] * (past_water.epoch_at(year) != past_water.INACTIVE)
+        lake, lake_rgb = pastwater_paint(year, land_a, p)
     else:
-        lake = mega_chad(year)[..., None] * land_a
-    out = out + (p.lake - out) * lake
+        lake, lake_rgb = mega_chad(year)[..., None] * land_a, p.lake
+    out = out + (lake_rgb - out) * lake
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
@@ -427,7 +453,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--quality", type=int, default=90)
-    parser.add_argument("--pastwater", action="store_true", help="the ?pastwater=1 images: Mega-Chad from the shared highstand mask")
+    parser.add_argument("--pastwater", action="store_true", help="the ?pastwater=1 images: every past-water scenario from its shared masks")
     parser.add_argument("years", type=int, nargs="*")
     args = parser.parse_args()
     for y in args.years or (pastwater_years() if args.pastwater else TERRAIN_YEARS):

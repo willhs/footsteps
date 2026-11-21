@@ -1,0 +1,207 @@
+{
+  "id": "lgm_europe",
+  "version": 2,
+  "label": "European LGM lakes and rivers (published vectors, experimental)",
+  "short": "LGM lakes and rivers",
+  "evidence": "published vectors (compiled maps), levels estimated",
+  "flag": "?pastwater=1",
+  "datum": "lake levels in metres above mean sea level as in ETOPO1 (estimated from each lake's shore); outlines in WGS84 degrees",
+  "summary": "European LGM lakes and rivers: one published snapshot (CRC806, compiled maps), 26.5–19 ka BP only; lakes keep groups out, fresh ones and the rivers count as fresh water. No Black Sea in the data.",
+  "epochs": [
+    {
+      "id": 2,
+      "name": "LGM snapshot",
+      "from_bp": 26500,
+      "to_bp": 19000,
+      "from_year": -24550,
+      "to_year": -17050,
+      "state": "one snapshot of the published LGM reconstruction, held unchanged through the window; never interpolated",
+      "water": "lakes: fresh (assumed) except the Caspian, Aral, Sarygamysh and Lisan; rivers: fresh (assumed)",
+      "paint": "lake",
+      "level": {
+        "kind": "pixel",
+        "clip_to_dem": false,
+        "rule": "per lake: median ETOPO1 height of its shore pixels, whole metres, carried as green * 256 + blue - 32768"
+      },
+      "mask": {
+        "file": "lgm_europe_mask.webp",
+        "x0": 4438,
+        "y0": 512,
+        "width": 1501,
+        "height": 913,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 4134,
+        "sha256": "bee80147b6ae4e690411d4a26caf3c2d77762f22f5ff685270605993703d5e08",
+        "red": "255 = lake, 0 = not",
+        "lake_pixels": 95433
+      },
+      "distance": {
+        "file": "lgm_europe_water.webp",
+        "x0": 1946,
+        "y0": 141,
+        "width": 845,
+        "height": 540,
+        "grid": "4320 x 2160 HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
+        "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
+        "bytes": 82990,
+        "sha256": "50b2e67ade210adbb722af304c9eee0b397986f38ccd04da7eb86d3a3e0644ec",
+        "cells_changed": 58865,
+        "rule": "min(static distance image, distance to LGM rivers and fresh lakes); outside the patch the static image is exact"
+      }
+    }
+  ],
+  "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as dry; the app draws and places as it does without the flag",
+  "area_km2": 1363670,
+  "lakes": [
+    {
+      "index": 2,
+      "name": null,
+      "pixels": 513,
+      "level_m": 118.0,
+      "fresh": true
+    },
+    {
+      "index": 23,
+      "name": null,
+      "pixels": 710,
+      "level_m": 165.0,
+      "fresh": true
+    },
+    {
+      "index": 27,
+      "name": null,
+      "pixels": 1242,
+      "level_m": 128.0,
+      "fresh": true
+    },
+    {
+      "index": 36,
+      "name": null,
+      "pixels": 9086,
+      "level_m": 118.0,
+      "fresh": true
+    },
+    {
+      "index": 70,
+      "name": null,
+      "pixels": 474,
+      "level_m": 130.0,
+      "fresh": true
+    },
+    {
+      "index": 71,
+      "name": null,
+      "pixels": 408,
+      "level_m": 110.0,
+      "fresh": true
+    },
+    {
+      "index": 72,
+      "name": null,
+      "pixels": 424,
+      "level_m": 95.0,
+      "fresh": true
+    },
+    {
+      "index": 74,
+      "name": null,
+      "pixels": 1443,
+      "level_m": 124.0,
+      "fresh": true
+    },
+    {
+      "index": 75,
+      "name": "Caspian Sea",
+      "pixels": 52752,
+      "level_m": 9.0,
+      "fresh": false
+    },
+    {
+      "index": 76,
+      "name": "Sarygamysh Lake",
+      "pixels": 155,
+      "level_m": 22.0,
+      "fresh": false
+    },
+    {
+      "index": 77,
+      "name": "Aral Sea",
+      "pixels": 24075,
+      "level_m": 108.0,
+      "fresh": false
+    },
+    {
+      "index": 78,
+      "name": "Lake Lisan",
+      "pixels": 163,
+      "level_m": -263.0,
+      "fresh": false
+    },
+    {
+      "index": 79,
+      "name": "Lake NS",
+      "pixels": 2785,
+      "level_m": -34.0,
+      "fresh": true
+    }
+  ],
+  "lakes_below_the_grid": 33,
+  "lakes_total": 80,
+  "rivers_total": 94,
+  "level_check": {
+    "0": {
+      "stated_m": 145,
+      "shore_median_m": 111.0
+    },
+    "1": {
+      "stated_m": 137,
+      "shore_median_m": 108.0
+    },
+    "2": {
+      "stated_m": 150,
+      "shore_median_m": 118.0
+    },
+    "3": {
+      "stated_m": 180,
+      "shore_median_m": 118.0
+    }
+  },
+  "digest": "b59e57be1d86a0ed",
+  "licence": "CC-BY (CRC806 metadata PDF; dataset page: attribution required, commercial use and derivations allowed); version not stated",
+  "sources": {
+    "data": "Verheul, J., Zickel, M., Becker, D., Willmes, C. (2015): LGM major inland waters of Europe - GIS dataset. CRC806-Database, doi:10.5880/SFB806.14",
+    "files": {
+      "LGM_Lakes.zip": {
+        "url": "https://crc806db.uni-koeln.de/data/Z/Z2/LGM_Lakes.zip",
+        "sha256": "8bd5e7e815cf414967459b2cfbf027136043c503abcd562045a61720e238f940"
+      },
+      "LGM_River.zip": {
+        "url": "https://crc806db.uni-koeln.de/data/Z/Z2/LGM_River.zip",
+        "sha256": "04661e387f56bbe2b5c7fef4bf00713a4c78c05d3c970ee78e2fc563bb2e9711"
+      }
+    },
+    "levels": "ETOPO1 4' (data/raw/etopo/etopo_4min.nc), median of each lake's shore pixels",
+    "chronology": "the dataset's temporal metadata: LGM, 26,500-19,000 yBP (Clark et al. 2009); taken as calendar BP from 1950",
+    "static_water": "footsteps-web/public/water/water_distance.webp (Natural Earth 10m v5.1.2)"
+  },
+  "uncertainty": [
+    "One reconstruction stands for 7,500 years: lakes filled, drained and moved with the ice front inside the window.",
+    "Outlines come from maps of different scales and authors; some river reaches are GEBCO flow routes, not observed channels.",
+    "Lake levels are the median modern height of each outline's shore, not dated shorelines (they only set the close-up's water plane): the Polish ice-dammed lakes come out 30-60 m below the altitudes their sources state, Lake Lisan at -263 m where its LGM stand was nearer -160 m; the Caspian and Aral outlines are much larger than today and their LGM-age stands are debated.",
+    "Freshness is assumed from the lake's kind (ice-dammed and river lakes fresh; the Caspian, Aral, Sarygamysh and Lisan not).",
+    "The Black Sea is not in the dataset: its LGM level is not modelled here.",
+    "Nothing is said outside the window: not dry, not wet."
+  ],
+  "terrain": {
+    "years": [
+      -24000,
+      -23000,
+      -22000,
+      -21000,
+      -20000,
+      -19000,
+      -18000
+    ],
+    "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images"
+  }
+}

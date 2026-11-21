@@ -64,6 +64,7 @@ def test_manifest_states_datum_dates_freshness_and_what_outside_the_window_means
     assert m["level_m"] == 329.0 and "geoid" in m["datum"] and "not relative to the year's global ocean level" in m["datum"]
     assert [(e["from_year"], e["to_year"]) for e in m["epochs"]] == [(-9550, -3050)]
     assert m["epochs"][0]["water"] == "fresh (assumed)"
+    assert m["epochs"][0]["level"] == {"kind": "plane", "m": 329.0, "clip_to_dem": True}
     assert "not the same as a dry lakebed" in m["outside_epochs"]
     assert m["evidence"] == "modelled"
     assert m["uncertainty"]
@@ -72,11 +73,12 @@ def test_manifest_states_datum_dates_freshness_and_what_outside_the_window_means
 def test_committed_files_match_the_manifest(scenario):
     import hashlib
     _, _, m = scenario
+    e = m["epochs"][0]
     for key in ("mask", "distance"):
-        path = pw.OUT / m[key]["file"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == m[key]["sha256"]
-        assert path.stat().st_size == m[key]["bytes"]
-    assert m["mask"]["bytes"] + m["distance"]["bytes"] < 20_000  # a regional patch, not a world image
+        path = pw.OUT / e[key]["file"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == e[key]["sha256"]
+        assert path.stat().st_size == e[key]["bytes"]
+    assert e["mask"]["bytes"] + e["distance"]["bytes"] < 20_000  # a regional patch, not a world image
 
 
 def test_lake_area_matches_the_published_361k_km2(scenario):
@@ -121,7 +123,7 @@ def test_a_pixel_dry_in_the_mask_is_not_lake_and_the_world_outside_the_patch_is_
 @pytest.fixture(scope="module")
 def distances(scenario):
     patch, mask, m = scenario
-    d = m["distance"]
+    d = m["epochs"][0]["distance"]
     dpatch = pw.Patch(d["x0"], d["y0"], d["width"], d["height"])
     codes = pw.read_gray(pw.OUT / d["file"])
     base = pw.read_gray(STATIC)
@@ -135,7 +137,7 @@ def test_outside_the_patch_every_cell_is_the_static_image(distances):
     outside = np.ones(base.shape, bool)
     outside[dpatch.y0:dpatch.y0 + dpatch.height, dpatch.x0:dpatch.x0 + dpatch.width] = False
     assert (merged[outside] == base[outside]).all()
-    assert (merged != base).sum() == json.loads((pw.OUT / "mega_chad.json").read_text())["distance"]["cells_changed"]
+    assert (merged != base).sum() == json.loads((pw.OUT / "mega_chad.json").read_text())["epochs"][0]["distance"]["cells_changed"]
 
 
 def test_the_lake_never_makes_water_farther_and_its_cells_are_water(distances):
@@ -168,4 +170,4 @@ def test_a_cell_the_lake_does_not_reach_keeps_its_static_distance(distances):
 def test_manifest_lists_the_terrain_years_the_flag_repaints(scenario):
     import terrain_image
     _, _, m = scenario
-    assert m["terrain"]["years"] == terrain_image.pastwater_years()
+    assert m["terrain"]["years"] == terrain_image.scenario_years(m, old_lake=True) == list(range(-9000, -2000, 1000))

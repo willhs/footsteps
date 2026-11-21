@@ -1,0 +1,199 @@
+{
+  "id": "mesopotamia",
+  "version": 2,
+  "label": "Mesopotamian coast stages (interpreted from a published figure, experimental)",
+  "short": "Mesopotamian coast",
+  "evidence": "interpreted: traced from Giosan & Goodman 2025 Fig 6, a schematic reconstruction",
+  "flag": "?pastwater=1",
+  "datum": "outlines traced on the figure's own graticule (plate carree, WGS84 degrees assumed); water at the year's global sea level",
+  "summary": "Mesopotamian coast: three stages traced from Giosan & Goodman 2025 (Fig 6, CC BY 4.0), interpreted, head of the Gulf only; the sea keeps groups out and is not fresh water.",
+  "epochs": [
+    {
+      "id": 3,
+      "name": "~7-8 ka BP (Fig 6a)",
+      "from_bp": 8000,
+      "to_bp": 6501,
+      "from_year": -6050,
+      "to_year": -4551,
+      "state": "Fig 6a traced as it is drawn, held through the window; not interpolated to the next stage",
+      "water": "sea (the Gulf and its bay): not fresh",
+      "paint": "sea",
+      "level": {
+        "kind": "sea",
+        "clip_to_dem": false,
+        "rule": "the year's global sea level, as the app's own sea"
+      },
+      "mask": {
+        "file": "mesopotamia_a_mask.webp",
+        "x0": 5376,
+        "y0": 1356,
+        "width": 132,
+        "height": 89,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 176,
+        "sha256": "f03d65e1b05e117d5a3d3b7512e6f36da8511b1e53d35ed5d6858653947bad62",
+        "red": "255 = water (the panel's blue), 0 = not",
+        "water_pixels": 2792,
+        "area_km2": 51432
+      },
+      "distance": null
+    },
+    {
+      "id": 4,
+      "name": "~6 ka BP (Fig 6b)",
+      "from_bp": 6500,
+      "to_bp": 5500,
+      "from_year": -4550,
+      "to_year": -3550,
+      "state": "Fig 6b traced as it is drawn, held through the window; not interpolated to the next stage",
+      "water": "sea (the Gulf and its bay): not fresh",
+      "paint": "sea",
+      "level": {
+        "kind": "sea",
+        "clip_to_dem": false,
+        "rule": "the year's global sea level, as the app's own sea"
+      },
+      "mask": {
+        "file": "mesopotamia_b_mask.webp",
+        "x0": 5376,
+        "y0": 1356,
+        "width": 132,
+        "height": 89,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 172,
+        "sha256": "2364b49384316495f523811a388d48f32b9f89840d8469baa3757702c2fb1e6c",
+        "red": "255 = water (the panel's blue), 0 = not",
+        "water_pixels": 2793,
+        "area_km2": 51270
+      },
+      "distance": null
+    },
+    {
+      "id": 5,
+      "name": "~4 ka BP (Fig 6c)",
+      "from_bp": 4500,
+      "to_bp": 3500,
+      "from_year": -2550,
+      "to_year": -1550,
+      "state": "Fig 6c traced as it is drawn, held through the window; not interpolated to the next stage",
+      "water": "sea (the Gulf and its bay): not fresh",
+      "paint": "sea",
+      "level": {
+        "kind": "sea",
+        "clip_to_dem": false,
+        "rule": "the year's global sea level, as the app's own sea"
+      },
+      "mask": {
+        "file": "mesopotamia_c_mask.webp",
+        "x0": 5376,
+        "y0": 1356,
+        "width": 132,
+        "height": 89,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 128,
+        "sha256": "0141d1ff11f23dcb846e7d50b42672c275f5f1e543e83112d62de650442ba5d7",
+        "red": "255 = water (the panel's blue), 0 = not",
+        "water_pixels": 856,
+        "area_km2": 15779
+      },
+      "distance": null
+    }
+  ],
+  "between_epochs": "5,500-4,501 BP falls between the ~6 ka and ~4 ka stages: no scenario, geography unknown",
+  "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as dry; the app draws and places as it does without the flag",
+  "region": {
+    "south": 29.8,
+    "north": 33.5,
+    "west": 44.0,
+    "east": 49.5,
+    "why": "the head of the Gulf, where the stages differ from today; elsewhere the figure is today's coast generalised"
+  },
+  "georeference": {
+    "ticks_x": [
+      [
+        470,
+        40
+      ],
+      [
+        622,
+        42
+      ],
+      [
+        775,
+        44
+      ],
+      [
+        927,
+        46
+      ],
+      [
+        1232,
+        50
+      ],
+      [
+        1384,
+        52
+      ]
+    ],
+    "ticks_y": [
+      [
+        82,
+        40
+      ],
+      [
+        235,
+        38
+      ],
+      [
+        387,
+        36
+      ],
+      [
+        692,
+        32
+      ],
+      [
+        996,
+        28
+      ]
+    ],
+    "panel_offset_px": {
+      "a": 0,
+      "b": 1071,
+      "c": 2147
+    },
+    "px_per_degree": [
+      76.186,
+      -76.159
+    ]
+  },
+  "area_km2": {
+    "a": 51432,
+    "b": 51270,
+    "c": 15779
+  },
+  "digest": "68c2376310c3cbe6",
+  "licence": "CC BY 4.0 (the article and its figures); the traced outlines are a derivative, attributed",
+  "sources": {
+    "figure": "Giosan, L. & Goodman, R. C. (2025) Tidal irrigation and the rise of Sumer. PLOS ONE 20(8): e0329084, Fig 6 (doi:10.1371/journal.pone.0329084.g006)",
+    "figure_url": "https://journals.plos.org/plosone/article/figure/image?size=large&id=10.1371/journal.pone.0329084.g006",
+    "figure_sha256": "e1794698bcb22c6d6164e859bfa44834a749d8b3e0d56b3cf801d624bfff54cd",
+    "dates": "panel labels ~8000 / ~6000 / ~4000 BP; caption '7,000, 6,000 and 4,000 years ago'; taken as calendar BP from 1950"
+  },
+  "uncertainty": [
+    "A schematic figure, not a survey: the paper states its reconstruction is synoptic; the traced shore is good to a few km at best.",
+    "Panel a is labelled ~8000 BP but captioned 7,000 years ago; its window covers both.",
+    "Each stage is held about 500 years either side; the coast moved continuously in between and the gaps say nothing.",
+    "Modern heights under the bay are later delta sediment; the close-up flattens them to the sea.",
+    "Nothing is said outside the stages or outside the region: not dry, not wet."
+  ],
+  "terrain": {
+    "years": [
+      -6000,
+      -5000,
+      -4000,
+      -2000
+    ],
+    "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "id": "mega_chad",
-  "version": 1,
+  "version": 2,
   "label": "Mega-Chad highstand (modelled, experimental)",
   "evidence": "modelled",
   "flag": "?pastwater=1",
@@ -15,35 +15,41 @@
       "from_year": -9550,
       "to_year": -3050,
       "state": "highstand at level_m, no fade or partial stage",
-      "water": "fresh (assumed)"
+      "water": "fresh (assumed)",
+      "paint": "lake",
+      "level": {
+        "kind": "plane",
+        "m": 329.0,
+        "clip_to_dem": true
+      },
+      "mask": {
+        "file": "mega_chad_mask.webp",
+        "x0": 4596,
+        "y0": 1719,
+        "width": 196,
+        "height": 207,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 646,
+        "sha256": "84304cb0297e0718ff9590eb1c67ac5eee9449f3f8e96c867f5f7a6f2daa8278",
+        "red": "255 = lake, 0 = not",
+        "lake_pixels": 17264
+      },
+      "distance": {
+        "file": "mega_chad_water.webp",
+        "x0": 2245,
+        "y0": 726,
+        "width": 219,
+        "height": 248,
+        "grid": "4320 x 2160 HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
+        "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
+        "bytes": 8016,
+        "sha256": "027e858e9dbf44e8408a34a5f8cca63cd418f1e4541ffffbcae9a4b2f7f00ac4",
+        "cells_changed": 36249,
+        "rule": "min(static distance image, distance to the lake's cells); outside the patch the static image is exact"
+      }
     }
   ],
   "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as a dry lakebed; the app draws and places as it does without the flag",
-  "mask": {
-    "file": "mega_chad_mask.webp",
-    "x0": 4596,
-    "y0": 1719,
-    "width": 196,
-    "height": 207,
-    "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
-    "red": "255 = lake, 0 = not",
-    "bytes": 646,
-    "sha256": "84304cb0297e0718ff9590eb1c67ac5eee9449f3f8e96c867f5f7a6f2daa8278",
-    "lake_pixels": 17264
-  },
-  "distance": {
-    "file": "mega_chad_water.webp",
-    "x0": 2245,
-    "y0": 726,
-    "width": 219,
-    "height": 248,
-    "grid": "4320 x 2160 HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
-    "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
-    "rule": "min(static distance image, distance to the lake's cells); outside the patch the static image is exact",
-    "bytes": 8016,
-    "sha256": "027e858e9dbf44e8408a34a5f8cca63cd418f1e4541ffffbcae9a4b2f7f00ac4",
-    "cells_changed": 36249
-  },
   "area_km2": 358873,
   "area_reference_km2": {
     "value": 361000,

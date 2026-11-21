@@ -204,12 +204,90 @@ def write_gray(path: Path, values: np.ndarray) -> None:
     Image.fromarray(np.repeat(values[:, :, None], 3, axis=2)).save(path, lossless=True, quality=100, method=6)
 
 
+def write_rgb(path: Path, rgb: np.ndarray) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(rgb.astype(np.uint8)).save(path, lossless=True, quality=100, method=6)
+
+
 def load_lake(out: Path = OUT) -> tuple[Patch, np.ndarray, dict]:
-    """The committed mask: (patch, bool mask of the patch, manifest). What every flag-on consumer reads."""
-    manifest = json.loads((out / f"{NAME}.json").read_text())
-    p = manifest["mask"]
+    """The committed Mega-Chad mask: (patch, bool mask of the patch, manifest). What every flag-on consumer reads."""
+    manifest = load_manifest(NAME, out)
+    patch, wet, _ = load_mask(manifest["epochs"][0], out)
+    return patch, wet, manifest
+
+
+# --- every scenario: manifests, epochs, patches -------------------------------------------------------------------------
+# A scenario is a manifest (public/pastwater/{name}.json) grouping dated epochs with its sources, licence and uncertainty. The
+# EPOCH is the unit every consumer reads: an id unique across scenarios (so one cached byte names it), a mask patch on the 2.5'
+# world grid, an optional freshwater-distance patch on the HYDE 5' grid, and the rule for the level its water stands at.
+
+SCHEMA_VERSION = 2
+SCENARIOS = ("mega_chad", "lgm_europe", "mesopotamia")
+LEVEL_OFFSET = 32768  # a "pixel" level mask carries metres as green * 256 + blue - LEVEL_OFFSET (whole metres)
+
+
+def mask_meta(path: Path, patch: Patch) -> dict:
+    """The manifest entry of a mask patch file (2.5' world grid)."""
+    return {
+        "file": path.name, **vars(patch), "grid": f"{NX} x {NY} world pixels of {PIXEL_DEG * 60:g}'; x0, y0 = column, row of the patch's "
+        "north-west pixel (row 0 north, column 0 180 W)", "bytes": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
+def distance_meta(path: Path, patch: Patch, changed: int) -> dict:
+    """The manifest entry of a freshwater-distance patch file (HYDE 5' grid, water_distance.py's encoding)."""
+    return {
+        "file": path.name, **vars(patch), "grid": f"{NX // CELL} x {NY // CELL} HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
+        "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
+        "bytes": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cells_changed": changed,
+    }
+
+
+def epoch_dates(e: Epoch) -> dict:
+    return {"id": e.id, "name": e.name, "from_bp": e.from_bp, "to_bp": e.to_bp, "from_year": e.from_year, "to_year": e.to_year}
+
+
+def load_manifest(name: str, out: Path = OUT) -> dict:
+    return json.loads((out / f"{name}.json").read_text())
+
+
+def manifests(out: Path = OUT) -> list[dict]:
+    """Every scenario's manifest, in SCENARIOS order."""
+    return [load_manifest(name, out) for name in SCENARIOS]
+
+
+def active_epochs(year: float, out: Path = OUT) -> list[tuple[dict, dict]]:
+    """(manifest, epoch) of every scenario epoch holding at a calendar year (both ends inclusive). Empty: no scenario says anything."""
+    return [(m, e) for m in manifests(out) for e in m["epochs"] if e["from_year"] <= year <= e["to_year"]]
+
+
+def load_mask(epoch: dict, out: Path = OUT) -> tuple[Patch, np.ndarray, np.ndarray | None]:
+    """An epoch's mask: (patch, bool wet, metres of its water level per pixel or None when the level is not per pixel)."""
+    p = epoch["mask"]
     patch = Patch(p["x0"], p["y0"], p["width"], p["height"])
-    return patch, read_gray(out / p["file"]) > 127, manifest
+    with Image.open(out / p["file"]) as im:
+        rgb = np.asarray(im.convert("RGB")).astype(np.int32)
+    wet = rgb[:, :, 0] > 127
+    level = (rgb[:, :, 1] * 256 + rgb[:, :, 2] - LEVEL_OFFSET).astype(np.float32) if epoch["level"]["kind"] == "pixel" else None
+    return patch, wet, level
+
+
+def load_distance(epoch: dict, out: Path = OUT) -> tuple[Patch, np.ndarray] | None:
+    """An epoch's freshwater-distance patch (patch, codes), or None when the epoch adds no fresh water."""
+    d = epoch.get("distance")
+    if not d:
+        return None
+    return Patch(d["x0"], d["y0"], d["width"], d["height"]), read_gray(out / d["file"])
+
+
+def epoch_region(epoch: dict) -> tuple[int, int, int, int]:
+    """(row0, row1, col0, col1) on the HYDE 5' grid that an epoch can change: its patches (not the ranker's extra reach)."""
+    m = epoch["mask"]
+    boxes = [(m["y0"] // CELL, -(-(m["y0"] + m["height"]) // CELL), m["x0"] // CELL, -(-(m["x0"] + m["width"]) // CELL))]
+    d = epoch.get("distance")
+    if d:
+        boxes.append((d["y0"], d["y0"] + d["height"], d["x0"], d["x0"] + d["width"]))
+    return min(b[0] for b in boxes), max(b[1] for b in boxes), min(b[2] for b in boxes), max(b[3] for b in boxes)
 
 
 # --- fresh water distance ---------------------------------------------------------------------------------------------
@@ -245,9 +323,12 @@ def manifest_for(
     r0, _, _, _ = window_pixels()
     rows = np.nonzero(lake)[0]
     area = float(pixel_area_km2(rows + r0).sum())
+    mask_entry = {**mask_meta(mask_file, mask_patch), "red": "255 = lake, 0 = not", "lake_pixels": int(lake.sum())}
+    distance_entry = {**distance_meta(dist_file, dist_patch, changed),
+                      "rule": "min(static distance image, distance to the lake's cells); outside the patch the static image is exact"}
     return {
         "id": NAME,
-        "version": 1,
+        "version": SCHEMA_VERSION,
         "label": "Mega-Chad highstand (modelled, experimental)",
         "evidence": "modelled",
         "flag": "?pastwater=1",
@@ -255,22 +336,12 @@ def manifest_for(
         "datum": "metres above the geoid (mean sea level) as in Terrarium and ETOPO1 heights; not relative to the year's global ocean level",
         "epochs": [
             {"id": e.id, "name": e.name, "from_bp": e.from_bp, "to_bp": e.to_bp, "from_year": e.from_year, "to_year": e.to_year,
-             "state": "highstand at level_m, no fade or partial stage", "water": "fresh (assumed)"}
+             "state": "highstand at level_m, no fade or partial stage", "water": "fresh (assumed)", "paint": "lake",
+             "level": {"kind": "plane", "m": LEVEL_M, "clip_to_dem": True}, "mask": mask_entry, "distance": distance_entry}
             for e in EPOCHS
         ],
         "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as a dry lakebed; "
                           "the app draws and places as it does without the flag",
-        "mask": {
-            "file": mask_file.name, **vars(mask_patch), "grid": f"{NX} x {NY} world pixels of {PIXEL_DEG * 60:g}'; x0, y0 = column, row of the patch's "
-            "north-west pixel (row 0 north, column 0 180 W)", "red": "255 = lake, 0 = not", "bytes": mask_file.stat().st_size,
-            "sha256": hashlib.sha256(mask_file.read_bytes()).hexdigest(), "lake_pixels": int(lake.sum()),
-        },
-        "distance": {
-            "file": dist_file.name, **vars(dist_patch), "grid": f"{NX // CELL} x {NY // CELL} HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
-            "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
-            "rule": "min(static distance image, distance to the lake's cells); outside the patch the static image is exact",
-            "bytes": dist_file.stat().st_size, "sha256": hashlib.sha256(dist_file.read_bytes()).hexdigest(), "cells_changed": changed,
-        },
         "area_km2": round(area),
         "area_reference_km2": {"value": 361_000, "source": "Armitage, Bristow & Drake 2015 (early to mid-Holocene Mega-Chad area)"},
         "digest": sha256_bytes(json.dumps([LEVEL_M, [vars(e) for e in EPOCHS], vars(mask_patch), hashlib.sha256(mask_file.read_bytes()).hexdigest()]).encode())[:16],
@@ -309,7 +380,7 @@ def run(tiles: Path, out: Path, baseline_image: Path) -> dict:
     manifest = manifest_for(lake, patch, mask_file, dpatch, dist_file, changed, elev)
     import terrain_image  # the years whose Earth picture differs under the flag (a manifest field, so the app has no second list)
     manifest["terrain"] = {
-        "years": terrain_image.pastwater_years(),
+        "years": terrain_image.scenario_years(manifest, old_lake=True),
         "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images",
     }
     (out / f"{NAME}.json").write_text(json.dumps(manifest, indent=2) + "\n")

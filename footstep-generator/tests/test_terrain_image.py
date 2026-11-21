@@ -79,11 +79,12 @@ def test_frame_years_match_the_web_client():
 
 
 
-# --- ?pastwater=1: Mega-Chad from the shared highstand mask ------------------------------------------------------------
+# --- ?pastwater=1: every scenario from its shared masks -------------------------------------------------------------------
 
 def test_pastwater_years_are_where_the_picture_differs():
     # the old lake fades in over -9750..-8250 and out over -4250..-2750; the scenario holds -9550..-3050: 1,000-year steps in between
-    assert terrain.pastwater_years() == list(range(-9000, -2000, 1000))
+    # ...plus the European LGM window (-24550..-17050) and the Mesopotamian stages (-6050..-4551, -4550..-3550, -2550..-1550)
+    assert terrain.pastwater_years() == list(range(-24000, -17000, 1000)) + list(range(-9000, -2000, 1000)) + [-2000]
 
 
 def test_pastwater_lake_is_the_shared_mask_at_output_resolution():
@@ -97,3 +98,17 @@ def test_pastwater_lake_is_the_shared_mask_at_output_resolution():
     # it sits on Lake Chad's basin, nowhere near the old box's far corners
     row, col = int((90 - 13.5) / 180 * terrain.H), int((15.5 + 180) / 360 * terrain.W)
     assert lake[row, col] > 0.9
+
+
+def test_pastwater_paint_is_every_active_epoch_on_land_only_in_its_own_colour():
+    from types import SimpleNamespace
+    p = SimpleNamespace(sea=np.array([10.0, 20.0, 90.0], np.float32), lake=np.array([30.0, 60.0, 80.0], np.float32))
+    land = np.ones((terrain.H, terrain.W, 1), np.float32)
+    at = lambda lat, lon: (int((90 - lat) / 180 * terrain.H), int((lon + 180) / 360 * terrain.W))  # noqa: E731
+    share, colour = terrain.pastwater_paint(-4000, land, p)  # Mega-Chad and the Mesopotamian bay at ~6 ka
+    assert share[at(13.5, 15.5)] > 0.9 and np.allclose(colour[at(13.5, 15.5)], p.lake)
+    assert share[at(30.5, 47.8)] > 0.9 and np.allclose(colour[at(30.5, 47.8)], p.sea)
+    share, _ = terrain.pastwater_paint(-20000, land, p)  # the LGM Caspian
+    assert share[at(47.0, 48.0)] > 0.9 and share[at(13.5, 15.5)] == 0
+    assert terrain.pastwater_paint(-12000, land, p)[0].max() == 0  # no scenario
+    assert terrain.pastwater_paint(-4000, np.zeros_like(land), p)[0].max() == 0  # never on the sea

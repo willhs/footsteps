@@ -4,7 +4,7 @@
 # publishes what is not in git (data, PMTiles) and the compose file, then pulls the images now.
 #   scripts/deploy-budgie.sh            # compose + data + tiles, pull and restart
 #   SKIP_TILES=1 scripts/deploy-budgie.sh
-#   GRID_ONLY=1 scripts/deploy-budgie.sh # data only: grid, terrain, habitat, fauna, food, evidence
+#   GRID_ONLY=1 scripts/deploy-budgie.sh # data only: grid (+ grid/adjusted), terrain, habitat, fauna, food, evidence
 #   API_ONLY=1 scripts/deploy-budgie.sh  # pull and restart the day + anthropology API only
 # Images are built from main, so push first: this never ships uncommitted code.
 set -euo pipefail
@@ -25,6 +25,15 @@ sync_grid() {
       "$ROOT/data/tiles/prehistory/" "$REMOTE:$DEST/app/grid/"
   else
     echo "warning: no modelled pre-HYDE images; people before 10,000 BCE will be missing (see docs/ops/prehistory-population.md)" >&2
+  fi
+  # Climate-adjusted HYDE spread, 10,000-4,000 BCE (footstep-generator/hyde_climate_spread.py), read only with ?spread=1.
+  # A subfolder of grid/, so budgie's existing mount and Caddy route serve it. Never --delete.
+  if compgen -G "$ROOT/data/tiles/grid_adjusted/humans_*.webp" >/dev/null; then
+    ssh "$REMOTE" "mkdir -p $DEST/app/grid/adjusted"
+    rsync -az --include='humans_*.webp' --include='spread_report.json' --exclude='*' \
+      "$ROOT/data/tiles/grid_adjusted/" "$REMOTE:$DEST/app/grid/adjusted/"
+  else
+    echo "warning: no adjusted spread images; ?spread=1 will show HYDE's own (hyde_climate_spread.py --verify; docs/ops/hyde-climate-spread.md)" >&2
   fi
   # Population images used to be PNGs; drop the superseded ones.
   # find, not rm with a glob: budgie's zsh aborts on a glob with no matches.

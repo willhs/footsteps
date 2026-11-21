@@ -69,6 +69,14 @@ if [[ "$magic" == 89504e470d0a1a0a* ]]; then
 else
   echo "WARN terrain detail pyramid not published (GRID_ONLY=1 scripts/deploy-budgie.sh); the app shows the era images alone"
 fi
+# Climate-adjusted HYDE spread (?spread=1; footstep-generator/hyde_climate_spread.py, published by deploy-budgie.sh to grid/adjusted/).
+# Optional: the app falls back to HYDE's images and says so while it is unpublished, so absent is a warning; present must be a lossless WebP.
+for y in -10000 -8000 -4000; do
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/adjusted/humans_${y}.webp" 2>/dev/null | od -An -tx1 | tr -d ' \n') || magic=""
+  if [[ -z "$magic" ]]; then echo "WARN grid adjusted $y not published (GRID_ONLY=1 scripts/deploy-budgie.sh); ?spread=1 shows HYDE's"
+  elif [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   grid adjusted $y"
+  else echo "FAIL grid adjusted $y"; fail=1; fi
+done
 # Hover card lookups (footstep-generator/habitat_lookup.py): lossless WebP, one per
 # 1,000-year step (0..102 ka BP, habitat_meta.json maxKa) and one per HYDE year.
 for k in $(seq 0 $HABITAT_LAST_BP); do

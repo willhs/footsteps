@@ -75,6 +75,7 @@ export function dataRoots(dataRoot) {
   const tiles = path.join(dataRoot, 'data', 'tiles');
   const pub = path.join(dataRoot, 'footsteps-web', 'public');
   return [
+    { prefix: '/grid/adjusted', dir: path.join(tiles, 'grid_adjusted') },
     { prefix: '/grid', dir: path.join(tiles, 'grid') },
     { prefix: '/grid', dir: path.join(tiles, 'prehistory') },
     { prefix: '/terrain', dir: path.join(tiles, 'terrain') },

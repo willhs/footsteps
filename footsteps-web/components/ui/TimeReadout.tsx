@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { seaLevelLabel } from '@/lib/climate';
+import { seaLevelAt, seaLevelLabel } from '@/lib/climate';
 import type { Moment } from '@/lib/moments';
 import {
   agoLabel,
@@ -21,52 +21,53 @@ interface Props {
   calendar?: ReactNode;
 }
 
-/** The line above the time bar: years ago, calendar year, sea level, people, data status; and a moment note. */
+/** The line above the time bar: years ago, calendar year and people; sea level only when it differs from today; a quiet
+ * note when the people are modelled or between data years, and a small dot while data loads (the bar's needle also
+ * turns dashed). Everything else is on hover. */
 export default function TimeReadout({ time, loading, note, calendar }: Props) {
   const modelled = evidenceAt(Math.round(time)) === 'modelled'; // as the calendar label rounds
   const status = dataStatus(time);
+  const sea = Math.round(seaLevelAt(time));
   return (
     <>
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
         <span className="text-[17px] font-semibold leading-tight text-[var(--ov-text)] tabular-nums">{agoLabel(time)}</span>
         {calendar ?? <span className="text-[13px] text-[var(--ov-text-2)] tabular-nums">{calendarLabel(time)}</span>}
-        <span
-          className="text-[13px] text-[var(--ov-data)] tabular-nums"
-          title="Global sea level relative to today. Spratt & Lisiecki v2 (2025), CC BY."
-        >
-          {seaLevelLabel(time)}
-        </span>
         <span className="text-[13px] text-[var(--ov-amber)] tabular-nums">
           ~{populationRangeLabel(populationRangeAt(time))} people
-          {modelled && <span className="text-[var(--ov-text-3)]">, modelled</span>}
         </span>
-        {loading ? (
+        {Math.abs(sea) >= 5 && (
           <span
-            role="status"
-            aria-live="polite"
-            className="ov-chip self-center text-[var(--ov-data)]"
-            title="The map shows the nearest data it has until this loads."
+            className="text-[12px] text-[var(--ov-data)] tabular-nums"
+            title="Global sea level relative to today. Spratt & Lisiecki v2 (2025), CC BY."
           >
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--ov-data)]" />
-            {loading[0] === loading[1]
-              ? `loading ${calendarLabel(loading[0])} data…`
-              : `loading ${calendarLabel(loading[0])}–${calendarLabel(loading[1])} data…`}
+            {seaLevelLabel(time)}
           </span>
-        ) : modelled ? (
+        )}
+        {modelled ? (
           <span
-            className="ov-chip self-center text-[var(--ov-text-3)]"
+            className="text-[12px] text-[var(--ov-text-3)]"
             title="Before 10,000 BCE there is no HYDE data. People are a model: plant productivity, climate and when people arrived, scaled to a low-to-high world total from the literature. Drawn every 1,000 years."
           >
             modelled
           </span>
-        ) : (
+        ) : !status.exact ? (
           <span
-            className={`ov-chip self-center ${status.exact ? 'text-[var(--ov-data)]' : 'text-[var(--ov-text-3)]'}`}
-            title="HYDE gives data every 1,000 years before 1 CE and every 100 years after. Years in between are estimated."
+            className="text-[12px] text-[var(--ov-text-3)]"
+            title={`HYDE gives data every 1,000 years before 1 CE and every 100 years after. This year is estimated between ${calendarLabel(status.y0)} and ${calendarLabel(status.y1)}.`}
           >
-            {status.exact
-              ? 'data year'
-              : `estimated between ${calendarLabel(status.y0)} and ${calendarLabel(status.y1)}`}
+            estimated
+          </span>
+        ) : null}
+        {loading && (
+          <span
+            role="status"
+            aria-live="polite"
+            className="self-center"
+            title={`Loading ${loading[0] === loading[1] ? calendarLabel(loading[0]) : `${calendarLabel(loading[0])}–${calendarLabel(loading[1])}`} data. The map shows the nearest data it has until it arrives.`}
+          >
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--ov-data)]" />
+            <span className="sr-only">Loading data</span>
           </span>
         )}
       </div>

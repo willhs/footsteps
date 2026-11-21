@@ -28,8 +28,9 @@ import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
-import { cssRgb, LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
+import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
+import WaySign from './overlays/WaySign';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
 import { regionTintLayer } from './layers/regionTint';
@@ -532,7 +533,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (
                 <li key={way}>
-                  <span className="mr-1.5" style={{ color: cssRgb(way) }}>●</span>
+                  <WaySign way={way} />
                   {LOOKS[way].name}
                   {!showGlowLegend && way !== WayOfLife.Urban && (
                     <span className="text-[var(--ov-text-3)]"> · {LOOKS[way].mark}</span>

@@ -1,6 +1,7 @@
 import { buildUnits } from '../layers/units';
-import { classifyCell } from '@/lib/waysOfLife';
-import { buildUnitMorph } from './unitMorph';
+import { LOOKS, WayOfLife, classifyCell, type WayOfLifeValue } from '@/lib/waysOfLife';
+import { buildUnitMorph, cityRadiusM } from './unitMorph';
+import { BAND_GREEN_CUT, VILLAGE_GREEN_CUT } from '../layers/unitMorphVertex';
 
 const units = (people: number) =>
   buildUnits(
@@ -49,12 +50,28 @@ test('kind changes crossfade distinct marks and glow radii interpolate', () => {
   expect(Array.from(change.info.kind)).toEqual([0, 0, 1, 1, 1]);
   const glow = buildUnitMorph(units(40_000), units(160_000));
   expect(glow.length).toBe(1);
-  expect(Array.from(glow.attributes.getRadius.value)).toEqual([9000]);
-  expect(Array.from(glow.attributes.getTargetRadius.value)).toEqual([18000]);
+  // Built-up area at CITY_PEOPLE_PER_M2: four times the people, twice the radius.
+  expect(glow.attributes.getRadius.value[0]).toBeCloseTo(cityRadiusM(40_000), 1);
+  expect(glow.attributes.getTargetRadius.value[0]).toBeCloseTo(2 * cityRadiusM(40_000), 1);
+  expect(cityRadiusM(40_000)).toBeCloseTo(921.3, 0);
   expect(Array.from(glow.attributes.getFillColor.value)).toEqual([
     60, 230, 255, 228,
   ]);
   expect(Array.from(glow.attributes.getTargetFillColor.value)).toEqual([
     60, 230, 255, 240,
   ]);
+});
+
+test('the shader can tell every kind of group from its colour', () => {
+  // unitMorphVertex.ts reads the kind back from the mark's colour: towns have red < 0.5, the warm kinds differ in green.
+  const g = (way: WayOfLifeValue) => LOOKS[way].rgb[1] / 255;
+  expect(LOOKS[WayOfLife.Urban].rgb[0] / 255).toBeLessThan(0.5);
+  for (const way of [WayOfLife.Forager, WayOfLife.Farmer, WayOfLife.Herder]) expect(LOOKS[way].rgb[0] / 255).toBeGreaterThan(0.5);
+  expect(g(WayOfLife.Farmer)).toBeGreaterThan(VILLAGE_GREEN_CUT);
+  expect(g(WayOfLife.Forager)).toBeLessThan(VILLAGE_GREEN_CUT);
+  expect(g(WayOfLife.Forager)).toBeGreaterThan(BAND_GREEN_CUT);
+  expect(g(WayOfLife.Herder)).toBeLessThan(BAND_GREEN_CUT);
+  // unorm8 rounding stays well clear of the cuts
+  expect(Math.min(g(WayOfLife.Farmer) - VILLAGE_GREEN_CUT, VILLAGE_GREEN_CUT - g(WayOfLife.Forager))).toBeGreaterThan(0.02);
+  expect(Math.min(g(WayOfLife.Forager) - BAND_GREEN_CUT, BAND_GREEN_CUT - g(WayOfLife.Herder))).toBeGreaterThan(0.02);
 });

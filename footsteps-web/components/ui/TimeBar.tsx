@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { PEOPLE_YEARS } from '@/lib/constants';
 import { MOMENTS, type Moment } from '@/lib/moments';
-import { HYDE_MIN, TIME_MAX, TIME_MIN, agoLabel, calendarLabel, clampTime, evidenceAt, populationAt } from '@/lib/time';
+import { HYDE_MIN, TIME_MAX, TIME_MIN, agoLabel, calendarLabel, clampTime, evidenceAt } from '@/lib/time';
 import {
   BAR_LABELS,
   WHEEL_GAIN,
@@ -26,8 +25,8 @@ import TimeReadout from './TimeReadout';
  * - while dragging, slide up off the bar for 1/4 then 1/16 speed, labelled (lib/timeScale.ts dragMove)
  * - arrow keys step by round years (Shift or PageUp/PageDown for 10x), Home/End
  * - click the calendar year (or press Enter on the bar) and type a year
- * Quietly inside the track: the population curve (paler where modelled), the
- * 10,000 BCE measured/modelled boundary, data-year ticks and named moments.
+ * Quietly inside the track: measured years a shade lighter than modelled ones, with a hairline at
+ * 10,000 BCE, and named moments above it. Population over time is the counter's chart (?chart=1), not the bar.
  */
 interface Props {
   time: number;
@@ -43,10 +42,8 @@ const MID = TOP + BAR / 2;
 const FONT = '11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const COLORS = {
   track: 'rgba(255,255,255,0.08)',
-  people: 'rgba(242,181,107,0.5)',
-  modelled: 'rgba(242,181,107,0.22)',
-  boundary: 'rgba(242,181,107,0.7)',
-  data: 'rgba(95,212,232,0.55)',
+  measured: 'rgba(255,255,255,0.05)',
+  boundary: 'rgba(242,181,107,0.45)',
   label: 'rgba(243,241,236,0.5)',
   labelTick: 'rgba(255,255,255,0.16)',
   hover: 'rgba(243,241,236,0.35)',
@@ -57,11 +54,6 @@ const COLORS = {
   moment: '#f2b56b',
 };
 const NEEDLE_GRAB_PX = 16; // pressing this close to the needle grabs it without jumping
-
-function popHeight(t: number) {
-  const v = (Math.log10(populationAt(t)) - 5) / 4.5;
-  return Math.max(0.06, Math.min(1, v)) * (BAR - 2);
-}
 
 function useWidth(ref: React.RefObject<HTMLElement | null>) {
   const [w, setW] = useState(800);
@@ -125,46 +117,13 @@ function draw(
   ctx.save();
   ctx.clip();
 
-  // population curve, as two filled areas: modelled (pale) then measured
+  // modelled years (before HYDE) a shade dimmer than measured ones; one hairline at the boundary, named on hover
   const bx = x(HYDE_MIN);
-  for (const [x0, x1, color] of [
-    [0, bx, COLORS.modelled],
-    [bx, w, COLORS.people],
-  ] as const) {
-    ctx.beginPath();
-    ctx.moveTo(x0, TOP + BAR);
-    for (let px = x0; px <= x1; px += 2) ctx.lineTo(px, TOP + BAR - popHeight(timeAt(px / w)));
-    ctx.lineTo(x1, TOP + BAR - popHeight(timeAt(x1 / w)));
-    ctx.lineTo(x1, TOP + BAR);
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-
-  // data years: a short cyan tick at the top, only where they stand apart
-  ctx.fillStyle = COLORS.data;
-  let lastTick = -1e9;
-  for (const y of PEOPLE_YEARS) {
-    const px = x(y);
-    if (px - lastTick < 7) continue;
-    ctx.fillRect(px - 0.5, TOP, 1, 3);
-    lastTick = px;
-  }
+  ctx.fillStyle = COLORS.measured;
+  ctx.fillRect(bx, TOP, w - bx, BAR);
   ctx.restore();
-
-  // measured / modelled boundary
   ctx.fillStyle = COLORS.boundary;
-  ctx.fillRect(bx - 0.5, TOP, 1, BAR);
-  if (w >= 640) {
-    ctx.font = '10px ui-sans-serif, system-ui, -apple-system, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = COLORS.label;
-    ctx.textAlign = 'right';
-    ctx.fillText('modelled', bx - 6, MID);
-    ctx.textAlign = 'left';
-    ctx.fillText('measured', bx + 6, MID);
-    ctx.font = FONT;
-  }
+  ctx.fillRect(bx - 0.5, TOP + 3, 1, BAR - 6);
 
   // named moments: small amber marks above the track
   ctx.fillStyle = COLORS.moment;
@@ -185,7 +144,8 @@ function draw(
   if (hoverX !== null) {
     ctx.fillStyle = COLORS.hover;
     ctx.fillRect(Math.round(hoverX) - 0.5, TOP, 1, BAR);
-    const text = calendarLabel(timeAt(hoverX / w));
+    const at = timeAt(hoverX / w);
+    const text = `${calendarLabel(at)}${at < HYDE_MIN ? ' · modelled' : ''}`;
     const tw = ctx.measureText(text).width;
     const left = Math.min(w - tw, Math.max(0, hoverX - tw / 2));
     ctx.fillStyle = COLORS.hoverText;

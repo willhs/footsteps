@@ -14,7 +14,9 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   cross-fades to Units; from 7 unit marks are clickable. Units are built only for a
   region around the viewport (`hooks/unitRegion.ts`), so a pan inside it costs nothing.
   Zoom changes uniforms/opacity, never the uploaded marks. `layers/units.ts` builds
-  bands, villages, herding camps and city glow; in-cell positions are invented and deterministic.
+  bands, villages, herding camps and city glow; in-cell positions are invented and deterministic. One shader draws a unit
+  as a fire far out, its kind's sign (fire, tent, house, town) from about zoom 7, and its households at their real spread once
+  the footprint outgrows the sign (`layers/unitMorphVertex.ts`, `MorphScatterplotLayer.ts`); never a flat disc.
   The kind and colour come from each cell's way of life (`lib/waysOfLife.ts`): `gridData.ts` loads
   `/grid/landuse_{year}.png` (HYDE years only) beside the population image and classes each cell
   (`GridData.ways`); `FireLayer.ts` colours the far-out fires the same way, and the legend reads `LOOKS`.

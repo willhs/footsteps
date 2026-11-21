@@ -24,17 +24,23 @@ export function isMorphPoints(
   return 'getTargetRadius' in points.attributes;
 }
 
+/** A group's footprint radius in metres at its typical size, about where its people stand at street zoom
+ * (people.ts: a village's houses spread ~520 m, a band's or camp's hearths ~260 m). The mark's radius is this
+ * times sqrt(people / typical), so the shader reads a group's head count back from its radius
+ * (unitMorphVertex.ts, `GROUP_GLSL`). */
+export const FOOTPRINT_M = { band: 250, village: 500, camp: 250 } as const;
+export const TYPICAL_PEOPLE = { band: 30, village: 300, camp: 60 } as const;
+/** Towns and cities: the built-up area at about 15,000 people per km² (a pre-industrial city; Rome within the Aurelian
+ * walls was denser, a market town sparser). The shader draws a glow well beyond it so a town still reads from afar. */
+export const CITY_PEOPLE_PER_M2 = 0.015;
+export const cityRadiusM = (people: number) => Math.sqrt(Math.max(0, people) / (Math.PI * CITY_PEOPLE_PER_M2));
+
 function radius(kind: number, people: number, settlements: boolean) {
-  const base = kind === UnitKind.Band
-    ? 600
-    : kind === UnitKind.Village
-      ? 1500
-      : kind === UnitKind.Camp
-        ? 900
-        : Math.min(Math.sqrt(people) * 45, 30_000);
-  if (!settlements || kind === UnitKind.Glow) return base;
-  const typical = kind === UnitKind.Band ? 30 : kind === UnitKind.Camp ? 60 : 300;
-  return base * Math.max(0.05, Math.min(4, Math.sqrt(people / typical)));
+  if (kind === UnitKind.Glow) return cityRadiusM(people);
+  const key = kind === UnitKind.Band ? 'band' : kind === UnitKind.Camp ? 'camp' : 'village';
+  const base = FOOTPRINT_M[key];
+  if (!settlements) return base;
+  return base * Math.max(0.05, Math.min(4, Math.sqrt(people / TYPICAL_PEOPLE[key])));
 }
 
 /** A mark's colour is its way of life's (lib/waysOfLife.ts); alpha sets its weight. */

@@ -4,6 +4,23 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Group marks at middle zoom: signs and households instead of flat discs; a quieter time bar
+
+Will saw big flat circles between the far-out firelight and the street-level footprints. A unit mark (MorphScatterplotLayer,
+`unitMorphVertex.ts`) now changes with zoom in three steps, all in one shader: far out it is the flickering fire it was; from
+about zoom 7 it turns into its kind's sign at a fixed size (a fire for a forager band, a tent for a herding camp, a house for a
+farming village, three roofs for a small town); once its footprint is bigger than the sign (~7 px) it shows its households at
+their real spread (hearths, tents, houses; about 60% of cells, never finer than 5 px, ragged edge), over a faint wash. The kind
+is read from the mark's colour (`VILLAGE_GREEN_CUT`, `BAND_GREEN_CUT`, tested against `LOOKS`), the head count from its radius.
+Footprints are now about where people stand at street zoom (`FOOTPRINT_M`: band and camp 250 m, village 500 m, times
+sqrt(people / typical)), not 600 / 900 / 1500 m. Towns and cities, grid glow cells and named Reba cities alike, are their built-up
+area at 15,000 people per km² (`cityRadiusM`: Rome 100 CE ~3.1 km, not a 30 km disc) packed with roofs in a glow that runs well
+beyond it; city names are a clean label above the town (count `~450k`, dim, from zoom 8) instead of "Rome / 450,000 modelled".
+The legend uses the same signs (`WaySign.tsx`). Time bar: the faint population wedge, data-year ticks and the "modelled |
+measured" words are gone from the track (measured years are a shade lighter, a hairline at 10,000 BCE, "· modelled" on hover;
+population over time is the counter chart's job, `?chart=1`); the readout hides "sea ≈ today" (sea level shows when 5 m or more
+off today) and the "data year" chip, says "estimated" only between data years, and loading is a small dot (detail on hover).
+
 ## [2026-11-21] feature | Climate-adjusted HYDE spread behind ?spread=1
 
 The app now reads `hyde_climate_spread.py`'s adjusted images (Green Sahara, exposed shelves; regional totals kept) for

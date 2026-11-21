@@ -2,3 +2,11 @@ phase	decision	why	evidence	result
 plan	Serve adjusted images at /grid/adjusted/ not /grid_adjusted/	budgie mounts ./app/grid and Caddy routes /grid/*; a subfolder needs no compose/Caddy change or recreate	deploy/budgie/Caddyfile:15, docker-compose.yml:16	adopted
 plan	GridData.adjusted records the source actually read; labels derive from it, not the flag	a failed fetch falls back to HYDE and must not be labelled adjusted	gridData.ts decodeYearGrid	adopted
 plan	Total guard: adjusted image total within 1% of HYDE_TOTALS else fall back	HYDE_TOTALS is 3 s.f.; generator keeps totals to 3e-4; counter already reads populationAt	lib/time.ts:22, FootstepsViz.tsx:410	adopted
+phase1	Fetch HYDE's image only if the adjusted one fails; keep default request order	no extra download with the flag; useGridLayer.test relied on fetch order (first attempt broke it)	jest useGridLayer.test.ts	fixed, 520 tests pass
+phase2	emptyViewNote takes a PeopleSource ('model'|'hyde'|'adjusted') instead of a boolean	a second boolean would have to stay in sync with the first	lib/emptyView.ts	adopted; model/hyde strings unchanged
+phase2	Hover card people row evidence 'modelled' when adjusted, but facts keep 'measured' so the way-of-life row still uses HYDE land use	land use is HYDE's own; only the head count is modelled	lib/hoverCard.test.ts	adopted
+phase3	Real-data test through the browser decoder	assert world totals with/without flag on shipped images	evidence/spread-totals.json	max rel diff 5.9e-5; Sahara 38k->101k, North Sea 8.4k->15.7k at -8000
+phase3	-4000 -> -3000 step: no special handling	with the flag the Sahara step is 537k->627k vs 242k->627k without; existing cross-fade/morph carry it	evidence/spread-totals.json step	no jump
+phase4	smoke.sh: WARN when absent, FAIL when present but wrong	code deploys before data (same rule as terrain pyramid)	evidence/smoke-prod.txt	exit 0 with 3 WARN
+phase5	pnpm visual 3 failures are pre-existing	main's own build (git archive to /tmp) gives byte-identical actual images and the same pixel counts	evidence/visual, evidence/visual-main	not this change; baselines not updated (out of scope)
+phase5	Real-data screenshots flag on/off, Units and Grid, Sahara 6000 and Doggerland 8000	acceptance	evidence/screens/*.png, report.json	label shows, counters equal, people in Sahara/Dogger Bank

@@ -70,53 +70,53 @@ Default-on, generator changes, Dots rebuild, publishing from this job.
 
 ## Phase 1: Flag module and decoder
 
-- [ ] Create `lib/adjustedSpread.ts` (shape above) with `lib/adjustedSpread.test.ts` (years, param, total check, notes per mode/year/state)
-- [ ] `gridData.ts`: `gridUrl(year, adjusted = false)`; `decodeYearGrid(…, spread = false)` reads the adjusted image when `spread && adjustedSpreadYear(year)`, checks `spreadTotalOk`, falls back to HYDE on any failure; `GridData.adjusted`
-- [ ] Worker + client: pass `spread: spreadParam(search)` in the config message, through to `decodeYearGrid`
-- [ ] Tests: `gridData.test.ts` for the adjusted URL, the fallback on 404 and on a bad total
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand adjustedSpread gridData` — pass
+- [x] Create `lib/adjustedSpread.ts` (shape above) with `lib/adjustedSpread.test.ts` (years, param, total check, notes per mode/year/state)
+- [x] `gridData.ts`: `gridUrl(year, adjusted = false)`; `decodeYearGrid(…, spread = false)` reads the adjusted image when `spread && adjustedSpreadYear(year)`, checks `spreadTotalOk`, falls back to HYDE on any failure; `GridData.adjusted`
+- [x] Worker + client: pass `spread: spreadParam(search)` in the config message, through to `decodeYearGrid`
+- [x] Tests: `gridData.test.ts` for the adjusted URL, the fallback on 404 and on a bad total
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand adjustedSpread gridData` — pass
 
 ## Phase 2: Labels
 
-- [ ] `SupportingText`: `spread` prop rendered as an `ov-note` (`data-testid="spread-note"`) under the counter
-- [ ] `FootstepsViz`: read the flag once; pass `spreadNote(year, mode, grid?.data.adjusted)`; notes toggle strong label + data-note sentence when the grid on screen is adjusted
-- [ ] `emptyView.ts`: source `'model' | 'hyde' | 'adjusted'` instead of `modelled: boolean`; update callers and tests
-- [ ] Hover card: `groundingFacts` sets an adjusted confidence; `hoverCardRows` people row says adjusted (`people.adjusted`)
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand` — pass; lint and tsc clean
+- [x] `SupportingText`: `spread` prop rendered as an `ov-note` (`data-testid="spread-note"`) under the counter
+- [x] `FootstepsViz`: read the flag once; pass `spreadNote(year, mode, grid?.data.adjusted)`; notes toggle strong label + data-note sentence when the grid on screen is adjusted
+- [x] `emptyView.ts`: source `'model' | 'hyde' | 'adjusted'` instead of `modelled: boolean`; update callers and tests
+- [x] Hover card: `groundingFacts` sets an adjusted confidence; `hoverCardRows` people row says adjusted (`people.adjusted`)
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand` — pass; lint and tsc clean
 
 ## Phase 3: Totals assertion on real data
 
-- [ ] `components/footsteps/hooks/adjustedSpread.real.test.ts` (skipped unless `FOOTSTEPS_SPREAD_REAL=1`): decode each year's HYDE and adjusted images through `gridDataFrom`; totals equal within `TOTAL_RTOL × 3`; Sahara box and North Sea floor have more people adjusted at -8000; write counts to `FOOTSTEPS_SPREAD_OUT`
-- [ ] Run it on the built data — pass, counts saved to evidence
+- [x] `components/footsteps/hooks/adjustedSpread.real.test.ts` (skipped unless `FOOTSTEPS_SPREAD_REAL=1`): decode each year's HYDE and adjusted images through `gridDataFrom`; totals equal within `TOTAL_RTOL × 3`; Sahara box and North Sea floor have more people adjusted at -8000; write counts to `FOOTSTEPS_SPREAD_OUT`
+- [x] Run it on the built data — pass, counts saved to evidence
 
 ## Phase 4: Publishing and smoke
 
-- [ ] `scripts/deploy-budgie.sh`: rsync `data/tiles/grid_adjusted/humans_*.webp` to `app/grid/adjusted/` (no `--delete`), warn when not built
-- [ ] `scripts/smoke.sh`: check `/grid/adjusted/humans_-8000.webp`; WARN when absent, FAIL when present but not a lossless WebP
-- [ ] `scripts/visual-lib.mjs` `dataRoots`: `/grid/adjusted` → `data/tiles/grid_adjusted` (before `/grid`)
-- [ ] Run: `bash -n` both scripts; `scripts/smoke.sh` against prod — WARN for adjusted, rest ok
+- [x] `scripts/deploy-budgie.sh`: rsync `data/tiles/grid_adjusted/humans_*.webp` to `app/grid/adjusted/` (no `--delete`), warn when not built
+- [x] `scripts/smoke.sh`: check `/grid/adjusted/humans_-8000.webp`; WARN when absent, FAIL when present but not a lossless WebP
+- [x] `scripts/visual-lib.mjs` `dataRoots`: `/grid/adjusted` → `data/tiles/grid_adjusted` (before `/grid`)
+- [x] Run: `bash -n` both scripts; `scripts/smoke.sh` against prod — WARN for adjusted, rest ok
 
 ## Phase 5: Prove it in the browser
 
-- [ ] Build; serve with a scratch data root (primary checkout's tiles + this worktree's `grid_adjusted`)
-- [ ] Screenshots: Sahara 6000 BCE and Doggerland 8000 BCE × flag on/off × Units/Grid; Dots with flag (note); -4000/-3500/-3000 with flag (transition); label visible
-- [ ] Record grid totals with and without the flag at -8000 (page state) — equal
-- [ ] Run: `pnpm visual` — every scene matches its baseline
+- [x] Build; serve with a scratch data root (primary checkout's tiles + this worktree's `grid_adjusted`)
+- [x] Screenshots: Sahara 6000 BCE and Doggerland 8000 BCE × flag on/off × Units/Grid; Dots with flag (note); -4000/-3500/-3000 with flag (transition); label visible
+- [x] Record grid totals with and without the flag at -8000 (page state) — equal
+- [x] Run: `pnpm visual` — 7/10 pass; Rome grid, dots, person fail with identical pixels on main's own build (stale baselines), so no change from this work
 
 ## Phase 6: Docs
 
-- [ ] `docs/ops/hyde-climate-spread.md`: replace "Wiring it in (not done)" with how it is wired, the flag, the URL, publishing
-- [ ] `AGENTS.md`: the architecture line says it is behind `?spread=1`
-- [ ] `docs/log.d/<job>.md` and `docs/index.d/<job>.md` fragments
+- [x] `docs/ops/hyde-climate-spread.md`: replace "Wiring it in (not done)" with how it is wired, the flag, the URL, publishing
+- [x] `AGENTS.md`: the architecture line says it is behind `?spread=1`
+- [x] `docs/log.d/<job>.md` fragment (no index fragment: the repo has no docs/index.md)
 
 ## Phase 7: Wrap (commit & finalize)
 
-- [ ] Run: frontend lint, tsc, jest; `pnpm build`; `poetry run pytest footstep-generator/tests/ -q`
-- [ ] Commit (no merge, no push: Manager lands it)
+- [x] Run: frontend lint, tsc, jest; `pnpm build`; `poetry run pytest footstep-generator/tests/ -q`
+- [x] Commit (no merge, no push: Manager lands it)
 
 ## Final checklist
 
-- [ ] All phases complete; decisions.tsv committed
+- [x] All phases complete; decisions.tsv committed
 - [ ] [after merge] `GRID_ONLY=1 scripts/deploy-budgie.sh` from the home network, then `scripts/smoke.sh` on prod
 
 ## References

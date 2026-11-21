@@ -4,6 +4,20 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | Climate-adjusted HYDE spread behind ?spread=1
+
+The app now reads `hyde_climate_spread.py`'s adjusted images (Green Sahara, exposed shelves; regional totals kept) for
+10,000–4,000 BCE when `?spread=1` is set, from `/grid/adjusted/` (a subfolder of budgie's existing grid mount, so no compose
+or Caddy change). `lib/adjustedSpread.ts` owns the flag, years and words; the decoder marks `GridData.adjusted` only when the
+image was read and its world total matches `HYDE_TOTALS` (else it draws HYDE's and the note says so). Units, Grid, the morph,
+hover card, grounding panel and empty-view note follow; the counter note says "Adjusted spread (modelled on HYDE)", Dots says
+it is not applied. Real data: world totals agree to 6e-5 every year; at 8,000 BCE the Sahara box goes 38,000 → 101,000 people
+and the North Sea box 8,400 → 15,700; the -4,000 → -3,000 Sahara step is smaller with the flag (537k → 627k vs 242k → 627k).
+`pnpm visual` without the flag: 7 pass, 3 (Rome grid, dots, person) fail identically on main's own build (stale baselines after
+44db356's terrain-note change), so not this change. `deploy-budgie.sh` rsyncs `grid_adjusted` (never deletes); `smoke.sh` warns
+while unpublished (prod: WARN). Publish after merge with `GRID_ONLY=1 scripts/deploy-budgie.sh`. Task 0007,
+`docs/ops/hyde-climate-spread.md` "In the app".
+
 ## [2026-11-21] feature | Cited language expansions behind ?langs=deep (research 0007 steps 2-3)
 
 `footstep-generator/anthropology/languages_expansions.yaml`: 33 hand-written rows. Step 2 covers historical and colonial

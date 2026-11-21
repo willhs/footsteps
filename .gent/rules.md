@@ -76,7 +76,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   with no dry spot are counted `unresolved`, never forced in or dropped), and the close-up lake plane (`lib/close3d.ts` `lakeVertices`). Behind `?pastwater=1` (off until reviewed; Dots is static and says so; outside the window the
   scenario is inactive: geography unknown, not dry). `past_water_check.py` is the independent placement check. See `docs/ops/past-water.md`.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
-  exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE. An adjusted spread, not wired into the app.
+  exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE, served at `/grid/adjusted/`. Read by the grid pipeline
+  only with `?spread=1` (`lib/adjustedSpread.ts`, off until reviewed), labelled "Adjusted spread (modelled on HYDE)"; Dots says it is not applied.
   See `docs/ops/hyde-climate-spread.md`.
 - `footsteps-web/lib/dwellings.ts` + `layers/shelters.ts` + `public/dwellings.json`: close-up shelters, behind `?shelters=1` (off until reviewed). One dwelling per household of a group in view
   (and dense roof clusters for towns and cities), drawn by `Close3DLayer` as six low-poly instanced shapes standing on the Terrarium ground height, never on water. The TYPE is modelled from the house codes

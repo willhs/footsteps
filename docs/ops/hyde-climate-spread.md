@@ -1,7 +1,7 @@
 ---
 id: hyde-climate-spread
 type: reference
-purpose: "Method, choices and limits of the climate-adjusted spread of HYDE 3.5 people (Green Sahara, exposed shelves); an opt-in dataset not wired into the app"
+purpose: "Method, choices and limits of the climate-adjusted spread of HYDE 3.5 people (Green Sahara, exposed shelves), and how the app shows it behind ?spread=1"
 ---
 
 # HYDE, adjusted for the climate then
@@ -10,8 +10,9 @@ HYDE 3.5 spreads early people with **today's** land suitability. It keeps the Sa
 Humid Period (the Nile and the Maghreb hold most of what is there) and puts almost nobody on ground that is
 sea now: Doggerland, Sundaland, Beringia, the Sahul shelf. The terrain images show all of those as dry (and the
 Sahara as green). `footstep-generator/hyde_climate_spread.py` writes an **adjusted** copy of HYDE's people for
-10,000–4,000 BCE. HYDE's own images and files are untouched, and **nothing in the app reads the adjusted set yet**.
-It is a model on top of a model: any screen that shows it must say "adjusted spread".
+10,000–4,000 BCE. HYDE's own images and files are untouched. The app reads the adjusted set only with **`?spread=1`**
+(off until Will has reviewed it; see "In the app" below). It is a model on top of a model: every screen that shows it says
+"Adjusted spread (modelled on HYDE)".
 
 ```bash
 poetry run python footstep-generator/hyde_climate_spread.py --verify     # 7 years, ~1 min -> data/tiles/grid_adjusted/
@@ -89,8 +90,32 @@ historical estimates, not a land-suitability spread, and are not adjusted.
 - **No ice-sheet or Lake-Agassiz detail** beyond Krapp's ice mask; the Americas lose little because HYDE already has them small.
 - **Totals match HYDE exactly** (regional totals are kept to float rounding; the WebP quantisation is within `grid_image.TOTAL_RTOL`).
 
-## Wiring it in (not done)
+## In the app (`?spread=1`)
 
-The app loads `/grid/humans_{year}.webp`. Using the adjusted set needs a choice first (Will's call): replace those for
-10,000–4,000 BCE, or a toggle that loads `data/tiles/grid_adjusted/` from another path. Either way the counter note and the legend
-must say "adjusted spread", and HYDE's people stay the **measured** class in `vision.md` only where unadjusted.
+Off by default. With `?spread=1` the grid worker reads `/grid/adjusted/humans_{year}.webp` instead of `/grid/humans_{year}.webp`
+for the seven years above (`ADJUSTED_SPREAD_YEARS` in `footsteps-web/lib/adjustedSpread.ts`, which owns the flag, years and words).
+Everything downstream of the decoded grid follows: Units, Grid, the year cross-fade and unit morph, the hover card and the
+empty-view note. Every other year, and every year without the flag, is unchanged (`pnpm visual` without the flag is pixel-identical
+to main).
+
+- **Served from `grid/adjusted/`, not `grid_adjusted/`.** budgie already mounts `./app/grid` and Caddy caches `/grid/*`, so a
+  subfolder needs no compose or Caddyfile change. The local build folder stays `data/tiles/grid_adjusted/`; `pnpm visual`'s static
+  server maps one onto the other (`scripts/visual-lib.mjs`). For `pnpm dev`, copy the images to `footsteps-web/public/grid/adjusted/`.
+- **The world total is HYDE's.** The counter shows `populationAt` (HYDE's totals) in Units and Grid, so it cannot move. The decoder
+  also checks each adjusted image against `HYDE_TOTALS` (within 1%, `spreadTotalOk`) and draws HYDE's image instead, with a warning,
+  if it does not match. `components/footsteps/hooks/adjustedSpread.real.test.ts` (`FOOTSTEPS_SPREAD_REAL=1`) decodes both sets with the
+  browser's decoder: world totals agree to 6e-5 every year.
+- **Labels follow what is drawn, not the flag.** `GridData.adjusted` is set only when the adjusted image was read and passed the total
+  check. The counter's note says "Adjusted spread (modelled on HYDE)"; outside 10,000–4,000 BCE "10,000–4,000 BCE only; unchanged
+  here"; with a missing file "unavailable: showing HYDE's". The legend's notes toggle and data note say it in Units; the hover card's
+  people row reads "modelled · adjusted spread (modelled on HYDE)" (the way-of-life row still reads HYDE land use, so moved people on
+  cells with no farmland are foragers); the grounding panel's confidence line and the empty-view note name it.
+- **Dots** is static PMTiles of HYDE's own spread; its note says "Adjusted spread: not applied to Dots".
+- **The -4,000 → -3,000 step is smoother with the flag, not jumpier.** HYDE's own Sahara box goes 242,000 → 627,000 people across
+  that step; with the flag it goes 537,000 (adjusted) → 627,000 (HYDE). The existing cross-fade and morph carry it.
+- **Britain thins at 8,000 BCE.** Moves stay inside the Europe box, so the people put on Dogger Bank and the dry southern North Sea
+  come partly from Britain (the capacity model rates glacial-end Britain below 1950's). Worth a look in review.
+
+Publish (home network): `GRID_ONLY=1 scripts/deploy-budgie.sh` rsyncs `data/tiles/grid_adjusted/humans_*.webp` and
+`spread_report.json` to budgie `app/grid/adjusted/` (never `--delete`). `scripts/smoke.sh` checks -10000, -8000 and -4000: WARN while
+unpublished, FAIL if present but not a lossless WebP.

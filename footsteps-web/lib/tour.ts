@@ -182,9 +182,7 @@ export const EVIDENCE_LABEL: Record<TourEvidence, string> = {
 };
 
 /** Whether the address asks for the tour. Off unless `?tour=1`. */
-export function tourParam(search: string): boolean {
-  return new URLSearchParams(search).get('tour') === '1';
-}
+export { tourParam } from './tourParam';
 
 /** The tour's position: a stop index, or null once exited (or never started). */
 export type TourState = number | null;

@@ -43,11 +43,11 @@ tour, chart). Most of that code only matters at high zoom or behind flags. `scri
 
 ## Success Criteria
 
-- [ ] Before/after table in docs/ops/first-load.md (bytes, first globe, first people, both profiles), biggest remaining costs named
-- [ ] `pnpm visual` passes (nothing looks different)
-- [ ] Each opt-in flag still loads its code (flag sweep or quick check)
-- [ ] tsc, lint, tests, build pass
-- [ ] docs/log.md entry (via docs/log.d fragment)
+- [x] Before/after table in docs/ops/first-load.md (bytes, first globe, first people, both profiles), biggest remaining costs named
+- [x] `pnpm visual` passes (nothing looks different)
+- [x] Each opt-in flag still loads its code (flag sweep or quick check)
+- [x] tsc, lint, tests, build pass
+- [x] docs/log.md entry (via docs/log.d fragment)
 
 ## References
 

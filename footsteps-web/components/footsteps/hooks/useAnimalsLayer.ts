@@ -2,10 +2,13 @@ import { useMemo } from 'react';
 import { animalsForView } from '@/lib/animals';
 import { readHabitat } from '@/lib/habitat';
 import type { Person } from '../layers/people';
-import AnimalsLayer from '../layers/AnimalsLayer';
+import { lazy, useLazy } from '@/lib/lazyModule';
 import useFauna from './useFauna';
 import useFood from './useFood';
 import useHabitatLookups from './useHabitatLookups';
+
+// `?figures=1` only, close in: the layer's code loads on first use (docs/ops/first-load.md).
+const ANIMALS_MODULE = lazy(() => import('../layers/AnimalsLayer'));
 
 export default function useAnimalsLayer({
   enabled,
@@ -22,6 +25,7 @@ export default function useAnimalsLayer({
   opacity: number;
   people: readonly Person[];
 }) {
+  const animalsModule = useLazy(ANIMALS_MODULE, enabled);
   const range = useFauna(enabled ? { lon, lat } : null, time);
   const food = useFood(enabled, enabled);
   const { step } = useHabitatLookups(enabled, time, null);
@@ -48,9 +52,9 @@ export default function useAnimalsLayer({
   );
   return useMemo(
     () =>
-      enabled
+      enabled && animalsModule
         ? [
-            new AnimalsLayer({
+            new animalsModule.default({
               id: 'animals',
               data: animals,
               opacity,
@@ -65,6 +69,6 @@ export default function useAnimalsLayer({
             }),
           ]
         : [],
-    [enabled, animals, opacity],
+    [enabled, animalsModule, animals, opacity],
   );
 }

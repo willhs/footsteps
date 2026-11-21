@@ -11,7 +11,11 @@ import {
   populationRangeAt,
   populationRangeLabel,
 } from '@/lib/time';
-import PopulationChart from './PopulationChart';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+
+// `?chart=1` only: its code loads with the flag (docs/ops/first-load.md).
+const PopulationChart = dynamic(() => import('./PopulationChart'), { ssr: false });
 
 interface Props {
   time: number;
@@ -31,6 +35,8 @@ export default function TimeReadout({ time, loading, note, calendar, onChange }:
   const modelled = evidenceAt(Math.round(time)) === 'modelled'; // as the calendar label rounds
   const status = dataStatus(time);
   const sea = Math.round(seaLevelAt(time));
+  const [chartOn, setChartOn] = useState(false);
+  useEffect(() => setChartOn(new URLSearchParams(window.location.search).get('chart') === '1'), []);
   return (
     <>
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
@@ -74,7 +80,7 @@ export default function TimeReadout({ time, loading, note, calendar, onChange }:
           </span>
         )}
       </div>
-      {onChange && <PopulationChart time={time} onChange={onChange} />}
+      {onChange && chartOn && <PopulationChart time={time} onChange={onChange} />}
       {note ? (
         <p className="mb-1.5 text-[12px] leading-snug text-[var(--ov-text-2)]" data-testid="moment-note">
           <span className="font-semibold text-[var(--ov-amber)]">

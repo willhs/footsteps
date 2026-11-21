@@ -5,16 +5,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScatterplotLayer, PolygonLayer } from '@deck.gl/layers';
 import type { LayersList } from '@deck.gl/core';
-import { loadAadr, type AadrDoc } from '@/lib/aadr';
+import type { AadrDoc } from '@/lib/aadr';
 import { loadEvidence } from '@/lib/evidence';
-import {
-  markRadius,
-  marksAt,
-  prepareSites,
-  prepareSamples,
-  type EvidenceMark,
-  type PreparedSites,
-} from '@/lib/evidenceMarks';
+import type { EvidenceMark, PreparedSites } from '@/lib/evidenceMarks';
+import { lazy, useLazy } from '@/lib/lazyModule';
+
+// The marks code and the DNA loader load with the flag (docs/ops/first-load.md).
+const EVIDENCE_CODE = lazy(() => import('./evidenceCode'));
 
 // Cool blue-violet: people are the only warm colour.
 const RGB: [number, number, number] = [120, 160, 255];
@@ -38,31 +35,32 @@ export default function useEvidenceLayer({
   const [prepared, setPrepared] = useState<PreparedSites | null>(null);
   const [dna, setDna] = useState<PreparedSites<AadrDoc> | null>(null);
   const [hover, setHover] = useState<EvidenceHover | null>(null);
+  const code = useLazy(EVIDENCE_CODE, enabled);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !code) return;
     let live = true;
     loadEvidence().then(
-      (d) => live && setPrepared(prepareSites(d)),
+      (d) => live && setPrepared(code.prepareSites(d)),
       () => {},
     );
-    loadAadr().then(
-      (d) => live && setDna(prepareSamples(d)),
+    code.loadAadr().then(
+      (d) => live && setDna(code.prepareSamples(d)),
       () => {},
     );
     return () => {
       live = false;
     };
-  }, [enabled]);
+  }, [enabled, code]);
 
   const marks = useMemo(
-    () => (prepared ? marksAt(prepared, time, zoom) : []),
-    [prepared, time, zoom],
+    () => (prepared && code ? code.marksAt(prepared, time, zoom) : []),
+    [code, prepared, time, zoom],
   );
 
   const dnaMarks = useMemo(
-    () => (dna ? marksAt(dna, time, zoom) : []),
-    [dna, time, zoom],
+    () => (dna && code ? code.marksAt(dna, time, zoom) : []),
+    [code, dna, time, zoom],
   );
 
   const onHover = useCallback(
@@ -78,13 +76,13 @@ export default function useEvidenceLayer({
 
   const layers = useMemo<LayersList>(
     () =>
-      enabled
+      enabled && code
         ? [
             new ScatterplotLayer<EvidenceMark>({
               id: 'evidence-sites',
               data: marks,
               getPosition: (m) => [m.lon, m.lat],
-              getRadius: (m) => markRadius(m.count),
+              getRadius: (m) => code.markRadius(m.count),
               getFillColor: (m) => [...RGB, Math.round(40 + 190 * m.alpha)],
               radiusUnits: 'pixels',
               radiusMinPixels: 2,
@@ -99,7 +97,7 @@ export default function useEvidenceLayer({
               // A screen-sized diamond, in geographic degrees at this zoom and latitude.
               getPolygon: (m) => {
                 const dy =
-                  ((markRadius(m.count) * 1.5 * 360) / (512 * 2 ** zoom)) *
+                  ((code.markRadius(m.count) * 1.5 * 360) / (512 * 2 ** zoom)) *
                   Math.cos((m.lat * Math.PI) / 180);
                 const dx =
                   dy / Math.max(0.05, Math.cos((m.lat * Math.PI) / 180));
@@ -128,7 +126,7 @@ export default function useEvidenceLayer({
             }),
           ]
         : [],
-    [enabled, marks, dnaMarks, onHover, time, zoom],
+    [enabled, code, marks, dnaMarks, onHover, time, zoom],
   );
 
   return {

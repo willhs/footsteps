@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
+import { FIRST_GLOBE, FIRST_PEOPLE, markOnce } from '@/lib/firstLoadMarks';
+import { prefetchAfterFirstPeople } from '@/lib/lazyModule';
+import { CLOSE3D_MODULE } from '@/components/footsteps/hooks/useTerrainLayers';
 import { terrainTilesParam } from '@/lib/terrainDetail';
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { WebMercatorViewport, type LayersList, type PickingInfo } from '@deck.gl/core';
@@ -30,14 +33,13 @@ import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
-import TourPanel from './overlays/TourPanel';
-import useTour from '@/components/footsteps/hooks/useTour';
+import { tourParam } from '@/lib/tourParam';
+import dynamic from 'next/dynamic';
 import WaySign from './overlays/WaySign';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
 import { regionTintLayer } from './layers/regionTint';
 import useEvidenceLayer from './hooks/useEvidenceLayer';
-import EvidenceTooltip from './overlays/EvidenceTooltip';
 import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLayer';
 import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
@@ -52,8 +54,12 @@ import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
 import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
-import { shelterHoverOf, type ShelterHover } from './layers/Close3DLayer';
+import { shelterHoverOf, type ShelterHover } from './layers/shelters';
 import ShelterTooltip from './overlays/ShelterTooltip';
+
+// Opt-in code, loaded only when its flag is on (docs/ops/first-load.md).
+const TourGuide = dynamic(() => import('./TourGuide'), { ssr: false });
+const EvidenceTooltip = dynamic(() => import('./overlays/EvidenceTooltip'), { ssr: false });
 
 const NIGHT = new NightExtension();
 
@@ -150,7 +156,9 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
   // `?tour=1`: the guided tour flies the camera and sets the year through the same setters (docs/ops/tour.md).
-  const tour = useTour({ viewState, onViewStateChange, setTime: onTimeChange });
+  // Its code loads only with the flag.
+  const [tourOn, setTourOn] = useState(false);
+  useEffect(() => setTourOn(tourParam(window.location.search)), []);
 
   const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -165,6 +173,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const deckViewState = close3dOn && !is3DMode ? { ...viewState, pitch: pitchForZoom(viewState.zoom) } : viewState;
 
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
+  // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
+  useEffect(() => (close3dOn ? prefetchAfterFirstPeople(CLOSE3D_MODULE) : undefined), [close3dOn]);
   const shadedBackground = useMemo(() => {
     const nightSun = nightOn ? sunPosition(now) : null;
     const props = { extensions: [NIGHT], nightSun };
@@ -378,10 +388,21 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     ...evidence.layers,
     ...otherHumans.above,
   ] as LayersList;
+  // First-load marks (lib/firstLoadMarks.ts): the frame after the Earth, then the year's people, are handed to deck.gl.
+  const firstLoad = useRef({ globe: false, people: false });
+  firstLoad.current = {
+    globe: sceneBackground.length > 0,
+    people: (renderMode === 'dots' ? humanLayers.filter(Boolean).length : presenceLayers.length + gridLayers.length) > 0,
+  };
+  const onAfterRender = useCallback(() => {
+    if (firstLoad.current.globe) markOnce(FIRST_GLOBE);
+    if (firstLoad.current.people) markOnce(FIRST_PEOPLE);
+  }, []);
 
   return (
     <div className="relative w-full h-full">
       <DeckGLView
+        onAfterRender={onAfterRender}
         mode={is3DMode ? '3d' : '2d'}
         viewState={deckViewState}
         onViewStateChange={onViewStateChange}
@@ -454,7 +475,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
           top: 'calc(var(--ov-top) + var(--ov-stats-h, 150px) + 8px)',
         }}
       >
-        {tour && <TourPanel tour={tour} />}
+        {tourOn && <TourGuide viewState={viewState} onViewStateChange={onViewStateChange} setTime={onTimeChange} />}
         {figures && peopleView && blend.people > 0 && (
           <p className="ov-panel ov-body px-3 py-2">People’s positions and look imagined · animals’ ranges modelled, individuals imagined</p>
         )}

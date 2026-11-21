@@ -47,14 +47,6 @@ type Props = {
   /** Dwellings to stand on the ground (`?shelters=1`; layers/shelters.ts). Each sits on the tile height under it, never in water. */
   shelters?: readonly Shelter[];
 };
-/** The dwelling under the cursor and the pointer's screen position. deck.gl calls a composite layer's own `onHover` for what its
- * sublayers pick (info.object is the picked dwelling), so the handler goes on this layer, not on the meshes. */
-export type ShelterHover = { shelter: Shelter; x: number; y: number };
-export function shelterHoverOf(info: { object?: unknown; x: number; y: number }): ShelterHover | null {
-  const picked = info.object as { shelter?: Shelter } | null | undefined;
-  return picked?.shelter ? { shelter: picked.shelter, x: info.x, y: info.y } : null;
-}
-
 type TileData = { heights: Float32Array; detail: DetailPixels | null };
 type Standing = { shelter: Shelter; position: [number, number, number] };
 /** `meshProp` is the SimpleMeshLayer `mesh` object, kept so a re-render passes the same object and nothing is uploaded again. */

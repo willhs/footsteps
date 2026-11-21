@@ -38,3 +38,10 @@ export const TERRAIN_YEARS: readonly number[] = [
   ...Array.from({ length: 100 }, (_, i) => -100000 + i * 1000),
   ...Array.from({ length: 20 }, (_, i) => i * 100),
 ];
+
+/** Terrain images' cache buster. Bump when the images are regenerated: Cloudflare caches /terrain for a day.
+ * v3: farmland calibrated to the Blue Marble photo (2026-11-11). */
+export const TERRAIN_VERSION = 3;
+
+/** The year a visit opens at without `?year=`. */
+export const DEFAULT_TIME = -1000;

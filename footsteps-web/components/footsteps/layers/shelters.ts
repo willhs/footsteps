@@ -252,3 +252,12 @@ export function shelterMeshes(): Record<ShapeId, ReturnType<typeof soup>> {
     block: soup(prism([[-0.5, 0], [0.5, 0], [0.5, 1], [-0.5, 1]]), centre),
   };
 }
+
+/** The dwelling under the cursor and the pointer's screen position. deck.gl calls a composite layer's own `onHover` for what its
+ * sublayers pick (info.object is the picked dwelling), so the handler goes on this layer, not on the meshes. */
+export type ShelterHover = { shelter: Shelter; x: number; y: number };
+
+export function shelterHoverOf(info: { object?: unknown; x: number; y: number }): ShelterHover | null {
+  const picked = info.object as { shelter?: Shelter } | null | undefined;
+  return picked?.shelter ? { shelter: picked.shelter, x: info.x, y: info.y } : null;
+}

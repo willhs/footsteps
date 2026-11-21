@@ -1,19 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { lazy, useLazy } from '@/lib/lazyModule';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
 import { BitmapLayer, PathLayer } from '@deck.gl/layers';
-import { TERRAIN_YEARS } from '@/lib/constants';
+import { TERRAIN_VERSION, TERRAIN_YEARS } from '@/lib/constants';
 import { clampTime, terrainBracket } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
 import TerrainReliefLayer, { TERRAIN_DESATURATE, TERRAIN_TINT } from '../layers/TerrainReliefLayer';
 import { makeGround } from '@/lib/eraGround';
-import Close3DLayer from '../layers/Close3DLayer';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
 import { groundParam, plantsParam } from '@/lib/close3d';
 import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
-import TerrainDetailLayer from '../layers/TerrainDetailLayer';
 import {
   DETAIL_REF_URL,
   loadDetailManifest,
@@ -27,12 +26,15 @@ import {
   type DetailPixels,
 } from '@/lib/terrainDetail';
 
+// The close-up 3D ground (mesh layers, glTF loaders) and the colour pyramid's layer load on first use (lib/lazyModule.ts,
+// docs/ops/first-load.md). FootstepsViz prefetches the close-up after the first people are on screen.
+export const CLOSE3D_MODULE = lazy(() => import('../layers/Close3DLayer'));
+const DETAIL_MODULE = lazy(() => import('../layers/TerrainDetailLayer'));
+
 // One natural-colour Earth per terrain year (footstep-generator/terrain_image.py).
 // The two images either side of `time` are drawn as an opaque lower image and the
 // upper one at opacity f: an exact cross-fade, no shader needed.
-// Bump when the images are regenerated: Cloudflare caches /terrain for a day.
-// v3: farmland calibrated to the Blue Marble photo (2026-11-11).
-const TERRAIN_VERSION = 3;
+// TERRAIN_VERSION (lib/constants.ts) busts Cloudflare's day-long cache when the images are regenerated.
 // `?pastwater=1`: the years the past-water scenarios repaint come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
 const pastWaterOn = () => typeof window !== 'undefined' && pastWaterParam(window.location.search);
 const terrainUrl = (year: number) => (pastWaterOn() && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
@@ -233,6 +235,8 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     };
   }, [close3d, shown, habitat, fq, detail, seaQ]);
 
+  const close3dModule = useLazy(CLOSE3D_MODULE, enabled && close3d);
+  const detailModule = useLazy(DETAIL_MODULE, enabled && !!detail && !close3d);
   if (!enabled || !shown) return [];
   const lower = bitmaps.get(shown.y0);
   const upper = bitmaps.get(shown.y1);
@@ -269,7 +273,8 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     );
   }
   // Not under the close-up 3D: its ground takes the pyramid's colour itself, and flat tiles under it would only be fetched and hidden.
-  if (detail && !close3d) {
+  if (detail && !close3d && detailModule) {
+    const TerrainDetailLayer = detailModule.default;
     layers.push(
       new TerrainDetailLayer({
         id: 'terrain-detail',
@@ -285,6 +290,9 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   }
   if (close3d) {
     // Mounted before the ground is ready, so the elevation tiles stream while the era pixels and habitat lookup decode.
+    // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
+    if (!close3dModule) return layers;
+    const Close3DLayer = close3dModule.default;
     layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
     return layers;
   }

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { bracket } from '@/lib/time';
 import { PEOPLE_YEARS, TARGET_YEARS } from '@/lib/constants';
-import { loadGrid } from './gridLoader';
+import { loadGridData } from './gridLoader';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction } from '../layers/FireLayer';
 
 // Fire marks per data year, kept compact (positions, radius, rank) so every
@@ -28,9 +28,10 @@ function marksFor(year: number): Promise<Built> {
   }
   const pending = inFlight.get(year);
   if (pending) return pending;
-  const p = loadGrid(year)
+  // The grid alone (not the units): the firelight draws before the settlement model is built.
+  const p = loadGridData(year)
     .then((grid) => {
-      const b = { year, data: fireData(buildFireMarks(year, grid.data)) };
+      const b = { year, data: fireData(buildFireMarks(year, grid)) };
       built.set(year, b);
       if (built.size > MAX_BUILT) built.delete(built.keys().next().value!);
       return b;

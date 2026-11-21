@@ -50,7 +50,8 @@ export const PEOPLE_TOTALS: Record<number, PopulationRange> = {
 export const clampTime = (t: number) => Math.min(TIME_MAX, Math.max(TIME_MIN, t));
 
 /** The two `years` (ascending) either side of `time`, and how far between them (0..1). */
-function bracketIn(years: readonly number[], time: number): { y0: number; y1: number; f: number } {
+/** Self-contained (no outside names): app/layout.tsx inlines it in the page head for the first-load preload. */
+export function bracketIn(years: readonly number[], time: number): { y0: number; y1: number; f: number } {
   const t = Math.min(years[years.length - 1], Math.max(years[0], time));
   for (let i = 0; i < years.length - 1; i++) {
     const y0 = years[i];

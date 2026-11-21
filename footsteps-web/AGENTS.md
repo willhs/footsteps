@@ -42,8 +42,9 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
   image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
   placement and size are invented and the screen says so. `?ground=1` adds biome surface detail in the ground's fragment shader
-  (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `@deck.gl/mesh-layers` must stay aliased to its CommonJS
-  build in `next.config.js` (like the other deck.gl packages) or its shaders lose deck.gl's hooks. A hidden browser
+  (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). All deck.gl packages must resolve to the same build
+  (ES modules since task 0014, so they tree-shake; `next.config.js`): a CJS/ESM mix gives two luma.gl shader assemblers and the shaders lose deck.gl's hooks.
+  `Close3DLayer` loads on first use (`useLazy`, prefetched after first people): never import it statically. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
 - Guided tour, `?tour=1` only (`docs/ops/tour.md`): nine stops in `lib/tour.ts` (`TOUR_STOPS`; every number in the wording is computed from `PEOPLE_TOTALS`, `OTHER_HUMANS`, `seaLevelAt`
   or pinned to `arrivals.yaml` by `lib/tour.test.ts`: never type a number in), driven by `hooks/useTour.ts` through `useGlobeViewState`'s setter and the page's `setTime` (FootstepsViz's `onTimeChange` prop),
@@ -57,6 +58,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   Off until reviewed: `?terrain_tiles=1` turns it on. `node scripts/terrain-detail-shots.mjs out <dir>` takes before/after shots.
 - `?chart=1` adds a small world-population chart under the counter (`components/ui/PopulationChart.tsx`, series and scales in `lib/populationSeries.ts`): log people over the time bar's own time scale, the MODELLED low-high band before 10,000 BCE, HYDE's measured line after (one join point at `HYDE_MIN`, built from `PEOPLE_TOTALS`, the counter's table), the slider year marked; click or drag sets the year. Renders nothing without the flag. `node scripts/verify-chart.mjs <dir>` shoots and drives it.
 - `node scripts/terrain-bench.mjs` is the terrain scoreboard (`--query terrain_tiles=0` compares a flag on one build; time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
+- `node scripts/first-load.mjs` is the cold first-visit scoreboard (`docs/ops/first-load.md`): JS bytes, first globe and first people (User Timing marks from `lib/firstLoadMarks.ts`), long tasks, desktop and fast 4G; `--base URL` for prod, `--flags` checks each opt-in loads its code and the default visit does not.
+  Close-up and opt-in code loads through `lib/lazyModule.ts` (`lazy`/`useLazy`) or `next/dynamic` behind its flag; keep new opt-in features out of the first load the same way. The head preloads the opening year's images (`lib/firstLoadPreload.ts`), and the grid worker answers a year's grid before its units (`loadGridData`), so the firelight never waits on the settlement model.
 >- `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. Like the other
   verify/bench scripts it runs headless (60 rAF/s on the Metal GPU, so it never steals focus); `HEADED=1` shows the browser.

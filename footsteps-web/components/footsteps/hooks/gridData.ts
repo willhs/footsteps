@@ -313,7 +313,8 @@ function adjustedGridData(year: number, read: Pixels | Error, landUse: Pixels | 
   return { ...data, adjusted: true };
 }
 
-export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false): Promise<DecodedYearGrid> {
+/** `onData` hears the decoded grid as soon as it is in, before the units (which wait on the settlement model's images) are built. */
+export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false, onData?: (data: GridData) => void): Promise<DecodedYearGrid> {
   // `?pastwater=1`: every scenario's patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
   const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the scenarios are not applied', error); return null; }) : null;
   // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download. Without the flag the
@@ -328,6 +329,7 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
       .then(([px, use, sea]) => gridDataFrom(year, px, use, sea?.terrain ?? null));
   const data = (adjustedRead && adjustedGridData(year, await adjustedRead, await landUse))
     || await hyde(hydeRead ?? readPixels(gridUrl(year), `Grid ${year}`));
+  onData?.(data);
   return prepareYearGrid(
     year,
     data,

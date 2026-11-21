@@ -62,31 +62,38 @@ longer carries mesh-layers/gltf/arrow or the opt-in features; `pnpm visual` pass
 
 ## Phase 1: Measure
 
-- [ ] `lib/firstLoadMarks.ts` (`markOnce`), `DeckGLView` `onAfterRender` prop, FootstepsViz sets the two marks
-- [ ] `scripts/first-load.mjs`: serve `out/` + data (serveStatic/dataRoots) or `--base URL`; profiles desktop/fast4g;
+- [x] `lib/firstLoadMarks.ts` (`markOnce`), `DeckGLView` `onAfterRender` prop, FootstepsViz sets the two marks
+- [x] `scripts/first-load.mjs`: serve `out/` + data (serveStatic/dataRoots) or `--base URL`; profiles desktop/fast4g;
       fresh context per run; bytes by kind via CDP (incl. worker), JS parsed via resource timing; marks; long tasks; `--json`
-- [ ] Build main+marks, run desktop and fast4g locally and against prod → before numbers (evidence/)
-- [ ] Remove `scripts/measure-first-load.mjs` (superseded); update references
+- [x] Build main+marks, run desktop and fast4g locally and against prod → before numbers (evidence/)
+- [x] Remove `scripts/measure-first-load.mjs` (superseded); update references
 
 ## Phase 2: Cut
 
-- [ ] Close3DLayer (and shelters hover) dynamic: `lib/lazyModule.ts` + `useLazyModule`; idle prefetch after first people
-- [ ] Opt-in features dynamic: tour, chart, old bar, animals, evidence, terrain detail
-- [ ] deck.gl ESM experiment: drop CJS aliases, measure, keep only if `pnpm visual` passes
-- [ ] Preload default year grid WebP + terrain images in `app/layout.tsx`; start the grid worker at module load
-- [ ] Re-measure after each cut (bundle report + first-load.mjs)
+- [x] Close3DLayer (and shelters hover) dynamic: `lib/lazyModule.ts` + `useLazyModule`; idle prefetch after first people
+- [x] Opt-in features dynamic: tour, chart, old bar, animals, evidence, terrain detail
+- [x] deck.gl ESM experiment: drop CJS aliases, measure, keep only if `pnpm visual` passes (kept: 513 → 427 kB, visual matches main)
+- [x] Preload default year grid WebP + terrain images in `app/layout.tsx`; start the grid worker at module load
+- [x] Re-measure after each cut (bundle report + first-load.mjs)
 
 ## Phase 3: Verify
 
-- [ ] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test -- --runInBand`, `pnpm build`
-- [ ] `pnpm visual` — all scenes pass
-- [ ] Flag sweep: each flag's chunk loads with the flag, not without (script `--flags`)
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test -- --runInBand`, `pnpm build`
+- [x] `pnpm visual` — all scenes pass
+- [x] Flag sweep: each flag's chunk loads with the flag, not without (script `--flags`)
 
 ## Phase 4: Docs & Wrap
 
-- [ ] `docs/ops/first-load.md` (method, before/after table, biggest remaining costs); AGENTS.md/footsteps-web/AGENTS.md lines
-- [ ] `docs/log.d/<job>.md`, `docs/index.d/<job>.md`
-- [ ] Commit
+- [x] `docs/ops/first-load.md` (method, before/after table, biggest remaining costs); AGENTS.md/footsteps-web/AGENTS.md lines
+- [x] `docs/log.d/<job>.md`, `docs/index.d/<job>.md`
+- [x] Commit
+
+## Notes from implementation
+
+- Measuring found the main cost was not JS: the grid worker answered a year only after building the settlement units
+  (site and water images). Added a cut not in the original list: the worker posts the decoded grid first (`loadGridData`).
+- The flag sweep counts only scripts that arrive before first people (the close-up is prefetched after it on purpose).
+- `pnpm test -- --runInBand` passes `--` to jest as a pattern under pnpm 10; ran `pnpm exec jest --runInBand`.
 
 ## References
 

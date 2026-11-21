@@ -4,6 +4,24 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-22] perf | First load: people on screen in 0.74 s instead of 4.7 s (fast 4G 5.6 s instead of 13.7 s)
+
+Task 0014 (`docs/tasks/0014-first-load-time-to-first-people/`). New `footsteps-web/scripts/first-load.mjs` (replaces
+`measure-first-load.mjs`): cold cache, desktop and fast 4G (9 Mbps, 150 ms, 4× CPU), local build or `--base` prod; JS bytes
+(wire and parsed), first globe and first people from User Timing marks the app now sets (`lib/firstLoadMarks.ts`), long
+tasks; `--flags` checks each opt-in loads its code and the default first load does not. Measuring showed the people image
+in at 0.2 s but nothing drawn until 3.8–5 s: the grid worker built the whole world's settlement units (after fetching the
+2.4 MB site terrain and 0.9 MB water images) before answering. Cuts: the worker posts the decoded grid first and the
+far-out firelight draws from it (`loadGridData`); deck.gl/luma.gl resolve to their ES module builds and tree-shake (the
+CommonJS alias on `@deck.gl/mesh-layers` alone shipped glTF/Draco/KTX loaders and apache-arrow); the close-up 3D layer,
+`?terrain_tiles=1`, `?figures=1`, `?evidence=1`, `?tour=1`, `?chart=1` and `?bar=old` code loads on use (`lib/lazyModule.ts`,
+`next/dynamic`), the close-up prefetched after first people; an inline head script preloads the opening year's Earth and
+people images (`lib/firstLoadPreload.ts`) and the worker starts before React mounts. Local, 5 runs: JS 689 → 437 KiB
+(initial scripts 728 → 471 KB gzip), first people 4.74 → 0.74 s desktop and 13.7 → 5.57 s fast 4G; first globe unchanged on
+desktop, 3.21 → 3.58 s on fast 4G (shares the line with the preloaded people images). `pnpm visual` per-scene counts match
+main's; flag sweep passes. Biggest remaining costs (the settlement images fetched before anyone zooms in, ~3.8 MB) in
+`docs/ops/first-load.md`.
+
 ## [2026-11-22] update | Flag sweep: every URL flag on and off across six scenes, and the flag inventory
 
 Added `footsteps-web/scripts/verify-flags.mjs` (+ `flags-lib.mjs`): six scenes (globe 1900, Rome 1000 BCE z9, Nile 3000 BCE close-up 3D, UK 50,000 BCE z7, Sahara 6000 BCE z8, Croatia 50,000 BCE z10) x 29 variants (no flags, each opt-in flag alone, each off switch alone, `mode=units|grid|dots`, every opt-in together, with grid and with dots, every off switch together) = 174 loads on the real GPU and data. It fails on console or page errors, failed requests that are not known-optional data (each entry has its reason), no canvas, a flat-colour map, or a page that never settles. Result: 174/174 pass, no app bug found, so no fixes were needed. Known-optional data missing on this machine (terrain photo pyramid, past-water frames, adjusted spread grids, the day API) means those flags ran on their fallback path; `--strict` fails on them.

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import NetworkIndicator from '@/components/ui/NetworkIndicator';
 import ServiceWorkerRegistrar from '@/components/ui/ServiceWorkerRegistrar';
+import { preloadScript } from '@/lib/firstLoadPreload';
 
 export const metadata: Metadata = {
   title: 'footsteps',
@@ -23,6 +24,8 @@ export default function RootLayout({
         {/* Reduce connection setup latency for tiles CDN */}
         <link rel="preconnect" href={preconnectOrigin} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={preconnectOrigin} />
+        {/* The opening year's people and Earth images start with the HTML, not after the scripts (lib/firstLoadPreload.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: preloadScript() }} />
       </head>
       <body>
         {children}

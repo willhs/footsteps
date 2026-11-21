@@ -1,6 +1,7 @@
 import {
   decodeYearGrid,
   type DecodedYearGrid,
+  type GridData,
   type YearGrid,
 } from './gridData';
 import { buildUnitMorph, type MorphPoints } from './unitMorph';
@@ -11,6 +12,8 @@ import { seasonalRegion, seasonalUnits, type Season } from '@/lib/seasons';
 declare const self: DedicatedWorkerGlobalScope;
 export type GridReply =
   | { year: number; snapshot: YearGrid }
+  /** The decoded grid ahead of the snapshot (a copy: the worker still builds the units from it). */
+  | { year: number; data: GridData }
   | { year: number; error: string }
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
@@ -89,7 +92,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year, settlements, sites, pastWater, spread)
+  void decodeYearGrid(year, settlements, sites, pastWater, spread, (grid) => self.postMessage({ year, data: grid } satisfies GridReply))
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [

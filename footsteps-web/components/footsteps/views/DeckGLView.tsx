@@ -23,6 +23,8 @@ interface DeckGLViewProps {
   onViewStateChange: DeckGLProps['onViewStateChange'];
   layers: LayersList;
   onClick?: DeckGLProps['onClick'];
+  /** Called after every frame deck.gl draws (first-load marks). */
+  onAfterRender?: () => void;
   /** Redraw every frame (shader animation, e.g. flickering night lights). */
   animate?: boolean;
   /** Pointer handlers for the container, e.g. the hover card's. */
@@ -38,6 +40,7 @@ export default function DeckGLView({
   onViewStateChange,
   layers,
   onClick,
+  onAfterRender,
   animate = false,
   containerProps,
   unprojectRef,
@@ -104,6 +107,7 @@ export default function DeckGLView({
         controller={controller}
         layers={layers}
         onClick={onClick}
+        onAfterRender={onAfterRender}
         getCursor={() => 'crosshair'}
         width="100%"
         height="100%"

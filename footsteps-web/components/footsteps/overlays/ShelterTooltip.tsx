@@ -1,5 +1,5 @@
 import { MATERIALS, NO_SOCIETY, SHAPE_NAME, describeShelter, type DwellingTable } from '@/lib/dwellings';
-import type { ShelterHover } from '../layers/Close3DLayer';
+import type { ShelterHover } from '../layers/shelters';
 import { UnitKind } from '../layers/units';
 
 /** A hovered dwelling, in the left column: what it is (type modelled from an analog or a dig) and what is imagined (its place). */

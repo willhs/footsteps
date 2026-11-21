@@ -45,6 +45,7 @@ separate series from `tasks/0001-0003`.
 - [`ops/tour.md`](ops/tour.md) — the `?tour=1` guided tour: its nine stops, where each number comes from, and the first-draft wording
 - [`ops/visual-regression.md`](ops/visual-regression.md) — screenshot regression over ten fixed scenes: running it, updating baselines, why CI skips it
 - [`ops/water-distance.md`](ops/water-distance.md) — the baked distance-to-fresh-water image that group placement reads
+- [`ops/ice-sheets.md`](ops/ice-sheets.md) — PaleoMIST 1.0 dated ice-sheet masks behind `?ice=1`: source, licence, method, regeneration, checks
 
 ## Research: question, evidence, verdict (check the status line at the top of each: several recommendations are built)
 
@@ -86,6 +87,7 @@ separate series from `tasks/0001-0003`.
 - [`work/tasks/0001-time-slider-mobile-labels.md`](work/tasks/0001-time-slider-mobile-labels.md) — done (2025-09): stop the TimeSlider's labels overlapping on small screens
 - [`work/tasks/0002-static-export.md`](work/tasks/0002-static-export.md) — done (2025-09): serve footsteps-web as a static Next.js export
 - [`work/tasks/0003-anthrome-overlay.md`](work/tasks/0003-anthrome-overlay.md) — paused (2025-09): prototype anthrome overlay tiles and a UI toggle
+- [`tasks/0013-ice-sheets-dated-extent/task.md`](tasks/0013-ice-sheets-dated-extent/task.md) ([plan](tasks/0013-ice-sheets-dated-extent/plan.md)) — ice sheets at their dated extent behind `?ice=1`, on the Earth image and the close-up
 
 ## Design
 

@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-21T10:15:00Z	setup	rebuilt p3k14c with --raw-dir in the workspace scratch dir; copied aadr_samples.json.gz read-only from the primary checkout; built HYDE -10000 in the worktree	data/raw is a symlink into the primary checkout, so fetch must not write there; AADR rebuild is a large download for an unchanged input	scratch/p3k14c; data/evidence	inputs present
+2026-11-21T10:20:00Z	baseline	reproduced the committed model before changing anything	before numbers must be from the same inputs	90 images match rerun-p3 manifest; results.json and arrival_check identical	baseline valid
+2026-11-21T10:30:00Z	plan	per-region knobs as arrivals.yaml fields, read into per-region arrays like arrival/ramp	one table owns region facts; no id lists in code	plan.md Data shape	planned

@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-11-21T10:13:56Z	sources	CRC806 LGM inland waters usable: CC-BY per metadata PDF and dataset page; zips 227,113 + 77,498 B fetched	research 0014 left licence and payload unverified	evidence/src/lgm (workspace)	go
+2026-11-21T10:13:56Z	sources	Mesopotamia: PLOS ONE CC BY 4.0; SI is geochemistry/dates, not coast geometry; trace Fig 6 panels instead	no coastline payload exists; Fig 6 has a 2-degree graticule	evidence/src/meso/article.txt, g006.png	go, labelled interpreted
+2026-11-21T10:13:56Z	design	epoch is the unit (unique id, own patches, level rule); a year has a set of active epochs	three stages and many-level lakes do not fit one global mask; composite frames would re-rank worldwide	plan.md Design	chosen
+2026-11-21T10:13:56Z	scope	no Black Sea change	CRC806 has no Black Sea polygon; 0014 found only competing levels	lakes table: Caspian, Aral, Sarygamysh, Lisan, North Sea ice lake, ice-dammed lakes	documented

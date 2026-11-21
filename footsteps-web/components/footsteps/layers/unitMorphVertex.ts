@@ -58,9 +58,9 @@ void main(void) {
   float typical = kind < 0.5 ? ${f(TYPICAL_PEOPLE.band)} : kind < 1.5 ? ${f(TYPICAL_PEOPLE.village)} : ${f(TYPICAL_PEOPLE.camp)};
   float people = isCity ? ${f(CITY_PEOPLE_PER_M2)} * 3.14159 * radius * radius : typical * pow(radius / base, 2.0);
   float homes = max(1.0, people / ${f(HOUSEHOLD)});
-  // Household marks fill about 60% of the cells inside the footprint; never finer than 5 px (3 px for town roofs), so a
+  // Household marks fill about 60% of the cells inside the footprint; never finer than 8 px (3 px for town roofs), so a
   // big village shows fewer houses than it has rather than a speckle: the sign of houses, at its real spread.
-  vCellPx = max(isCity ? 3.0 : 5.0, corePx * sqrt(3.14159 * 0.6 / homes));
+  vCellPx = max(isCity ? 3.0 : 8.0, corePx * sqrt(3.14159 * 0.6 / homes));
   // Far out a group is a flickering fire (like the firelight); from zoom ~7 the fire turns into the kind's sign;
   // once the footprint is bigger than the sign, its households show at their real spread.
   float households = smoothstep(${f(SIGN_PX)} * 0.9, ${f(SIGN_PX)} * 1.7, corePx);

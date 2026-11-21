@@ -10,7 +10,7 @@ Will saw big flat circles between the far-out firelight and the street-level foo
 `unitMorphVertex.ts`) now changes with zoom in three steps, all in one shader: far out it is the flickering fire it was; from
 about zoom 7 it turns into its kind's sign at a fixed size (a fire for a forager band, a tent for a herding camp, a house for a
 farming village, three roofs for a small town); once its footprint is bigger than the sign (~7 px) it shows its households at
-their real spread (hearths, tents, houses; about 60% of cells, never finer than 5 px, ragged edge), over a faint wash. The kind
+their real spread (hearths, tents, houses; about 60% of cells, never finer than 8 px so each reads as a house, ragged edge), over a faint wash. The kind
 is read from the mark's colour (`VILLAGE_GREEN_CUT`, `BAND_GREEN_CUT`, tested against `LOOKS`), the head count from its radius.
 Footprints are now about where people stand at street zoom (`FOOTPRINT_M`: band and camp 250 m, village 500 m, times
 sqrt(people / typical)), not 600 / 900 / 1500 m. Towns and cities, grid glow cells and named Reba cities alike, are their built-up

@@ -1,0 +1,4 @@
+phase	decision	why	evidence	result
+plan	Serve adjusted images at /grid/adjusted/ not /grid_adjusted/	budgie mounts ./app/grid and Caddy routes /grid/*; a subfolder needs no compose/Caddy change or recreate	deploy/budgie/Caddyfile:15, docker-compose.yml:16	adopted
+plan	GridData.adjusted records the source actually read; labels derive from it, not the flag	a failed fetch falls back to HYDE and must not be labelled adjusted	gridData.ts decodeYearGrid	adopted
+plan	Total guard: adjusted image total within 1% of HYDE_TOTALS else fall back	HYDE_TOTALS is 3 s.f.; generator keeps totals to 3e-4; counter already reads populationAt	lib/time.ts:22, FootstepsViz.tsx:410	adopted

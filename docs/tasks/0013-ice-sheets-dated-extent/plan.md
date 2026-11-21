@@ -58,27 +58,27 @@ BY, but the task keeps height out; follow-up).
 ## Phases
 
 ### Phase 1 — source and masks (Python)
-- [ ] `ice_sheets.py`: range-read the archive directory, fetch margin + readme members to `data/raw/paleomist/`, pin sha256; parse
+- [x] `ice_sheets.py`: range-read the archive directory, fetch margin + readme members to `data/raw/paleomist/`, pin sha256; parse
       GMT (`# @P` perimeters, `# @H` holes); rasterise to 2.5′ patches per (epoch, region); manifest with source, licence, rule,
       uncertainty, per-region basis, bytes, sha256.
-- [ ] Reproduce a published epoch: compare the 20 ka mask with the 1° `reconstruction_1_degree.nc` thickness (> 0) and the DATED-1
+- [x] Reproduce a published epoch: compare the 20 ka mask with the 1° `reconstruction_1_degree.nc` thickness (> 0) and the DATED-1
       Eurasian area at ~21 ka; record agreement in the manifest/doc.
-- [ ] Tests (`tests/test_ice_sheets.py`): GMT parse with a hole, rasterise, epoch windows tile without gaps, manifest matches files.
+- [x] Tests (`tests/test_ice_sheets.py`): GMT parse with a hole, rasterise, epoch windows tile without gaps, manifest matches files.
 - Verify: `poetry run pytest footstep-generator/tests/test_ice_sheets.py -q`; bytes measured.
 
 ### Phase 2 — the app reads it
-- [ ] `lib/iceSheets.ts` (+ test): manifest types, `iceParam`, `iceEpochAt`, `iceIds`, `loadIce`, `iceShareAt`, `iceLabel`, `iceNote`.
-- [ ] Ranker: `SiteLayers.ice`, multi-live regions, packed cache key; `inPastWater` covers ice too (renamed `inScenario`).
-- [ ] Worker/gridData: `ice` flag, ids appended to `epochs`, ranker cache keyed by both flags.
-- [ ] Overlay layer in `useTerrainLayers` (flat and under the close-up), `Close3DLayer`/`buildTerrainMesh` ice surface.
-- [ ] Hover row and the note in `SupportingText` (Dots: not applied).
+- [x] `lib/iceSheets.ts` (+ test): manifest types, `iceParam`, `iceEpochAt`, `iceIds`, `loadIce`, `iceShareAt`, `iceLabel`, `iceNote`.
+- [x] Ranker: `SiteLayers.ice`, multi-live regions, packed cache key; `inPastWater` covers ice too (renamed `inScenario`).
+- [x] Worker/gridData: `ice` flag, ids appended to `epochs`, ranker cache keyed by both flags.
+- [x] Overlay layer in `useTerrainLayers` (flat and under the close-up), `Close3DLayer`/`buildTerrainMesh` ice surface.
+- [x] Hover row and the note in `SupportingText` (Dots: not applied).
 - Verify: jest (lib + ranker + close3d), tsc, lint.
 
 ### Phase 3 — proof
-- [ ] Real-data test `ice.real.test.ts`: years −25000…−10000 every 1 ka, no group in an ice pixel, totals unchanged, outside regions unmoved.
-- [ ] Screenshots on/off (Scandinavia −20000, Great Lakes −15000, Patagonia −20000) with a script like `pastwater-shots.mjs`.
-- [ ] `pnpm visual` flag off unchanged; build; Python suite.
-- [ ] `docs/ops/ice-sheets.md`, AGENTS.md line, log/index fragments.
+- [x] Real-data test `ice.real.test.ts`: years −25000…−10000 every 1 ka, no group in an ice pixel, totals unchanged, outside regions unmoved.
+- [x] Screenshots on/off (Scandinavia −20000, Great Lakes −15000, Patagonia −20000) with a script like `pastwater-shots.mjs`.
+- [x] `pnpm visual` flag off unchanged; build; Python suite.
+- [x] `docs/ops/ice-sheets.md`, AGENTS.md line, log/index fragments.
 
 ## Assumptions
 

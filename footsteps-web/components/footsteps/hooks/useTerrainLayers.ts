@@ -13,6 +13,7 @@ import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
 import { groundParam, plantsParam } from '@/lib/close3d';
 import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
+import { iceBounds, iceEpochAt, iceOverlayPixels, iceParam, iceShareAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
 import {
   DETAIL_REF_URL,
   loadDetailManifest,
@@ -37,6 +38,18 @@ const DETAIL_MODULE = lazy(() => import('../layers/TerrainDetailLayer'));
 // TERRAIN_VERSION (lib/constants.ts) busts Cloudflare's day-long cache when the images are regenerated.
 // `?pastwater=1`: the years the past-water scenarios repaint come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
 const pastWaterOn = () => typeof window !== 'undefined' && pastWaterParam(window.location.search);
+// `?ice=1`: the dated ice sheets (lib/iceSheets.ts) as their own layer over the flat terrain and as ice in the close-up ground.
+const iceOn = () => typeof window !== 'undefined' && iceParam(window.location.search);
+/** The overlay picture of each ice patch, made once per patch (id) from its mask. */
+const iceBitmaps = new Map<number, Promise<ImageBitmap>>();
+function iceBitmap(m: IceMask): Promise<ImageBitmap> {
+  let p = iceBitmaps.get(m.id);
+  if (!p) {
+    p = createImageBitmap(new ImageData(iceOverlayPixels(m), m.width, m.height));
+    iceBitmaps.set(m.id, p);
+  }
+  return p;
+}
 const terrainUrl = (year: number) => (pastWaterOn() && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
@@ -175,6 +188,22 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
       live = false;
     };
   }, [enabled, close3d]);
+  // The ice of the epoch the year shows: masks and overlay pictures, loaded when the epoch changes.
+  const iceBp = iceEpochAt(clampTime(time))?.bp ?? null;
+  const [ice, setIce] = useState<{ bp: number; masks: IceMask[]; bitmaps: ImageBitmap[] } | null>(null);
+  useEffect(() => {
+    if (!enabled || !iceOn() || iceBp === null) return;
+    let live = true;
+    loadIceAt(clampTime(time))
+      .then((masks) => Promise.all(masks.map(iceBitmap)).then((bitmaps) => live && setIce({ bp: iceBp, masks, bitmaps })))
+      .catch((error) => console.warn('[terrain] no ice', error));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ice depends on the epoch, not on every tick of `time`
+  }, [enabled, iceBp]);
+  const iceShown = ice && ice.bp === iceBp ? ice : null;
+  const iceCover = useMemo(() => (iceShown ? { key: `ice${iceShown.bp}`, shareAt: (lon: number, lat: number) => iceShareAt(iceShown.masks, lon, lat) } : null), [iceShown]);
   const epochs = pastWaterEpochs(clampTime(time)).join(',');
   const lakeSea = Math.round(seaLevelAt(clampTime(time)) * 10) / 10;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the water depends on the active epochs (and the sea, for marine ones), not on every tick of `time`
@@ -293,10 +322,22 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
     if (!close3dModule) return layers;
     const Close3DLayer = close3dModule.default;
-    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
+    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));
+  // Over the relief, under people: white ice with a blue-grey edge, one picture per patch (not under the close-up: its ground is the ice).
+  iceShown?.masks.forEach((m, i) => {
+    layers.push(new BitmapLayer({
+      id: `ice-${m.id}`,
+      image: iceShown.bitmaps[i],
+      bounds: iceBounds(m),
+      _imageCoordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+      pickable: false,
+      textureParameters: { minFilter: 'linear', magFilter: 'nearest' },
+      parameters: { depthWriteEnabled: false, depthCompare: 'always' },
+    }));
+  });
   if (coast.length) {
     layers.push(
       new PathLayer<[number, number][]>({

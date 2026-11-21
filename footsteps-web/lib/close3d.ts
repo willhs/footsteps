@@ -351,6 +351,22 @@ function nearWater(water: Uint8Array, n: number, reach = 2): Uint8Array {
   return near;
 }
 
+/** `?ice=1`: the dated ice sheet over the ground (lib/iceSheets.ts). `shareAt`: ice share 0..1 around a point; `key` changes with the epoch. */
+export type IceCover = { key: string; shareAt: (lon: number, lat: number) => number };
+/** Ground is ice where at least this share of the area around a vertex is (the mask's own edge, to a 2.5′ pixel). */
+export const ICE_EDGE_SHARE = 0.5;
+
+/** The ground with the ice sheet on it: under the ice the biome is ice (Krapp's 28), so the colour is snow white, the shader's cover is ice
+ * and nothing grows; elsewhere the ground as it was. */
+export function withIce(ground: Ground, ice: IceCover): Ground {
+  const out: Ground = {
+    ...ground,
+    biomeAt: (lon, lat) => (ice.shareAt(lon, lat) >= ICE_EDGE_SHARE ? 28 : ground.biomeAt(lon, lat)),
+  };
+  if (ground.withDetail) out.withDetail = (tile) => withIce(ground.withDetail!(tile), ice);
+  return out;
+}
+
 export type TerrainMesh = {
   /** Offsets from the tile's south-west corner: [dlon, dlat, metres up] per vertex. The n × n grid comes first (row by row from
    * the north-west), then the skirt: the edge vertices again, lowered, once round the tile from the north-west corner. */
@@ -366,7 +382,7 @@ export type TerrainMesh = {
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
  * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. With `lake`, the
  * past water's vertices (lakeVertices) are open water flat at its own level, and low ground by it is shore relative to that level, not the sea's. */
-export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null): TerrainMesh {
+export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null, ice: IceCover | null = null): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
   const { west, south, east, north } = bbox;
@@ -385,12 +401,16 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) hv[j * n + i] = at(i * step, j * step);
   const ocean = tileWater(heights, sea, step).water;
   const lakeLevel = lake ? lakeVertices(heights, bbox, lake, step) : null;
-  const water = lakeLevel ? ocean.map((w, v) => (w || !Number.isNaN(lakeLevel[v]) ? 1 : 0)) : ocean;
+  // `?ice=1`: vertices under the ice sheet are ground (ice), never sea or past water, even where the ice is grounded below the year's sea.
+  const iced = ice ? new Uint8Array(n * n) : null;
+  if (ice && iced) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) iced[j * n + i] = ice.shareAt(west + ((east - west) * i) / (n - 1), north - ((north - south) * j) / (n - 1)) >= ICE_EDGE_SHARE ? 1 : 0;
+  if (lakeLevel && iced) for (let v = 0; v < n * n; v++) if (iced[v]) lakeLevel[v] = NaN;
+  const water = lakeLevel || iced ? ocean.map((w, v) => (iced?.[v] ? 0 : w || (lakeLevel && !Number.isNaN(lakeLevel[v])) ? 1 : 0)) : ocean;
   const shore = nearWater(water, n);
   const nearLake = lakeLevel ? nearLevel(lakeLevel, n) : null;
   // The drawn surface per vertex (water flat at its level), read 4 times more per vertex for the slope.
   const drawn = new Float32Array(n * n);
-  for (let v = 0; v < n * n; v++) drawn[v] = lakeLevel && !Number.isNaN(lakeLevel[v]) ? lakeLevel[v] : water[v] ? sea : hv[v];
+  for (let v = 0; v < n * n; v++) drawn[v] = lakeLevel && !Number.isNaN(lakeLevel[v]) ? lakeLevel[v] : water[v] ? sea : iced?.[v] ? Math.max(hv[v], sea) : hv[v];
   const surfaceAt = (i: number, j: number) => drawn[(j < 0 ? 0 : j >= n ? n - 1 : j) * n + (i < 0 ? 0 : i >= n ? n - 1 : i)];
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {

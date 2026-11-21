@@ -6,7 +6,8 @@
 // The worker asks for every populated cell of a year (1.3 million in 1900 CE), so a cell's list lives in packed typed arrays
 // (about 25 bytes a cell), not in objects, and `spotsFor` hands back one reused scratch object.
 import terrainMeta from '../../../public/sites/site_terrain.json';
-import { NO_EPOCH, NO_EPOCHS, type EpochLayers, type Epochs, type PastWaterLayers } from '@/lib/pastWater';
+import { NO_EPOCH, NO_EPOCHS, type Epochs, type LakeMask, type PastWaterLayers, type WaterPatch } from '@/lib/pastWater';
+import type { IceLayers } from '@/lib/iceSheets';
 
 /** Candidate spots per cell: a jittered 4 × 4 grid, so spots are spread and no two touch. A cell with more groups than dry spots stacks them. */
 export const CANDIDATES = 16;
@@ -36,10 +37,12 @@ const SEA_LEVELS: number = terrainMeta.sea_levels; // sea share is stored in 4 b
 export type SiteTerrain = { width: number; height: number; depth: Uint8Array; packed: Uint8Array };
 /** The baked distance to fresh water (footstep-generator/water_distance.py): code → metres = 2,000 km × (code / 255)². */
 export type SiteWater = { width: number; height: number; code: Uint8Array };
-/** `pastWater`, when given (`?pastwater=1`): every past-water epoch (lib/pastWater.ts). A call that names the year's active epochs then sees, in a cell
+/** `ice`, when given (`?ice=1`): the ice patches (lib/iceSheets.ts), ids in the same `epochs` list; ice is never usable ground, like a modelled
+ * lake, and adds no fresh water. An ice patch and a past-water epoch can share a cell (proglacial lakes), so every matching one is live at once.
+ * `pastWater`, when given (`?pastwater=1`): every past-water epoch (lib/pastWater.ts). A call that names the year's active epochs then sees, in a cell
  * inside an active epoch's region (its patches plus a small reach), that epoch's water as wet and its freshwater distances instead of the static
  * image's; everywhere else the ranker is exactly what it was without it. */
-export type SiteLayers = { terrain: SiteTerrain; water: SiteWater; pastWater?: PastWaterLayers | null };
+export type SiteLayers = { terrain: SiteTerrain; water: SiteWater; pastWater?: PastWaterLayers | null; ice?: IceLayers | null };
 
 /** One cell's candidate spots, best first, as offsets from the cell centre in cell widths (east, north). The first `dry` are the
  * ones groups may use: surely dry land at the year's sea level, or, when none is, the doubtful shore spots (under half sea or
@@ -54,8 +57,8 @@ export type SiteRanker = {
   spotsFor(cellId: number, seaLevelM: number, count?: number, epochs?: Epochs): CellSpots;
   /** Whether a point in the cell (offsets as in CellSpots) is sea or lake at that sea level and those epochs. */
   isWet(cellId: number, x: number, y: number, seaLevelM: number, epochs?: Epochs): boolean;
-  /** Whether some epoch can change this cell: it lies inside (or just beside) an epoch's patches. False for every cell without them. */
-  inPastWater(cellId: number): boolean;
+  /** Whether some past-water epoch or ice patch can change this cell: it lies inside (or just beside) its patches. False for every cell without them. */
+  inScenario(cellId: number): boolean;
   /** How many cells have a cached list. */
   readonly size: number;
 };
@@ -91,36 +94,50 @@ export function candidateOffsets(cellId: number) {
 const INLAND = 128; // flag in a cache entry's high signature byte
 const WINDOW = 6; // terrain pixels around a cell: its own 2 × 2 and a ring of 2 (a spot's bilinear reach is one pixel)
 
-export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cellsAcross: number): SiteRanker {
+export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers, cellsAcross: number): SiteRanker {
   const { width: tw, height: th, depth, packed } = terrain;
   const tScale = tw / cellsAcross; // terrain pixels across one cell (2)
   const wScale = water.width / cellsAcross; // water pixels across one cell (1)
 
   // Past water: per epoch, the 5′ cells it can change (its patches, plus the reach of a cell's spots and window), and the epoch in force for the current call.
   const reach = 3; // cells: a spot's offset, its bilinear pixel and the ranking window are all within 2
-  const regions = (pastWater?.epochs ?? []).map((e) => {
-    const boxes = [[Math.floor(e.lake.x0 / tScale), Math.floor(e.lake.y0 / tScale), Math.ceil((e.lake.x0 + e.lake.width) / tScale), Math.ceil((e.lake.y0 + e.lake.height) / tScale)]];
-    if (e.water) boxes.push([Math.floor(e.water.x0 / wScale), Math.floor(e.water.y0 / wScale), Math.ceil((e.water.x0 + e.water.width) / wScale), Math.ceil((e.water.y0 + e.water.height) / wScale)]);
-    return {
-      layers: e,
-      col0: Math.min(...boxes.map((b) => b[0])) - reach, row0: Math.min(...boxes.map((b) => b[1])) - reach,
-      col1: Math.max(...boxes.map((b) => b[2])) + reach, row1: Math.max(...boxes.map((b) => b[3])) + reach,
-    };
+  // An exclusion: a past-water epoch or an ice patch. `mask` is read when it goes live (an ice patch's pixels load when its epoch is first needed).
+  type Exclusion = { id: number; mask: () => LakeMask | undefined; water: WaterPatch | null; col0: number; row0: number; col1: number; row1: number };
+  const regionOf = (id: number, boxes: number[][], mask: Exclusion['mask'], waterPatch: WaterPatch | null): Exclusion => ({
+    id, mask, water: waterPatch,
+    col0: Math.min(...boxes.map((b) => b[0])) - reach, row0: Math.min(...boxes.map((b) => b[1])) - reach,
+    col1: Math.max(...boxes.map((b) => b[2])) + reach, row1: Math.max(...boxes.map((b) => b[3])) + reach,
   });
-  const inRegion = (r: (typeof regions)[number], row: number, col: number) => row >= r.row0 && row < r.row1 && col >= r.col0 && col < r.col1;
-  /** The epoch in force for the current call and its layers (NO_EPOCH / null outside every active epoch's region, so a cell there is ranked,
-   * and cached, exactly as without the flag). Epochs active together never share a cell (lib/pastWater.test.ts), so the first match is the one. */
+  const pixelBox = (p: { x0: number; y0: number; width: number; height: number }) => [Math.floor(p.x0 / tScale), Math.floor(p.y0 / tScale), Math.ceil((p.x0 + p.width) / tScale), Math.ceil((p.y0 + p.height) / tScale)];
+  const regions: Exclusion[] = [
+    ...(pastWater?.epochs ?? []).map((e) => {
+      const boxes = [pixelBox(e.lake)];
+      if (e.water) boxes.push([Math.floor(e.water.x0 / wScale), Math.floor(e.water.y0 / wScale), Math.ceil((e.water.x0 + e.water.width) / wScale), Math.ceil((e.water.y0 + e.water.height) / wScale)]);
+      return regionOf(e.id, boxes, () => e.lake, e.water);
+    }),
+    ...(ice?.patches ?? []).map((p) => regionOf(p.id, [pixelBox(p)], () => ice!.masks.get(p.id), null)),
+  ];
+  const inRegion = (r: Exclusion, row: number, col: number) => row >= r.row0 && row < r.row1 && col >= r.col0 && col < r.col1;
+  /** The exclusions in force for the current call (none outside every active one's region, so a cell there is ranked, and cached, exactly as
+   * without the flags) and `live`, their ids packed a byte each (ids < 256, at most 4 at once): the cache key. Past-water epochs active together
+   * never share a cell (lib/pastWater.test.ts); an ice patch can share one with a past-water epoch, and wet is then either. */
+  const MAX_LIVE = 4;
   let live = NO_EPOCH;
-  let liveLayers: EpochLayers | null = null;
+  const liveMasks: LakeMask[] = [];
+  let liveWater: WaterPatch | null = null;
   const setLive = (row: number, col: number, epochs: Epochs) => {
     live = NO_EPOCH;
-    liveLayers = null;
+    liveMasks.length = 0;
+    liveWater = null;
     if (!epochs.length) return;
+    let n = 0;
     for (const r of regions) {
-      if (epochs.includes(r.layers.id) && inRegion(r, row, col)) {
-        live = r.layers.id;
-        liveLayers = r.layers;
-        return;
+      if (n < MAX_LIVE && epochs.includes(r.id) && inRegion(r, row, col)) {
+        live = live * 256 + r.id;
+        n++;
+        const m = r.mask();
+        if (m) liveMasks.push(m);
+        if (!liveWater && r.water) liveWater = r.water;
       }
     }
   };
@@ -134,14 +151,14 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
   let sigLo = new Uint32Array(capacity);
   let sigHi = new Uint8Array(capacity);
   let dries = new Uint8Array(capacity);
-  let cachedEpoch = new Uint8Array(capacity);
+  let cachedEpoch = new Uint32Array(capacity);
   const grow = () => {
     capacity *= 2;
     const o = new Uint8Array(capacity * CANDIDATES); o.set(orders); orders = o;
     const lo = new Uint32Array(capacity); lo.set(sigLo); sigLo = lo;
     const hi = new Uint8Array(capacity); hi.set(sigHi); sigHi = hi;
     const d = new Uint8Array(capacity); d.set(dries); dries = d;
-    const ep = new Uint8Array(capacity); ep.set(cachedEpoch); cachedEpoch = ep;
+    const ep = new Uint32Array(capacity); ep.set(cachedEpoch); cachedEpoch = ep;
   };
 
   const spots: CellSpots = { x: new Float64Array(CANDIDATES), y: new Float64Array(CANDIDATES), dry: 0, unresolved: false };
@@ -163,13 +180,15 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
   const wrapX = (x: number, n: number) => (x < 0 ? x + n : x >= n ? x - n : x);
   const clampY = (y: number, n: number) => (y < 0 ? 0 : y >= n ? n - 1 : y);
 
-  /** 1 when a terrain pixel is in the modelled water of the epoch in force, else 0. */
+  /** 1 when a terrain pixel is in the modelled water or ice of an exclusion in force, else 0. */
   const scenarioAt = (x: number, y: number) => {
-    if (!liveLayers) return 0;
-    const lake = liveLayers.lake;
-    const c = x - lake.x0;
-    const r = y - lake.y0;
-    return c >= 0 && r >= 0 && c < lake.width && r < lake.height ? lake.wet[r * lake.width + c] : 0;
+    for (let i = 0; i < liveMasks.length; i++) {
+      const lake = liveMasks[i];
+      const c = x - lake.x0;
+      const r = y - lake.y0;
+      if (c >= 0 && r >= 0 && c < lake.width && r < lake.height && lake.wet[r * lake.width + c]) return 1;
+    }
+    return 0;
   };
 
   /** Bilinear wet share (sea, lake) and slope in degrees around a point; results land in `at`. */
@@ -212,7 +231,7 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
 
   /** The distance code of one 5′ cell: the epoch's patch where it covers the cell, else the static image (the two agree at the patch's edge). */
   const codeAt = (x: number, y: number) => {
-    const patch = liveLayers?.water;
+    const patch = liveWater;
     if (patch) {
       const c = x - patch.x0;
       const r = y - patch.y0;
@@ -368,7 +387,7 @@ export function createSiteRanker({ terrain, water, pastWater }: SiteLayers, cell
       sample(row, col, x, y, Math.max(0, -seaLevelM));
       return Math.max(at.sea, at.lake) >= WET_EDGE;
     },
-    inPastWater(cellId) {
+    inScenario(cellId) {
       const row = Math.floor(cellId / cellsAcross);
       const col = cellId - row * cellsAcross;
       return regions.some((r) => inRegion(r, row, col));

@@ -8,6 +8,7 @@ import { createSiteRanker, type SiteRanker, type SiteTerrain } from '../layers/s
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { seaLevelAt } from '@/lib/climate';
 import { loadPastWater, NO_EPOCHS, pastWaterEpochs, type Epochs, type PastWaterLayers } from '@/lib/pastWater';
+import { iceIds, iceLayers, loadIceAt, type IceLayers } from '@/lib/iceSheets';
 import { landSubcells, type TerrainSea } from './landSubcells';
 import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
 
@@ -200,9 +201,10 @@ function loadSiteTerrain() {
 
 /** The baked terrain and water-distance images behind group placement (siteRanking.ts). Without them groups keep the old
  * invented positions: a failed fetch never loses the people. One ranker per worker, so its per-cell cache outlives each year. */
-const siteRankers = new Map<boolean, Promise<SiteRanker | null>>(); // with and without the past-water layers (`?pastwater=1`), so each keeps its own per-cell cache
-function loadSiteRanker(pastWater: PastWaterLayers | null): Promise<SiteRanker | null> {
-  let ranker = siteRankers.get(pastWater !== null);
+const siteRankers = new Map<string, Promise<SiteRanker | null>>(); // per set of layers (`?pastwater=1`, `?ice=1`), so each keeps its own per-cell cache
+function loadSiteRanker(pastWater: PastWaterLayers | null, ice: IceLayers | null = null): Promise<SiteRanker | null> {
+  const key = `${pastWater !== null}|${ice !== null}`;
+  let ranker = siteRankers.get(key);
   if (!ranker) {
     ranker = Promise.all([
       loadSiteTerrain(),
@@ -213,12 +215,13 @@ function loadSiteRanker(pastWater: PastWaterLayers | null): Promise<SiteRanker |
         terrain: t.terrain,
         water: { width: w.width, height: w.height, code: w.planes[0] },
         pastWater,
+        ice,
       }, HYDE_WIDTH);
     }).catch((error) => {
       console.warn('[grid] no site terrain; groups keep their old positions', error);
       return null;
     });
-    siteRankers.set(pastWater !== null, ranker);
+    siteRankers.set(key, ranker);
   }
   return ranker;
 }
@@ -314,7 +317,9 @@ function adjustedGridData(year: number, read: Pixels | Error, landUse: Pixels | 
 }
 
 /** `onData` hears the decoded grid as soon as it is in, before the units (which wait on the settlement model's images) are built. */
-export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false, onData?: (data: GridData) => void): Promise<DecodedYearGrid> {
+export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false, ice = false, onData?: (data: GridData) => void): Promise<DecodedYearGrid> {
+  // `?ice=1`: the year's epoch's ice patches (lib/iceSheets.ts); if they fail, groups are placed as without the flag.
+  const iceOn = ice && settlements && sites ? await loadIceAt(year).then(() => true, (error) => { console.warn('[grid] no ice; groups are not kept off it', error); return false; }) : false;
   // `?pastwater=1`: every scenario's patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
   const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the scenarios are not applied', error); return null; }) : null;
   // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download. Without the flag the
@@ -336,8 +341,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
     settlements ? {
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
-      sites: sites ? await loadSiteRanker(lake) : null,
-      epochs: lake ? pastWaterEpochs(year) : NO_EPOCHS,
+      sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
+      epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
       // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
       dwellings: await loadDwellings().catch(() => null),
     } : undefined,

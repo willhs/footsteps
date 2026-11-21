@@ -22,7 +22,9 @@ import {
   plantMeshes,
   plantsForTile,
   terrariumHeights,
+  withIce,
   type Bbox,
+  type IceCover,
   type Ground,
   type Plant,
   type TerrainMesh,
@@ -40,6 +42,8 @@ type Props = {
   seaLevel: number;
   /** `?pastwater=1`, in a scenario's epoch: its water (lib/pastWater.ts). Its vertices are water at the epoch's own level, not `seaLevel`. */
   lake?: LakePlane | null;
+  /** `?ice=1`: the dated ice sheet (lib/iceSheets.ts). Ground under it is ice: white, flat at sea level where it is grounded below the sea. */
+  ice?: IceCover | null;
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;
   /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
@@ -197,8 +201,9 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground, groundKey, seaLevel, lake = null, plants: drawPlants = false, detail = false, shelters = [], colourTiles = false } = this.props;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${lake ? `|${lake.key}` : ''}`;
+    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, detail = false, shelters = [], colourTiles = false } = this.props;
+    const ground = bare && ice ? withIce(bare, ice) : bare;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM_TILE_URLS,
@@ -232,7 +237,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           }
           // The colour pyramid's tile over this ground tile, when tiles are on (lib/terrainDetail.ts).
           const tileGround = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
-          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail, lake);
+          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail, lake, ice);
           b = {
             key,
             mesh,

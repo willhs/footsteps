@@ -17,6 +17,7 @@ import { notableAnimals } from '@/lib/fauna';
 import { formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
 import { groundImageUrl, groundView, type GroundView } from '@/lib/groundScene';
 import { HYDE_MIN } from '@/lib/time';
+import useIceAt from '../hooks/useIceAt';
 import type { LargestSettlement } from '@/lib/rankSize';
 
 /**
@@ -84,6 +85,7 @@ export default function HoverCard({
   const languages = useLanguages(point, time);
   const expansionData = useLanguageExpansions(point !== null);
   const ground = useGroundIndex(point !== null);
+  const ice = useIceAt(point, time);
   const { rows, view } = useMemo(() => {
     if (!point) return { rows: [], view: null };
     const facts = grid ? groundingFacts(grid, year, point.lon, point.lat) : null;
@@ -99,6 +101,7 @@ export default function HoverCard({
       rows: hoverCardRows({
         ...input,
         languages,
+        ice,
         expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,
         region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null,
       }),
@@ -113,7 +116,7 @@ export default function HoverCard({
               peopleModelled: input.people?.evidence === 'modelled' && input.people.count > 0,
             }),
     };
-  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, languages, expansionData, region, largest]);
+  }, [point, time, year, grid, lookups.step, lookups.today, lookups.landUse, fauna, food, languages, ice, expansionData, region, largest]);
 
   if (!point) return null;
   return (

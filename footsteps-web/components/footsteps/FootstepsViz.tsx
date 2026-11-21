@@ -51,6 +51,7 @@ import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
 import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
+import { iceNote, iceParam } from '@/lib/iceSheets';
 import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
@@ -137,6 +138,9 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // `?pastwater=1`: the dated past-water scenarios (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
   const [pastWaterOn, setPastWaterOn] = useState(false);
   useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
+  // `?ice=1`: the dated ice sheets (lib/iceSheets.ts), off until reviewed on prod. The note names the epoch drawn and what the groups did.
+  const [iceOn, setIceOn] = useState(false);
+  useEffect(() => setIceOn(iceParam(window.location.search)), []);
   // `?spread=1`: HYDE's people moved toward where the climate then let them live, 10,000–4,000 BCE (lib/adjustedSpread.ts), off until reviewed.
   const [spreadOn, setSpreadOn] = useState(false);
   useEffect(() => setSpreadOn(spreadParam(window.location.search)), []);
@@ -445,6 +449,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         viewState={viewState}
         close3d={close3d}
         pastWater={pastWaterOn ? pastWaterNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', unresolved) : null}
+        ice={iceOn ? iceNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', unresolved) : null}
         spread={spreadOn ? spreadNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', grid ? grid.adjusted === true : undefined) : null}
         lodLevel={stableLODLevel}
         lodEnabled={false}

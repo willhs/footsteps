@@ -1,0 +1,1634 @@
+{
+ "id": "ice_sheets",
+ "version": 1,
+ "label": "Ice sheets (PaleoMIST 1.0, experimental)",
+ "flag": "?ice=1",
+ "source": {
+  "name": "PaleoMIST 1.0",
+  "citation": "Gowan, E.J., Zhang, X., Khosravi, S., et al. 2021. A new global ice sheet reconstruction for the past 80 000 years. Nature Communications 12: 1199. doi:10.1038/s41467-021-21469-w",
+  "dataset": "doi:10.1594/PANGAEA.905800",
+  "licence": "CC BY 4.0",
+  "archive": "https://hs.pangaea.de/Maps/Global_Ice_Sheets/Gowan_ice_reconstruction.zip",
+  "archive_bytes": 3706381549,
+  "files": "margins/<region>/<age>.gmt, sha256 pinned in footstep-generator/ice_sheets_sources.json"
+ },
+ "evidence": "modelled (a published reconstruction of dated margins)",
+ "rule": "a year shows the nearest native epoch (|BP - epoch| <= 1.25 ka); never interpolated. BP from 1950: year = 1950 - BP.",
+ "outside": "before 81,249 BP (app year -79299): no reconstruction; nothing drawn, which is not the same as no ice",
+ "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W); red 255 = ice (pixel centre inside a margin polygon)",
+ "regions": {
+  "Eurasia": "DATED-1 most-credible time slices (Hughes et al. 2016, Boreas 45: 1-45) at 25, 20, 15 and 10 ka; 27.5, 22.5, 17.5 and 12.5 ka set between them by Gowan; 2.5-7.5 ka modern extents (GLIMS); before 30 ka other cited reconstructions",
+  "North_America": "Gowan's margin compilation for PaleoMIST (Dyke 2004 and dated sites listed in the archive's readme); the alternative 'a1' scenario differs only in MIS 3",
+  "Patagonia": "Ehlers et al. 2011 LGM limit held 30-18 ka, GLIMS modern outlines from 13 ka, contour-interpolated between"
+ },
+ "left_out": [
+  "Antarctica: nobody lives there and the Earth image's ice biome covers it; its patch would be 8640 pixels wide",
+  "ice thickness and surface height: PaleoMIST has them (CC BY 4.0) but the first build keeps height out",
+  "DATED-1's minimum and maximum envelopes"
+ ],
+ "uncertainty": [
+  "A reconstruction, not an observation: margins are drawn from dated moraines, sediments and model fits, every 2.5 ka.",
+  "Nearest epoch, not interpolation: a year up to 1.25 ka from an epoch shows that epoch's margin; edges move in steps.",
+  "Eurasia: DATED-1 gives minimum and maximum envelopes too; only the most-credible line (via PaleoMIST) is drawn.",
+  "North America: PaleoMIST's 'a1' scenario keeps more ice in MIS 3 (before 30 ka); it is measured here, not drawn.",
+  "Patagonia: one LGM limit held 30-18 ka; the authors meant to replace it with Davies et al.'s margins.",
+  "Before 80 ka there is no reconstruction: the layer draws nothing, which is not the same as no ice."
+ ],
+ "alternative_a1": [
+  {
+   "bp": 55000,
+   "pixels_differ": 7730,
+   "area_km2_differ": 100244
+  },
+  {
+   "bp": 52500,
+   "pixels_differ": 17477,
+   "area_km2_differ": 226037
+  },
+  {
+   "bp": 50000,
+   "pixels_differ": 44202,
+   "area_km2_differ": 464903
+  },
+  {
+   "bp": 47500,
+   "pixels_differ": 35535,
+   "area_km2_differ": 473600
+  },
+  {
+   "bp": 45000,
+   "pixels_differ": 79889,
+   "area_km2_differ": 958435
+  },
+  {
+   "bp": 42500,
+   "pixels_differ": 182927,
+   "area_km2_differ": 2088559
+  },
+  {
+   "bp": 40000,
+   "pixels_differ": 142212,
+   "area_km2_differ": 1682699
+  },
+  {
+   "bp": 37500,
+   "pixels_differ": 43280,
+   "area_km2_differ": 550528
+  }
+ ],
+ "epochs": [
+  {
+   "bp": 80000,
+   "ka": "80",
+   "from_year": -79299,
+   "to_year": -76800,
+   "patches": [
+    {
+     "id": 101,
+     "region": "Eurasia",
+     "file": "ice_80000_eurasia.webp",
+     "x0": 4484,
+     "y0": 193,
+     "width": 1470,
+     "height": 526,
+     "bytes": 1978,
+     "sha256": "938d1ad78725ee959ce6c1b60fda8b2f95d957b85222a78f43b44d321846f3d0",
+     "pixels": 26525,
+     "area_km2": 150969
+    },
+    {
+     "id": 102,
+     "region": "North_America",
+     "file": "ice_80000_north_america.webp",
+     "x0": 596,
+     "y0": 171,
+     "width": 3405,
+     "height": 850,
+     "bytes": 8410,
+     "sha256": "4da8b54c6bc76b37f240c80655035fdcc20d693ec7f424bcba5f397f2731c9a6",
+     "pixels": 469755,
+     "area_km2": 3439526
+    },
+    {
+     "id": 103,
+     "region": "Patagonia",
+     "file": "ice_80000_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 77500,
+   "ka": "77.5",
+   "from_year": -76799,
+   "to_year": -74300,
+   "patches": [
+    {
+     "id": 104,
+     "region": "Eurasia",
+     "file": "ice_77500_eurasia.webp",
+     "x0": 4468,
+     "y0": 191,
+     "width": 2381,
+     "height": 547,
+     "bytes": 2126,
+     "sha256": "053cf4e2f395cd9a60be306514992ffd9d043cfd9541ee8eefd7b4b0e5abf8e9",
+     "pixels": 69362,
+     "area_km2": 412421
+    },
+    {
+     "id": 105,
+     "region": "North_America",
+     "file": "ice_77500_north_america.webp",
+     "x0": 596,
+     "y0": 171,
+     "width": 3405,
+     "height": 841,
+     "bytes": 8202,
+     "sha256": "6dbe1fcb7c166501785219f3c1b172e07c7d91f5afa955061505c9ee856472bf",
+     "pixels": 434116,
+     "area_km2": 3028243
+    },
+    {
+     "id": 106,
+     "region": "Patagonia",
+     "file": "ice_77500_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 75000,
+   "ka": "75",
+   "from_year": -74299,
+   "to_year": -71800,
+   "patches": [
+    {
+     "id": 107,
+     "region": "Eurasia",
+     "file": "ice_75000_eurasia.webp",
+     "x0": 4449,
+     "y0": 186,
+     "width": 2483,
+     "height": 585,
+     "bytes": 2486,
+     "sha256": "6acf13e060d33219a84ca7b051de63351fe88ed81cd84307e9a5de3fad238bcf",
+     "pixels": 174175,
+     "area_km2": 1061854
+    },
+    {
+     "id": 108,
+     "region": "North_America",
+     "file": "ice_75000_north_america.webp",
+     "x0": 596,
+     "y0": 171,
+     "width": 3405,
+     "height": 858,
+     "bytes": 8878,
+     "sha256": "7ab9829b4b08d6a998dd008c9889fa707a660c1cd68c2f8b2608fcc040fc810d",
+     "pixels": 498117,
+     "area_km2": 3709481
+    },
+    {
+     "id": 109,
+     "region": "Patagonia",
+     "file": "ice_75000_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 72500,
+   "ka": "72.5",
+   "from_year": -71799,
+   "to_year": -69300,
+   "patches": [
+    {
+     "id": 110,
+     "region": "Eurasia",
+     "file": "ice_72500_eurasia.webp",
+     "x0": 4449,
+     "y0": 186,
+     "width": 2483,
+     "height": 598,
+     "bytes": 2844,
+     "sha256": "194c04a2e1587d261201147443460d28a47f92148717644c8ff791027c3d9f70",
+     "pixels": 335886,
+     "area_km2": 2190775
+    },
+    {
+     "id": 111,
+     "region": "North_America",
+     "file": "ice_72500_north_america.webp",
+     "x0": 596,
+     "y0": 171,
+     "width": 3405,
+     "height": 866,
+     "bytes": 7942,
+     "sha256": "ceeaa3f482358999a7a74335e525eea62c41ff65d01388a196c6871b50175f42",
+     "pixels": 583478,
+     "area_km2": 4506718
+    },
+    {
+     "id": 112,
+     "region": "Patagonia",
+     "file": "ice_72500_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 70000,
+   "ka": "70",
+   "from_year": -69299,
+   "to_year": -66800,
+   "patches": [
+    {
+     "id": 113,
+     "region": "Eurasia",
+     "file": "ice_70000_eurasia.webp",
+     "x0": 4449,
+     "y0": 186,
+     "width": 2483,
+     "height": 661,
+     "bytes": 3136,
+     "sha256": "9ddd672683ce6661d1e5deb5e80413174f0d33b7a87567f24a70b8a04664d00a",
+     "pixels": 476203,
+     "area_km2": 3230190
+    },
+    {
+     "id": 114,
+     "region": "North_America",
+     "file": "ice_70000_north_america.webp",
+     "x0": 365,
+     "y0": 171,
+     "width": 3636,
+     "height": 916,
+     "bytes": 7128,
+     "sha256": "cf28447bb346023b43874182fbb19be7507bd9d8258edc7cfd501bdfdcdb4ce1",
+     "pixels": 687360,
+     "area_km2": 5604520
+    },
+    {
+     "id": 115,
+     "region": "Patagonia",
+     "file": "ice_70000_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 67500,
+   "ka": "67.5",
+   "from_year": -66799,
+   "to_year": -64300,
+   "patches": [
+    {
+     "id": 116,
+     "region": "Eurasia",
+     "file": "ice_67500_eurasia.webp",
+     "x0": 4437,
+     "y0": 185,
+     "width": 2475,
+     "height": 639,
+     "bytes": 2688,
+     "sha256": "eed426c3c981f15430182dd8264b0e6068c1abbf123ffe413eecae5af50c6ce4",
+     "pixels": 617465,
+     "area_km2": 3892841
+    },
+    {
+     "id": 117,
+     "region": "North_America",
+     "file": "ice_67500_north_america.webp",
+     "x0": 363,
+     "y0": 171,
+     "width": 3638,
+     "height": 951,
+     "bytes": 7332,
+     "sha256": "a37c7a22dabe8f61c711a1d26f34d39513ad4aad48cba81cb533e96b2634046f",
+     "pixels": 816715,
+     "area_km2": 6999840
+    },
+    {
+     "id": 118,
+     "region": "Patagonia",
+     "file": "ice_67500_patagonia.webp",
+     "x0": 2516,
+     "y0": 2836,
+     "width": 195,
+     "height": 653,
+     "bytes": 1060,
+     "sha256": "10ad471f031671bf3fe35a07742974d66d0e30618d82de016885c11a58235371",
+     "pixels": 12015,
+     "area_km2": 172209
+    }
+   ]
+  },
+  {
+   "bp": 65000,
+   "ka": "65",
+   "from_year": -64299,
+   "to_year": -61800,
+   "patches": [
+    {
+     "id": 119,
+     "region": "Eurasia",
+     "file": "ice_65000_eurasia.webp",
+     "x0": 4426,
+     "y0": 180,
+     "width": 2479,
+     "height": 617,
+     "bytes": 2364,
+     "sha256": "951d50a479c28734bdab81e28de9fb16fe896f2bc530d3914ba88633b17be26f",
+     "pixels": 646204,
+     "area_km2": 4036893
+    },
+    {
+     "id": 120,
+     "region": "North_America",
+     "file": "ice_65000_north_america.webp",
+     "x0": 362,
+     "y0": 171,
+     "width": 3640,
+     "height": 972,
+     "bytes": 7706,
+     "sha256": "c7286758d6d4b24f1bd89f84cdf2e24aacef620b26404b7fd0ad8b9adf024f3f",
+     "pixels": 1029237,
+     "area_km2": 9285074
+    },
+    {
+     "id": 121,
+     "region": "Patagonia",
+     "file": "ice_65000_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 62500,
+   "ka": "62.5",
+   "from_year": -61799,
+   "to_year": -59300,
+   "patches": [
+    {
+     "id": 122,
+     "region": "Eurasia",
+     "file": "ice_62500_eurasia.webp",
+     "x0": 4131,
+     "y0": 180,
+     "width": 2772,
+     "height": 690,
+     "bytes": 2758,
+     "sha256": "8517eebc20ec4f6114d6178e3ddb58ebb35355c981028d1990491da3dd911577",
+     "pixels": 694258,
+     "area_km2": 4591044
+    },
+    {
+     "id": 123,
+     "region": "North_America",
+     "file": "ice_62500_north_america.webp",
+     "x0": 359,
+     "y0": 155,
+     "width": 3645,
+     "height": 1007,
+     "bytes": 6798,
+     "sha256": "cb17685359cbc157be20cfe3cd5bce2c180ebab86c8d84a4d087ecc0ba2c0986",
+     "pixels": 1321258,
+     "area_km2": 12101519
+    },
+    {
+     "id": 124,
+     "region": "Patagonia",
+     "file": "ice_62500_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 60000,
+   "ka": "60",
+   "from_year": -59299,
+   "to_year": -56800,
+   "patches": [
+    {
+     "id": 125,
+     "region": "Eurasia",
+     "file": "ice_60000_eurasia.webp",
+     "x0": 4112,
+     "y0": 179,
+     "width": 2795,
+     "height": 739,
+     "bytes": 2774,
+     "sha256": "05420d9d4b196b21d8ae2b489f21e440bd35c0e88663f7e3715a553d403cb714",
+     "pixels": 739083,
+     "area_km2": 5116462
+    },
+    {
+     "id": 126,
+     "region": "North_America",
+     "file": "ice_60000_north_america.webp",
+     "x0": 335,
+     "y0": 149,
+     "width": 3706,
+     "height": 1013,
+     "bytes": 7404,
+     "sha256": "19b2989330b97e8c2474e23f579bf68fc556e18c0f9ebe2af1ca4e4b91b3bf4b",
+     "pixels": 1467735,
+     "area_km2": 13515343
+    },
+    {
+     "id": 127,
+     "region": "Patagonia",
+     "file": "ice_60000_patagonia.webp",
+     "x0": 2510,
+     "y0": 2835,
+     "width": 203,
+     "height": 655,
+     "bytes": 1156,
+     "sha256": "10a86a1acc51fb8fb3a557af3603893e9146c6f5f2504841b2065c1bced38367",
+     "pixels": 15446,
+     "area_km2": 222603
+    }
+   ]
+  },
+  {
+   "bp": 57500,
+   "ka": "57.5",
+   "from_year": -56799,
+   "to_year": -54300,
+   "patches": [
+    {
+     "id": 128,
+     "region": "Eurasia",
+     "file": "ice_57500_eurasia.webp",
+     "x0": 4139,
+     "y0": 185,
+     "width": 2776,
+     "height": 696,
+     "bytes": 2712,
+     "sha256": "a334c917e8c5409e2dc78b26d9fedc92967e8da92e7c8ec6805f0b216788738a",
+     "pixels": 681837,
+     "area_km2": 4460875
+    },
+    {
+     "id": 129,
+     "region": "North_America",
+     "file": "ice_57500_north_america.webp",
+     "x0": 328,
+     "y0": 155,
+     "width": 3676,
+     "height": 971,
+     "bytes": 8028,
+     "sha256": "bef9098f98edb9432349136f2391fdd1fa4263f410c471015da47bc994b25882",
+     "pixels": 1383261,
+     "area_km2": 12570561
+    },
+    {
+     "id": 130,
+     "region": "Patagonia",
+     "file": "ice_57500_patagonia.webp",
+     "x0": 2509,
+     "y0": 2834,
+     "width": 205,
+     "height": 657,
+     "bytes": 1236,
+     "sha256": "f3af4a7430c9695b895746758bc9d565cb9f846a0aa04667341f1cf38c5bb1a0",
+     "pixels": 19243,
+     "area_km2": 279057
+    }
+   ]
+  },
+  {
+   "bp": 55000,
+   "ka": "55",
+   "from_year": -54299,
+   "to_year": -51800,
+   "patches": [
+    {
+     "id": 131,
+     "region": "Eurasia",
+     "file": "ice_55000_eurasia.webp",
+     "x0": 4449,
+     "y0": 186,
+     "width": 2483,
+     "height": 661,
+     "bytes": 3136,
+     "sha256": "9ddd672683ce6661d1e5deb5e80413174f0d33b7a87567f24a70b8a04664d00a",
+     "pixels": 476203,
+     "area_km2": 3230190
+    },
+    {
+     "id": 132,
+     "region": "North_America",
+     "file": "ice_55000_north_america.webp",
+     "x0": 328,
+     "y0": 171,
+     "width": 3674,
+     "height": 933,
+     "bytes": 8422,
+     "sha256": "b813a2981513ad38187d91ee6b316aff11ec680eb2a610aed9600a923f84fb47",
+     "pixels": 1277861,
+     "area_km2": 11570221
+    },
+    {
+     "id": 133,
+     "region": "Patagonia",
+     "file": "ice_55000_patagonia.webp",
+     "x0": 2516,
+     "y0": 2836,
+     "width": 195,
+     "height": 653,
+     "bytes": 1060,
+     "sha256": "10ad471f031671bf3fe35a07742974d66d0e30618d82de016885c11a58235371",
+     "pixels": 12015,
+     "area_km2": 172209
+    }
+   ]
+  },
+  {
+   "bp": 52500,
+   "ka": "52.5",
+   "from_year": -51799,
+   "to_year": -49300,
+   "patches": [
+    {
+     "id": 134,
+     "region": "Eurasia",
+     "file": "ice_52500_eurasia.webp",
+     "x0": 4462,
+     "y0": 190,
+     "width": 2391,
+     "height": 639,
+     "bytes": 2728,
+     "sha256": "ad1567a08912916f604c9c9d20e3b647245c7df6c93ef91d826b5bc962c95fc7",
+     "pixels": 247383,
+     "area_km2": 1669482
+    },
+    {
+     "id": 135,
+     "region": "North_America",
+     "file": "ice_52500_north_america.webp",
+     "x0": 335,
+     "y0": 155,
+     "width": 3669,
+     "height": 938,
+     "bytes": 7322,
+     "sha256": "ea00130e5bebb34ab0c700c489b3157605d7e70d68e57d565c4c10f5a71959e9",
+     "pixels": 1198970,
+     "area_km2": 10471324
+    },
+    {
+     "id": 136,
+     "region": "Patagonia",
+     "file": "ice_52500_patagonia.webp",
+     "x0": 2523,
+     "y0": 2846,
+     "width": 155,
+     "height": 642,
+     "bytes": 914,
+     "sha256": "ccd708c4a5e7331ba4dbf4ea01517ce248cb826820739ba0e5215fb19cf4b0cb",
+     "pixels": 8581,
+     "area_km2": 122304
+    }
+   ]
+  },
+  {
+   "bp": 50000,
+   "ka": "50",
+   "from_year": -49299,
+   "to_year": -46800,
+   "patches": [
+    {
+     "id": 137,
+     "region": "Eurasia",
+     "file": "ice_50000_eurasia.webp",
+     "x0": 4576,
+     "y0": 193,
+     "width": 1378,
+     "height": 429,
+     "bytes": 1930,
+     "sha256": "f34e5df2679b441ebae445925c2757ccb9109f71446d2a8e7c627f66b4ebf1b3",
+     "pixels": 39950,
+     "area_km2": 257048
+    },
+    {
+     "id": 138,
+     "region": "North_America",
+     "file": "ice_50000_north_america.webp",
+     "x0": 584,
+     "y0": 171,
+     "width": 3418,
+     "height": 924,
+     "bytes": 7262,
+     "sha256": "23fc4e559776ab6f18b7f1fd7077ed2c9e55ad5ef6dacb1f2e6dc3af3d3d3987",
+     "pixels": 1048134,
+     "area_km2": 9099851
+    },
+    {
+     "id": 139,
+     "region": "Patagonia",
+     "file": "ice_50000_patagonia.webp",
+     "x0": 2516,
+     "y0": 2836,
+     "width": 195,
+     "height": 653,
+     "bytes": 1060,
+     "sha256": "10ad471f031671bf3fe35a07742974d66d0e30618d82de016885c11a58235371",
+     "pixels": 12015,
+     "area_km2": 172209
+    }
+   ]
+  },
+  {
+   "bp": 47500,
+   "ka": "47.5",
+   "from_year": -46799,
+   "to_year": -44300,
+   "patches": [
+    {
+     "id": 140,
+     "region": "Eurasia",
+     "file": "ice_47500_eurasia.webp",
+     "x0": 4449,
+     "y0": 193,
+     "width": 1505,
+     "height": 549,
+     "bytes": 2206,
+     "sha256": "93032f5b37a59eb7033ab7c988d960da386b1f4584bb0e5207cad4af44f59079",
+     "pixels": 67662,
+     "area_km2": 513826
+    },
+    {
+     "id": 141,
+     "region": "North_America",
+     "file": "ice_47500_north_america.webp",
+     "x0": 365,
+     "y0": 171,
+     "width": 3637,
+     "height": 924,
+     "bytes": 7120,
+     "sha256": "9f2f932409ef8999c016071673b429e7b838b4145f9f2fc2d1daeff990904d8b",
+     "pixels": 1040592,
+     "area_km2": 8929809
+    },
+    {
+     "id": 142,
+     "region": "Patagonia",
+     "file": "ice_47500_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 45000,
+   "ka": "45",
+   "from_year": -44299,
+   "to_year": -41800,
+   "patches": [
+    {
+     "id": 143,
+     "region": "Eurasia",
+     "file": "ice_45000_eurasia.webp",
+     "x0": 4431,
+     "y0": 193,
+     "width": 1523,
+     "height": 656,
+     "bytes": 2678,
+     "sha256": "8d83a3068ae4611ea520909c4c8237ba68f87636d24d65e12d47b3d6dd1531ca",
+     "pixels": 139439,
+     "area_km2": 1214360
+    },
+    {
+     "id": 144,
+     "region": "North_America",
+     "file": "ice_45000_north_america.webp",
+     "x0": 365,
+     "y0": 155,
+     "width": 3639,
+     "height": 933,
+     "bytes": 7178,
+     "sha256": "26433748c23dea80191556287742077f8cfbb1e2a195d05fa3f739d007edb359",
+     "pixels": 1023470,
+     "area_km2": 8437110
+    },
+    {
+     "id": 145,
+     "region": "Patagonia",
+     "file": "ice_45000_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 42500,
+   "ka": "42.5",
+   "from_year": -41799,
+   "to_year": -39300,
+   "patches": [
+    {
+     "id": 146,
+     "region": "Eurasia",
+     "file": "ice_42500_eurasia.webp",
+     "x0": 4449,
+     "y0": 193,
+     "width": 1505,
+     "height": 549,
+     "bytes": 2160,
+     "sha256": "dfba616dd3a8562e573c467cf1ec8f427fbe19c7ca965238d2950db4d786e161",
+     "pixels": 49518,
+     "area_km2": 362234
+    },
+    {
+     "id": 147,
+     "region": "North_America",
+     "file": "ice_42500_north_america.webp",
+     "x0": 365,
+     "y0": 171,
+     "width": 3637,
+     "height": 875,
+     "bytes": 7478,
+     "sha256": "07d47d6d45c2049d431f55c8ca7fe1b9ae0195506f2afa4fddd996efa8014979",
+     "pixels": 833067,
+     "area_km2": 6611423
+    },
+    {
+     "id": 148,
+     "region": "Patagonia",
+     "file": "ice_42500_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 40000,
+   "ka": "40",
+   "from_year": -39299,
+   "to_year": -36800,
+   "patches": [
+    {
+     "id": 149,
+     "region": "Eurasia",
+     "file": "ice_40000_eurasia.webp",
+     "x0": 4484,
+     "y0": 193,
+     "width": 1470,
+     "height": 526,
+     "bytes": 1978,
+     "sha256": "938d1ad78725ee959ce6c1b60fda8b2f95d957b85222a78f43b44d321846f3d0",
+     "pixels": 26525,
+     "area_km2": 150969
+    },
+    {
+     "id": 150,
+     "region": "North_America",
+     "file": "ice_40000_north_america.webp",
+     "x0": 365,
+     "y0": 171,
+     "width": 3636,
+     "height": 875,
+     "bytes": 7102,
+     "sha256": "05c50bc511927081d4e0cfd003cfb439d328138264adf8b47feafc2a27458bfb",
+     "pixels": 898256,
+     "area_km2": 7357763
+    },
+    {
+     "id": 151,
+     "region": "Patagonia",
+     "file": "ice_40000_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 37500,
+   "ka": "37.5",
+   "from_year": -36799,
+   "to_year": -34300,
+   "patches": [
+    {
+     "id": 152,
+     "region": "Eurasia",
+     "file": "ice_37500_eurasia.webp",
+     "x0": 4470,
+     "y0": 193,
+     "width": 1484,
+     "height": 540,
+     "bytes": 2152,
+     "sha256": "7af3511f37814a1547d5218776f0770d6fb8e0c67ef1155eccef15620bebb34a",
+     "pixels": 42252,
+     "area_km2": 295514
+    },
+    {
+     "id": 153,
+     "region": "North_America",
+     "file": "ice_37500_north_america.webp",
+     "x0": 365,
+     "y0": 155,
+     "width": 3639,
+     "height": 972,
+     "bytes": 7302,
+     "sha256": "e4954516c6ac6d67845e2bd1bbe550f9592ec013671b9e48f5bb5135d6a6ba6e",
+     "pixels": 1027498,
+     "area_km2": 8558710
+    },
+    {
+     "id": 154,
+     "region": "Patagonia",
+     "file": "ice_37500_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 35000,
+   "ka": "35",
+   "from_year": -34299,
+   "to_year": -31800,
+   "patches": [
+    {
+     "id": 155,
+     "region": "Eurasia",
+     "file": "ice_35000_eurasia.webp",
+     "x0": 4459,
+     "y0": 193,
+     "width": 1495,
+     "height": 562,
+     "bytes": 2362,
+     "sha256": "73c90fb7344fcbe168ed7e79abc3c3d146d6f2edd1741e55c654f24b2777b23b",
+     "pixels": 63524,
+     "area_km2": 487146
+    },
+    {
+     "id": 156,
+     "region": "North_America",
+     "file": "ice_35000_north_america.webp",
+     "x0": 486,
+     "y0": 156,
+     "width": 3517,
+     "height": 971,
+     "bytes": 7556,
+     "sha256": "65745d32ee28755d3ef8190b8dc79e874ad3a9f00e1021a1eb210789c99e6aa1",
+     "pixels": 1067468,
+     "area_km2": 9020179
+    },
+    {
+     "id": 157,
+     "region": "Patagonia",
+     "file": "ice_35000_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 32500,
+   "ka": "32.5",
+   "from_year": -31799,
+   "to_year": -29300,
+   "patches": [
+    {
+     "id": 158,
+     "region": "Eurasia",
+     "file": "ice_32500_eurasia.webp",
+     "x0": 4178,
+     "y0": 201,
+     "width": 1717,
+     "height": 627,
+     "bytes": 1922,
+     "sha256": "eba1d52805de35782604a6fca541b8ab0138dae8478de7284c17e9c21775866d",
+     "pixels": 117510,
+     "area_km2": 969130
+    },
+    {
+     "id": 159,
+     "region": "North_America",
+     "file": "ice_32500_north_america.webp",
+     "x0": 472,
+     "y0": 149,
+     "width": 3569,
+     "height": 944,
+     "bytes": 7988,
+     "sha256": "0072a4199a9f0123ad88f10c5c629a46954bc1501c0b0d49a130b3ae2c883b6c",
+     "pixels": 1139018,
+     "area_km2": 9602827
+    },
+    {
+     "id": 160,
+     "region": "Patagonia",
+     "file": "ice_32500_patagonia.webp",
+     "x0": 2507,
+     "y0": 2833,
+     "width": 208,
+     "height": 659,
+     "bytes": 1256,
+     "sha256": "151775a4d7fa23f6e504589a49ec816ea2795f6844212f693fe12102dea81645",
+     "pixels": 23272,
+     "area_km2": 339676
+    }
+   ]
+  },
+  {
+   "bp": 30000,
+   "ka": "30",
+   "from_year": -29299,
+   "to_year": -26800,
+   "patches": [
+    {
+     "id": 161,
+     "region": "Eurasia",
+     "file": "ice_30000_eurasia.webp",
+     "x0": 4098,
+     "y0": 182,
+     "width": 1886,
+     "height": 703,
+     "bytes": 2464,
+     "sha256": "d3f7bf2b0f82545edd6baf5117521a4133537b7fe38957e45e5b540e8377225e",
+     "pixels": 236154,
+     "area_km2": 1779722
+    },
+    {
+     "id": 162,
+     "region": "North_America",
+     "file": "ice_30000_north_america.webp",
+     "x0": 363,
+     "y0": 144,
+     "width": 3711,
+     "height": 983,
+     "bytes": 8946,
+     "sha256": "c5c39955a0a64c09e6451ee541117203cf64dbb7934995e39050e115bae65fd1",
+     "pixels": 1285324,
+     "area_km2": 11041647
+    },
+    {
+     "id": 163,
+     "region": "Patagonia",
+     "file": "ice_30000_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 27500,
+   "ka": "27.5",
+   "from_year": -26799,
+   "to_year": -24300,
+   "patches": [
+    {
+     "id": 164,
+     "region": "Eurasia",
+     "file": "ice_27500_eurasia.webp",
+     "x0": 4039,
+     "y0": 172,
+     "width": 2253,
+     "height": 758,
+     "bytes": 2778,
+     "sha256": "99d9841491baffd9708536e7dc796fe5883c1731276b2724e4a10efa1dd35e91",
+     "pixels": 446458,
+     "area_km2": 3250279
+    },
+    {
+     "id": 165,
+     "region": "North_America",
+     "file": "ice_27500_north_america.webp",
+     "x0": 360,
+     "y0": 144,
+     "width": 3714,
+     "height": 1023,
+     "bytes": 8418,
+     "sha256": "b5fffe9ba9ebddf759737ab488ad0814a0cedd4a33e6caa015b9cf289a09e1cd",
+     "pixels": 1538580,
+     "area_km2": 13672007
+    },
+    {
+     "id": 166,
+     "region": "Patagonia",
+     "file": "ice_27500_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 25000,
+   "ka": "25",
+   "from_year": -24299,
+   "to_year": -21800,
+   "patches": [
+    {
+     "id": 167,
+     "region": "Eurasia",
+     "file": "ice_25000_eurasia.webp",
+     "x0": 4043,
+     "y0": 170,
+     "width": 1971,
+     "height": 760,
+     "bytes": 3046,
+     "sha256": "84b153963c826eb65b0d77fc62a6ff0eed51485654c7260e39e1097c3b277227",
+     "pixels": 539388,
+     "area_km2": 3930995
+    },
+    {
+     "id": 168,
+     "region": "North_America",
+     "file": "ice_25000_north_america.webp",
+     "x0": 347,
+     "y0": 144,
+     "width": 3727,
+     "height": 1048,
+     "bytes": 8240,
+     "sha256": "5daa80749e3f4e379094ca75f71df960bf6eaf51ed90916c35d831f16d45f43d",
+     "pixels": 1787647,
+     "area_km2": 16502597
+    },
+    {
+     "id": 169,
+     "region": "Patagonia",
+     "file": "ice_25000_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 22500,
+   "ka": "22.5",
+   "from_year": -21799,
+   "to_year": -19300,
+   "patches": [
+    {
+     "id": 170,
+     "region": "Eurasia",
+     "file": "ice_22500_eurasia.webp",
+     "x0": 4052,
+     "y0": 171,
+     "width": 2425,
+     "height": 779,
+     "bytes": 2998,
+     "sha256": "573e38888ff04908cd84acc0ce37f09c659b2a3f2aa5fcf7feb643b709d2be18",
+     "pixels": 720040,
+     "area_km2": 5231028
+    },
+    {
+     "id": 171,
+     "region": "North_America",
+     "file": "ice_22500_north_america.webp",
+     "x0": 337,
+     "y0": 144,
+     "width": 3737,
+     "height": 1075,
+     "bytes": 8064,
+     "sha256": "61a2e9d718e3148a1f6c31b5ad73992aa6df1fee6a84964451338bd6ad39e144",
+     "pixels": 1946717,
+     "area_km2": 17762846
+    },
+    {
+     "id": 172,
+     "region": "Patagonia",
+     "file": "ice_22500_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 20000,
+   "ka": "20",
+   "from_year": -19299,
+   "to_year": -16800,
+   "patches": [
+    {
+     "id": 173,
+     "region": "Eurasia",
+     "file": "ice_20000_eurasia.webp",
+     "x0": 4045,
+     "y0": 170,
+     "width": 2363,
+     "height": 758,
+     "bytes": 3452,
+     "sha256": "4cb7e172e620bdf0874f412fe26c45930099d43d02ae2496cfb081de56bc3917",
+     "pixels": 758762,
+     "area_km2": 5593717
+    },
+    {
+     "id": 174,
+     "region": "North_America",
+     "file": "ice_20000_north_america.webp",
+     "x0": 331,
+     "y0": 141,
+     "width": 3752,
+     "height": 1078,
+     "bytes": 8582,
+     "sha256": "04f2077305f70572b4b381fcb15d5e9e074d59f314df2f393420b94429df7ead",
+     "pixels": 2036269,
+     "area_km2": 18336085
+    },
+    {
+     "id": 175,
+     "region": "Patagonia",
+     "file": "ice_20000_patagonia.webp",
+     "x0": 2495,
+     "y0": 2832,
+     "width": 224,
+     "height": 664,
+     "bytes": 1374,
+     "sha256": "c85c4d4f08b6995a3eb159af6193c891becfd229bdc5d134348f79b0535f7a35",
+     "pixels": 33840,
+     "area_km2": 498009
+    }
+   ]
+  },
+  {
+   "bp": 17500,
+   "ka": "17.5",
+   "from_year": -16799,
+   "to_year": -14300,
+   "patches": [
+    {
+     "id": 176,
+     "region": "Eurasia",
+     "file": "ice_17500_eurasia.webp",
+     "x0": 4072,
+     "y0": 174,
+     "width": 1893,
+     "height": 746,
+     "bytes": 3144,
+     "sha256": "d5d99340b916b1758847a307b9e1273d712a9cbd3b3e551d9999ada1f32c6c20",
+     "pixels": 579408,
+     "area_km2": 4372507
+    },
+    {
+     "id": 177,
+     "region": "North_America",
+     "file": "ice_17500_north_america.webp",
+     "x0": 333,
+     "y0": 141,
+     "width": 3750,
+     "height": 1034,
+     "bytes": 8246,
+     "sha256": "4f4d6afe13d41512a6856f92aaadfaa228faf561799951ab1fd84615dd267136",
+     "pixels": 1999334,
+     "area_km2": 17869756
+    },
+    {
+     "id": 178,
+     "region": "Patagonia",
+     "file": "ice_17500_patagonia.webp",
+     "x0": 2501,
+     "y0": 2833,
+     "width": 217,
+     "height": 661,
+     "bytes": 1342,
+     "sha256": "14f2e96c930917d74eb0576260518a447fdf1ba1a8fa224b121f259a2de0a3a9",
+     "pixels": 27828,
+     "area_km2": 408229
+    }
+   ]
+  },
+  {
+   "bp": 15000,
+   "ka": "15",
+   "from_year": -14299,
+   "to_year": -11800,
+   "patches": [
+    {
+     "id": 179,
+     "region": "Eurasia",
+     "file": "ice_15000_eurasia.webp",
+     "x0": 4119,
+     "y0": 180,
+     "width": 1835,
+     "height": 687,
+     "bytes": 3126,
+     "sha256": "5665d5ede0aea322eb4564c77cfff5a61db21327d30ab2afe721312d47ddfd8b",
+     "pixels": 342379,
+     "area_km2": 2552779
+    },
+    {
+     "id": 180,
+     "region": "North_America",
+     "file": "ice_15000_north_america.webp",
+     "x0": 502,
+     "y0": 141,
+     "width": 3581,
+     "height": 993,
+     "bytes": 8690,
+     "sha256": "a3950f971d66c23a355fc4aaedcf9f467e2c1a7529682f6224357fd7135885dc",
+     "pixels": 1722654,
+     "area_km2": 14870450
+    },
+    {
+     "id": 181,
+     "region": "Patagonia",
+     "file": "ice_15000_patagonia.webp",
+     "x0": 2523,
+     "y0": 2846,
+     "width": 155,
+     "height": 642,
+     "bytes": 914,
+     "sha256": "ccd708c4a5e7331ba4dbf4ea01517ce248cb826820739ba0e5215fb19cf4b0cb",
+     "pixels": 8581,
+     "area_km2": 122304
+    }
+   ]
+  },
+  {
+   "bp": 12500,
+   "ka": "12.5",
+   "from_year": -11799,
+   "to_year": -9300,
+   "patches": [
+    {
+     "id": 182,
+     "region": "Eurasia",
+     "file": "ice_12500_eurasia.webp",
+     "x0": 4180,
+     "y0": 192,
+     "width": 1775,
+     "height": 625,
+     "bytes": 2336,
+     "sha256": "c7583c786fee899c5ea5e5f3016f3fd778eb6c2380469d830aa6a0d625a70097",
+     "pixels": 184335,
+     "area_km2": 1479751
+    },
+    {
+     "id": 183,
+     "region": "North_America",
+     "file": "ice_12500_north_america.webp",
+     "x0": 664,
+     "y0": 146,
+     "width": 3367,
+     "height": 955,
+     "bytes": 7244,
+     "sha256": "19a83674d715df218313bcfccedc0ccf18236ec744a8f915fbbb2ee5c0d39a2c",
+     "pixels": 1362313,
+     "area_km2": 11242766
+    },
+    {
+     "id": 184,
+     "region": "Patagonia",
+     "file": "ice_12500_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 10000,
+   "ka": "10",
+   "from_year": -9299,
+   "to_year": -6800,
+   "patches": [
+    {
+     "id": 185,
+     "region": "Eurasia",
+     "file": "ice_10000_eurasia.webp",
+     "x0": 4504,
+     "y0": 525,
+     "width": 353,
+     "height": 176,
+     "bytes": 410,
+     "sha256": "566954984cfd1d2fe95c2cf7f213b687dddd090c386c08ae78fda474f7ce3b39",
+     "pixels": 17970,
+     "area_km2": 163469
+    },
+    {
+     "id": 186,
+     "region": "North_America",
+     "file": "ice_10000_north_america.webp",
+     "x0": 664,
+     "y0": 149,
+     "width": 3344,
+     "height": 845,
+     "bytes": 6826,
+     "sha256": "115c08677fe7f02a075b6ec0a5e869095738b31f7221d3a20da1b9db514554f6",
+     "pixels": 1042967,
+     "area_km2": 8187888
+    },
+    {
+     "id": 187,
+     "region": "Patagonia",
+     "file": "ice_10000_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 7500,
+   "ka": "7.5",
+   "from_year": -6799,
+   "to_year": -4300,
+   "patches": [
+    {
+     "id": 188,
+     "region": "Eurasia",
+     "file": "ice_7500_eurasia.webp",
+     "x0": 4467,
+     "y0": 193,
+     "width": 1487,
+     "height": 531,
+     "bytes": 1558,
+     "sha256": "4934e645a139b676e9fa74d202c39ac3cd09a686b11334a1b915debedaf925e7",
+     "pixels": 18976,
+     "area_km2": 82808
+    },
+    {
+     "id": 189,
+     "region": "North_America",
+     "file": "ice_7500_north_america.webp",
+     "x0": 664,
+     "y0": 169,
+     "width": 3381,
+     "height": 797,
+     "bytes": 7834,
+     "sha256": "da37916643398a97da71b40c3f649eea301c18bc2a80d70122f94c5448c7f842",
+     "pixels": 482733,
+     "area_km2": 3344887
+    },
+    {
+     "id": 190,
+     "region": "Patagonia",
+     "file": "ice_7500_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 5000,
+   "ka": "5",
+   "from_year": -4299,
+   "to_year": -1800,
+   "patches": [
+    {
+     "id": 191,
+     "region": "Eurasia",
+     "file": "ice_5000_eurasia.webp",
+     "x0": 4467,
+     "y0": 193,
+     "width": 1487,
+     "height": 531,
+     "bytes": 1558,
+     "sha256": "4934e645a139b676e9fa74d202c39ac3cd09a686b11334a1b915debedaf925e7",
+     "pixels": 18976,
+     "area_km2": 82808
+    },
+    {
+     "id": 192,
+     "region": "North_America",
+     "file": "ice_5000_north_america.webp",
+     "x0": 664,
+     "y0": 169,
+     "width": 3381,
+     "height": 797,
+     "bytes": 6054,
+     "sha256": "84ddc167ccc68918795480c9c73a2a4a4f32f7520aa19cc233621a785c3d6ae0",
+     "pixels": 329121,
+     "area_km2": 1886229
+    },
+    {
+     "id": 193,
+     "region": "Patagonia",
+     "file": "ice_5000_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 2500,
+   "ka": "2.5",
+   "from_year": -1799,
+   "to_year": 700,
+   "patches": [
+    {
+     "id": 194,
+     "region": "Eurasia",
+     "file": "ice_2500_eurasia.webp",
+     "x0": 4467,
+     "y0": 193,
+     "width": 1487,
+     "height": 531,
+     "bytes": 1558,
+     "sha256": "4934e645a139b676e9fa74d202c39ac3cd09a686b11334a1b915debedaf925e7",
+     "pixels": 18976,
+     "area_km2": 82808
+    },
+    {
+     "id": 195,
+     "region": "North_America",
+     "file": "ice_2500_north_america.webp",
+     "x0": 2045,
+     "y0": 169,
+     "width": 2000,
+     "height": 538,
+     "bytes": 4834,
+     "sha256": "545cee990d7b5e7046139ad9a2739a626636371092c72cacb9d3e5c1db01fb9a",
+     "pixels": 323203,
+     "area_km2": 1813146
+    },
+    {
+     "id": 196,
+     "region": "Patagonia",
+     "file": "ice_2500_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  },
+  {
+   "bp": 0,
+   "ka": "0",
+   "from_year": 701,
+   "to_year": 3200,
+   "patches": [
+    {
+     "id": 197,
+     "region": "Eurasia",
+     "file": "ice_0_eurasia.webp",
+     "x0": 4467,
+     "y0": 193,
+     "width": 1487,
+     "height": 531,
+     "bytes": 1558,
+     "sha256": "4934e645a139b676e9fa74d202c39ac3cd09a686b11334a1b915debedaf925e7",
+     "pixels": 18976,
+     "area_km2": 82808
+    },
+    {
+     "id": 198,
+     "region": "North_America",
+     "file": "ice_0_north_america.webp",
+     "x0": 664,
+     "y0": 169,
+     "width": 3381,
+     "height": 797,
+     "bytes": 6164,
+     "sha256": "f1a5ec82eb18c18e4157e209cbef65d22b25a932d4e4202263ed9db18978eec6",
+     "pixels": 332985,
+     "area_km2": 1916594
+    },
+    {
+     "id": 199,
+     "region": "Patagonia",
+     "file": "ice_0_patagonia.webp",
+     "x0": 2541,
+     "y0": 2958,
+     "width": 128,
+     "height": 530,
+     "bytes": 416,
+     "sha256": "347226212c198b8b6afcd65b6417d4457790c1794676b27074189d770b9e8364",
+     "pixels": 2138,
+     "area_km2": 29709
+    }
+   ]
+  }
+ ],
+ "bytes": 361532,
+ "digest": "2c5995d24efd"
+}

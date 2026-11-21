@@ -112,7 +112,7 @@ const ranker: SiteRanker = {
     return s;
   },
   isWet: () => false,
-  inPastWater: () => false,
+  inScenario: () => false,
   size: 0,
 };
 function farmCatalog(pattern: number): SettlementCatalog {

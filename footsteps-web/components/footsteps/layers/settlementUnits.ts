@@ -62,7 +62,7 @@ export function buildSettlementUnits(
     const size = weight ? components.reduce((sum, c) => sum + c.size * c.weight, 0) / weight : Infinity;
     per[i] = Math.min(limits[kind], Math.max(1, Math.round(data.people[i] / size)));
     // A cell modelled past water covers entirely has no dry ground: its people stay in the totals, its groups are not drawn (and counted here).
-    if (epochs.length && sites?.inPastWater(data.cellIds[i]) && sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs).unresolved) {
+    if (epochs.length && sites?.inScenario(data.cellIds[i]) && sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs).unresolved) {
       unresolved.groups += per[i];
       unresolved.people += data.people[i];
       per[i] = 0;

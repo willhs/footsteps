@@ -18,7 +18,7 @@ export type GridReply =
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
 type Request =
-  | { settlements: boolean; sites: boolean; pastWater: boolean; spread: boolean }
+  | { settlements: boolean; sites: boolean; pastWater: boolean; spread: boolean; ice?: boolean }
   | { year: number }
   | { id: string; fromYear: number; toYear: number; region: Region; season: Season };
 type Endpoint = { units: Units; width: number };
@@ -27,6 +27,7 @@ type Endpoint = { units: Units; width: number };
 const units = new Map<number, Endpoint>();
 let settlements = false;
 let pastWater = false; // `?pastwater=1`: the past-water scenarios keep groups out of their water (lib/pastWater.ts); a year's epochs are a function of the year, so the year-keyed cache below stays right
+let ice = false; // `?ice=1`: the year's ice patches keep groups off the ice (lib/iceSheets.ts); a function of the year, so the year-keyed cache stays right
 let spread = false; // `?spread=1`: the climate-adjusted HYDE images for the years they cover (lib/adjustedSpread.ts); fixed per page, so the year-keyed caches stay right
 let sites = true; // ranked spots inside cells (`?sites=0` keeps the old invented positions, to compare)
 function remember(year: number, source: Endpoint) {
@@ -43,7 +44,7 @@ function endpoint(snapshot: DecodedYearGrid): Endpoint {
 async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
-  const snapshot = await decodeYearGrid(year, settlements, sites, pastWater, spread);
+  const snapshot = await decodeYearGrid(year, settlements, sites, pastWater, spread, ice);
   remember(year, endpoint(snapshot));
   return endpoint(snapshot);
 }
@@ -58,6 +59,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     sites = data.sites;
     pastWater = data.pastWater;
     spread = data.spread;
+    ice = data.ice === true;
     units.clear();
     return;
   }
@@ -92,7 +94,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year, settlements, sites, pastWater, spread, (grid) => self.postMessage({ year, data: grid } satisfies GridReply))
+  void decodeYearGrid(year, settlements, sites, pastWater, spread, ice, (grid) => self.postMessage({ year, data: grid } satisfies GridReply))
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [

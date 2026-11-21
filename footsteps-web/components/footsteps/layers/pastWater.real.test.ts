@@ -81,7 +81,7 @@ run('the past-water scenarios against the shipped data', () => {
       let outside = 0;
       for (const [id, v] of a) {
         const cell = Math.floor(id / 32);
-        if (wet.inPastWater(cell)) continue;
+        if (wet.inScenario(cell)) continue;
         outside++;
         const w = b.get(id);
         if (!w || w[0] !== v[0] || w[1] !== v[1] || w[2] !== v[2]) outsideMoved++;

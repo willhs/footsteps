@@ -75,6 +75,11 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   an 8 KB freshwater-distance patch and a manifest in `footsteps-web/public/pastwater/`; **one** geometry and epoch read by `terrain_image.py --pastwater`, the ranker's wet exclusion and distances (`siteRanking.ts`, epoch-keyed cache; groups
   with no dry spot are counted `unresolved`, never forced in or dropped), and the close-up lake plane (`lib/close3d.ts` `lakeVertices`). Behind `?pastwater=1` (off until reviewed; Dots is static and says so; outside the window the
   scenario is inactive: geography unknown, not dry). `past_water_check.py` is the independent placement check. See `docs/ops/past-water.md`.
+- `footstep-generator/ice_sheets.py`: PaleoMIST 1.0 ice margins (Gowan et al. 2021, PANGAEA doi:10.1594/PANGAEA.905800, CC BY 4.0; read by HTTP range from the 3.7 GB zip, sha256 pinned in
+  `ice_sheets_sources.json`) for Eurasia (DATED-1 most-credible slices), North America and Patagonia → one lossless 2.5′ mask patch per (2.5 ka epoch, region), 0-80 ka, 99 patches, 353 KB,
+  with `ice_sheets.json`, in `footsteps-web/public/ice/`. A year shows the NEAREST epoch, never interpolated; before 80 ka nothing. Behind `?ice=1` (off until reviewed; `lib/iceSheets.ts`): a white
+  overlay with a blue-grey edge over the terrain, an ice surface in the close-up (`close3d.ts withIce`; no surface height), ice patches as extra exclusions in the ranker (`siteRanking.ts`,
+  ids 101+ beside past-water epochs; cells all ice are counted `unresolved`), a hover row and a note. `ice.real.test.ts` checks no group on ice 25,000-10,000 BCE. See `docs/ops/ice-sheets.md`.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE, served at `/grid/adjusted/`. Read by the grid pipeline
   only with `?spread=1` (`lib/adjustedSpread.ts`, off until reviewed), labelled "Adjusted spread (modelled on HYDE)"; Dots says it is not applied.

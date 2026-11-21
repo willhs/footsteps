@@ -15,6 +15,7 @@ import {
   plantsForTile,
   snowLine,
   terrariumHeights,
+  withIce,
   type Ground,
 } from './close3d';
 
@@ -236,4 +237,29 @@ test('past water with a level per place is flat at each lake\'s own level, where
   const n = 256 / 4 + 1;
   expect(mesh.positions[2]).toBeCloseTo(100 * EXAGGERATION);
   expect(mesh.positions[(n - 1) * 3 + 2]).toBeCloseTo(150 * EXAGGERATION);
+});
+
+// --- ?ice=1: the dated ice sheet on the ground ---------------------------------------------------------------------------------
+
+test('under the ice the ground is white ice, never sea, flat at sea level where the bed is below it; off the ice nothing changes', () => {
+  // West half of the tile 60 m below the year's sea (grounded marine ice), east half land at 100 m. The ice covers the west 0.2 degrees.
+  const heights = heightsOf((x) => (x < 128 ? -60 : 100));
+  const ice = { key: 'ice20000', shareAt: (lon: number) => (lon < 0.2 ? 1 : 0) };
+  const n = 256 / 4 + 1;
+  const bare = buildTerrainMesh(heights, bbox, 0, flat(), 4, true);
+  const iced = buildTerrainMesh(heights, bbox, 0, withIce(flat(), ice), 4, true, null, ice);
+  expect(bare.positions[2]).toBeCloseTo(0); // sea surface
+  expect(bare.texCoords![1]).toBe(COVER_WATER);
+  expect(iced.positions[2]).toBeCloseTo(0); // ice at sea level, not the -60 m bed
+  expect(iced.texCoords![0]).toBe(2); // the shader's ice
+  expect(iced.texCoords![1]).not.toBe(COVER_WATER);
+  const rgb = (m: typeof iced, v: number) => [m.colors[v * 3], m.colors[v * 3 + 1], m.colors[v * 3 + 2]];
+  const [r, g, b] = rgb(iced, 0);
+  expect(Math.min(r, g, b)).toBeGreaterThan(0.6); // white, not sea blue or green land
+  // east of the ice: the same as without it
+  const east = n - 1;
+  expect(rgb(iced, east)).toEqual(rgb(bare, east));
+  expect(iced.positions[east * 3 + 2]).toBe(bare.positions[east * 3 + 2]);
+  // no ice cover at all: the tile is what it was
+  expect(buildTerrainMesh(heights, bbox, 0, flat(), 4, true, null, null).positions).toEqual(bare.positions);
 });

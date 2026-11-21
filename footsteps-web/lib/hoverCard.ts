@@ -10,7 +10,7 @@ import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
 import { EXPANSIONS_FLOOR_YEAR, expansionLine, type ExpansionRow } from './languageExpansions';
 
 export type CardRow = {
-  id: 'habitat' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
+  id: 'habitat' | 'ice' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -36,6 +36,8 @@ export type HoverCardInput = {
   landUse: LandUse | null;
   /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
   region?: { people: number } | null;
+  /** `?ice=1` only: the dated ice sheet under the point (lib/iceSheets.ts `iceHoverRow`), or null off the ice. */
+  ice?: { text: string; detail: string } | null;
   /** `?settlements=1` only: the biggest settlement in the ~590 km block (lib/rankSize.ts), or null where the model says nothing. */
   largest?: LargestSettlement | null;
 };
@@ -116,6 +118,7 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
   const rows: CardRow[] = [];
   if (i.habitat) {
     rows.push(habitatRow(i.time, i.habitat));
+    if (i.ice) rows.push({ id: 'ice', ...i.ice, evidence: 'modelled' });
     const c = climateRow(i.habitat, i.today);
     if (c) rows.push(c);
   }

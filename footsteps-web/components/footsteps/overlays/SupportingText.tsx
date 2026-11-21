@@ -39,6 +39,8 @@ interface Props {
   close3d?: boolean; // the tilted 3D close-up is on screen
   /** `?pastwater=1`: what the past-water scenarios say at this date and mode (lib/pastWater.ts `pastWaterNote`); null when the flag is off. */
   pastWater?: { label: string; title: string } | null;
+  /** `?ice=1`: the ice epoch drawn at this date and what the groups did (lib/iceSheets.ts `iceNote`); null when the flag is off. */
+  ice?: { label: string; title: string } | null;
   /** `?spread=1`: whether the climate-adjusted spread is drawn at this date and mode (lib/adjustedSpread.ts `spreadNote`); null when the flag is off. */
   spread?: { label: string; title: string } | null;
 }
@@ -67,6 +69,7 @@ function SupportingText({
   year,
   close3d = false,
   pastWater = null,
+  ice = null,
   spread = null,
   now,
   // Additional props intentionally omitted to avoid unused var warnings
@@ -294,6 +297,11 @@ function SupportingText({
       {pastWater && (
         <div className="ov-note mt-0.5" data-testid="pastwater-note" title={pastWater.title}>
           {pastWater.label}
+        </div>
+      )}
+      {ice && (
+        <div className="ov-note mt-0.5" data-testid="ice-note" title={ice.title}>
+          {ice.label}
         </div>
       )}
       {close3d && (

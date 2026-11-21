@@ -305,10 +305,10 @@ test('cells outside the past-water region are exactly as without it, at any epoc
   const plain = createSiteRanker(world(), CELLS);
   const wet = createSiteRanker(withLake(LAKE_ALL), CELLS);
   for (const cell of [0, 1, CELLS, CELLS + 1, 2 * CELLS + 1, 3 * CELLS]) {
-    expect(wet.inPastWater(cell)).toBe(false);
+    expect(wet.inScenario(cell)).toBe(false);
     expect(snap(wet.spotsFor(cell, 0, CANDIDATES, EPOCH))).toEqual(snap(plain.spotsFor(cell, 0)));
   }
-  expect(wet.inPastWater(INLAND_CELL)).toBe(true);
+  expect(wet.inScenario(INLAND_CELL)).toBe(true);
 });
 
 test('the distance patch replaces the static distances inside its cells only', () => {
@@ -358,4 +358,50 @@ test('an epoch only applies while it is active: another active epoch elsewhere l
   const wet = createSiteRanker(withLake(LAKE_ALL), CELLS);
   expect(snap(wet.spotsFor(INLAND_CELL, 0, CANDIDATES, [7]))).toEqual(snap(plain.spotsFor(INLAND_CELL, 0))); // id 7: not this cell's epoch
   expect(wet.spotsFor(INLAND_CELL, 0, CANDIDATES, [7, 1]).unresolved).toBe(true);
+});
+
+// --- ice sheets (?ice=1) ----------------------------------------------------------------------------------------------------
+// An ice patch is one more exclusion: id 101, a mask and no distance patch. Its pixels load lazily, so the ranker reads them from the store.
+
+const ICE_ID = 101;
+function withIce(pixels: [number, number][], base: SiteLayers = world(undefined, 0)): SiteLayers {
+  const xs = pixels.map(([x]) => x);
+  const ys = pixels.map(([, y]) => y);
+  const patch = { x0: Math.min(...xs), y0: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) + 1, height: Math.max(...ys) - Math.min(...ys) + 1 };
+  const wet = new Uint8Array(patch.width * patch.height);
+  for (const [x, y] of pixels) wet[(y - patch.y0) * patch.width + (x - patch.x0)] = 1;
+  const meta = { ...patch, id: ICE_ID, region: 'Eurasia' as const, file: 'test.webp', bytes: 0, sha256: '', pixels: pixels.length, area_km2: 0 };
+  return { ...base, ice: { patches: [meta], masks: new Map([[ICE_ID, { ...patch, id: ICE_ID, region: 'Eurasia' as const, wet }]]) } };
+}
+
+test('ice: a cell under the ice is unresolved, a cell half under it keeps its groups off it, and without the id nothing changes', () => {
+  const plain = createSiteRanker(world(undefined, 0), CELLS);
+  const all = createSiteRanker(withIce(LAKE_ALL), CELLS);
+  expect(all.spotsFor(INLAND_CELL, 0, CANDIDATES, [ICE_ID]).unresolved).toBe(true);
+  expect(snap(all.spotsFor(INLAND_CELL, 0))).toEqual(snap(plain.spotsFor(INLAND_CELL, 0)));
+  const half = createSiteRanker(withIce([[12, 2], [12, 3]]), CELLS);
+  const spots = half.spotsFor(INLAND_CELL, 0, CANDIDATES, [ICE_ID]);
+  expect(spots.unresolved).toBe(false);
+  expect(spots.dry).toBeGreaterThan(0);
+  for (let k = 0; k < spots.dry; k++) expect(half.isWet(INLAND_CELL, spots.x[k], spots.y[k], 0, [ICE_ID])).toBe(false);
+  expect(half.inScenario(INLAND_CELL)).toBe(true);
+  expect(half.inScenario(0)).toBe(false);
+});
+
+test('ice: a mask not loaded yet excludes nothing', () => {
+  const layers = withIce(LAKE_ALL);
+  layers.ice!.masks.clear();
+  expect(createSiteRanker(layers, CELLS).spotsFor(INLAND_CELL, 0, CANDIDATES, [ICE_ID]).unresolved).toBe(false);
+});
+
+test('ice and a past-water lake in the same cell: both are kept out, and the cache tells the combinations apart', () => {
+  // the lake takes the cell's west half, the ice its east half: together they cover it
+  const lake = withLake([[12, 2], [12, 3]], [], 0);
+  const both = createSiteRanker(withIce([[13, 2], [13, 3], [14, 2], [14, 3]], lake), CELLS);
+  const lakeOnly = snap(both.spotsFor(INLAND_CELL, 0, CANDIDATES, [1]));
+  const iceOnly = snap(both.spotsFor(INLAND_CELL, 0, CANDIDATES, [ICE_ID]));
+  const together = both.spotsFor(INLAND_CELL, 0, CANDIDATES, [1, ICE_ID]);
+  expect(together.dry).toBeLessThan(Math.min(lakeOnly.dry, iceOnly.dry));
+  for (let k = 0; k < together.dry; k++) expect(both.isWet(INLAND_CELL, together.x[k], together.y[k], 0, [1, ICE_ID])).toBe(false);
+  expect(snap(both.spotsFor(INLAND_CELL, 0, CANDIDATES, [1]))).toEqual(lakeOnly);
 });

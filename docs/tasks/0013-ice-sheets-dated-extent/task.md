@@ -32,11 +32,11 @@ licensed source, with DATED-1 (Eurasia) and Dalton et al. 2020 (North America) a
 
 ## Success criteria
 
-- [ ] Masks cover at least 25,000–10,000 BCE (app years −25000…−10000).
-- [ ] A check that no group is on ice with the flag on and totals (placed + unresolved) are unchanged.
-- [ ] Flag off changes nothing (`pnpm visual`).
-- [ ] Real-data screenshots on and off: Scandinavia 20,000 BCE, Great Lakes 15,000 BCE, Patagonia 20,000 BCE.
-- [ ] Bytes measured.
-- [ ] Python + frontend checks and build pass.
-- [ ] `docs/ops/ice-sheets.md` and the docs log entry.
-- [ ] No default change.
+- [x] Masks cover at least 25,000–10,000 BCE (app years −25000…−10000).
+- [x] A check that no group is on ice with the flag on and totals (placed + unresolved) are unchanged.
+- [x] Flag off changes nothing (`pnpm visual`).
+- [x] Real-data screenshots on and off: Scandinavia 20,000 BCE, Great Lakes 15,000 BCE, Patagonia 20,000 BCE.
+- [x] Bytes measured.
+- [x] Python + frontend checks and build pass.
+- [x] `docs/ops/ice-sheets.md` and the docs log entry.
+- [x] No default change.

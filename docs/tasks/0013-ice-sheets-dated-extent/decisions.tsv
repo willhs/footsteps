@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-21T15:10:47Z	sources	PaleoMIST 1.0 (CC BY 4.0) margins, read by HTTP range from the 3.7 GB zip	licence explicit on PANGAEA metadata; server sends accept-ranges; margins are per region per 2.5 ka, Eurasia follows DATED-1 most-likely slices	PANGAEA metainfo_xml license CC-BY-4.0; margins/Eurasia/readme	go
+2026-11-21T15:10:47Z	design	ice patches as extra exclusion epochs in the ranker, multi-live regions	ice and LGM lakes can share a cell; one code path for unresolved	plan.md Design	chosen
+2026-11-21T15:10:47Z	design	nearest 2.5 ka epoch, no interpolation; Antarctica out; a1 recorded not drawn	task: never invent between epochs beyond a stated rule	plan.md Assumptions	chosen

@@ -171,10 +171,12 @@ Krapp biomes (0.5°, ~55 km), HYDE land use (5′, ~9 km) and the era coast (ETO
 `era ÷ ref` they stay at their own resolution. So the fine texture on a past era (valleys, river plains, field
 patchwork, towns in July 2004) is **today's ground, imagined for then**; the legend says so. Biome and ice edges are
 no sharper than before; the past coast below today's is still the relief layer's DEM coast from zoom 5.
-**Behind `?terrain_tiles=1`, off by default** until Will has looked: the benchmark (`terrain-bench.md`, 2026-11-21)
-shows zoom-4 time to detail +0.4–0.7 s (it now waits for the tiles; the era image still shows at once) and tilted pan
-fps down by up to ~15 in two scenes (Nile 110 → 94, still far above the goal's 50), and the task allows a flag-free
-rollout only with no regression.
+**Behind `?terrain_tiles=1`, off by default** until Will has looked. The first benchmark (`terrain-bench.md`, 2026-11-21)
+showed zoom-4 time to detail +0.4–0.7 s and tilted pan fps down by up to ~15. Task 0009 (`terrain-bench.md` "Close-up time
+to detail") cleared the tilted costs: the flat tiles are no longer drawn under the close-up 3D, and the close-up fetches each
+ground tile's colour tile with its heights. Below zoom 4.5 the flat map draws the pyramid one zoom coarser (2 screen px per
+texel from a quarter of the tiles, `detailZoomOffset`). Zoom 4 still reaches full detail ~0.37 s after the era image alone
+(0.57 s against 0.20 s, headless); flipping the default is Will's call.
 
 **Bytes.** The whole pyramid is 138 MB (47,662 tiles), for every terrain year at once: per terrain year it adds
 nothing beyond the ~200 KB era image the year already has, so the total for the 120 `TERRAIN_YEARS` is 138 MB.

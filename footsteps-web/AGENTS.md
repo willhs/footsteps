@@ -38,6 +38,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   late atlas responses cannot replace it. Day requests are scoped to the person.
 - `?mode=units|grid|dots` is a debug override and shows the mode button.
 - Close-up 3D (default; `?close3d=0` keeps the map flat): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
+  (elevation tiles one zoom coarser at `MESH_STEP` 2, over both S3 hostnames `DEM_TILE_URLS`, far tiles merged by `lib/demLod.ts`, meshed a frame's budget at a time; `docs/ops/close-up-scene.md` "How the ground streams in")
   draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
   image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
   placement and size are invented and the screen says so. `?ground=1` adds biome surface detail in the ground's fragment shader

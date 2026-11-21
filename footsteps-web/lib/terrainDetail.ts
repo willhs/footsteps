@@ -24,9 +24,9 @@ export const DETAIL_MANIFEST_URL = `/terrain/detail/manifest.png?v=${DETAIL_VERS
 export const DETAIL_COARSE_BELOW = 4.5;
 export const detailZoomOffset = (zoom: number) => (zoom < DETAIL_COARSE_BELOW ? -1 : 0);
 
-/** Detail tiles are off until reviewed: `?terrain_tiles=1` turns them on. The benchmark (docs/ops/terrain-bench.md,
- * 2026-11-21) showed zoom-4 time to detail +0.4-0.7 s and tilted pan fps down by up to ~15 in two scenes, and the
- * task allows a flag-free rollout only with no regression. */
+/** Detail tiles are off by default (Will decides when): `?terrain_tiles=1` turns them on. After task 0009 (docs/ops/terrain-bench.md
+ * "Close-up time to detail") they no longer slow the close-up or its fps; zoom 4 still reaches full detail ~0.37 s later than
+ * without them (the era image shows at once). Flipping the default is Will's call. */
 export function terrainTilesParam(search: string): boolean {
   return new URLSearchParams(search).get('terrain_tiles') === '1';
 }

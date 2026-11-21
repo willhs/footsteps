@@ -34,7 +34,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   Close in (zoom 3–8, stretched beyond), `footstep-generator/terrain_tiles.py`'s one year-independent pyramid of the 500 m
   Blue Marble photo (`data/tiles/terrain/detail/`, ~138 MB, alpha = today's land) is recoloured per year on the GPU as
   `photo × era ÷ ref` (`lib/terrainDetail.ts`, `layers/TerrainDetailLayer.ts`; the close-up 3D ground uses the same rule),
-  so scrubbing fetches no tiles. The fine texture on past eras is today's ground, labelled imagined. Behind `?terrain_tiles=1` until reviewed (benchmark: zoom-4 time to detail and some tilted fps regressed; docs/ops/terrain-bench.md).
+  so scrubbing fetches no tiles. The fine texture on past eras is today's ground, labelled imagined. Behind `?terrain_tiles=1` until Will flips it (after task 0009 it no longer slows the close-up; zoom 4 is still ~0.37 s slower to full detail; docs/ops/terrain-bench.md).
 - `footstep-generator/prehistory_population.py`: a MODELLED world population (Tallavaara NPP fit, Beyer climate,
   arrival table, scaled to a literature curve, blended into HYDE) → one 0.5° WebP per 1,000 years, 100,000–11,000 BCE,
   in `grid_image.py`'s encoding, plus `totals.json` (also copied to `footsteps-web/public/prehistory_totals.json`, which `lib/time.ts`

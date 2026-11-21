@@ -1,0 +1,3310 @@
+{
+ "meta": {
+  "date": "2026-11-21",
+  "commit": "32c6f30",
+  "dirty": false,
+  "base": "http://127.0.0.1:59613",
+  "label": "after2 tiles=1",
+  "query": "terrain_tiles=1",
+  "viewport": {
+   "width": 1440,
+   "height": 900
+  },
+  "headless": true,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+  "browser": "157.0.8103.79",
+  "node": "v22.16.0",
+  "loadavg": [
+   6.8,
+   6.5
+  ]
+ },
+ "results": [
+  {
+   "id": "alps-z4-flat",
+   "scene": "alps",
+   "sceneLabel": "Alps",
+   "zoom": 4,
+   "mode": "flat",
+   "year": 1000,
+   "lat": 46.55,
+   "lon": 8,
+   "texel": {
+    "source": "tile-pyramid z4/8",
+    "eastWestM": 6729,
+    "northSouthM": 6729,
+    "eastWestPx": 2,
+    "northSouthPx": 2,
+    "demSamplePx": null
+   },
+   "loadavg": 6.8,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 185,
+     "lastTileEndMs": 669,
+     "doneMs": 739
+    },
+    "pan": {
+     "fps": 24.3,
+     "frames": 173,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100.1
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 191
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 111
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 191
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 51,
+      "bytes": 14155001,
+      "terrainRequests": 22,
+      "terrainBytes": 1906937,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 21,
+      "bytes": 13324208,
+      "terrainRequests": 6,
+      "terrainBytes": 182543,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 117,
+     "lastTileEndMs": 478,
+     "doneMs": 554
+    },
+    "pan": {
+     "fps": 23.8,
+     "frames": 184,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 216.7
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 212
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 51,
+      "bytes": 10906,
+      "terrainRequests": 22,
+      "terrainBytes": 4367,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 21,
+      "bytes": 4280,
+      "terrainRequests": 6,
+      "terrainBytes": 1183,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "alps-z10-flat",
+   "scene": "alps",
+   "sceneLabel": "Alps",
+   "zoom": 10,
+   "mode": "flat",
+   "year": 1000,
+   "lat": 46.55,
+   "lon": 8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 421,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 8.82,
+    "demSamplePx": 1
+   },
+   "loadavg": 6.8,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 281,
+     "lastTileEndMs": 3076,
+     "doneMs": 3149
+    },
+    "pan": {
+     "fps": 22.4,
+     "frames": 173,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 150.1
+    },
+    "longTasks": {
+     "load": {
+      "count": 4,
+      "maxMs": 93
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 163
+     },
+     "streaming": {
+      "count": 3,
+      "maxMs": 87
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 69,
+      "bytes": 18110611,
+      "terrainRequests": 40,
+      "terrainBytes": 5862547,
+      "demRequests": 28
+     },
+     "pan": {
+      "requests": 40,
+      "bytes": 20913918,
+      "terrainRequests": 24,
+      "terrainBytes": 3360064,
+      "demRequests": 24
+     }
+    },
+    "demTileZooms": {
+     "11": 52
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 150,
+     "lastTileEndMs": 809,
+     "doneMs": 936
+    },
+    "pan": {
+     "fps": 22.9,
+     "frames": 194,
+     "p95FrameMs": 66.8,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 3,
+      "maxMs": 55
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 84
+     },
+     "streaming": {
+      "count": 2,
+      "maxMs": 54
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 69,
+      "bytes": 29100,
+      "terrainRequests": 40,
+      "terrainBytes": 22561,
+      "demRequests": 28
+     },
+     "pan": {
+      "requests": 40,
+      "bytes": 20504,
+      "terrainRequests": 24,
+      "terrainBytes": 17280,
+      "demRequests": 24
+     }
+    },
+    "demTileZooms": {
+     "11": 52
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "alps-z10-3d",
+   "scene": "alps",
+   "sceneLabel": "Alps",
+   "zoom": 10,
+   "mode": "3d",
+   "year": 1000,
+   "lat": 46.55,
+   "lon": 8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 421,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 8.82,
+    "demSamplePx": 2
+   },
+   "loadavg": 7,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 238,
+     "lastTileEndMs": 3102,
+     "doneMs": 3162
+    },
+    "pan": {
+     "fps": 22.9,
+     "frames": 204,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 2,
+      "maxMs": 58
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 57
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 20019100,
+      "terrainRequests": 39,
+      "terrainBytes": 5436939,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 34,
+      "bytes": 21568657,
+      "terrainRequests": 16,
+      "terrainBytes": 1953946,
+      "demRequests": 14
+     }
+    },
+    "demTileZooms": {
+     "10": 38
+    },
+    "detailTileZooms": {
+     "8": 6
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 147,
+     "lastTileEndMs": 535,
+     "doneMs": 660
+    },
+    "pan": {
+     "fps": 23.6,
+     "frames": 201,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100.1
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 95
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 68,
+      "bytes": 27052,
+      "terrainRequests": 39,
+      "terrainBytes": 20513,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 30,
+      "bytes": 13435,
+      "terrainRequests": 16,
+      "terrainBytes": 10614,
+      "demRequests": 14
+     }
+    },
+    "demTileZooms": {
+     "10": 38
+    },
+    "detailTileZooms": {
+     "8": 6
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "alps-z12-flat",
+   "scene": "alps",
+   "sceneLabel": "Alps",
+   "zoom": 12,
+   "mode": "flat",
+   "year": 1000,
+   "lat": 46.55,
+   "lon": 8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 421,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 35.29,
+    "demSamplePx": 1
+   },
+   "loadavg": 7.1,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 177,
+     "lastTileEndMs": 4418,
+     "doneMs": 4532
+    },
+    "pan": {
+     "fps": 19.1,
+     "frames": 175,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 139
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 139
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 74,
+      "bytes": 22343937,
+      "terrainRequests": 41,
+      "terrainBytes": 5605771,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 37,
+      "bytes": 26324626,
+      "terrainRequests": 15,
+      "terrainBytes": 1924678,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 171,
+     "lastTileEndMs": 812,
+     "doneMs": 881
+    },
+    "pan": {
+     "fps": 22.7,
+     "frames": 204,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 50
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 73
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 30042,
+      "terrainRequests": 41,
+      "terrainBytes": 23503,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 31,
+      "bytes": 13874,
+      "terrainRequests": 15,
+      "terrainBytes": 10650,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "alps-z12-3d",
+   "scene": "alps",
+   "sceneLabel": "Alps",
+   "zoom": 12,
+   "mode": "3d",
+   "year": 1000,
+   "lat": 46.55,
+   "lon": 8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 421,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 35.29,
+    "demSamplePx": 2
+   },
+   "loadavg": 6.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 157,
+     "lastTileEndMs": 2752,
+     "doneMs": 2785
+    },
+    "pan": {
+     "fps": 24,
+     "frames": 209,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 67,
+      "bytes": 19670590,
+      "terrainRequests": 36,
+      "terrainBytes": 5088429,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 35,
+      "bytes": 23956992,
+      "terrainRequests": 15,
+      "terrainBytes": 1885012,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "12": 40
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 171,
+     "lastTileEndMs": 677,
+     "doneMs": 788
+    },
+    "pan": {
+     "fps": 24.1,
+     "frames": 214,
+     "p95FrameMs": 66.8,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 106
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 80
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 106
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 65,
+      "bytes": 25978,
+      "terrainRequests": 36,
+      "terrainBytes": 19439,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 32,
+      "bytes": 14583,
+      "terrainRequests": 16,
+      "terrainBytes": 11359,
+      "demRequests": 16
+     }
+    },
+    "demTileZooms": {
+     "12": 40
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "amazon-z4-flat",
+   "scene": "amazon",
+   "sceneLabel": "Amazon",
+   "zoom": 4,
+   "mode": "flat",
+   "year": 1000,
+   "lat": -3.1,
+   "lon": -60,
+   "texel": {
+    "source": "tile-pyramid z4/8",
+    "eastWestM": 9770,
+    "northSouthM": 9770,
+    "eastWestPx": 2,
+    "northSouthPx": 2,
+    "demSamplePx": null
+   },
+   "loadavg": 4.7,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 163,
+     "lastTileEndMs": 508,
+     "doneMs": 611
+    },
+    "pan": {
+     "fps": 23.3,
+     "frames": 176,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 58
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 58
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 51,
+      "bytes": 14108366,
+      "terrainRequests": 22,
+      "terrainBytes": 1860302,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 16,
+      "bytes": 15534736,
+      "terrainRequests": 2,
+      "terrainBytes": 958,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 14
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 100,
+     "lastTileEndMs": 423,
+     "doneMs": 487
+    },
+    "pan": {
+     "fps": 20.1,
+     "frames": 165,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 99.9
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 51,
+      "bytes": 10895,
+      "terrainRequests": 22,
+      "terrainBytes": 4356,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 18,
+      "bytes": 2023285,
+      "terrainRequests": 2,
+      "terrainBytes": 388,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 14
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "amazon-z10-flat",
+   "scene": "amazon",
+   "sceneLabel": "Amazon",
+   "zoom": 10,
+   "mode": "flat",
+   "year": 1000,
+   "lat": -3.1,
+   "lon": -60,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 611,
+    "northSouthM": 611,
+    "eastWestPx": 8,
+    "northSouthPx": 8,
+    "demSamplePx": 1
+   },
+   "loadavg": 4.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 106,
+     "lastTileEndMs": 2871,
+     "doneMs": 2928
+    },
+    "pan": {
+     "fps": 22.4,
+     "frames": 178,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 80,
+      "bytes": 18120703,
+      "terrainRequests": 49,
+      "terrainBytes": 3538542,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 30,
+      "bytes": 22590688,
+      "terrainRequests": 10,
+      "terrainBytes": 518708,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 100,
+     "lastTileEndMs": 766,
+     "doneMs": 820
+    },
+    "pan": {
+     "fps": 21.3,
+     "frames": 170,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 63
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 78,
+      "bytes": 35045,
+      "terrainRequests": 49,
+      "terrainBytes": 28506,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 26,
+      "bytes": 10652,
+      "terrainRequests": 10,
+      "terrainBytes": 7428,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "amazon-z10-3d",
+   "scene": "amazon",
+   "sceneLabel": "Amazon",
+   "zoom": 10,
+   "mode": "3d",
+   "year": 1000,
+   "lat": -3.1,
+   "lon": -60,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 611,
+    "northSouthM": 611,
+    "eastWestPx": 8,
+    "northSouthPx": 8,
+    "demSamplePx": 2
+   },
+   "loadavg": 4.1,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 98,
+     "lastTileEndMs": 2344,
+     "doneMs": 2363
+    },
+    "pan": {
+     "fps": 23.3,
+     "frames": 205,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 73,
+      "bytes": 17737410,
+      "terrainRequests": 42,
+      "terrainBytes": 3155249,
+      "demRequests": 26
+     },
+     "pan": {
+      "requests": 33,
+      "bytes": 24503935,
+      "terrainRequests": 11,
+      "terrainBytes": 449700,
+      "demRequests": 11
+     }
+    },
+    "demTileZooms": {
+     "10": 38
+    },
+    "detailTileZooms": {
+     "8": 5
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 99,
+     "lastTileEndMs": 530,
+     "doneMs": 595
+    },
+    "pan": {
+     "fps": 25,
+     "frames": 214,
+     "p95FrameMs": 66.8,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 71,
+      "bytes": 29276,
+      "terrainRequests": 42,
+      "terrainBytes": 22737,
+      "demRequests": 26
+     },
+     "pan": {
+      "requests": 28,
+      "bytes": 12296,
+      "terrainRequests": 12,
+      "terrainBytes": 9072,
+      "demRequests": 12
+     }
+    },
+    "demTileZooms": {
+     "10": 38
+    },
+    "detailTileZooms": {
+     "8": 5
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "amazon-z12-flat",
+   "scene": "amazon",
+   "sceneLabel": "Amazon",
+   "zoom": 12,
+   "mode": "flat",
+   "year": 1000,
+   "lat": -3.1,
+   "lon": -60,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 611,
+    "northSouthM": 611,
+    "eastWestPx": 32,
+    "northSouthPx": 32,
+    "demSamplePx": 1
+   },
+   "loadavg": 4.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 112,
+     "lastTileEndMs": 2672,
+     "doneMs": 2734
+    },
+    "pan": {
+     "fps": 26.1,
+     "frames": 211,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.3
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 50
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 50
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 77,
+      "bytes": 17424555,
+      "terrainRequests": 46,
+      "terrainBytes": 2842394,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 30,
+      "bytes": 22349496,
+      "terrainRequests": 10,
+      "terrainBytes": 277516,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 99,
+     "lastTileEndMs": 707,
+     "doneMs": 789
+    },
+    "pan": {
+     "fps": 22.6,
+     "frames": 190,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 75,
+      "bytes": 34354,
+      "terrainRequests": 46,
+      "terrainBytes": 27815,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 28,
+      "bytes": 10940,
+      "terrainRequests": 10,
+      "terrainBytes": 7311,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "amazon-z12-3d",
+   "scene": "amazon",
+   "sceneLabel": "Amazon",
+   "zoom": 12,
+   "mode": "3d",
+   "year": 1000,
+   "lat": -3.1,
+   "lon": -60,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 611,
+    "northSouthM": 611,
+    "eastWestPx": 32,
+    "northSouthPx": 32,
+    "demSamplePx": 2
+   },
+   "loadavg": 4.2,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 101,
+     "lastTileEndMs": 2126,
+     "doneMs": 2195
+    },
+    "pan": {
+     "fps": 24.6,
+     "frames": 217,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 15146946,
+      "terrainRequests": 37,
+      "terrainBytes": 2898882,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 28,
+      "bytes": 24636315,
+      "terrainRequests": 6,
+      "terrainBytes": 230238,
+      "demRequests": 6
+     }
+    },
+    "demTileZooms": {
+     "12": 31
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 96,
+     "lastTileEndMs": 533,
+     "doneMs": 588
+    },
+    "pan": {
+     "fps": 25.7,
+     "frames": 231,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 100.1
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 59
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 27464,
+      "terrainRequests": 37,
+      "terrainBytes": 20925,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 24,
+      "bytes": 8007,
+      "terrainRequests": 6,
+      "terrainBytes": 4378,
+      "demRequests": 6
+     }
+    },
+    "demTileZooms": {
+     "12": 31
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "doggerland-z4-flat",
+   "scene": "doggerland",
+   "sceneLabel": "Doggerland",
+   "zoom": 4,
+   "mode": "flat",
+   "year": -10000,
+   "lat": 54.8,
+   "lon": 2,
+   "texel": {
+    "source": "tile-pyramid z4/8",
+    "eastWestM": 5640,
+    "northSouthM": 5640,
+    "eastWestPx": 2,
+    "northSouthPx": 2,
+    "demSamplePx": null
+   },
+   "loadavg": 3.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 140,
+     "lastTileEndMs": 365,
+     "doneMs": 418
+    },
+    "pan": {
+     "fps": 20.2,
+     "frames": 178,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 47,
+      "bytes": 10758525,
+      "terrainRequests": 19,
+      "terrainBytes": 1970888,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 26,
+      "bytes": 3646106,
+      "terrainRequests": 15,
+      "terrainBytes": 416536,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 19
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 100,
+     "lastTileEndMs": 329,
+     "doneMs": 381
+    },
+    "pan": {
+     "fps": 15.3,
+     "frames": 144,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 67
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 47,
+      "bytes": 10107,
+      "terrainRequests": 19,
+      "terrainBytes": 3777,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 33,
+      "bytes": 163143,
+      "terrainRequests": 19,
+      "terrainBytes": 153454,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 19
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "doggerland-z10-flat",
+   "scene": "doggerland",
+   "sceneLabel": "Doggerland",
+   "zoom": 10,
+   "mode": "flat",
+   "year": -10000,
+   "lat": 54.8,
+   "lon": 2,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 352,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 10.53,
+    "demSamplePx": 1
+   },
+   "loadavg": 3.4,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 104,
+     "lastTileEndMs": 2486,
+     "doneMs": 2584
+    },
+    "pan": {
+     "fps": 18.8,
+     "frames": 162,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 77,
+      "bytes": 11627303,
+      "terrainRequests": 48,
+      "terrainBytes": 2839467,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 46,
+      "bytes": 5683428,
+      "terrainRequests": 29,
+      "terrainBytes": 1299889,
+      "demRequests": 17
+     }
+    },
+    "demTileZooms": {
+     "11": 52
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 98,
+     "lastTileEndMs": 717,
+     "doneMs": 777
+    },
+    "pan": {
+     "fps": 18.6,
+     "frames": 164,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 56
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 76,
+      "bytes": 33762,
+      "terrainRequests": 48,
+      "terrainBytes": 27432,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 35,
+      "bytes": 15629,
+      "terrainRequests": 24,
+      "terrainBytes": 13441,
+      "demRequests": 17
+     }
+    },
+    "demTileZooms": {
+     "11": 52
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "doggerland-z10-3d",
+   "scene": "doggerland",
+   "sceneLabel": "Doggerland",
+   "zoom": 10,
+   "mode": "3d",
+   "year": -10000,
+   "lat": 54.8,
+   "lon": 2,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 352,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 10.53,
+    "demSamplePx": 2
+   },
+   "loadavg": 3.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 115,
+     "lastTileEndMs": 2402,
+     "doneMs": 2469
+    },
+    "pan": {
+     "fps": 24.3,
+     "frames": 193,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 66
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 72,
+      "bytes": 12052502,
+      "terrainRequests": 44,
+      "terrainBytes": 3264865,
+      "demRequests": 27
+     },
+     "pan": {
+      "requests": 30,
+      "bytes": 5487058,
+      "terrainRequests": 16,
+      "terrainBytes": 1114210,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "10": 38
+    },
+    "detailTileZooms": {
+     "8": 5
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 97,
+     "lastTileEndMs": 537,
+     "doneMs": 602
+    },
+    "pan": {
+     "fps": 21.9,
+     "frames": 189,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 50
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 72,
+      "bytes": 28604,
+      "terrainRequests": 44,
+      "terrainBytes": 22274,
+      "demRequests": 27
+     },
+     "pan": {
+      "requests": 25,
+      "bytes": 9982,
+      "terrainRequests": 14,
+      "terrainBytes": 7794,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "10": 37
+    },
+    "detailTileZooms": {
+     "8": 5
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "doggerland-z12-flat",
+   "scene": "doggerland",
+   "sceneLabel": "Doggerland",
+   "zoom": 12,
+   "mode": "flat",
+   "year": -10000,
+   "lat": 54.8,
+   "lon": 2,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 352,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 42.11,
+    "demSamplePx": 1
+   },
+   "loadavg": 3.9,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 101,
+     "lastTileEndMs": 2139,
+     "doneMs": 2220
+    },
+    "pan": {
+     "fps": 23.2,
+     "frames": 183,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 66.8
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 68,
+      "bytes": 10979031,
+      "terrainRequests": 40,
+      "terrainBytes": 2191394,
+      "demRequests": 28
+     },
+     "pan": {
+      "requests": 42,
+      "bytes": 5084231,
+      "terrainRequests": 29,
+      "terrainBytes": 741951,
+      "demRequests": 24
+     }
+    },
+    "demTileZooms": {
+     "13": 52
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 100,
+     "lastTileEndMs": 717,
+     "doneMs": 820
+    },
+    "pan": {
+     "fps": 20.1,
+     "frames": 155,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 68,
+      "bytes": 28593,
+      "terrainRequests": 40,
+      "terrainBytes": 22263,
+      "demRequests": 28
+     },
+     "pan": {
+      "requests": 38,
+      "bytes": 19819,
+      "terrainRequests": 28,
+      "terrainBytes": 17829,
+      "demRequests": 24
+     }
+    },
+    "demTileZooms": {
+     "13": 52
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "doggerland-z12-3d",
+   "scene": "doggerland",
+   "sceneLabel": "Doggerland",
+   "zoom": 12,
+   "mode": "3d",
+   "year": -10000,
+   "lat": 54.8,
+   "lon": 2,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 352,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 42.11,
+    "demSamplePx": 2
+   },
+   "loadavg": 3.4,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 110,
+     "lastTileEndMs": 1849,
+     "doneMs": 1923
+    },
+    "pan": {
+     "fps": 23.1,
+     "frames": 200,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 11205659,
+      "terrainRequests": 38,
+      "terrainBytes": 2418022,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 37,
+      "bytes": 5202806,
+      "terrainRequests": 20,
+      "terrainBytes": 819267,
+      "demRequests": 12
+     }
+    },
+    "demTileZooms": {
+     "12": 37
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 97,
+     "lastTileEndMs": 559,
+     "doneMs": 656
+    },
+    "pan": {
+     "fps": 23.5,
+     "frames": 201,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 87
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 26683,
+      "terrainRequests": 38,
+      "terrainBytes": 20353,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 33,
+      "bytes": 12774,
+      "terrainRequests": 19,
+      "terrainBytes": 9904,
+      "demRequests": 12
+     }
+    },
+    "demTileZooms": {
+     "12": 37
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "nile-z4-flat",
+   "scene": "nile",
+   "sceneLabel": "Nile",
+   "zoom": 4,
+   "mode": "flat",
+   "year": 1500,
+   "lat": 25.7,
+   "lon": 32.6,
+   "texel": {
+    "source": "tile-pyramid z4/8",
+    "eastWestM": 8816,
+    "northSouthM": 8816,
+    "eastWestPx": 2,
+    "northSouthPx": 2,
+    "demSamplePx": null
+   },
+   "loadavg": 5.9,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 146,
+     "lastTileEndMs": 436,
+     "doneMs": 516
+    },
+    "pan": {
+     "fps": 23.8,
+     "frames": 175,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 183.3
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 3,
+      "maxMs": 167
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 48,
+      "bytes": 14570233,
+      "terrainRequests": 19,
+      "terrainBytes": 1905949,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 18,
+      "bytes": 14460037,
+      "terrainRequests": 6,
+      "terrainBytes": 18018,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 111,
+     "lastTileEndMs": 455,
+     "doneMs": 492
+    },
+    "pan": {
+     "fps": 22.3,
+     "frames": 178,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 116.7
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 53
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 111
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 53
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 48,
+      "bytes": 10320,
+      "terrainRequests": 19,
+      "terrainBytes": 3780,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 20,
+      "bytes": 3057167,
+      "terrainRequests": 6,
+      "terrainBytes": 1174,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "nile-z10-flat",
+   "scene": "nile",
+   "sceneLabel": "Nile",
+   "zoom": 10,
+   "mode": "flat",
+   "year": 1500,
+   "lat": 25.7,
+   "lon": 32.6,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 551,
+    "northSouthM": 551,
+    "eastWestPx": 8,
+    "northSouthPx": 8,
+    "demSamplePx": 1
+   },
+   "loadavg": 5.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 125,
+     "lastTileEndMs": 2465,
+     "doneMs": 2533
+    },
+    "pan": {
+     "fps": 23.1,
+     "frames": 177,
+     "p95FrameMs": 83.2,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 80,
+      "bytes": 18475105,
+      "terrainRequests": 49,
+      "terrainBytes": 3309103,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 26,
+      "bytes": 21218912,
+      "terrainRequests": 10,
+      "terrainBytes": 335753,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 113,
+     "lastTileEndMs": 825,
+     "doneMs": 926
+    },
+    "pan": {
+     "fps": 23.4,
+     "frames": 183,
+     "p95FrameMs": 83.2,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 55
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 54
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 55
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 78,
+      "bytes": 34738,
+      "terrainRequests": 49,
+      "terrainBytes": 28198,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 30,
+      "bytes": 122472,
+      "terrainRequests": 12,
+      "terrainBytes": 109750,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": [
+     "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+   }
+  },
+  {
+   "id": "nile-z10-3d",
+   "scene": "nile",
+   "sceneLabel": "Nile",
+   "zoom": 10,
+   "mode": "3d",
+   "year": 1500,
+   "lat": 25.7,
+   "lon": 32.6,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 551,
+    "northSouthM": 551,
+    "eastWestPx": 8,
+    "northSouthPx": 8,
+    "demSamplePx": 2
+   },
+   "loadavg": 5.2,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 111,
+     "lastTileEndMs": 2419,
+     "doneMs": 2507
+    },
+    "pan": {
+     "fps": 22.7,
+     "frames": 203,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 94
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 69,
+      "bytes": 15799404,
+      "terrainRequests": 40,
+      "terrainBytes": 3135120,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 26,
+      "bytes": 25756310,
+      "terrainRequests": 6,
+      "terrainBytes": 215428,
+      "demRequests": 6
+     }
+    },
+    "demTileZooms": {
+     "10": 31
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 114,
+     "lastTileEndMs": 603,
+     "doneMs": 678
+    },
+    "pan": {
+     "fps": 22.2,
+     "frames": 196,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 75
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 69,
+      "bytes": 27933,
+      "terrainRequests": 40,
+      "terrainBytes": 21393,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 27,
+      "bytes": 51529,
+      "terrainRequests": 7,
+      "terrainBytes": 38404,
+      "demRequests": 6
+     }
+    },
+    "demTileZooms": {
+     "10": 31
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": [
+     "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+   }
+  },
+  {
+   "id": "nile-z12-flat",
+   "scene": "nile",
+   "sceneLabel": "Nile",
+   "zoom": 12,
+   "mode": "flat",
+   "year": 1500,
+   "lat": 25.7,
+   "lon": 32.6,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 551,
+    "northSouthM": 551,
+    "eastWestPx": 32,
+    "northSouthPx": 32,
+    "demSamplePx": 1
+   },
+   "loadavg": 5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 112,
+     "lastTileEndMs": 2410,
+     "doneMs": 2433
+    },
+    "pan": {
+     "fps": 24,
+     "frames": 199,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 71
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 15352324,
+      "terrainRequests": 41,
+      "terrainBytes": 2688040,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 33,
+      "bytes": 23842652,
+      "terrainRequests": 15,
+      "terrainBytes": 457775,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 107,
+     "lastTileEndMs": 732,
+     "doneMs": 762
+    },
+    "pan": {
+     "fps": 23.2,
+     "frames": 197,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 102
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 30539,
+      "terrainRequests": 41,
+      "terrainBytes": 23999,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 29,
+      "bytes": 13526,
+      "terrainRequests": 15,
+      "terrainBytes": 10695,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 1
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "nile-z12-3d",
+   "scene": "nile",
+   "sceneLabel": "Nile",
+   "zoom": 12,
+   "mode": "3d",
+   "year": 1500,
+   "lat": 25.7,
+   "lon": 32.6,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 551,
+    "northSouthM": 551,
+    "eastWestPx": 32,
+    "northSouthPx": 32,
+    "demSamplePx": 2
+   },
+   "loadavg": 4.8,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 115,
+     "lastTileEndMs": 2014,
+     "doneMs": 2064
+    },
+    "pan": {
+     "fps": 21.1,
+     "frames": 193,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 116.6
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 74
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 15456310,
+      "terrainRequests": 37,
+      "terrainBytes": 2792026,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 41,
+      "bytes": 26086739,
+      "terrainRequests": 17,
+      "terrainBytes": 535966,
+      "demRequests": 14
+     }
+    },
+    "demTileZooms": {
+     "12": 38
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": [
+     "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 110,
+     "lastTileEndMs": 491,
+     "doneMs": 529
+    },
+    "pan": {
+     "fps": 18.9,
+     "frames": 179,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 99.9
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 93
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 26575,
+      "terrainRequests": 37,
+      "terrainBytes": 20035,
+      "demRequests": 24
+     },
+     "pan": {
+      "requests": 35,
+      "bytes": 41565,
+      "terrainRequests": 17,
+      "terrainBytes": 37926,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "12": 39
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "steppe-z4-flat",
+   "scene": "steppe",
+   "sceneLabel": "Mongolian steppe",
+   "zoom": 4,
+   "mode": "flat",
+   "year": 0,
+   "lat": 47.2,
+   "lon": 102.8,
+   "texel": {
+    "source": "tile-pyramid z4/8",
+    "eastWestM": 6648,
+    "northSouthM": 6648,
+    "eastWestPx": 2,
+    "northSouthPx": 2,
+    "demSamplePx": null
+   },
+   "loadavg": 5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 150,
+     "lastTileEndMs": 502,
+     "doneMs": 572
+    },
+    "pan": {
+     "fps": 24.5,
+     "frames": 196,
+     "p95FrameMs": 66.8,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 1,
+      "maxMs": 51
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 62
+     },
+     "streaming": {
+      "count": 1,
+      "maxMs": 51
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 43,
+      "bytes": 11052987,
+      "terrainRequests": 16,
+      "terrainBytes": 1329777,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 28,
+      "bytes": 16577657,
+      "terrainRequests": 9,
+      "terrainBytes": 206693,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 114,
+     "lastTileEndMs": 472,
+     "doneMs": 571
+    },
+    "pan": {
+     "fps": 24.8,
+     "frames": 177,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 82
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 43,
+      "bytes": 9312,
+      "terrainRequests": 16,
+      "terrainBytes": 3177,
+      "demRequests": 0
+     },
+     "pan": {
+      "requests": 20,
+      "bytes": 4003,
+      "terrainRequests": 6,
+      "terrainBytes": 1187,
+      "demRequests": 0
+     }
+    },
+    "demTileZooms": {},
+    "detailTileZooms": {
+     "4": 15
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "steppe-z10-flat",
+   "scene": "steppe",
+   "sceneLabel": "Mongolian steppe",
+   "zoom": 10,
+   "mode": "flat",
+   "year": 0,
+   "lat": 47.2,
+   "lon": 102.8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 415,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 8.93,
+    "demSamplePx": 1
+   },
+   "loadavg": 4.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 112,
+     "lastTileEndMs": 2506,
+     "doneMs": 2586
+    },
+    "pan": {
+     "fps": 20.5,
+     "frames": 166,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 14107016,
+      "terrainRequests": 41,
+      "terrainBytes": 2423268,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 37,
+      "bytes": 18657212,
+      "terrainRequests": 15,
+      "terrainBytes": 655720,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 106,
+     "lastTileEndMs": 767,
+     "doneMs": 839
+    },
+    "pan": {
+     "fps": 20.3,
+     "frames": 162,
+     "p95FrameMs": 83.4,
+     "maxFrameMs": 100
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 2,
+      "maxMs": 80
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 68,
+      "bytes": 29713,
+      "terrainRequests": 41,
+      "terrainBytes": 23578,
+      "demRequests": 30
+     },
+     "pan": {
+      "requests": 33,
+      "bytes": 14420,
+      "terrainRequests": 15,
+      "terrainBytes": 10799,
+      "demRequests": 15
+     }
+    },
+    "demTileZooms": {
+     "11": 45
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "steppe-z10-3d",
+   "scene": "steppe",
+   "sceneLabel": "Mongolian steppe",
+   "zoom": 10,
+   "mode": "3d",
+   "year": 0,
+   "lat": 47.2,
+   "lon": 102.8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 415,
+    "northSouthM": 464,
+    "eastWestPx": 8,
+    "northSouthPx": 8.93,
+    "demSamplePx": 2
+   },
+   "loadavg": 5.2,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 122,
+     "lastTileEndMs": 2413,
+     "doneMs": 2451
+    },
+    "pan": {
+     "fps": 24,
+     "frames": 201,
+     "p95FrameMs": 66.7,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 66,
+      "bytes": 14161424,
+      "terrainRequests": 37,
+      "terrainBytes": 2477676,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 25,
+      "bytes": 20522861,
+      "terrainRequests": 5,
+      "terrainBytes": 271510,
+      "demRequests": 5
+     }
+    },
+    "demTileZooms": {
+     "10": 31
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 115,
+     "lastTileEndMs": 609,
+     "doneMs": 712
+    },
+    "pan": {
+     "fps": 23.2,
+     "frames": 200,
+     "p95FrameMs": 66.8,
+     "maxFrameMs": 150.1
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 131
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 64,
+      "bytes": 26970,
+      "terrainRequests": 37,
+      "terrainBytes": 20835,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 24,
+      "bytes": 7994,
+      "terrainRequests": 6,
+      "terrainBytes": 4373,
+      "demRequests": 6
+     }
+    },
+    "demTileZooms": {
+     "10": 31
+    },
+    "detailTileZooms": {
+     "8": 4
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "steppe-z12-flat",
+   "scene": "steppe",
+   "sceneLabel": "Mongolian steppe",
+   "zoom": 12,
+   "mode": "flat",
+   "year": 0,
+   "lat": 47.2,
+   "lon": 102.8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 415,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 35.72,
+    "demSamplePx": 1
+   },
+   "loadavg": 4.6,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 109,
+     "lastTileEndMs": 2410,
+     "doneMs": 2488
+    },
+    "pan": {
+     "fps": 21.5,
+     "frames": 183,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 72,
+      "bytes": 13776269,
+      "terrainRequests": 43,
+      "terrainBytes": 2092521,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 31,
+      "bytes": 20540348,
+      "terrainRequests": 11,
+      "terrainBytes": 288997,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 114,
+     "lastTileEndMs": 726,
+     "doneMs": 817
+    },
+    "pan": {
+     "fps": 21.1,
+     "frames": 174,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 64
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 70,
+      "bytes": 32329,
+      "terrainRequests": 43,
+      "terrainBytes": 26194,
+      "demRequests": 35
+     },
+     "pan": {
+      "requests": 29,
+      "bytes": 10848,
+      "terrainRequests": 11,
+      "terrainBytes": 7227,
+      "demRequests": 10
+     }
+    },
+    "demTileZooms": {
+     "13": 45
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  },
+  {
+   "id": "steppe-z12-3d",
+   "scene": "steppe",
+   "sceneLabel": "Mongolian steppe",
+   "zoom": 12,
+   "mode": "3d",
+   "year": 0,
+   "lat": 47.2,
+   "lon": 102.8,
+   "texel": {
+    "source": "tile-pyramid z8/8",
+    "eastWestM": 415,
+    "northSouthM": 464,
+    "eastWestPx": 32,
+    "northSouthPx": 35.72,
+    "demSamplePx": 2
+   },
+   "loadavg": 4.5,
+   "error": null,
+   "cold": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 111,
+     "lastTileEndMs": 1979,
+     "doneMs": 2077
+    },
+    "pan": {
+     "fps": 21.6,
+     "frames": 186,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 64,
+      "bytes": 13742262,
+      "terrainRequests": 35,
+      "terrainBytes": 2058514,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 27,
+      "bytes": 20501372,
+      "terrainRequests": 7,
+      "terrainBytes": 250021,
+      "demRequests": 7
+     }
+    },
+    "demTileZooms": {
+     "12": 32
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   },
+   "warm": {
+    "timedOut": false,
+    "timing": {
+     "eraImageEndMs": 111,
+     "lastTileEndMs": 528,
+     "doneMs": 626
+    },
+    "pan": {
+     "fps": 21.4,
+     "frames": 193,
+     "p95FrameMs": 83.3,
+     "maxFrameMs": 83.4
+    },
+    "longTasks": {
+     "load": {
+      "count": 0,
+      "maxMs": 0
+     },
+     "pan": {
+      "count": 1,
+      "maxMs": 86
+     },
+     "streaming": {
+      "count": 0,
+      "maxMs": 0
+     }
+    },
+    "net": {
+     "load": {
+      "requests": 62,
+      "bytes": 25767,
+      "terrainRequests": 35,
+      "terrainBytes": 19632,
+      "demRequests": 25
+     },
+     "pan": {
+      "requests": 32,
+      "bytes": 109460,
+      "terrainRequests": 9,
+      "terrainBytes": 94665,
+      "demRequests": 7
+     }
+    },
+    "demTileZooms": {
+     "12": 32
+    },
+    "detailTileZooms": {
+     "8": 2
+    },
+    "eraImage": {
+     "width": 2048,
+     "height": 1024
+    },
+    "screenshotError": null,
+    "errors": []
+   }
+  }
+ ]
+}

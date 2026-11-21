@@ -55,8 +55,13 @@ context: HTTP cache full, in-memory caches empty). Per load:
   Flat maps stream elevation tiles too from zoom 5 (the relief shader), so they wait for them. Zoom 4 loads the era image only.
   It is a proxy for "drawn", read from outside: the app has no "all tiles drawn" signal. A load that never settles is marked `timeout` at 90 s.
 - **fps**: `requestAnimationFrame` deltas during a fixed pan (a 600 px sine drag, 120 steps), with p95 and max frame gap.
-- **Long tasks**: `PerformanceObserver('longtask')` (main-thread tasks over 50 ms), count and longest, while loading and
-  while panning (tiles stream in during the pan).
+- **Long tasks**: `PerformanceObserver('longtask')` (main-thread tasks over 50 ms), count and longest, while loading,
+  **while streaming** (`streaming`: tasks overlapping the window from the first elevation or pyramid tile request to time to
+  detail; added 2026-11-21, the goal check uses it, because the load window also caught the app's boot, React hydration,
+  before any tile is asked for) and while panning (tiles stream in during the pan).
+- **Headless fps**: headless Chrome on this Mac delivers frames on demand, in whole vsyncs (66.7 / 83.3 ms gaps), so a
+  headless pan reads ~20-28 fps for every view, flat zoom 4 with no terrain included: it counts redraws, not render cost.
+  Compare max frame gap headless, and fps only from headed runs (`--headed`).
 - **Network**: requests and bytes on the wire for the load and for the pan, split into *terrain* (era image, elevation
   tiles, habitat lookup) and everything else. The app also warms every year's firelight and the neighbour terrain years in the background, which is in the totals.
 - **Texel**: size of one terrain colour texel in screen px at the screen centre (`texelOf` in `scripts/terrain-bench-lib.mjs`).
@@ -142,6 +147,72 @@ Median and worst of the five scenes (seconds), worst-scene pan fps, longest main
   136 → 126), still far above the goal's 50. Terrain bytes +0.3–0.7 MB cold per view.
 - **Rollout**: behind `?terrain_tiles=1` (off by default), because the task allows a flag-free rollout only with no
   regression. Flip the default in `lib/terrainDetail.ts` `terrainTilesParam` once Will has looked.
+
+## Close-up time to detail (task 0009, 2026-11-21)
+
+Task `docs/tasks/0009-terrain-close-up-time-to-detail/` (plan, decision trail). What changed (`close-up-scene.md`
+"How the ground streams in"): elevation tiles one zoom coarser at the same vertex spacing (a quarter of the requests),
+spread over the S3 bucket's two hostnames (12 in flight instead of 6, the flat relief too), requested as soon as the
+close-up is on instead of after the year's data decodes, meshed at most ~8 ms per frame with a cheaper mesh build,
+far-tile LOD and skirts; the colour pyramid is not drawn under the close-up, draws one zoom coarser below zoom 4.5
+(2 px per texel from a quarter of the tiles), and fetches its reference photo once.
+
+**How measured.** One build each of main before (`9a291c4` rendering) and the branch, served from disk, run **headless**
+(operator request: no windows taking focus; before and after both headless), interleaved per scene (before off, after
+off, after on, before on) so the machine's load hits both alike, load average 3-8, Will's MacBook (M5 Pro, ANGLE Metal).
+Zooms 4, 10, 12, flat and tilted, pyramid off and on. Data: [`close-before-t0.json`](terrain-bench/close-before-t0.json),
+[`close-after-t0.json`](terrain-bench/close-after-t0.json), `-t1` for the pyramid on; per variant:
+[`close-compare.md`](terrain-bench/close-compare.md). The colour pyramid tiles were the scene areas mirrored from prod
+(the pyramid is not in the primary checkout's data); the Nile variants log one 404 on both builds (a file outside the mirror).
+
+Median / worst of the five scenes (s), terrain requests cold (median: elevation and pyramid tiles, era image, habitat), longest main-thread task while streaming (ms, worst, cold and warm):
+
+| view | pyramid | cold before → after | warm before → after | terrain requests cold | longest task streaming |
+|---|---|---|---|---|---|
+| zoom 10 tilted | off | 6.85 / 6.99 → **2.43 / 3.02** | 3.88 / 9.09 → **0.71 / 0.75** | 89 → 34 | 113 → 51 |
+| zoom 10 tilted | on | 6.99 / 7.43 → **2.47 / 3.16** | 4.55 / 5.95 → **0.66 / 0.71** | 101 → 40 | 140 → 57 |
+| zoom 12 tilted | off | 6.45 / 6.57 → 2.07 / 3.27 | 4.51 / 6.48 → 0.58 / 0.67 | 87 → 33 | 216 → 0 |
+| zoom 12 tilted | on | 6.34 / 7.39 → 2.08 / 2.79 | 1.90 / 6.01 → 0.63 / 0.79 | 93 → 37 | 128 → 106 |
+| zoom 10 flat | off | 3.97 / 4.08 → 2.79 / 3.82 | 1.32 / 3.36 → 0.76 / 0.83 | 43 → 43 | 0 → 0 |
+| zoom 4 flat | off | 0.27 / 0.33 → 0.20 / 0.22 | 0.15 / 0.19 → 0.16 / 0.18 | 8 → 8 | 0 → 0 |
+| zoom 4 flat | on | 0.78 / 0.96 → 0.57 / 0.74 | 0.84 / 1.35 → 0.49 / 0.57 | 40 → 19 | 59 → 191 |
+
+(Before this run the warm times were 1.7-2.2 s; the higher "before warm" here is the busy disk cache of a loaded machine on
+the old 90-tile path, not a change in the baseline.) A headed run earlier the same day, at load 7-31 and without the
+hostname sharding, gave the same picture with real fps: tilted zoom 10 cold 6.91 → 3.50 s, warm 2.21 → 1.07 s, worst pan
+fps 46 → 101 (pyramid off) and 38 → 112 (on); a headed A/B of the sharding alone at load 6-10 took tilted zoom 10 cold
+from 3.1-3.2 s to 2.3-2.9 s in four scenes, fps 115-119 both (Alps on: 3.67 → 3.65 s).
+
+Against the goal's speed targets (tilted zoom 10, worst scene):
+
+| check | target | before | after (pyramid off) | after (pyramid on) |
+|---|---|---|---|---|
+| full detail, cold | <= 3 s | 6.99 s | 3.02 s (median 2.43) — FAIL by 0.02 | 3.16 s (median 2.47) — FAIL by 0.16 |
+| full detail, warm | <= 1.5 s | 9.09 s | 0.75 s — pass | 0.71 s — pass |
+| no main-thread task > 50 ms while streaming | none | 113 ms, 6 tasks | 51 ms, 1 task (Alps) | 57 ms, 1 task |
+| fps panning | >= 50 | headed 46 | headed 101 (no sharding), 115+ (sharding, z10) | headed 112 |
+
+- **The cold gap and its cause.** Three of five scenes are under 3 s; the worst (Alps) is ~3.0-3.2 s. What is left is
+  round trips to AWS S3 in us-east-1 from New Zealand (0.4-1.2 s per tile, HTTP/1.1, 12 at a time now) for ~34-40 tiles,
+  after the era image (~0.15 s). The next lever is the goal's "DEM tiles cached on budgie/Cloudflare" (HTTP/2, near):
+  not in this task.
+- **Long tasks left while streaming** (named from Chrome CPU profiles of single loads, headless, not committed): WebGL program
+  linking the first time a layer type draws (`_getLinkStatus`, 180-250 ms, e.g. the pyramid's shader at zoom 4: the
+  191 ms above), and React re-rendering the page when the year's people data arrives (50-150 ms). Mesh building no
+  longer shows in any long task; the app's boot (React hydration, 0.2-0.4 s) is before streaming.
+- **Ground**: same vertices and colours; screenshots before/after are pixel-identical for Doggerland and the UK at 50,000
+  BCE; the Alps differ only in snow patches (the snow line's base height is a tile's mean height, and a tile is now 4 times
+  the area, nearer the 0.5° cell its temperature describes).
+
+**The colour pyramid (`?terrain_tiles=1`) against every target, after this task.** It no longer slows the close-up
+(tilted cold and warm are the same as with it off, its flat tiles are no longer drawn under the 3D ground) and the tilted
+fps regression is gone (headed: worst 112 on, 101 off). It still does not pass everything: zoom 4 reaches full detail
+0.57 s (worst 0.74) after 0.20 s without it (+0.37 s, was +0.5; the era image is on screen at 0.15 s either way), one
+191 ms shader-link task streams in at zoom 4, and the tilted zoom 10 worst cold time is 3.16 s. Its texel passes 2 px up to zoom 8
+(2 px at zoom 4 now, from z4 tiles; it was 1 px from 4× the tiles) and is 8 px at 10, 32 at 12. It stays behind
+`?terrain_tiles=1`; flipping the default is Will's call (`terrainTilesParam` in `lib/terrainDetail.ts`). The task's idea
+of skipping it at zoom <= 4 "because the era image is as sharp" was not taken: the era image is 4 px per texel at zoom 4,
+twice the goal's 2 px.
 
 ## Noise
 

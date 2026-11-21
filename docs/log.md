@@ -4,6 +4,29 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] perf | Close-up 3D reaches detail in ~2.4 s cold instead of ~6.9 s
+
+Task 0009 (`docs/tasks/0009-terrain-close-up-time-to-detail/`). Tilted zoom 10 waited for ~90 Terrarium tiles from AWS S3,
+six at a time, and meshed each burst of tiles in one long task. Now the elevation tiles are one zoom coarser and meshed
+every 2 pixels (the same ~300 m vertex spacing, a quarter of the requests), spread over the bucket's two hostnames (12 in
+flight; the flat relief too), requested as soon as the close-up is on, and meshed at most ~8 ms per frame by a cheaper
+builder (`lib/eraGround.ts`); far tiles of the tilted view merge into parents (`lib/demLod.ts`) and every tile has skirts.
+The flat colour pyramid is no longer drawn under the close-up, draws one zoom coarser below zoom 4.5, and fetches its
+reference photo once. The benchmark now reports long tasks while tiles stream (boot excluded).
+
+Headless before/after on Will's MacBook (operator: no windows), interleaved per scene, load 3-8 (`docs/ops/terrain-bench.md`
+"Close-up time to detail"): tilted zoom 10 cold median/worst 6.85/6.99 → 2.43/3.02 s (pyramid off) and 6.99/7.43 →
+2.47/3.16 s (on); warm → 0.71/0.66 s; terrain requests 89 → 34; longest task while streaming 113 → 51 ms; headed fps
+46 → 101 worst. The worst scene (Alps) still misses the 3 s cold target by 0.02-0.16 s: S3 round trips from NZ; budgie or
+Cloudflare-hosted DEM tiles are the next lever. Remaining long tasks are WebGL shader linking on a layer's first draw and
+React re-rendering, not terrain work. Ground is unchanged (Doggerland and UK 50,000 BCE screenshots pixel-identical; Alps
+snow patches move a little because the snow line's base is a now-larger tile's mean height).
+
+**Colour pyramid (`?terrain_tiles=1`) pass/fail, for Will to decide the default:** it no longer slows the close-up or its
+fps (tilted cold/warm equal to off; headed worst fps 112 on vs 101 off), but zoom 4 is still 0.37 s slower to full detail
+(0.57 vs 0.20 s; era image on screen at 0.15 s either way), a 191 ms shader-link task appears at zoom 4, and tilted cold worst
+is 3.16 s. So it does not pass every target; it stays behind the flag (operator steer: Will decides defaults).
+
 ## [2026-11-21] feature | Group marks at middle zoom: signs and households instead of flat discs; a quieter time bar
 
 Will saw big flat circles between the far-out firelight and the street-level footprints. A unit mark (MorphScatterplotLayer,

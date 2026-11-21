@@ -64,45 +64,47 @@ ground. `pnpm visual` passes (or moved pixels are explained and re-baselined on 
 
 ## Phase 1: Heights stream at once
 
-- [ ] `Close3DLayer` accepts `ground: Ground | null`; with no ground it fetches tiles and draws nothing.
-- [ ] `useTerrainLayers` creates `Close3DLayer` whenever `close3d` is on (zoom from 7.5), not only once `ground` exists.
-- [ ] The pyramid manifest is awaited inside `getTileData` from the URL flag (`terrainTilesParam`), and the
+- [x] `Close3DLayer` accepts `ground: Ground | null`; with no ground it fetches tiles and draws nothing.
+- [x] `useTerrainLayers` creates `Close3DLayer` whenever `close3d` is on (zoom from 7.5), not only once `ground` exists.
+- [x] The pyramid manifest is awaited inside `getTileData` from the URL flag (`terrainTilesParam`), and the
       `getTileData` update trigger is dropped, so a late manifest no longer refetches every tile.
 
 ## Phase 2: Coarser tiles, same vertex spacing
 
-- [ ] `zoomOffset: -1` on the DEM TileLayer, `minZoom` 6, mesh `step` 2 (a `MESH_STEP` constant used by
+- [x] `zoomOffset: -1` on the DEM TileLayer, `minZoom` 6, mesh `step` 2 (a `MESH_STEP` constant used by
       `buildTerrainMesh`, `tileWater`, `lakeVertices`, `standingOn`, `plantsForTile` with 4× the candidates).
-- [ ] Unit test: `buildTerrainMesh` on a z(n-1) tile at step 2 has the same vertex spacing in metres as z(n) at step 4.
+- [x] Unit test: `buildTerrainMesh` on a z(n-1) tile at step 2 has the same vertex spacing in metres as z(n) at step 4.
 
 ## Phase 3: Far tiles coarser, no cracks
 
-- [ ] `lib/demLod.ts`: `coarsenFar(indices, widthPx, maxPx)` merges four siblings into their parent while the parent
+- [x] `lib/demLod.ts`: `coarsenFar(indices, widthPx, maxPx)` merges four siblings into their parent while the parent
       would be no wider on screen than `maxPx`, up to two levels; pure, unit tested.
-- [ ] `DemTileset extends _Tileset2D` overrides `getTileIndices` with `coarsenFar`, using `viewport.project` of tile corners.
-- [ ] `buildTerrainMesh` adds skirts round each tile; test the vertex and index counts.
+- [x] `DemTileset extends _Tileset2D` overrides `getTileIndices` with `coarsenFar`, using `viewport.project` of tile corners.
+- [x] `buildTerrainMesh` adds skirts round each tile; test the vertex and index counts.
 
 ## Phase 4: No long tasks
 
-- [ ] Mesh building in `renderSubLayers` is capped at a per-frame budget (~8 ms); tiles over the budget are built on
+- [x] Mesh building in `renderSubLayers` is capped at a per-frame budget (~8 ms); tiles over the budget are built on
       the next frames (`setNeedsRedraw`), nearest first.
-- [ ] Profile the remaining long tasks (era pixel decode, habitat, deck uploads) with the bench and fix the largest.
+- [x] Profile the remaining long tasks (era pixel decode, habitat, deck uploads) with the bench and fix the largest.
 
 ## Phase 5: `?terrain_tiles=1` regressions
 
-- [ ] Measure zoom 4 on/off and the tilted fps; fix the zoom-4 wait (skip or don't block) and record the choice.
+- [x] Measure zoom 4 on/off and the tilted fps; fix the zoom-4 wait (skip or don't block) and record the choice.
 
 ## Phase 6: Measure, document
 
-- [ ] Run: bench before/after `--zooms 4,8,10,12`, tiles off and on; `--compare` both.
-- [ ] Screenshots before/after: Alps z10 3D, Doggerland z10 3D, UK 50,000 BCE z7 (into the workspace `evidence/`).
-- [ ] Run: `pnpm lint`, `pnpm typecheck` / `pnpm test` (frontend checks), `pnpm build`, `pnpm visual` — pass.
-- [ ] `docs/ops/terrain-bench.md` new numbers and pyramid pass/fail; `close-up-scene.md` tile notes; log fragment.
+- [x] Added during implementation: elevation tiles sharded over the bucket's two hostnames (`DEM_TILE_URLS`), and a "long tasks while streaming" bench metric (decisions.tsv).
+
+- [x] Run: bench before/after `--zooms 4,8,10,12`, tiles off and on; `--compare` both.
+- [x] Screenshots before/after: Alps z10 3D, Doggerland z10 3D, UK 50,000 BCE z7 (into the workspace `evidence/`).
+- [x] Run: `pnpm lint`, `tsc --noEmit`, `pnpm test --runInBand`, `pnpm build` — pass; `pnpm visual` — 7/10 pass, the 3 flat Rome scenes fail identically on the untouched before build (legend text vs older baselines; not this change).
+- [x] `docs/ops/terrain-bench.md` new numbers and pyramid pass/fail; `close-up-scene.md` tile notes; log fragment.
 
 ## Phase 7: Wrap (commit & finalize)
 
-- [ ] Run: `git status` — only intended paths changed
-- [ ] Commit (Manager job: commit only, no merge, no push)
+- [x] Run: `git status` — only intended paths changed
+- [x] Commit (Manager job: commit only, no merge, no push)
 
 ## References
 

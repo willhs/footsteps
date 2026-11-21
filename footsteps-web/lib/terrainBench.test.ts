@@ -9,6 +9,8 @@ import {
   frameStats,
   goalChecks,
   longTaskStats,
+  longTasksOverlapping,
+  streamingStart,
   metersPerPixel,
   modesFor,
   netTotals,
@@ -79,6 +81,9 @@ describe('texel size', () => {
     expect(texelOf(pyramid, 12, 0).eastWestPx).toBeCloseTo(32, 1);
     // At 60°N a z8 tile pixel (306 m) is finer than the photo's 464 m rows: the photo sets the height.
     expect(texelOf(pyramid, 8, 60).northSouthM).toBe(464);
+    // Below zoom 4.5 the app takes one zoom coarser: zoom 4 draws z4 tiles, 2 px per texel.
+    expect(texelOf(pyramid, 4, 0).source).toBe('tile-pyramid z4/8');
+    expect(texelOf(pyramid, 4, 0).eastWestPx).toBeCloseTo(2, 1);
   });
 
   it('rejects a colour source it does not know', () => {
@@ -89,6 +94,7 @@ describe('texel size', () => {
     expect(demSamplePx(10, 11)).toBe(1);
     expect(demSamplePx(12, 11)).toBe(4);
     expect(demTileZoom('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1/2.png')).toBe(11);
+    expect(demTileZoom('https://elevation-tiles-prod.s3.amazonaws.com/terrarium/10/1/2.png')).toBe(10);
     expect(demTileZoom('https://x/y.png')).toBeNull();
   });
 });
@@ -172,6 +178,22 @@ describe('frame and long-task stats', () => {
     ];
     expect(longTaskStats(tasks, 0, 1000)).toEqual({ count: 2, maxMs: 300 });
     expect(longTaskStats(tasks, 2000, 3000)).toEqual({ count: 0, maxMs: 0 });
+  });
+  it('counts the long tasks running while tiles stream, not the app boot before them', () => {
+    const res = [
+      { name: 'http://x/terrain/earth_1000.webp', startTime: 50 },
+      { name: 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/10/1/2.png', startTime: 400 },
+      { name: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/10/1/3.png', startTime: 300 },
+    ];
+    expect(streamingStart(res)).toBe(300);
+    expect(streamingStart(res.slice(0, 1))).toBeNull();
+    const tasks = [
+      { startTime: 0, duration: 250 }, // boot, ends before streaming
+      { startTime: 280, duration: 60 }, // starts just before, runs into it
+      { startTime: 2000, duration: 120 }, // after time to detail
+    ];
+    expect(longTasksOverlapping(tasks, 300, 1500)).toEqual({ count: 1, maxMs: 60 });
+    expect(longTasksOverlapping(tasks, null, 1500)).toEqual({ count: 0, maxMs: 0 });
   });
 });
 

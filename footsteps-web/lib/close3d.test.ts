@@ -3,6 +3,7 @@ import {
   COVER_WATER,
   COVER_WET,
   EXAGGERATION,
+  MESH_STEP,
   buildTerrainMesh,
   close3dNote,
   close3dParam,
@@ -55,7 +56,31 @@ test('water is flat at the sea level and land keeps its height', () => {
   expect(mesh.positions[(n - 1) * 3 + 2]).toBeCloseTo(20 * EXAGGERATION); // last of the row: east, land
   // Water is blue, land keeps the year's colour.
   expect(mesh.colors[2]).toBeGreaterThan(mesh.colors[0]);
-  expect(mesh.indices.length).toBe((n - 1) * (n - 1) * 6);
+  // The grid's two triangles per cell, then two per edge segment of the skirt round the tile.
+  expect(mesh.indices.length).toBe(((n - 1) * (n - 1) + 4 * (n - 1)) * 6);
+});
+
+test('a skirt hangs under every tile edge, below the edge vertex it copies', () => {
+  const heights = heightsOf((x, y) => x + y);
+  const n = 256 / MESH_STEP + 1;
+  const mesh = buildTerrainMesh(heights, bbox, -1000, flat(), MESH_STEP);
+  expect(mesh.positions.length / 3).toBe(n * n + 4 * (n - 1) + 1);
+  // The first skirt vertex copies the north-west corner (vertex 0), lowered; the one after the north row copies the north-east corner.
+  const skirt = (e: number) => (n * n + e) * 3;
+  expect(mesh.positions[skirt(0)]).toBe(mesh.positions[0]);
+  expect(mesh.positions[skirt(0) + 2]).toBeLessThan(mesh.positions[2]);
+  expect(mesh.positions[skirt(n - 1)]).toBe(mesh.positions[(n - 1) * 3]);
+  expect(mesh.colors.length).toBe(mesh.positions.length);
+  expect(Math.max(...mesh.indices)).toBe(mesh.positions.length / 3 - 1);
+});
+
+test('a tile one zoom coarser at MESH_STEP keeps the vertex spacing of the finer tile at step 4', () => {
+  // A z10 tile's bbox is twice a z11 tile's each way: 128 cells over twice the width = 64 cells over the width.
+  const fine = { west: 8, south: 46, east: 8.17578125, north: 46.12 };
+  const coarse = { west: 8, south: 46, east: 8 + 2 * 0.17578125, north: 46.24 };
+  const flatHeights = heightsOf(() => 100);
+  const spacing = (mesh: ReturnType<typeof buildTerrainMesh>) => mesh.positions[3] - mesh.positions[0];
+  expect(spacing(buildTerrainMesh(flatHeights, coarse, 0, flat(), MESH_STEP))).toBeCloseTo(spacing(buildTerrainMesh(flatHeights, fine, 0, flat(), 4)), 9);
 });
 
 test('the snow line rises with temperature and the ground under it', () => {
@@ -145,7 +170,7 @@ test('a mesh built with cover carries one [dryCold, layer] pair per vertex; with
   const n = 256 / 4 + 1;
   expect(buildTerrainMesh(heights, bbox, -50, flat(4)).texCoords).toBeUndefined();
   const mesh = buildTerrainMesh(heights, bbox, -50, flat(4), 4, true);
-  expect(mesh.texCoords!.length).toBe(n * n * 2);
+  expect(mesh.texCoords!.length).toBe((n * n + 4 * (n - 1) + 1) * 2); // grid, then skirt
   expect(mesh.texCoords![1]).toBe(COVER_WATER); // first vertex: in the sea
   const last = (n - 1) * 2; // last of the first row: land, deciduous forest
   expect(mesh.texCoords![last]).toBe(1);

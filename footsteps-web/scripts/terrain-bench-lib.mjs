@@ -82,7 +82,7 @@ export const PYRAMID_SOURCE_DEG = 1 / 240;
  * Size of one texel of the terrain colour source, in screen pixels at the screen centre, nadir (tilt makes the foreground coarser).
  * `source` describes the colour: one equirectangular era image `{ kind: 'era-image', width, height }`, or the colour
  * pyramid `{ kind: 'tile-pyramid', maxZoom }` (256 px Web Mercator tiles). deck.gl's TileLayer picks tile zoom
- * round(zoom + 1) for 256 px tiles in its 512 px world, capped at the pyramid's top; a texel is the larger of that tile's
+ * round(zoom + 1) for 256 px tiles in its 512 px world (one less below zoom 4.5, as the app asks), capped at the pyramid's top; a texel is the larger of that tile's
  * pixel and the source photo's own pixel (1/240 degree), so the number never claims more than the photo has.
  */
 export function texelOf(source, zoom, lat) {
@@ -97,7 +97,8 @@ export function texelOf(source, zoom, lat) {
     northSouthM = 20_037_508 / source.height; // half the Web Mercator world over the rows: a row is the same ground height at any latitude
     label = `${source.kind} ${source.width}x${source.height}`;
   } else {
-    const tileZoom = Math.min(source.maxZoom, Math.max(0, Math.round(zoom + 1)));
+    // Below zoom 4.5 the app draws one zoom coarser (detailZoomOffset in lib/terrainDetail.ts): 2 px per texel from a quarter of the tiles.
+    const tileZoom = Math.min(source.maxZoom, Math.max(0, Math.round(zoom + 1) + (zoom < 4.5 ? -1 : 0)));
     const tileM = (40_075_016 * cos) / (256 * 2 ** tileZoom);
     const photoM = (PYRAMID_SOURCE_DEG * 40_075_016) / 360;
     eastWestM = Math.max(tileM, photoM * cos);
@@ -122,7 +123,8 @@ export function demSamplePx(zoom, tileZoom) {
 
 /** Terrarium tile zoom from an elevation tile URL, or null. */
 export function demTileZoom(url) {
-  const m = /elevation-tiles-prod\/terrarium\/(\d+)\//.exec(url);
+  // Either of the bucket's two hostnames (lib/close3d.ts DEM_TILE_URLS).
+  const m = /elevation-tiles-prod(?:\.s3\.amazonaws\.com)?\/terrarium\/(\d+)\//.exec(url);
   return m ? Number(m[1]) : null;
 }
 
@@ -184,6 +186,20 @@ export function longTaskStats(tasks, from, to) {
   return { count: inside.length, maxMs: Math.round(Math.max(0, ...inside.map((t) => t.duration))) };
 }
 
+/** When the tiles start streaming: the first elevation or colour-pyramid tile request, ms from navigation (null: none). */
+export function streamingStart(resources) {
+  const starts = resources.filter((e) => ['dem', 'detail-tile'].includes(resourceKind(e.name))).map((e) => e.startTime);
+  return starts.length ? Math.min(...starts) : null;
+}
+
+/** Long tasks that overlap [from, to): the ones running while tiles stream, even if they started a little before. App boot
+ * (React hydration, before any tile is asked for) is left out, so this is the goal's "no task > 50 ms while tiles stream". */
+export function longTasksOverlapping(tasks, from, to) {
+  if (from === null || to === null || to <= from) return { count: 0, maxMs: 0 };
+  const inside = tasks.filter((t) => t.startTime < to && t.startTime + t.duration > from);
+  return { count: inside.length, maxMs: Math.round(Math.max(0, ...inside.map((t) => t.duration))) };
+}
+
 const mb = (bytes) => +(bytes / 1e6).toFixed(2);
 const sec = (ms) => (ms === null || ms === undefined ? '-' : (ms / 1000).toFixed(2));
 
@@ -214,7 +230,8 @@ export function goalChecks(results) {
     speed
       .flatMap((r) => [r.cold, r.warm])
       .filter(Boolean)
-      .flatMap((run) => [run.longTasks.load.maxMs, run.longTasks.pan.maxMs]),
+      // While streaming: from the first tile request to time to detail (older results without it: the whole load), and the pan.
+      .flatMap((run) => [(run.longTasks.streaming ?? run.longTasks.load).maxMs, run.longTasks.pan.maxMs]),
   );
   const texel = worst(results.filter((r) => r.zoom <= GOAL.texelMaxZoom).map((r) => Math.max(r.texel.eastWestPx, r.texel.northSouthPx)));
   check(`zoom ${GOAL.speedZoom} tilted: full detail, cold (worst scene)`, cold, (v) => v <= GOAL.coldMs, 'ms', `<= ${GOAL.coldMs}`);
@@ -264,6 +281,13 @@ export const COMPARE_METRICS = [
     key: 'longMs',
     label: 'longest task ms',
     get: (r) => (r.cold ? Math.max(r.cold.longTasks.load.maxMs, r.cold.longTasks.pan.maxMs) : null),
+    lowerBetter: true,
+    digits: 0,
+  },
+  {
+    key: 'streamMs',
+    label: 'longest task while streaming ms',
+    get: (r) => (r.cold?.longTasks?.streaming ? Math.max(r.cold.longTasks.streaming.maxMs, r.warm?.longTasks?.streaming?.maxMs ?? 0) : null),
     lowerBetter: true,
     digits: 0,
   },

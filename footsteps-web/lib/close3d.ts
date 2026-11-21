@@ -12,6 +12,13 @@ export const CLOSE3D_PITCH = 55;
 const CLOSE3D_FULL_ZOOM = 10;
 /** Relief is drawn this many times taller than it is, so hills read from above. */
 export const EXAGGERATION = 1.6;
+/** Terrarium pixels between the ground mesh's vertices. Close3DLayer fetches tiles one zoom coarser than the screen
+ * would pick (zoomOffset -1) and meshes them at this step, which is the same ~300 m (at 46°N, zoom 10) vertex spacing as
+ * the finer tiles at step 4 with a quarter of the requests. */
+export const MESH_STEP = 2;
+/** Skirt depth (m, before exaggeration) as a share of the tile's width: a curtain hung under every tile edge, so a
+ * neighbour at another zoom (far tiles are coarser, Close3DLayer's DemTileset) leaves no crack to see through. */
+const SKIRT_SHARE = 0.01;
 
 /** Plant marks (cones and blobs per biome) are off: they read as toys, not trees. `?plants=1` draws them again. */
 export function plantsParam(search: string): boolean {
@@ -111,6 +118,16 @@ export function hash2(a: number, b: number): number {
   return (h >>> 0) / 4294967296;
 }
 
+/** AWS Terrarium elevation tiles. The bucket answers on two hostnames with the same bytes; both serve HTTP/1.1 only, so the
+ * browser opens six connections to each. deck.gl's TileLayer spreads tiles over the templates by tile id (stable per tile,
+ * so the HTTP cache still hits), which doubles how many tiles are in flight from a far-away (NZ to us-east-1) bucket. */
+export const DEM_TILE_URLS = [
+  'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+  'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png',
+];
+/** Requests in flight per elevation TileLayer: six per hostname. */
+export const DEM_MAX_REQUESTS = 6 * DEM_TILE_URLS.length;
+
 /** Terrarium PNG pixels to metres. */
 export function terrariumHeights(rgba: Uint8ClampedArray): Float32Array {
   const out = new Float32Array(rgba.length / 4);
@@ -176,12 +193,21 @@ export function groundColour(
   shore = true,
 ): Rgb {
   if (water) return mix(SHALLOW, DEEP, clamp01((sea - h) / 80));
-  let c = ground.colourAt(lon, lat);
+  // Runs once per vertex: one copy of the year's colour, then mixed in place (mixIn is mix's arithmetic).
+  const src = ground.colourAt(lon, lat);
+  const c: Rgb = [src[0], src[1], src[2]];
   const biome = ground.biomeAt(lon, lat);
-  if (biome === 28) return mix(c, SNOW, 0.8);
-  if (shore) c = mix(c, SAND, clamp01(1 - (h - sea) / 6) * 0.85);
-  c = mix(c, ROCK, clamp01((slope - 0.35) / 0.5) * 0.6);
-  c = mix(c, SNOW, snowMix(h, lon, lat, ground, base));
+  if (biome === 28) return mixIn(c, SNOW, 0.8);
+  if (shore) mixIn(c, SAND, clamp01(1 - (h - sea) / 6) * 0.85);
+  mixIn(c, ROCK, clamp01((slope - 0.35) / 0.5) * 0.6);
+  return mixIn(c, SNOW, snowMix(h, lon, lat, ground, base));
+}
+
+/** `mix(c, b, t)` written into `c`. */
+function mixIn(c: Rgb, b: Rgb, t: number): Rgb {
+  c[0] += (b[0] - c[0]) * t;
+  c[1] += (b[1] - c[1]) * t;
+  c[2] += (b[2] - c[2]) * t;
   return c;
 }
 
@@ -302,7 +328,8 @@ function nearWater(water: Uint8Array, n: number, reach = 2): Uint8Array {
 }
 
 export type TerrainMesh = {
-  /** Offsets from the tile's south-west corner: [dlon, dlat, metres up] per vertex. */
+  /** Offsets from the tile's south-west corner: [dlon, dlat, metres up] per vertex. The n × n grid comes first (row by row from
+   * the north-west), then the skirt: the edge vertices again, lowered, once round the tile from the north-west corner. */
   positions: Float32Array;
   normals: Float32Array;
   colors: Float32Array; // 0..1
@@ -337,10 +364,10 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   const water = lakeWater ? ocean.map((w, v) => (w || lakeWater[v] ? 1 : 0)) : ocean;
   const shore = nearWater(water, n);
   const nearLake = lakeWater ? nearWater(lakeWater, n) : null;
-  const surfaceAt = (i: number, j: number) => {
-    const v = Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i));
-    return lakeWater?.[v] ? lake!.level : water[v] ? sea : hv[v];
-  };
+  // The drawn surface per vertex (water flat at its level), read 4 times more per vertex for the slope.
+  const drawn = new Float32Array(n * n);
+  for (let v = 0; v < n * n; v++) drawn[v] = lakeWater?.[v] ? lake!.level : water[v] ? sea : hv[v];
+  const surfaceAt = (i: number, j: number) => drawn[(j < 0 ? 0 : j >= n ? n - 1 : j) * n + (i < 0 ? 0 : i >= n ? n - 1 : i)];
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const v = j * n + i;
@@ -364,7 +391,7 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       normals[v * 3 + 1] = ny / len;
       normals[v * 3 + 2] = 1 / len;
       const slope = Math.hypot(hx, hy);
-      let c = groundColour(h, slope, level, lon, lat, ground, base, wet, shore[v] === 1);
+      const c = groundColour(h, slope, level, lon, lat, ground, base, wet, shore[v] === 1);
       if (texCoords) {
         const biome = ground.biomeAt(lon, lat);
         const lowFlat = !wet && h - level < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
@@ -376,19 +403,34 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       }
       // Baked hillshade (sun from the north-west, 45° up); water stays flat-lit.
       const lit = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
-      const shade = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
-      c = [c[0] * shade, c[1] * shade, c[2] * shade];
+      let k = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
       // Small stable mottling so flat ground does not read as one blurred colour.
-      if (!wet && !cover) {
-        const m = 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
-        c = [c[0] * m, c[1] * m, c[2] * m];
-      }
-      colors[v * 3] = c[0] / 255;
-      colors[v * 3 + 1] = c[1] / 255;
-      colors[v * 3 + 2] = c[2] / 255;
+      if (!wet && !cover) k *= 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
+      colors[v * 3] = (c[0] * k) / 255;
+      colors[v * 3 + 1] = (c[1] * k) / 255;
+      colors[v * 3 + 2] = (c[2] * k) / 255;
     }
   }
-  const indices = new Uint32Array((n - 1) * (n - 1) * 6);
+  // Skirts: each edge vertex again, dropped by the skirt depth, after the grid's n * n vertices (same colour and normal).
+  const edge: number[] = [];
+  for (let i = 0; i < n; i++) edge.push(i); // north, west to east
+  for (let j = 1; j < n; j++) edge.push(j * n + n - 1); // east, north to south
+  for (let i = n - 2; i >= 0; i--) edge.push((n - 1) * n + i); // south, east to west
+  for (let j = n - 2; j >= 0; j--) edge.push(j * n); // west, south to north (ends back at vertex 0)
+  const skirts = edge.length - 1;
+  const drop = Math.max(20, SKIRT_SHARE * dxM * (n - 1)) * EXAGGERATION;
+  const total = n * n + edge.length;
+  const grow = <T extends Float32Array>(a: T, size: number): T => {
+    const out = new Float32Array(total * size) as T;
+    out.set(a);
+    edge.forEach((v, e) => {
+      for (let c = 0; c < size; c++) out[(n * n + e) * size + c] = a[v * size + c];
+    });
+    return out;
+  };
+  const allPositions = grow(positions, 3);
+  for (let e = 0; e < edge.length; e++) allPositions[(n * n + e) * 3 + 2] -= drop;
+  const indices = new Uint32Array(((n - 1) * (n - 1) + skirts) * 6);
   let k = 0;
   for (let j = 0; j < n - 1; j++) {
     for (let i = 0; i < n - 1; i++) {
@@ -400,7 +442,12 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       k += 6;
     }
   }
-  return { positions, normals, colors, indices, texCoords };
+  for (let e = 0; e < skirts; e++) {
+    const [a, b, a2, b2] = [edge[e], edge[e + 1], n * n + e, n * n + e + 1];
+    indices.set([a, a2, b, b, a2, b2], k);
+    k += 6;
+  }
+  return { positions: allPositions, normals: grow(normals, 3), colors: grow(colors, 3), indices, texCoords: texCoords && grow(texCoords, 2) };
 }
 
 export type Plant = { position: [number, number, number]; kind: TreeKind; rgb: Rgb; scale: number };

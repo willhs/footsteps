@@ -70,11 +70,11 @@ if (!base) {
 const browser = await chromium.launch({ headless: !flags.has('headed'), args: GPU_ARGS });
 
 /**
- * The 3D landscape and the flat relief read elevation tiles from AWS (Terrarium: `s3.amazonaws.com/elevation-tiles-prod`), the one thing
+ * The 3D landscape and the flat relief read elevation tiles from AWS (Terrarium: `s3.amazonaws.com/elevation-tiles-prod` and its twin `elevation-tiles-prod.s3.amazonaws.com`), the one thing
  * the app loads from outside. They are kept on disk (`visual-cache/`, not in git) the first time and served from there after, so a run
  * is the same offline, fast, and cannot change because a tile did. The first run needs the network.
  */
-const EXTERNAL_DEM = /^https:\/\/s3\.amazonaws\.com\/elevation-tiles-prod\//;
+const EXTERNAL_DEM = /^https:\/\/(s3\.amazonaws\.com\/elevation-tiles-prod|elevation-tiles-prod\.s3\.amazonaws\.com)\//;
 const DEM_CACHE = path.join(WEB, 'visual-cache');
 async function cacheElevationTiles(context, net) {
   fs.mkdirSync(DEM_CACHE, { recursive: true });

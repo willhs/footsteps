@@ -18,6 +18,11 @@ export const DETAIL_VERSION = 2;
 export const detailTileUrl = (z: number, x: number, y: number) => `/terrain/detail/${z}/${x}/${y}.webp?v=${DETAIL_VERSION}`;
 export const DETAIL_REF_URL = `/terrain/detail/ref.webp?v=${DETAIL_VERSION}`;
 export const DETAIL_MANIFEST_URL = `/terrain/detail/manifest.png?v=${DETAIL_VERSION}`;
+/** Below this view zoom the flat map draws the pyramid one zoom coarser (`zoomOffset` -1): 2 screen px per texel, the goal's
+ * limit, from a quarter of the tiles. At zoom 4 that is ~8 tiles instead of ~32, so the globe-to-continent zooms are not kept
+ * waiting for tiles; from 4.5 up the tiles are 1:1 again. */
+export const DETAIL_COARSE_BELOW = 4.5;
+export const detailZoomOffset = (zoom: number) => (zoom < DETAIL_COARSE_BELOW ? -1 : 0);
 
 /** Detail tiles are off until reviewed: `?terrain_tiles=1` turns them on. The benchmark (docs/ops/terrain-bench.md,
  * 2026-11-21) showed zoom-4 time to detail +0.4-0.7 s and tilted pan fps down by up to ~15 in two scenes, and the
@@ -150,7 +155,12 @@ export type DetailPixels = { z: number; x: number; y: number; rgba: Uint8Clamped
 async function imagePixels(url: string, signal?: AbortSignal): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
   const r = await fetch(url, { signal });
   if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-  const bitmap = await createImageBitmap(await r.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  return blobPixels(await r.blob());
+}
+
+/** An image's RGBA bytes as stored (no colour-space conversion, alpha not premultiplied). */
+export async function blobPixels(blob: Blob): Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> {
+  const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(bitmap, 0, 0);
@@ -172,16 +182,6 @@ export function loadDetailManifest(): Promise<DetailManifest> {
       throw err;
     });
   return manifestPromise;
-}
-
-let refPromise: Promise<{ rgba: Uint8ClampedArray; width: number; height: number }> | null = null;
-/** The reference photo's pixels (2048 x 1024), for the close-up 3D ground. */
-export function loadDetailRefPixels() {
-  refPromise ??= imagePixels(DETAIL_REF_URL).catch((err) => {
-    refPromise = null;
-    throw err;
-  });
-  return refPromise;
 }
 
 const pixelCache = new Map<string, Promise<DetailPixels | null>>();

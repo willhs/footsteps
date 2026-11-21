@@ -19,6 +19,25 @@ From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/co
 | Plant marks (`?plants=1`) | cones and blobs by biome, hand-placed | imagined (off: they read as toys) |
 | Surface detail (`?ground=1`) | procedural pattern in the fragment shader, below | imagined |
 
+## How the ground streams in (2026-11-21, task 0009)
+
+- **Tiles one zoom coarser, same vertices.** The elevation `TileLayer` uses `zoomOffset: -1` and each tile is meshed every
+  `MESH_STEP` = 2 pixels (`lib/close3d.ts`), so a vertex is ~300 m apart at 46°N and zoom 10, as before (z11 tiles every 4 pixels),
+  from a quarter of the requests. AWS S3 serves the tiles over HTTP/1.1, six at a time, so the request count is what the
+  cold time follows (tilted zoom 10: ~110 tiles before, ~35-40 now).
+- **Far tiles coarser** (`lib/demLod.ts`, `DemTileset` in `Close3DLayer.ts`): four siblings become their parent while the parent
+  is no wider on screen than a tile at the screen centre, so the far ground never has fewer vertices per screen pixel than the
+  middle. At the close-up's 55° few tiles qualify; it matters when the view reaches further.
+- **Skirts**: every tile mesh has its edge hung down by 1% of its width, so neighbours of different zooms (and the one-pixel step
+  between same-zoom neighbours) leave no crack to see the flat map through.
+- **Requests start at once.** `Close3DLayer` is mounted as soon as the close-up is on; it fetches heights while the era images and
+  the habitat lookup decode and draws the ground once both are in. The colour pyramid's tile for each ground tile is fetched in the
+  same `getTileData` when `?terrain_tiles=1` is in the URL.
+- **A frame's worth of meshing per frame.** Tiles that arrive together are meshed at most ~8 ms per frame; the rest wait a frame
+  (the flat map shows under them meanwhile). A mesh is built once per tile and year and reused while the camera moves.
+- The year's ground (`makeGround`, era colour, biome, temperature) is in `lib/eraGround.ts`.
+- The flat colour pyramid is not drawn while the close-up is on (its tiles would be hidden under the 3D ground).
+
 ## `?ground=1`: the biome painted on the ground
 
 Off by default until Will has looked at it on prod. The "3D:" note under the year then reads "3D: ground measured, surface imagined"

@@ -33,6 +33,8 @@ import {
   demTileZoom,
   frameStats,
   longTaskStats,
+  longTasksOverlapping,
+  streamingStart,
   renderCompare,
   renderMarkdown,
   resourceKind,
@@ -216,6 +218,8 @@ async function measureLoad(context, url, { screenshot, wantDem }) {
     longTasks: {
       load: longTaskStats(end.long, 0, timing?.doneMs ?? snap.now),
       pan: longTaskStats(end.long, panStart, end.now),
+      // From the first tile request to time to detail (the goal's "while tiles stream"; boot is before it).
+      streaming: longTasksOverlapping(end.long, streamingStart(snap.res), timing?.doneMs ?? snap.now),
     },
     net: { load: loadNet, pan: panNet },
     demTileZooms: Object.fromEntries([...demZooms].sort((a, b) => a[0] - b[0])),

@@ -9,6 +9,7 @@ import {
   detailTileUrl,
   hasDetailTile,
   type DetailManifest,
+  detailZoomOffset,
 } from '@/lib/terrainDetail';
 import { TERRAIN_DESATURATE, TERRAIN_TINT } from './TerrainReliefLayer';
 
@@ -124,12 +125,13 @@ async function loadTile(url: string, signal?: AbortSignal): Promise<ImageBitmap>
  */
 export default class TerrainDetailLayer extends CompositeLayer<TerrainDetailProps> {
   static layerName = 'TerrainDetailLayer';
-  state!: { textures: [Texture, Texture, Texture] };
+  state!: { textures: [Texture, Texture, Texture]; zoomOffset?: number };
 
   initializeState() {}
 
-  shouldUpdateState({ changeFlags }: UpdateParameters<this>) {
-    return Boolean(changeFlags.somethingChanged);
+  /** Props, or a zoom that crosses DETAIL_COARSE_BELOW (the tiles' zoom offset changes there). */
+  shouldUpdateState({ changeFlags, context }: UpdateParameters<this>) {
+    return Boolean(changeFlags.somethingChanged || (changeFlags.viewportChanged && detailZoomOffset(context.viewport.zoom) !== this.state.zoomOffset));
   }
 
   updateState({ props, oldProps }: UpdateParameters<this>) {
@@ -150,9 +152,12 @@ export default class TerrainDetailLayer extends CompositeLayer<TerrainDetailProp
     const { textures } = this.state;
     if (!textures || this.context.viewport.zoom < DETAIL_MIN_ZOOM - 0.5) return null;
     const { manifest } = this.props;
+    const zoomOffset = detailZoomOffset(this.context.viewport.zoom);
+    this.state.zoomOffset = zoomOffset;
     return new TileLayer<ImageBitmap | null>(this.getSubLayerProps({ id: 'tiles' }), {
       data: '/terrain/detail/{z}/{x}/{y}.webp',
       tileSize: 256,
+      zoomOffset,
       minZoom: DETAIL_MIN_ZOOM,
       maxZoom: DETAIL_MAX_ZOOM,
       maxCacheSize: 120,

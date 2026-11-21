@@ -1,6 +1,8 @@
 import { COORDINATE_SYSTEM, CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, type BitmapLayerProps } from '@deck.gl/layers';
+import { TERRAIN_DESATURATE, TERRAIN_TINT } from '@/lib/eraGround';
+import { DEM_MAX_REQUESTS, DEM_TILE_URLS } from '@/lib/close3d';
 
 /** The decoded pair actually on screen, including while a new year is loading. */
 export type TerrainSurface = {
@@ -11,9 +13,8 @@ export type TerrainSurface = {
   seaLevel: number;
 };
 
-// The base Earth layers' look (useTerrainLayers.ts), repeated for coast pixels painted here.
-export const TERRAIN_TINT: [number, number, number] = [230, 230, 235];
-export const TERRAIN_DESATURATE = 0.1;
+// The base Earth layers' look (useTerrainLayers.ts, lib/eraGround.ts), repeated for coast pixels painted here.
+export { TERRAIN_DESATURATE, TERRAIN_TINT };
 type Texture = ReturnType<BitmapLayer['context']['device']['createTexture']>;
 type ReliefProps = BitmapLayerProps & {
   surface: [Texture, Texture];
@@ -225,12 +226,12 @@ export default class TerrainReliefLayer extends CompositeLayer<TerrainSurface> {
     const { surface } = this.state;
     if (!surface || this.context.viewport.zoom < 5) return null;
     return new TileLayer<ImageBitmap>(this.getSubLayerProps({ id: 'dem' }), {
-      data: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+      data: DEM_TILE_URLS,
       tileSize: 256,
       minZoom: 5,
       maxZoom: 15,
       maxCacheSize: 100,
-      maxRequests: 6,
+      maxRequests: DEM_MAX_REQUESTS,
       debounceTime: 150,
       refinementStrategy: 'no-overlap',
       loadOptions: { imagebitmap: { colorSpaceConversion: 'none' } },

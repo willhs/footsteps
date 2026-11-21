@@ -378,7 +378,7 @@ export default function TimeNavigator({ time, onChange, loading = null }: Props)
       className="ov-panel absolute z-10 px-4 pb-2.5 pt-3 sm:px-5"
       style={{ left: 'var(--ov-left)', right: 'var(--ov-right)', bottom: 'var(--ov-bottom)' }}
     >
-      <TimeReadout time={time} loading={loading} note={note} />
+      <TimeReadout time={time} loading={loading} note={note} onChange={onChange} />
       <div
         tabIndex={0}
         role="slider"

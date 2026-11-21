@@ -11,6 +11,7 @@ import {
   populationRangeAt,
   populationRangeLabel,
 } from '@/lib/time';
+import PopulationChart from './PopulationChart';
 
 interface Props {
   time: number;
@@ -19,12 +20,14 @@ interface Props {
   note: Moment | null;
   /** Replaces the plain calendar label (the time bar makes it editable). */
   calendar?: ReactNode;
+  /** Sets the year from the population chart (`?chart=1`); without it the chart is not drawn. */
+  onChange?: (time: number) => void;
 }
 
 /** The line above the time bar: years ago, calendar year and people; sea level only when it differs from today; a quiet
  * note when the people are modelled or between data years, and a small dot while data loads (the bar's needle also
  * turns dashed). Everything else is on hover. */
-export default function TimeReadout({ time, loading, note, calendar }: Props) {
+export default function TimeReadout({ time, loading, note, calendar, onChange }: Props) {
   const modelled = evidenceAt(Math.round(time)) === 'modelled'; // as the calendar label rounds
   const status = dataStatus(time);
   const sea = Math.round(seaLevelAt(time));
@@ -71,6 +74,7 @@ export default function TimeReadout({ time, loading, note, calendar }: Props) {
           </span>
         )}
       </div>
+      {onChange && <PopulationChart time={time} onChange={onChange} />}
       {note ? (
         <p className="mb-1.5 text-[12px] leading-snug text-[var(--ov-text-2)]" data-testid="moment-note">
           <span className="font-semibold text-[var(--ov-amber)]">

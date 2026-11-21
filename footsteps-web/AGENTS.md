@@ -50,6 +50,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   a manifest says which tiles exist) recoloured by the two era images on the GPU (`recolour` in `lib/terrainDetail.ts`, GLSL twin
   `RECOLOUR_GLSL`: change one, change the other); `Close3DLayer` loads the covering tile per ground tile for its vertex colours.
   Off until reviewed: `?terrain_tiles=1` turns it on. `node scripts/terrain-detail-shots.mjs out <dir>` takes before/after shots.
+- `?chart=1` adds a small world-population chart under the counter (`components/ui/PopulationChart.tsx`, series and scales in `lib/populationSeries.ts`): log people over the time bar's own time scale, the MODELLED low-high band before 10,000 BCE, HYDE's measured line after (one join point at `HYDE_MIN`, built from `PEOPLE_TOTALS`, the counter's table), the slider year marked; click or drag sets the year. Renders nothing without the flag. `node scripts/verify-chart.mjs <dir>` shoots and drives it.
 - `node scripts/terrain-bench.mjs` is the terrain scoreboard (`--query terrain_tiles=0` compares a flag on one build; time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
 >- `node scripts/measure-view.mjs <base-url> <out-dir>` screenshots 10,000 BCE/1000/1900
   and measures pan/scrub fps on the real GPU. Like the other

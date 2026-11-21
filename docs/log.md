@@ -4,6 +4,22 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-21] feature | World population chart under the counter, behind `?chart=1`
+
+A small SVG chart (300 × 70, the app's panel style, no chart library) under the counter in the time panel: world people on a log
+scale (100k to 1B) over the time bar's own compressed time axis, 100,000 BCE to 1900. Before 10,000 BCE it shades the MODELLED
+low-high band (dashed central line) and labels it "modelled"; from 10,000 BCE it draws HYDE's measured totals solid, labelled
+"HYDE"; the slider year is a vertical line with a dot on the curve. Click or drag on it sets the year (the same scale as the bar,
+so a year is the same fraction of both widths). Off without the flag: `PopulationChart` renders nothing, the DOM and `pnpm visual`
+are unchanged.
+
+One source of truth: `lib/populationSeries.ts` builds the series from `PEOPLE_TOTALS` (the counter's own table: the model's
+low / central / high from `prehistory_totals.json`, HYDE's `HYDE_TOTALS`) and `posAt` / `timeAt` from `timeScale.ts`. The band
+closes onto HYDE's figure at HYDE_MIN with one join point that is also the line's first point: no gap, no year drawn twice
+(`lib/populationSeries.test.ts`). `node scripts/verify-chart.mjs <dir>` drives it in the real app (shots at 50,000 BCE, 5000 BCE,
+1900, desktop and phone width; no chart without the flag; a click and a drag set the year). The app has one dark look, so no
+light shots. Flagged until Will has looked; the time bar's comment already says population over time is the counter's chart.
+
 ## [2026-11-21] perf | Close-up 3D reaches detail in ~2.4 s cold instead of ~6.9 s
 
 Task 0009 (`docs/tasks/0009-terrain-close-up-time-to-detail/`). Tilted zoom 10 waited for ~90 Terrarium tiles from AWS S3,

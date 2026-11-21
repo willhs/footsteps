@@ -47,12 +47,15 @@ try {
     await page.getByTestId('year-input').press('Enter');
     await page.waitForFunction(() => !document.querySelector('[role="status"]')?.textContent?.includes('loading'), { timeout: 90000 });
     await page.waitForTimeout(6000);
+    const expectedLabel = !scene.off && scene.mode === 'units';
+    // The note starts as one line (SettlementNote.tsx); open it to read the placement line.
+    const toggle = page.getByTestId('settlement-note-toggle');
+    if (expectedLabel && await toggle.count()) await toggle.click();
     const text = await page.locator('body').innerText();
     const canvas = await page.locator('canvas').count();
     if (!canvas) throw new Error(`${scene.name}: no canvas`);
-    const expectedLabel = !scene.off && scene.mode === 'units';
     if (text.includes('Settlements · modelled') !== expectedLabel) throw new Error(`${scene.name}: incorrect flag label`);
-    if (text.includes('the exact spot is imagined') !== expectedLabel) throw new Error(`${scene.name}: missing the placement label (rule modelled, exact spot imagined)`);
+    if (text.includes('modelled rule, imagined spot') !== expectedLabel) throw new Error(`${scene.name}: missing the placement label (modelled rule, imagined spot)`);
     const screenshot = path.join(out, `${scene.name}.png`);
     await page.screenshot({ path: screenshot });
     results.push({ scene: scene.name, text, canvas, screenshot, errors: errors.slice(startErrors) });

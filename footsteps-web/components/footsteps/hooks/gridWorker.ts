@@ -15,7 +15,7 @@ export type GridReply =
   | { id: string; morph: MorphPoints }
   | { id: string; error: string };
 type Request =
-  | { settlements: boolean; sites: boolean; pastWater: boolean }
+  | { settlements: boolean; sites: boolean; pastWater: boolean; spread: boolean }
   | { year: number }
   | { id: string; fromYear: number; toYear: number; region: Region; season: Season };
 type Endpoint = { units: Units; width: number };
@@ -24,6 +24,7 @@ type Endpoint = { units: Units; width: number };
 const units = new Map<number, Endpoint>();
 let settlements = false;
 let pastWater = false; // `?pastwater=1`: the dated Mega-Chad lake keeps groups out of it (lib/pastWater.ts); a year's epoch is a function of the year, so the year-keyed cache below stays right
+let spread = false; // `?spread=1`: the climate-adjusted HYDE images for the years they cover (lib/adjustedSpread.ts); fixed per page, so the year-keyed caches stay right
 let sites = true; // ranked spots inside cells (`?sites=0` keeps the old invented positions, to compare)
 function remember(year: number, source: Endpoint) {
   units.delete(year);
@@ -39,7 +40,7 @@ function endpoint(snapshot: DecodedYearGrid): Endpoint {
 async function endpoints(year: number): Promise<Endpoint> {
   const cached = units.get(year);
   if (cached) return cached;
-  const snapshot = await decodeYearGrid(year, settlements, sites, pastWater);
+  const snapshot = await decodeYearGrid(year, settlements, sites, pastWater, spread);
   remember(year, endpoint(snapshot));
   return endpoint(snapshot);
 }
@@ -53,6 +54,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     settlements = data.settlements;
     sites = data.sites;
     pastWater = data.pastWater;
+    spread = data.spread;
     units.clear();
     return;
   }
@@ -87,7 +89,7 @@ self.onmessage = ({ data }: MessageEvent<Request>) => {
     return;
   }
   const { year } = data;
-  void decodeYearGrid(year, settlements, sites, pastWater)
+  void decodeYearGrid(year, settlements, sites, pastWater, spread)
     .then((snapshot) => {
       remember(year, endpoint(snapshot));
       const arrays = [

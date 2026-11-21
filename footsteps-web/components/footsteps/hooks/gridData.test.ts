@@ -201,3 +201,47 @@ describe('modelled people stay out of the sea', () => {
     expect(Math.abs(grid.total / people - 1)).toBeLessThan(0.02);
   });
 });
+
+// `?spread=1` (lib/adjustedSpread.ts): the adjusted image replaces HYDE's for the years it covers, only while it keeps HYDE's world total.
+describe('climate-adjusted spread', () => {
+  const LOG_MAX = Math.log1p(5_000_000);
+  const levelOf = (people: number) => Math.round((Math.log1p(people) / LOG_MAX) * 1023);
+  const px = (...cells: number[]) => new Uint8ClampedArray(cells.flatMap((p) => { const q = levelOf(p); return [q >> 8, q & 255, 0, 255]; }));
+  // HYDE_TOTALS[-8000] is 7.46 million: HYDE's image puts it all in cell 0 and 1, the adjusted one moves some to cell 2.
+  const hyde = px(5_000_000, 2_460_000, 0);
+  const moved = px(5_000_000, 1_460_000, 1_000_000);
+
+  test('reads the adjusted image instead of HYDE\'s, with the same total, and marks the grid adjusted', async () => {
+    mockImages({ '/grid/adjusted/humans_-8000.webp': moved, '/grid/humans_-8000.webp': hyde, '/grid/landuse_-8000.png': 'missing' }, 3, 1);
+    const grid = await decodeYearGrid(-8000, false, true, false, true);
+    expect(global.fetch).toHaveBeenCalledWith('/grid/adjusted/humans_-8000.webp');
+    expect(global.fetch).not.toHaveBeenCalledWith('/grid/humans_-8000.webp'); // no extra download
+    expect(grid.data.adjusted).toBe(true);
+    expect(grid.data.length).toBe(3);
+    expect(grid.data.total / 7.46e6).toBeCloseTo(1, 2);
+  });
+
+  test('without the flag, or for a year it does not cover, nothing changes', async () => {
+    mockImages({ '/grid/adjusted/humans_-8000.webp': moved, '/grid/humans_-8000.webp': hyde, '/grid/humans_-3000.webp': hyde, '/grid/landuse_-8000.png': 'missing', '/grid/landuse_-3000.png': 'missing' }, 3, 1);
+    const off = await decodeYearGrid(-8000);
+    expect(off.data.adjusted).toBeUndefined();
+    expect(off.data.length).toBe(2);
+    const later = await decodeYearGrid(-3000, false, true, false, true);
+    expect(later.data.adjusted).toBeUndefined();
+    expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/grid/adjusted/'));
+  });
+
+  test('an unpublished adjusted image falls back to HYDE\'s, not marked adjusted', async () => {
+    mockImages({ '/grid/adjusted/humans_-8000.webp': 'missing', '/grid/humans_-8000.webp': hyde, '/grid/landuse_-8000.png': 'missing' }, 3, 1);
+    const grid = await decodeYearGrid(-8000, false, true, false, true);
+    expect(grid.data.adjusted).toBeUndefined();
+    expect(grid.data.length).toBe(2);
+  });
+
+  test('an adjusted image that does not keep HYDE\'s world total is refused', async () => {
+    mockImages({ '/grid/adjusted/humans_-8000.webp': px(5_000_000, 0, 0), '/grid/humans_-8000.webp': hyde, '/grid/landuse_-8000.png': 'missing' }, 3, 1);
+    const grid = await decodeYearGrid(-8000, false, true, false, true);
+    expect(grid.data.adjusted).toBeUndefined();
+    expect(grid.data.total / 7.46e6).toBeCloseTo(1, 2);
+  });
+});

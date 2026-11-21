@@ -37,6 +37,18 @@ describe('hover card rows', () => {
     expect(rows[3]).toMatchObject({ text: 'Farming', detail: '31% cropland, <1% grazing', evidence: 'modelled' });
   });
 
+  test('?spread=1: an adjusted count says so and is not measured; the way of life still reads HYDE land use', () => {
+    const rows = hoverCardRows({
+      time: -8000,
+      habitat: land('Tropical savanna', 24, 400),
+      today: land('Desert', 25, 20),
+      people: { count: 42, evidence: 'measured', cellDeg: 360 / 4320, adjusted: true },
+      landUse: { crop: 0, grazing: 0 },
+    });
+    expect(rows.find((r) => r.id === 'people')).toMatchObject({ text: '≈ 42 people', detail: 'in this ~10 km cell · adjusted spread (modelled on HYDE)', evidence: 'modelled' });
+    expect(ids(rows)).toContain('life');
+  });
+
   test('open sea with nobody in it is just the sea', () => {
     const rows = hoverCardRows({
       time: -20_000,

@@ -1,6 +1,7 @@
 import type { GridData } from '../hooks/useGridLayer';
 import { SETTLED_MIN_CELL, URBAN_MIN_CELL, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { evidenceAt, type Evidence } from '@/lib/time';
+import { ADJUSTED_SPREAD_LABEL } from '@/lib/adjustedSpread';
 
 /** The model's own cell: its images are 0.5° blocks (gridData.ts decodes each as 6 × 6 cells). */
 const MODELLED_CELL_DEG = 0.5;
@@ -20,6 +21,8 @@ export type GroundingFacts = {
   evidence: Evidence;
   /** Side of the cell the counts describe, in degrees. */
   cellDeg: number;
+  /** `?spread=1`: the counts are the climate-adjusted spread (lib/adjustedSpread.ts), a model on HYDE, not HYDE's own cell. */
+  adjusted?: true;
 };
 
 /** Read decoded head counts, never the illustrative unit sizes/positions.
@@ -86,7 +89,10 @@ export function groundingFacts(grid: GridData, year: number, lon: number, lat: n
     // Thresholds are per ~10 km cell: compare a block's share of one.
     densityClass: perCell < SETTLED_MIN_CELL ? 'band' : perCell >= URBAN_MIN_CELL ? 'glow' : 'village',
     evidence, cellDeg,
-    confidence: evidence === 'modelled'
+    ...(grid.adjusted ? { adjusted: true as const } : {}),
+    confidence: grid.adjusted
+      ? `${ADJUSTED_SPREAD_LABEL}: HYDE's people for this year moved within a continent-scale region toward where the climate then let people live, keeping the region's total. Moved people are spread evenly over ~55 km blocks; this cell's count is a model output, not HYDE's estimate.`
+      : evidence === 'modelled'
       ? 'Modelled, not measured: this count is a model output (plant productivity, climate and when people arrived, scaled to a published world total). No one has seen people here.'
       : year < 1
       ? 'Before 1 CE, HYDE population values are modelled from sparse evidence; local counts are especially uncertain.'

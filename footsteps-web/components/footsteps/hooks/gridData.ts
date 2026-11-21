@@ -9,6 +9,7 @@ import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { seaLevelAt } from '@/lib/climate';
 import { loadPastWater, NO_EPOCH, pastWaterEpoch, type PastWaterLayers } from '@/lib/pastWater';
 import { landSubcells, type TerrainSea } from './landSubcells';
+import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -25,6 +26,8 @@ export type GridData = {
   total: number;
   /** Modelled years with a land mask: blocks that are all sea at the year's sea level, whose people stay on every sub-cell. */
   seaBlocks?: number;
+  /** `?spread=1`: the cells came from the climate-adjusted image (lib/adjustedSpread.ts), not HYDE's. Absent means HYDE's or the model's. */
+  adjusted?: true;
 };
 
 export type PointBuffers = {
@@ -59,8 +62,8 @@ function sharedLevel(level: number, parts: number) {
   return Math.min(LEVELS, Math.max(1, Math.round((Math.log1p(people) / LOG_MAX) * LEVELS)));
 }
 
-export function gridUrl(year: number) {
-  return `/grid/humans_${year}.webp`;
+export function gridUrl(year: number, adjusted = false) {
+  return adjusted ? adjustedGridUrl(year) : `/grid/humans_${year}.webp`;
 }
 
 /** HYDE land use for a year: same 4320 × 2160 cells; R = cropland share, G = grazing share
@@ -295,17 +298,39 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }
 
-export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false): Promise<DecodedYearGrid> {
+/** `?spread=1`: the year's cells from the climate-adjusted image, or null (with a warning) when it cannot be read or does not keep
+ * HYDE's world total, so the caller draws HYDE's and nothing is labelled adjusted that is not. */
+function adjustedGridData(year: number, read: Pixels | Error, landUse: Pixels | null): GridData | null {
+  if (read instanceof Error) {
+    console.warn('[grid] no adjusted spread for', year, "- drawing HYDE's", read);
+    return null;
+  }
+  const data = gridDataFrom(year, read, landUse);
+  if (!spreadTotalOk(data.total, year)) {
+    console.warn(`[grid] adjusted spread ${year} holds ${Math.round(data.total)} people, not HYDE's total; drawing HYDE's`);
+    return null;
+  }
+  return { ...data, adjusted: true };
+}
+
+export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false): Promise<DecodedYearGrid> {
   // `?pastwater=1`: the lake patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
   const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the Mega-Chad scenario is not applied', error); return null; }) : null;
-  const [pixels, landUse, sea] = await Promise.all([
-    readPixels(gridUrl(year), `Grid ${year}`),
-    readLandUse(year),
-    isModelled(year) ? loadSiteTerrain() : null,
-  ]);
+  // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download. Without the flag the
+  // requests go out exactly as before: population image, land use, then (modelled years) the site terrain.
+  const adjustedRead = spread && adjustedSpreadYear(year)
+    ? readPixels(gridUrl(year, true), `Adjusted grid ${year}`).catch((error: Error) => error)
+    : null;
+  const hydeRead = adjustedRead ? null : readPixels(gridUrl(year), `Grid ${year}`);
+  const landUse = readLandUse(year); // never rejects: a missing file classes by head count
+  const hyde = (pixels: Promise<Pixels>) =>
+    Promise.all([pixels, landUse, isModelled(year) ? loadSiteTerrain() : null])
+      .then(([px, use, sea]) => gridDataFrom(year, px, use, sea?.terrain ?? null));
+  const data = (adjustedRead && adjustedGridData(year, await adjustedRead, await landUse))
+    || await hyde(hydeRead ?? readPixels(gridUrl(year), `Grid ${year}`));
   return prepareYearGrid(
     year,
-    gridDataFrom(year, pixels, landUse, sea?.terrain ?? null),
+    data,
     settlements ? {
       catalog: await loadSettlementCatalog(),
       habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,

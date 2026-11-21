@@ -46,6 +46,7 @@ import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
 import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
+import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
 import { shelterHoverOf, type ShelterHover } from './layers/Close3DLayer';
@@ -125,6 +126,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // `?pastwater=1`: the dated Mega-Chad lake (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
   const [pastWaterOn, setPastWaterOn] = useState(false);
   useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
+  // `?spread=1`: HYDE's people moved toward where the climate then let them live, 10,000–4,000 BCE (lib/adjustedSpread.ts), off until reviewed.
+  const [spreadOn, setSpreadOn] = useState(false);
+  useEffect(() => setSpreadOn(spreadParam(window.location.search)), []);
   const [routineOn, setRoutineOn] = useState(false);
   useEffect(() => setRoutineOn(routineParam(window.location.search)), []);
   const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
@@ -324,6 +328,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   // From 10,000 BCE people are HYDE's (measured); before that they are the model's.
   const modelled = evidenceAt(Math.round(time)) === 'modelled';
+  // `?spread=1`: the grid on screen came from the adjusted image (gridData.ts); the labels follow what is drawn, not the flag.
+  const adjusted = renderMode !== 'dots' && grid?.adjusted === true;
 
   // An empty view reads as "still loading": say when no one is on screen (zoomed in, flat map, data loaded).
   // Checked 400 ms after the view settles, not every frame.
@@ -345,7 +351,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         height: window.innerHeight,
       }).getBounds();
       const box = { west, south: Math.max(-90, south), east, north: Math.min(90, north) };
-      setEmptyNote(emptyViewNote(peopleInView(emptyCheck, box), bandsInView(otherHumans.bands, box), modelled));
+      setEmptyNote(emptyViewNote(peopleInView(emptyCheck, box), bandsInView(otherHumans.bands, box), modelled ? 'model' : emptyCheck.adjusted ? 'adjusted' : 'hyde'));
     }, 400);
     return () => window.clearTimeout(timer);
   }, [emptyCheck, deckViewState.longitude, deckViewState.latitude, deckViewState.zoom, deckViewState.pitch, deckViewState.bearing, otherHumans.bands, modelled]);
@@ -411,6 +417,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         viewState={viewState}
         close3d={close3d}
         pastWater={pastWaterOn ? pastWaterNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', unresolved) : null}
+        spread={spreadOn ? spreadNote(year, renderMode === 'dots' || renderMode === 'grid' ? renderMode : 'units', grid ? grid.adjusted === true : undefined) : null}
         lodLevel={stableLODLevel}
         lodEnabled={false}
         toggleLOD={() => {}}
@@ -547,6 +554,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
               data-testid="notes-toggle"
             >
               {modelled && <strong className="mr-1 font-semibold text-[var(--ov-amber)]">Modelled, not measured.</strong>}
+              {adjusted && <strong className="mr-1 font-semibold text-[var(--ov-amber)]" data-testid="spread-label">{ADJUSTED_SPREAD_LABEL}.</strong>}
               {notesOpen ? 'Hide notes ▴' : 'About the data ▾'}
             </button>
             {!notesOpen ? null : modelled ? (
@@ -561,7 +569,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
               </p>
             ) : (
               <p className="ov-note mt-1.5">
-                Head counts per ~10 km cell are HYDE estimates. Way of life is read
+                {adjusted
+                  ? "Head counts are HYDE's, moved within continent-scale regions toward where the climate then let people live (the Green Sahara, the dry shelves), each region keeping HYDE's total; moved people sit in ~55 km blocks. "
+                  : 'Head counts per ~10 km cell are HYDE estimates. '}
+                Way of life is read
                 from HYDE cropland and grazing in the cell, not known for any one
                 group, and where its bands, villages and camps sit inside the cell
                 is illustrative.

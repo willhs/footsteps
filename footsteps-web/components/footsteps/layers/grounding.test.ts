@@ -52,3 +52,11 @@ test('before HYDE, counts are read per 0.5° block and labelled modelled', () =>
   expect(groundingFacts(data, -50000, 20.1, 29.9)?.latitude).toBeCloseTo(29.75);
   expect(groundingFacts(data, -9000, 20.1, 29.9)?.evidence).toBe('measured');
 });
+
+test('?spread=1: facts from an adjusted grid say they are the adjusted spread, not HYDE\'s estimate', () => {
+  const adjusted = { ...grid([[90 * 360 + 180, 500]]), adjusted: true as const };
+  const facts = groundingFacts(adjusted, -8000, 0.1, -0.1);
+  expect(facts).toMatchObject({ people: 500, adjusted: true });
+  expect(facts?.confidence).toMatch(/^Adjusted spread \(modelled on HYDE\)/);
+  expect(groundingFacts(grid([[90 * 360 + 180, 500]]), -8000, 0.1, -0.1)?.adjusted).toBeUndefined();
+});

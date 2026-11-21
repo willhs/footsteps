@@ -31,7 +31,7 @@ export type HoverCardInput = {
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
-  people: { count: number; evidence: Evidence; cellDeg: number } | null;
+  people: { count: number; evidence: Evidence; cellDeg: number; adjusted?: boolean } | null;
   /** HYDE land use for the same cell, only for HYDE years. */
   landUse: LandUse | null;
   /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
@@ -87,7 +87,14 @@ function climateRow(h: HabitatCell, today: HabitatCell | null): CardRow | null {
 
 function peopleRow(p: NonNullable<HoverCardInput['people']>): CardRow {
   const km = p.cellDeg <= 0.1 ? 10 : 55;
-  const where = `in this ~${km} km ${p.evidence === 'modelled' ? 'block' : 'cell'}`;
+  const cell = `in this ~${km} km ${p.evidence === 'modelled' ? 'block' : 'cell'}`;
+  // `?spread=1`: the count is the adjusted spread, a model on HYDE's (lib/adjustedSpread.ts), so the row says so and is not "measured".
+  if (p.adjusted) {
+    const where = `${cell} · adjusted spread (modelled on HYDE)`;
+    if (p.count <= 0) return { id: 'people', text: 'No one in the adjusted spread', detail: where, evidence: 'modelled' };
+    return { id: 'people', text: p.count < 1 ? 'Under 1 person' : `≈ ${p.count < 10 ? Math.round(p.count) : twoFigures(p.count)} people`, detail: where, evidence: 'modelled' };
+  }
+  const where = cell;
   if (p.count <= 0) {
     return { id: 'people', text: p.evidence === 'modelled' ? 'No one modelled' : 'No one counted', detail: where, evidence: p.evidence };
   }

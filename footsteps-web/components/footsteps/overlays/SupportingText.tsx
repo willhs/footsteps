@@ -39,6 +39,8 @@ interface Props {
   close3d?: boolean; // the tilted 3D close-up is on screen
   /** `?pastwater=1`: what the Mega-Chad scenario says at this date and mode (lib/pastWater.ts `pastWaterNote`); null when the flag is off. */
   pastWater?: { label: string; title: string } | null;
+  /** `?spread=1`: whether the climate-adjusted spread is drawn at this date and mode (lib/adjustedSpread.ts `spreadNote`); null when the flag is off. */
+  spread?: { label: string; title: string } | null;
 }
 
 /** Close in, the map runs on today's clock: the time of day where you are looking. */
@@ -65,6 +67,7 @@ function SupportingText({
   year,
   close3d = false,
   pastWater = null,
+  spread = null,
   now,
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
@@ -282,6 +285,11 @@ function SupportingText({
 
       {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
         <SunTime lon={viewState.longitude} lat={viewState.latitude} now={now} />
+      )}
+      {spread && (
+        <div className="ov-note mt-0.5" data-testid="spread-note" title={spread.title}>
+          {spread.label}
+        </div>
       )}
       {pastWater && (
         <div className="ov-note mt-0.5" data-testid="pastwater-note" title={pastWater.title}>

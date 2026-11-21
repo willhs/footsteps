@@ -27,11 +27,12 @@ describe('bandsInView', () => {
 
 describe('emptyViewNote', () => {
   it('says nothing when someone is there', () => {
-    expect(emptyViewNote(3, 0, true)).toBeNull();
+    expect(emptyViewNote(3, 0, 'model')).toBeNull();
   });
   it('names the source of the emptiness', () => {
-    expect(emptyViewNote(0, 0, true)).toContain('the model');
-    expect(emptyViewNote(0, 0, false)).toContain('HYDE');
-    expect(emptyViewNote(0, 2, true)).toContain('another kind of human');
+    expect(emptyViewNote(0, 0, 'model')).toContain('the model');
+    expect(emptyViewNote(0, 0, 'hyde')).toContain('HYDE');
+    expect(emptyViewNote(0, 0, 'adjusted')).toContain('adjusted spread (modelled on HYDE)');
+    expect(emptyViewNote(0, 2, 'model')).toContain('another kind of human');
   });
 });

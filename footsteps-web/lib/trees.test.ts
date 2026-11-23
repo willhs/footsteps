@@ -3,7 +3,7 @@ import { treesParam, withIce, type Ground } from './close3d';
 
 const bbox = { west: 10, east: 10.02, south: 45, north: 45.02 };
 const heights = new Float32Array(256 * 256).fill(100);
-const ground = (biome = 4): Ground => ({ colourAt: () => [80, 100, 60], biomeAt: () => biome, tempAt: () => 18 });
+const ground = (biome = 4): Ground => ({ colourAt: () => [80, 100, 60], biomeAt: () => biome, tempAt: () => 18, precipAt: () => 800 });
 const make = (g = ground(), h = heights) => treesForTile(h, bbox, [100, 100, 13], 0, g);
 
 test('flag stays opt in and deterministic trees have real positive sizes and atlas variants', () => {

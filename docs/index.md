@@ -88,6 +88,8 @@ separate series from `tasks/0001-0003`.
 - [`work/tasks/0002-static-export.md`](work/tasks/0002-static-export.md) — done (2025-09): serve footsteps-web as a static Next.js export
 - [`work/tasks/0003-anthrome-overlay.md`](work/tasks/0003-anthrome-overlay.md) — paused (2025-09): prototype anthrome overlay tiles and a UI toggle
 - [`tasks/0013-ice-sheets-dated-extent/task.md`](tasks/0013-ice-sheets-dated-extent/task.md) ([plan](tasks/0013-ice-sheets-dated-extent/plan.md)) — ice sheets at their dated extent behind `?ice=1`, on the Earth image and the close-up
+- [`tasks/0017-biome-tree-impostors/task.md`](tasks/0017-biome-tree-impostors/task.md) — opt-in shaded tree impostors, placement and performance acceptance
+- [`tasks/0017-biome-tree-impostors/plan.md`](tasks/0017-biome-tree-impostors/plan.md) — implementation, alternatives and verification
 
 ## Design
 

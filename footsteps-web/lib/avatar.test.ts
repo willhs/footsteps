@@ -103,6 +103,8 @@ describe('avatarSpec', () => {
 
   it('picks the body by sex and never gives women or children a beard', () => {
     expect(spec(person({ female: false })).body).toBe('male');
+    expect(spec(person({ female: true })).body).toBe('female');
+    expect(spec(person({ female: true, age: 7 })).body).toBe('male'); // the woman's mesh is an adult's
     expect(people(50).some((p) => spec(p).beard)).toBe(false);
     expect(people(50, { female: false, age: 8 }).some((p) => spec(p).beard)).toBe(false);
     const men = people(100, { female: false }).filter((p) => spec(p).beard).length;

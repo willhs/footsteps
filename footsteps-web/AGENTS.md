@@ -36,6 +36,12 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   nearer year-morph endpoint, skip absent groups, and include an adult per group.
   Portraits wait for the atlas (up to 2.5 seconds), then keep that illustration;
   late atlas responses cannot replace it. Day requests are scoped to the person.
+  The portrait's palette (skin, hair, clothing, hair style) lives in `lib/avatar.ts` `portraitLooks`, shared with the 3D figure:
+  its random draw order is the SVG's, so do not reorder draws (the `rome-1000bce-person` visual scene catches it).
+- `?avatar=3d` (off until reviewed; docs/ops/avatar.md): the card shows a rigged CC0 3D person (`overlays/Avatar3D.tsx`, `avatarScene.ts`,
+  three.js, loaded through `overlays/avatarLazy.ts`, never in the first load) built from `avatarSpec` (body by sex and age, stoop, hair mesh,
+  colours). Assets in `public/avatar/` come from `../footstep-generator/avatar/build.mjs` (pinned sha256, vertex colours, no textures).
+  `node scripts/avatar-shots.mjs <dir>` shoots three people flag off/on and measures bytes, first frame and fps.
 - `?mode=units|grid|dots` is a debug override and shows the mode button.
 - Close-up 3D (default; `?close3d=0` keeps the map flat): from zoom 8 in the flat map the camera tilts (55° by zoom 10) and `layers/Close3DLayer.ts`
   (elevation tiles one zoom coarser at `MESH_STEP` 2, over both S3 hostnames `DEM_TILE_URLS`, far tiles merged by `lib/demLod.ts`, meshed a frame's budget at a time; `docs/ops/close-up-scene.md` "How the ground streams in")

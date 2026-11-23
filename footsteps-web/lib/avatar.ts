@@ -153,7 +153,10 @@ export type AgeBand = 'child' | 'adult' | 'elder';
 
 /** Everything the 3D viewer needs to build one person; plain data, so it is testable without WebGL. */
 export type AvatarSpec = {
-  /** Which base body: the pack has an adult man and woman; a child is the body of their sex, scaled. */
+  /**
+   * Which base body: the pack has an adult man and woman. Children use the man's body, scaled: before puberty bodies differ
+   * little by sex, and the woman's mesh is an adult's. Their hair and the card still say girl or boy.
+   */
   body: 'male' | 'female';
   ageBand: AgeBand;
   /** Uniform scale against the adult body (about 1.8 m): a growth curve for children, a little shorter for elders. */
@@ -190,14 +193,14 @@ export function avatarSpec(person: Person, looks: Looks): AvatarSpec {
   const grown = Math.min(1, childCm(person.age) / ADULT_CM);
   const height = person.age < 18 ? grown : looks.elder ? 0.98 : 1;
   const headScale = 1 + 0.6 * (1 - grown);
-  const stoop = looks.elder ? Math.min(0.28, 0.12 + 0.004 * (person.age - 55)) : 0;
+  const stoop = looks.elder ? Math.min(0.4, 0.2 + 0.006 * (person.age - 55)) : 0;
   const style = looks.hairStyle;
   const hair: HairMesh =
     style === 'long' || style === 'braid' ? 'long' : style === 'tied' || style === 'wrap' ? 'buns' : person.female ? 'buzzed_female' : 'parted';
   const beard = !person.female && person.age >= 18 && r() < 0.4;
   const other = person.kindOfHuman ? (OTHER_HUMANS.find((h) => h.id === person.kindOfHuman)?.name ?? person.kindOfHuman) : null;
   return {
-    body: person.female ? 'female' : 'male',
+    body: person.female && !looks.child ? 'female' : 'male',
     ageBand,
     height,
     headScale,

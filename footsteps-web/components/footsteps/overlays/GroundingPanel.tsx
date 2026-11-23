@@ -2,9 +2,13 @@ import type { GroundingFacts } from '../layers/grounding';
 import EvidenceNearby from './EvidenceNearby';
 import PersonDay, { type DayRequest } from './PersonDay';
 import Portrait from './Portrait';
+import { AVATAR_3D } from './avatarLazy';
 import type { Person } from '../layers/people';
 import { CloseIcon } from '@/components/ui/icons';
 import { cssRgb, LOOKS } from '@/lib/waysOfLife';
+import { avatarFromParams } from '@/lib/avatar';
+import { useLazy } from '@/lib/lazyModule';
+import { useState } from 'react';
 
 export default function GroundingPanel({
   facts,
@@ -32,6 +36,9 @@ export default function GroundingPanel({
   onClose: () => void;
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
+  // `?avatar=3d`: the 3D figure instead of the drawing (docs/ops/avatar.md). The drawing shows until its code is in.
+  const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
+  const Avatar = useLazy(AVATAR_3D, avatar3d && !!portrait)?.default;
   return (
     <section
       aria-label="What we know here"
@@ -48,7 +55,7 @@ export default function GroundingPanel({
         {person && (
           <div className="flex flex-col gap-3">
             <div className="flex gap-3.5">
-              {portrait && <Portrait {...portrait} />}
+              {portrait && (Avatar ? <Avatar {...portrait} /> : <Portrait {...portrait} />)}
               <div className="min-w-0 pt-0.5">
                 <p className="ov-title text-[var(--ov-warm)]">{person.title}</p>
                 <p className="ov-body mt-1 text-[var(--ov-text)]">{person.detail}</p>

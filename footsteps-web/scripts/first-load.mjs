@@ -38,6 +38,7 @@ const SWEEP = [
   { id: 'close-up 3D', query: 'year=-3000&lat=25.7&lon=32.6&zoom=9', marker: 'Close3DLayer' },
   { id: '?shelters=1', query: 'year=1500&lat=9.0&lon=38.7&zoom=10&shelters=1', marker: 'Close3DLayer' },
   { id: '?figures=1', query: 'year=-1000&lat=41.9&lon=12.5&zoom=16&figures=1', marker: 'AnimalsLayer' },
+  { id: '?avatar=3d', query: 'year=-1000&lat=41.9&lon=12.5&zoom=12.8&avatar=3d', marker: 'avatar-3d' },
   { id: '?terrain_tiles=1', query: 'year=-1000&lat=41.9&lon=12.5&zoom=5&terrain_tiles=1', marker: 'TerrainDetailLayer' },
   { id: '?evidence=1', query: 'year=-8000&evidence=1', marker: 'aadr_samples.json.gz' },
   { id: '?tour=1', query: 'tour=1', marker: 'tour-panel' },

@@ -29,7 +29,7 @@
     }
   ],
   "encoding": {
-    "COLOR_0": "body, brows and hair: (shade / 1.5, garment 0-1, 0); eyes: RGB",
+    "COLOR_0": "body, brows and hair: (shade / 1.5, garment 0-1, trim 0-1); eyes: RGB",
     "shade_max": 1.5,
     "skeleton": "65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)"
   },
@@ -81,7 +81,11 @@
       },
       "body": {
         "vertices": 7281,
-        "garmentVertices": 1263
+        "garmentVertices": 1654
+      },
+      "garment": {
+        "vertices": 1652,
+        "triangles": 2834
       }
     },
     "female": {
@@ -91,20 +95,24 @@
       },
       "body": {
         "vertices": 7376,
-        "garmentVertices": 1480
+        "garmentVertices": 1816
+      },
+      "garment": {
+        "vertices": 1816,
+        "triangles": 3198
       }
     }
   },
   "files": [
     {
       "file": "body_male.glb",
-      "bytes": 159832,
-      "sha256": "b63aa95817e4894eb28f52e8713469350338307d91fead290577ca2e3414c44f"
+      "bytes": 194988,
+      "sha256": "2e18626448f5b99e59a0767ad59eeddf1942c50904e8a03b20c11ec3af95a98e"
     },
     {
       "file": "body_female.glb",
-      "bytes": 164828,
-      "sha256": "1da5d037ba0d313a1f922a86207b8b563a704eec74dd44ae0bbd766967cb658d"
+      "bytes": 202468,
+      "sha256": "5a57a511f226efc9abfd1735083ad6c255ced8fdba3010088fc1eabec83534a3"
     },
     {
       "file": "hair_long.glb",
@@ -142,5 +150,5 @@
       "sha256": "78dbe26b3ddae272807f8b95a24c6e10c7d4c8756ebaffb7d4e3a68114c9db3f"
     }
   ],
-  "total_bytes": 798932
+  "total_bytes": 871728
 }

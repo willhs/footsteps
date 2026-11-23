@@ -13,9 +13,10 @@
 //   manifest.json                    sources, licence, sha256 and bytes of every file, clip names, the vertex-colour encoding
 //
 // Why no textures: the pack's PNGs are 1-4 MB each and would need a KTX2 toolchain; at card size the useful detail fits in
-// vertex colours. COLOR_0 on body and hair = (shade / SHADE_MAX, garment, 0): shade is the texture's brightness relative
+// vertex colours. COLOR_0 on body and hair = (shade / SHADE_MAX, garment, trim): shade is the texture's brightness relative
 // to its typical skin (or hair) pixel, garment is 1 where the person's garment colour goes (the pack's painted underwear,
-// plus a plain knee-length tunic band added here so the figure is dressed). Eyes keep real RGB. The viewer turns these
+// plus a plain knee-length tunic band added here so the figure is dressed), trim marks the tunic's hem, belt and neckline.
+// Eyes keep real RGB. The viewer turns these
 // into per-person colours on the CPU (footsteps-web/components/footsteps/overlays/avatarScene.ts).
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
@@ -133,10 +134,29 @@ const smooth = (e0, e1, x) => {
 };
 
 /**
- * The tunic band in the bind pose (metres, y up, T-pose arms along x): mid-thigh to just under the collarbone, inside the
- * torso so the arms (straight out) stay bare. Soft edges, so the hem is not a stair of triangles.
+ * A plain short-sleeved tunic in the bind pose (metres, y up, T-pose arms along x): mid-thigh to the shoulders, a round neck
+ * opening, sleeves to mid upper arm. Soft edges, so the hem is not a stair of triangles.
  */
-const tunic = ([x, y]) => smooth(0.5, 0.56, y) * (1 - smooth(1.38, 1.44, y)) * (1 - smooth(0.2, 0.25, Math.abs(x)));
+function tunic([x, y]) {
+  const ax = Math.abs(x);
+  const torso = smooth(0.5, 0.56, y) * (1 - smooth(1.62, 1.68, y)) * (1 - smooth(0.2, 0.25, ax));
+  const neck = smooth(1.4, 1.46, y) * (1 - smooth(0.07, 0.11, ax));
+  const sleeve = smooth(0.18, 0.22, ax) * (1 - smooth(0.34, 0.38, ax)) * smooth(1.28, 1.32, y) * (1 - smooth(1.6, 1.64, y));
+  return Math.max(torso * (1 - neck), sleeve);
+}
+
+/** A soft band of width ~w centred on v0. */
+const band = (v, v0, w) => Math.max(0, 1 - Math.abs(v - v0) / w);
+/**
+ * Where the garment's trim colour goes: a hem, a belt and the sleeve ends. Without them a hide tunic the colour of skin
+ * reads as bare skin at card size.
+ */
+const trimOf = ([x, y]) => {
+  const ax = Math.abs(x);
+  const body = Math.min(1, band(y, 0.535, 0.03) + band(y, 1.0, 0.025)) * (1 - smooth(0.2, 0.25, ax));
+  const cuff = band(ax, 0.355, 0.02) * smooth(1.28, 1.32, y);
+  return Math.min(1, body + cuff);
+};
 
 /** Underwear in the base colour: near black and grey, where skin is never that dark in the light-skin texture. */
 const painted = (rgb) => (lum(rgb) < 0.12 ? 1 : 0);
@@ -209,15 +229,70 @@ async function bakeBody(io, dir, sex) {
           const shade = painted(rgbs[i]) ? 1 : Math.min(SHADE_MAX, Math.max(0.35, lum(rgbs[i]) / typical));
           out[i * 3] = shade / SHADE_MAX;
           out[i * 3 + 1] = g;
+          out[i * 3 + 2] = part === 'body' ? trimOf(pos.getElement(i, [])) * g : 0;
           if (g > 0.5) garmentVerts++;
         }
         stats[part] = { vertices: n, garmentVertices: garmentVerts };
       }
       setColour(doc, prim, out);
       stripTo(prim, KEEP);
+      if (part === 'body') stats.garment = garmentShell(doc, node, prim);
     }
   }
   return { doc, stats };
+}
+
+/**
+ * A plain tunic as its own skinned mesh: the body's triangles inside the tunic band, pushed out along their normals (1 cm
+ * at the chest, flaring to 3 cm at the hem) so the garment has an edge and a silhouette. Painted the same way: COLOR_0 =
+ * (shade, 1, trim). Part 2's wardrobe replaces it with real clothes on the same skeleton.
+ */
+function garmentShell(doc, bodyNode, prim) {
+  const pos = prim.getAttribute('POSITION');
+  const nor = prim.getAttribute('NORMAL');
+  const idx = prim.getIndices().getArray();
+  const keep = [];
+  const inside = (i) => tunic(pos.getElement(i, [])) > 0.5;
+  for (let t = 0; t < idx.length; t += 3) if (inside(idx[t]) && inside(idx[t + 1]) && inside(idx[t + 2])) keep.push(idx[t], idx[t + 1], idx[t + 2]);
+  const remap = new Map();
+  for (const i of keep) if (!remap.has(i)) remap.set(i, remap.size);
+  const n = remap.size;
+  const out = { POSITION: new Float32Array(n * 3), NORMAL: new Float32Array(n * 3), COLOR_0: new Float32Array(n * 3) };
+  const col = prim.getAttribute('COLOR_0');
+  const joints = prim.getAttribute('JOINTS_0');
+  const weights = prim.getAttribute('WEIGHTS_0');
+  const J = new (joints.getArray().constructor)(n * 4);
+  const W = new (weights.getArray().constructor)(n * 4);
+  for (const [src, dst] of remap) {
+    const p = pos.getElement(src, []);
+    const v = nor.getElement(src, []);
+    const push = 0.01 + 0.02 * (1 - smooth(0.56, 1.0, p[1]));
+    for (let k = 0; k < 3; k++) {
+      out.POSITION[dst * 3 + k] = p[k] + v[k] * push;
+      out.NORMAL[dst * 3 + k] = v[k];
+    }
+    const c = col.getElement(src, []);
+    // Cloth: most of the body's painted muscle shading gone.
+    out.COLOR_0.set([(1 + (c[0] * SHADE_MAX - 1) * 0.3) / SHADE_MAX, 1, c[2]], dst * 3);
+    J.set(joints.getElement(src, []), dst * 4);
+    W.set(weights.getElement(src, []), dst * 4);
+  }
+  const buffer = doc.getRoot().listBuffers()[0];
+  const acc = (type, array, normalized = false) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer).setNormalized(normalized);
+  const shell = doc
+    .createPrimitive()
+    .setAttribute('POSITION', acc('VEC3', out.POSITION))
+    .setAttribute('NORMAL', acc('VEC3', out.NORMAL))
+    .setAttribute('COLOR_0', acc('VEC3', out.COLOR_0))
+    .setAttribute('JOINTS_0', acc('VEC4', J))
+    .setAttribute('WEIGHTS_0', acc('VEC4', W, weights.getNormalized()))
+    .setIndices(acc('SCALAR', new Uint32Array(keep.map((i) => remap.get(i)))))
+    .setMaterial(doc.createMaterial('garment').setDoubleSided(true));
+  const node = doc.createNode('garment').setMesh(doc.createMesh('garment').addPrimitive(shell)).setSkin(bodyNode.getSkin());
+  const parent = bodyNode.getParentNode();
+  if (parent) parent.addChild(node);
+  else doc.getRoot().listScenes()[0].addChild(node);
+  return { vertices: n, triangles: keep.length / 3 };
 }
 
 async function bakeHair(io, dir, name) {
@@ -343,7 +418,7 @@ const manifest = {
   author: SOURCES.author,
   sources: SOURCES.packs.map(({ id, title, page, itch, upload_id, file, version, sha256: s }) => ({ id, title, page, itch, upload_id, file, version, sha256: s })),
   encoding: {
-    COLOR_0: `body, brows and hair: (shade / ${SHADE_MAX}, garment 0-1, 0); eyes: RGB`,
+    COLOR_0: `body, brows and hair: (shade / ${SHADE_MAX}, garment 0-1, trim 0-1); eyes: RGB`,
     shade_max: SHADE_MAX,
     skeleton: '65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)',
   },

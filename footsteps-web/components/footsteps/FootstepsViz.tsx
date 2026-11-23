@@ -27,6 +27,8 @@ import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import usePersonTags from '@/components/footsteps/hooks/usePersonTags';
 import GroundingPanel from './overlays/GroundingPanel';
+import { AVATAR_3D } from './overlays/avatarLazy';
+import { avatarFromParams } from '@/lib/avatar';
 import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
@@ -199,6 +201,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
   // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
   useEffect(() => (close3dOn ? prefetchAfterFirstPeople(CLOSE3D_MODULE) : undefined), [close3dOn]);
+  // `?avatar=3d`: fetch the 3D person's code once the people are up, so a click shows the figure without waiting for it.
+  useEffect(() => (avatarFromParams(window.location.search) ? prefetchAfterFirstPeople(AVATAR_3D) : undefined), []);
   const shadedBackground = useMemo(() => {
     const nightSun = nightOn ? sunPosition(now) : null;
     const props = { extensions: [NIGHT], nightSun };

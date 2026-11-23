@@ -91,6 +91,7 @@ separate series from `tasks/0001-0003`.
 - [`tasks/0017-biome-tree-impostors/task.md`](tasks/0017-biome-tree-impostors/task.md) — opt-in shaded tree impostors, placement and performance acceptance
 - [`tasks/0017-biome-tree-impostors/plan.md`](tasks/0017-biome-tree-impostors/plan.md) — implementation, alternatives and verification
 - [`tasks/0015-close-up-light-sky-water/task.md`](tasks/0015-close-up-light-sky-water/task.md) ([plan](tasks/0015-close-up-light-sky-water/plan.md)) — close-up light from the sun clock, haze into a sky and moving water behind `?sky=1`
+- [`tasks/0016-fields-gardens-paths-around-settlements/task.md`](tasks/0016-fields-gardens-paths-around-settlements/task.md) ([plan](tasks/0016-fields-gardens-paths-around-settlements/plan.md)) — fields, gardens, corrals and worn paths round settlements in the close-up behind `?fields=1`
 
 ## Design
 

@@ -1,0 +1,146 @@
+{
+  "generated_by": "footstep-generator/avatar/build.mjs",
+  "licence": {
+    "name": "CC0 1.0 Universal (public domain dedication)",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Both pack pages on quaternius.com show 'License: CC0' (the animation page also says 'Free to use in personal, educational and commercial projects. (CC0 License)'), and each zip carries a License.txt reading 'CC0 1.0 Universal (CC0 1.0) Public Domain Dedication'. Checked 2026-11-24."
+  },
+  "author": "Quaternius (https://quaternius.com, https://www.patreon.com/quaternius)",
+  "sources": [
+    {
+      "id": "characters",
+      "title": "Universal Base Characters [Standard] (free edition)",
+      "page": "https://quaternius.com/packs/universalbasecharacters.html",
+      "itch": "https://quaternius.itch.io/universal-base-characters",
+      "upload_id": 15861669,
+      "file": "Universal Base Characters[Standard].zip",
+      "version": "itch upload 15861669; newest file inside dated 2025-12-17",
+      "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40"
+    },
+    {
+      "id": "animations",
+      "title": "Universal Animation Library [Standard] (free edition)",
+      "page": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "itch": "https://quaternius.itch.io/universal-animation-library",
+      "upload_id": 17958403,
+      "file": "Universal Animation Library[Standard].zip",
+      "version": "itch upload 17958403; UAL1_Standard.glb dated 2026-06-17",
+      "sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724"
+    }
+  ],
+  "encoding": {
+    "COLOR_0": "body, brows and hair: (shade / 1.5, garment 0-1, 0); eyes: RGB",
+    "shade_max": 1.5,
+    "skeleton": "65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)"
+  },
+  "clips": [
+    {
+      "name": "crouch",
+      "source": "Crouch_Idle_Loop",
+      "seconds": 2.93
+    },
+    {
+      "name": "work",
+      "source": "Fixing_Kneeling",
+      "seconds": 5.2
+    },
+    {
+      "name": "idle",
+      "source": "Idle_Loop",
+      "seconds": 2.5
+    },
+    {
+      "name": "talk",
+      "source": "Idle_Talking_Loop",
+      "seconds": 2.93
+    },
+    {
+      "name": "sit",
+      "source": "Sitting_Idle_Loop",
+      "seconds": 1.67
+    },
+    {
+      "name": "walk",
+      "source": "Walk_Loop",
+      "seconds": 1.33
+    }
+  ],
+  "hair": {
+    "long": "Hair_Long",
+    "buns": "Hair_Buns",
+    "parted": "Hair_SimpleParted",
+    "buzzed": "Hair_Buzzed",
+    "buzzed_female": "Hair_BuzzedFemale",
+    "beard": "Hair_Beard"
+  },
+  "bake": {
+    "male": {
+      "brows": {
+        "vertices": 646,
+        "garmentVertices": 0
+      },
+      "body": {
+        "vertices": 7281,
+        "garmentVertices": 1263
+      }
+    },
+    "female": {
+      "brows": {
+        "vertices": 912,
+        "garmentVertices": 0
+      },
+      "body": {
+        "vertices": 7376,
+        "garmentVertices": 1480
+      }
+    }
+  },
+  "files": [
+    {
+      "file": "body_male.glb",
+      "bytes": 159832,
+      "sha256": "b63aa95817e4894eb28f52e8713469350338307d91fead290577ca2e3414c44f"
+    },
+    {
+      "file": "body_female.glb",
+      "bytes": 164828,
+      "sha256": "1da5d037ba0d313a1f922a86207b8b563a704eec74dd44ae0bbd766967cb658d"
+    },
+    {
+      "file": "hair_long.glb",
+      "bytes": 58772,
+      "sha256": "569135de83b85214ec30e112b85d75c81623f7446cf50e11d10143285d39d1aa"
+    },
+    {
+      "file": "hair_buns.glb",
+      "bytes": 64472,
+      "sha256": "71fa8e3b4081861059c0ec7aa2ecfc1dc9b3b91abe117dfb1b2db605bf675ab7"
+    },
+    {
+      "file": "hair_parted.glb",
+      "bytes": 30116,
+      "sha256": "50aea8d1ba16478d5c86bdb8ba685d0e3b31af8b8b77fe2c17c25dabcceb7861"
+    },
+    {
+      "file": "hair_buzzed.glb",
+      "bytes": 25644,
+      "sha256": "3b171e387c59854b3477727a52e570f0384178f2e4df6000e2e9086ee0dea275"
+    },
+    {
+      "file": "hair_buzzed_female.glb",
+      "bytes": 26244,
+      "sha256": "446df124dfd6963a3aa5db4cd443cbadbe0b7580cffd45f2021f9cc47982b6cb"
+    },
+    {
+      "file": "hair_beard.glb",
+      "bytes": 27608,
+      "sha256": "fb35b2280644f1ce8e46fccfdde5e80cd8feadb13e03538b2b84463f22bdce18"
+    },
+    {
+      "file": "anims.glb",
+      "bytes": 241416,
+      "sha256": "78dbe26b3ddae272807f8b95a24c6e10c7d4c8756ebaffb7d4e3a68114c9db3f"
+    }
+  ],
+  "total_bytes": 798932
+}

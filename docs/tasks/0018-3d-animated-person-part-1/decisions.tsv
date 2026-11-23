@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-23T11:34:44Z	plan	Quaternius Universal Base Characters + Universal Animation Library (CC0) as the assets	CC0 on source page and License.txt; one 65-joint skeleton shared by bodies, hair and 43 clips incl idle/walk/sit/crouch	quaternius.com/packs/universalbasecharacters.html; License.txt in both zips	chosen
+2026-11-23T11:34:44Z	plan	Bake texture detail into vertex colours; ship no textures	PNG textures are 1-4 MB each and KTX2 needs a toolchain; at 120 px vertex shade+garment mask is enough and recolours per person on CPU	plan.md Assumption 2	chosen
+2026-11-23T11:34:44Z	plan	Move palette logic to lib/avatar.ts keeping the rng draw order	SVG must draw the same pixels (pnpm visual rome-1000bce-person) and 3D must agree with it	Portrait.tsx:136-182	chosen

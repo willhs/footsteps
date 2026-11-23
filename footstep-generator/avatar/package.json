@@ -1,0 +1,16 @@
+{
+  "name": "footsteps-avatar-build",
+  "private": true,
+  "type": "module",
+  "description": "Fetches the CC0 Quaternius characters and animations and writes the person card's 3D assets (footsteps-web/public/avatar/). See docs/ops/avatar.md.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
+    "meshoptimizer": "^0.22.0",
+    "sharp": "^0.34.1"
+  }
+}

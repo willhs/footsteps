@@ -1,0 +1,35 @@
+{
+  "checked": "2026-11-24",
+  "licence": {
+    "name": "CC0 1.0 Universal (public domain dedication)",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "evidence": "Both pack pages on quaternius.com show 'License: CC0' (the animation page also says 'Free to use in personal, educational and commercial projects. (CC0 License)'), and each zip carries a License.txt reading 'CC0 1.0 Universal (CC0 1.0) Public Domain Dedication'. Checked 2026-11-24."
+  },
+  "author": "Quaternius (https://quaternius.com, https://www.patreon.com/quaternius)",
+  "packs": [
+    {
+      "id": "characters",
+      "title": "Universal Base Characters [Standard] (free edition)",
+      "page": "https://quaternius.com/packs/universalbasecharacters.html",
+      "itch": "https://quaternius.itch.io/universal-base-characters",
+      "game": "universal-base-characters",
+      "upload_id": 15861669,
+      "file": "Universal Base Characters[Standard].zip",
+      "version": "itch upload 15861669; newest file inside dated 2025-12-17",
+      "bytes": 128968391,
+      "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40"
+    },
+    {
+      "id": "animations",
+      "title": "Universal Animation Library [Standard] (free edition)",
+      "page": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "itch": "https://quaternius.itch.io/universal-animation-library",
+      "game": "universal-animation-library",
+      "upload_id": 17958403,
+      "file": "Universal Animation Library[Standard].zip",
+      "version": "itch upload 17958403; UAL1_Standard.glb dated 2026-06-17",
+      "bytes": 15904933,
+      "sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724"
+    }
+  ]
+}

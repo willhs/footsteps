@@ -19,8 +19,11 @@ import PopulationTooltip from './overlays/PopulationTooltip';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
-import { evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
+import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
+import { seaLevelAt } from '@/lib/climate';
 import { CLOSE3D_ZOOM, close3dParam, pitchForZoom } from '@/lib/close3d';
+import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
+import { smokeParam } from '@/lib/hearths';
 import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
 import { describeAnimal, type AnimalInstance } from '@/lib/animals';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
@@ -277,6 +280,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
   // The dwelling under the cursor is gone when the set changes (a pan, zoom out or scrub): drop its card rather than leave it stale.
 
+  // Hearth smoke and, at night, firelight (`?smoke=1`, off by default until reviewed): imagined (lib/hearths.ts).
+  const [smokeOn, setSmokeOn] = useState(false);
+  useEffect(() => setSmokeOn(smokeParam(window.location.search)), []);
+
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalInstance | null>(null);
@@ -284,7 +291,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters, inView } = useGridLayer({
+  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters, inView, hearths } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -298,6 +305,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     figures,
     dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
     fields: fieldsOn && settlements && close3d,
+    smoke: smokeOn && settlements,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -305,6 +313,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
 
   const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
+  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)) });
   const animalLayers = useAnimalsLayer({
     enabled: figures && !is3DMode && blend.people > 0 && (renderMode === 'auto' || renderMode === 'units'),
     lon: viewState.longitude, lat: viewState.latitude, time, people: scenePeople,
@@ -451,7 +460,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const layers: LayersList = [
     ...sceneBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...animalLayers, ...presenceLayers, ...tagLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...smokeLayers, ...animalLayers, ...presenceLayers, ...tagLayers]),
     ...evidence.layers,
     ...otherHumans.above,
   ] as LayersList;
@@ -613,7 +622,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         )}
         {/* The settlement model's one-line note, above the hover card. */}
         {settlements && renderMode !== 'dots' && renderMode !== 'grid' && (
-          <SettlementNote season={season} shelters={sheltersOn} />
+          <SettlementNote season={season} shelters={sheltersOn} smoke={smokeOn} />
         )}
         {/* Hover card, docked here rather than following the cursor; the details panel takes its place while open. */}
         {tooltipData && <PopulationTooltip data={tooltipData} onClose={() => setTooltipData(null)} />}

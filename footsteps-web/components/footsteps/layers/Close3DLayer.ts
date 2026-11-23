@@ -15,6 +15,7 @@ import type { TreeInstance, TreeClearing } from '@/lib/trees';
 type TreeModule = typeof import('./TreeLayer');
 import type { LandPatch } from './fields';
 import { drapeLand, type DrapedMesh } from './fieldsDrape';
+import { groundAt, rememberGround } from '@/lib/groundHeights';
 import { loadDetailManifest, loadDetailPixels, type DetailPixels } from '@/lib/terrainDetail';
 import { coarsenFar, type TileIndex } from '@/lib/demLod';
 import {
@@ -88,8 +89,6 @@ const SHELTER_MESHES = shelterMeshes();
 const SHELTER_MIN_PX = 6;
 /** Metres lifted above the ground mesh so a hut's floor is not cut by the 4-pixel-step relief. */
 const SHELTER_LIFT_M = 1;
-/** How many cells the ground mesh has across a 256-pixel tile (MESH_STEP pixels apart). */
-const MESH_CELLS = 256 / MESH_STEP;
 /** The plant marks' candidate spots per tile: 900 per tile of the old, one zoom finer tiles, so 4× here (same density). */
 const PLANT_CANDIDATES = 3600;
 const built = new WeakMap<TileData, Built>();
@@ -160,23 +159,10 @@ async function loadHeights(url: string, signal?: AbortSignal): Promise<TileData>
 /** Every dwelling inside a tile, lifted to the tile's ground height there; those on water (at or below sea level) are left out. */
 function standingOn(heights: Float32Array, bbox: Bbox, shelters: readonly Shelter[], seaLevel: number): Standing[] {
   const out: Standing[] = [];
-  const dx = bbox.east - bbox.west;
-  const dy = bbox.north - bbox.south;
   for (const shelter of shelters) {
     const [lon, lat] = shelter.position;
-    const u = (lon - bbox.west) / dx;
-    const w = (bbox.north - lat) / dy;
-    if (u < 0 || u >= 1 || w < 0 || w >= 1) continue;
-    // The ground mesh has a vertex every MESH_STEP pixels and slopes between them, so a pixel sample can sit under it on a hill: take
-    // the highest of the four vertices round the point (the surface there is never above it).
-    const fx = u * MESH_CELLS;
-    const fy = w * MESH_CELLS;
-    const [x0, y0] = [Math.floor(fx), Math.floor(fy)];
-    let h = -Infinity;
-    for (const gy of [y0, Math.min(MESH_CELLS, y0 + 1)])
-      for (const gx of [x0, Math.min(MESH_CELLS, x0 + 1)])
-        h = Math.max(h, heights[Math.min(255, gy * MESH_STEP) * 256 + Math.min(255, gx * MESH_STEP)]);
-    if (h <= seaLevel) continue;
+    const h = groundAt(heights, bbox, lon, lat);
+    if (h === null || h <= seaLevel) continue;
     out.push({ shelter, position: [lon, lat, h * EXAGGERATION + SHELTER_LIFT_M] });
   }
   return out;
@@ -342,9 +328,10 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       refinementStrategy: 'best-available',
       // Lit (`?sky=1`): the ground may stand far above sea level under a lifted camera; select tiles for that height range.
       ...(lit && groundTop > 0 ? { zRange: [0, groundTop * 1.2] as [number, number] } : {}),
-      getTileData: async ({ url, signal, index: { x, y, z } }) => {
+      getTileData: async ({ url, signal, index: { x, y, z }, bbox }) => {
         const colour = colourTiles ? loadDetailManifest().then((m) => loadDetailPixels(m, z, x, y)).catch(() => null) : null;
         const [data, tile] = await Promise.all([loadHeights(url!, signal), colour]);
+        if ('west' in bbox) rememberGround(`${z}/${x}/${y}`, bbox as Bbox, data.heights);
         return { ...data, detail: tile };
       },
       updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },

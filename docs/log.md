@@ -4,6 +4,22 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | Hearth smoke and firelight (?smoke=1)
+
+Close-up (zoom 12-18) made more alive, behind `?smoke=1` (off by default, nothing else changes; Vision: Footsteps the close-up scene). Every household of a group in view gets a
+hearth (`lib/hearths.ts`, taken from the same places `sheltersForGroups` / `sheltersForTown` stand a dwelling, so no dwelling table is needed): four soft camera-facing smoke puffs per hearth
+rise 90 m and widen over a 40 s cycle, drift with one seeded wind per 0.5° square (swinging slowly), and fade; a town roof's smoke is thicker (capped); at most 1,200 hearths
+(4,800 puffs) drawn, thinned by seed. At night by the local sun clock (`solarClock`, so `?utc=` / `?warp=` bend it) each hearth casts a warm flickering additive pool of light about a household
+spacing wide. All motion is in the vertex shader from a time uniform and per-puff seeds (`layers/SmokeLayer.ts`; no per-frame CPU work); `?still=1` freezes it. Own hook `hooks/useSmokeLayer.ts`;
+`useGridLayer` returns `hearths` (its group scan is now shared with the dwellings: `viewGroups`).
+Decision against the brief: drawn at z = 0 (where the people's footprints are), not on the Terrarium height. The close-up ground is raised by height × 1.6 while the camera looks at sea
+level, so on the Meseta at Madrid (1,076 m) at zoom 15 the ground, and `?shelters=1` roofs with it, sit about 600 px up the screen from the people; a hearth on the ground was off-screen
+from its own people. A layer inside a Close3D tile also cannot do it (the next tile's ground paints over it), so smoke and light are top-level layers and `lib/groundHeights.ts` (tile heights
+remembered by `Close3DLayer`) only drops hearths over water. Proof: `scripts/smoke-shots.mjs` (flag off and on, real data: Meseta 1000 CE day and night z15, East Africa 50,000 BCE night z15, Rome
+100 CE day and night z14), `scripts/measure-view.mjs` with `CLOSE=1 QUERY=smoke=1` for frame rate. Unit tests `lib/hearths.test.ts` pin the seeding and the count caps. See `docs/ops/close-up-scene.md`.
+
+Frame rate (zoom 15 Madrid / zoom 14 Rome, still / panning): flag off 13.6 / 13.0 and 25.6 / 27.2 fps, on 13.8 / 13.4 and 27.2 / 29.3: no measurable cost (the level is low with the flag off too on this loaded machine, so the 45 fps aim is untested). `pnpm visual` passes (flag off). `lib/flags.test.ts` fails on main before this change (`?ice` is not in the registry); not touched.
+
 ## [2026-11-24] feature | 3D animated person in the card behind ?avatar=3d (part 1)
 
 With `?avatar=3d` the person card shows a rigged, animated 3D figure instead of the SVG drawing: CC0 Quaternius "Universal

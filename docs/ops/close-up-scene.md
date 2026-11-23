@@ -1,7 +1,7 @@
 ---
 id: ops-close-up-scene
 type: ops
-purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface detail), ?weather=1 (cloud shadows, wind in the grass) and ?fields=1 (fields, gardens, paths) add: what is measured, modelled and imagined, how to check it"
+purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface detail), ?weather=1 (cloud shadows, wind in the grass), ?fields=1 (fields, gardens, paths) and ?smoke=1 (hearth smoke and night firelight) add: what is measured, modelled and imagined, how to check it"
 ---
 
 # Close-up scene: the 3D ground
@@ -292,3 +292,31 @@ Verification: from `footsteps-web`, set `FOOTSTEPS_DATA` to a root containing in
 Results (2026-11-24, headless Chromium on Metal, 1440x900, forced redraws for 4 s; job evidence `trees-v4/`): no tree on water, ice or inside a clearing in any scene. Trees drawn and fps with the flag off / on / old `plants=1`: Alps -1000 z13 275k trees, 32 / 27 / 34; z14 88k, 21 / 22 / 23; z15 63k, 26 / 31 / 28; Congo 1000 z14 154k, 32 / 27 / 38; Sahel -3000 z14 49k, 20 / 27 / 21; boreal Canada 1800 z14 130k, 27 / 27 / 28. Run-to-run noise on this machine is about ±6 fps, larger than the trees' cost, and even flag off stays under the 40 fps aim here, so the headless rate is a relative measure: trees cost at most about 5 fps, and before the per-tile pixel LOD the Alps z13 view drew 328k trees at 10-14 fps.
 
 Known limits: tree spacing is capped at 18,000 candidates per DEM tile (roughly one per 1,300 m² of forest at the equator), so at z14 a rainforest reads as scattered crowns over the dark forest ground, not as a closed canopy. Boreal and Alpine conifers read as forest because higher latitudes draw them larger at the same zoom. Raising the cap is the lever if Will wants denser woods. It costs instances roughly in proportion.
+
+## Hearth smoke and firelight (`?smoke=1`)
+
+Opt-in until reviewed on production (no default flips). Every household of a group in view has a hearth: a thin plume of smoke, and at night
+(by the local sun clock, `lib/sunTime.ts` through `lib/solarClock.ts`, so `?utc=` and `?warp=` bend it) a warm, flickering pool of light on the ground,
+about a household's spacing wide, so a camp at night reads as a ring of fires. Everything about it is imagined: where a hearth is, how it burns, which way
+the wind blows. The settlement note says so.
+
+- **Data** (`lib/hearths.ts`, pure and tested): `hearthsForView` takes the groups and towns in view that `useGridLayer` already reads for dwellings and returns one `Hearth`
+  per household, at the place `sheltersForGroups` / `sheltersForTown` stand a dwelling (so the smoke is over its roof when `?shelters=1` is also on; it needs no dwelling table).
+  A town roof is a hearth standing for several households and its smoke is thicker (`strengthOf`, capped at 2.5). At most `MAX_HEARTHS` = 1,200 are drawn
+  (thinned by seed, so a pan keeps the same ones): at most 4,800 puffs and 1,200 pools. Each hearth has `PUFFS_PER_HEARTH` = 4 puffs spaced through a 40 s cycle.
+- **Wind**: one direction per 0.5° square (`windAt`, seeded by the square), swinging by up to 0.7 rad over about ten minutes.
+- **Motion on the GPU** (`layers/SmokeLayer.ts`): a puff's only per-instance data is its seed (phase, wobble, size, strength) and the place's wind. The vertex shader turns the
+  time uniform (`animClock`, frozen by `?still=1`) into a rise (90 m), a drift (up to 140 m with the wind), a widening and a fade, and builds the camera-facing sprite. No per-frame CPU work;
+  the sun is read once every 5 s. The pool is a flat additive disc whose light is `1 - smoothstep(-0.12, 0.02, sun altitude)` at the hearth, flickering from three waves; by day its quad is sent outside the clip volume.
+- **Height**: the layers are drawn at z = 0, where the people's footprints are, above all the ground tiles. The brief asked for the ground height, but the close-up ground is raised
+  by its height × 1.6 and the camera looks at sea level, so on high ground at close zoom the ground (and `?shelters=1` roofs) sit far up the screen from the people: at Madrid (1,076 m)
+  at zoom 15 about 600 px. A hearth on the ground would be off-screen from its own people. (A layer inside a Close3D tile also cannot do it: the next tile's ground paints over it.)
+  The close-up's loaded tile heights (`lib/groundHeights.ts`) are still used to drop hearths over water (ground at or below the year's sea level). The fix that would let everything stand on the ground is the camera
+  and the people following the ground height; it is not part of this flag.
+- **Flat map** (`?close3d=0`, or zoom under 7.5): same layers at z = 0. Smoke and light fade in over zoom 11.5-13 (`smokeOpacity`). Globe view: none.
+
+Check it: `pnpm build && node scripts/smoke-shots.mjs --out <dir>` (real data; each scene flag off and on: Meseta 1000 CE day and night at zoom 15, East Africa 50,000 BCE night, Rome 100 CE day and night at zoom 14;
+`--still 0` lets the smoke move). Frame rate: `CLOSE=1 QUERY=smoke=1 node scripts/measure-view.mjs <base-url> <dir>` (street zoom only; leave `QUERY` out for the flag off).
+
+Measured 2026-11-24, M5 Pro, headless Chrome on Metal, one run each, Madrid village zoom 15 and Rome zoom 14, 1000 CE (4,800 puffs, 1,200 pools at most): flag off 13.6 / 13.0 fps still and 25.6 / 27.2 panning; flag on 13.8 / 13.4 still and 27.2 / 29.3 panning. No measurable cost. Both are far under 45 fps, with the flag off as well: frames
+come at 133 ms steps (the close-up and the settlement scene dominate here, on a machine running other jobs), so the 45 fps aim could not be tested in this run; the cost, not the level, is the result. Repeat on a quiet machine.

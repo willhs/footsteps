@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayersList } from '@deck.gl/core';
 import { blendCities, type AllocatedCity } from '@/lib/settlements';
 import type { DwellingTable } from '@/lib/dwellings';
+import { hearthsForView, type Hearth } from '@/lib/hearths';
 import { sheltersForGroups, sheltersForTown, type Shelter, type ShelterGroup, type TownInView } from '../layers/shelters';
 import { UnitKind } from '../layers/units';
 import { cityLayers as buildCityLayers } from '../layers/cityLayers';
@@ -34,6 +35,7 @@ const NO_PEOPLE: readonly Person[] = [];
 const NO_SHELTERS: readonly Shelter[] = [];
 /** The groups and towns in view at one data year. */
 export type GroupsInView = { year: number; groups: ShelterGroup[]; towns: TownInView[] };
+const NO_HEARTHS: readonly Hearth[] = [];
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -66,6 +68,7 @@ export default function useGridLayer({
   figures = false,
   dwellings = null,
   fields = false,
+  smoke = false,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -88,6 +91,8 @@ export default function useGridLayer({
   dwellings?: DwellingTable | null;
   /** `?fields=1`: return the groups in view as `inView` for the land round them (layers/fields.ts). */
   fields?: boolean;
+  /** `?smoke=1`: the hearths in view are returned as `hearths` (lib/hearths.ts). */
+  smoke?: boolean;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -104,8 +109,10 @@ export default function useGridLayer({
   scenePeople: readonly Person[];
   /** One dwelling per household in view, and roof clusters for towns, at the nearer data year (`?shelters=1`; else empty). */
   shelters: readonly Shelter[];
-  /** The groups and towns in view at the nearer data year (`?shelters=1` or `?fields=1`, people drawn); else null. */
+  /** The groups and towns in view at the nearer data year (`?shelters=1`, `?fields=1` or `?smoke=1`, people drawn); else null. */
   inView: GroupsInView | null;
+  /** One hearth per household in view, where its dwelling would stand (`?smoke=1`; else empty). */
+  hearths: readonly Hearth[];
 } {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
@@ -345,11 +352,11 @@ export default function useGridLayer({
   }, [peopleOn, morphScene, boundsKey, households]);
   const nearerPart = morphProgress < 0.5 ? 'leaving' : 'entering';
   const scenePeople = useMemo(() => people ? [...people.steady, ...people[nearerPart]] : NO_PEOPLE, [people, nearerPart]);
-  // The groups and towns in view at the nearer data year, for the dwellings (`?shelters=1`) and the land round them (`?fields=1`), so a roof
-  // or a field never stands without its people. Rebuilt only when the snapped view box, the scene or the nearer year changes.
+  // The groups and towns in view at the nearer data year, for the dwellings (`?shelters=1`), the land round them (`?fields=1`) and hearths
+  // (`?smoke=1`), so a roof, a field or a fire never stands without its people. Rebuilt only when the snapped view box, the scene or the nearer year changes.
   const nearTo = morphProgress >= 0.5;
   const inView = useMemo((): GroupsInView | null => {
-    if ((!dwellings && !fields) || !peopleOn || !morphScene || !bounds) return null;
+    if ((!dwellings && !fields && !smoke) || !peopleOn || !morphScene || !bounds) return null;
     const pad = 0.05;
     const { west, south, east, north } = bounds;
     const within = (lon: number, lat: number) => lon >= west - pad && lon <= east + pad && lat >= south - pad && lat <= north + pad;
@@ -370,12 +377,16 @@ export default function useGridLayer({
       if (city.people > 0 && within(city.position[0], city.position[1])) towns.push({ lon: city.position[0], lat: city.position[1], people: city.people });
     return { year, groups, towns };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dwellings, fields, peopleOn, morphScene, boundsKey, nearTo]);
+  }, [dwellings, fields, smoke, peopleOn, morphScene, boundsKey, nearTo]);
   const shelters = useMemo(
     () => (dwellings && inView
       ? [...sheltersForGroups(inView.groups, inView.year, dwellings), ...inView.towns.flatMap((town) => sheltersForTown(town, inView.year, dwellings))]
       : NO_SHELTERS),
     [dwellings, inView],
+  );
+  const hearths = useMemo(
+    () => (smoke && inView ? hearthsForView(inView.groups, inView.towns, inView.year) : NO_HEARTHS),
+    [smoke, inView],
   );
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
@@ -483,5 +494,6 @@ export default function useGridLayer({
     scenePeople,
     shelters,
     inView,
+    hearths,
   };
 }

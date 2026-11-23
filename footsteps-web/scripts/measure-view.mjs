@@ -32,11 +32,16 @@ if (serve) {
   ({ server, base } = await serveStatic([path.join(web, 'out'), ...dataRoots(root)]));
 }
 const headed = process.argv.includes('--headed') || !!process.env.HEADED;
-const mode = process.env.MODE ? `&mode=${process.env.MODE}` : '';
+const mode = (process.env.MODE ? `&mode=${process.env.MODE}` : '') + (process.env.QUERY ? `&${process.env.QUERY}` : '');
+// CLOSE=1 measures street zoom only (1000 CE, a Madrid village at zoom 15 and Rome at 14): a still view for 6 s, then the pan. QUERY=smoke=1 adds URL flags (compare with and without).
+const CLOSE = !!process.env.CLOSE && !process.env.CLOSE.includes(','); // CLOSE=lat,lon,year is the pan-at-a-place mode below
 fs.mkdirSync(outDir, { recursive: true });
 
 const YEARS = { '-10000': 'Home', 1900: 'End' };
-const SCENES = [
+const SCENES = CLOSE ? [
+  { name: 'madrid-z15', lat: 40.45, lon: -3.7, zoom: 15 },
+  { name: 'rome-z14', lat: 41.9, lon: 12.5, zoom: 14 },
+] : [
   { name: 'world', lat: 20, lon: 10, zoom: 1.5 },
   { name: 'europe', lat: 50, lon: 10, zoom: 4.2 },
   { name: 'units', lat: 48, lon: 10, zoom: 6 },
@@ -118,7 +123,7 @@ async function pan() {
 
 const results = {};
 const renderer = { value: null };
-if (process.env.CLOSE) {
+if (process.env.CLOSE && !CLOSE) {
   const [lat, lon, year] = process.env.CLOSE.split(',');
   const query = process.env.QUERY ? `&${process.env.QUERY}` : '';
   for (const zoom of [13, 14, 15]) {
@@ -140,9 +145,10 @@ if (process.env.CLOSE) {
   server?.close();
   process.exit(0);
 }
-for (const year of [-10000, 1000, 1900]) {
+for (const year of CLOSE ? [1000] : [-10000, 1000, 1900]) {
   for (const scene of SCENES) {
-    await page.goto(`${base}/?lat=${scene.lat}&lon=${scene.lon}&zoom=${scene.zoom}${mode}`);
+    await page.goto(`${base}/?lat=${scene.lat}&lon=${scene.lon}&zoom=${scene.zoom}${mode}`, CLOSE ? { waitUntil: 'commit', timeout: 120_000 } : undefined);
+    if (CLOSE) await page.waitForFunction(() => document.querySelector('canvas'), undefined, { timeout: 120_000 });
     if (!renderer.value)
       renderer.value = await page.evaluate(() => {
         const gl = document.createElement('canvas').getContext('webgl2');
@@ -153,14 +159,31 @@ for (const year of [-10000, 1000, 1900]) {
     await setYear(year);
     await settle();
     await page.screenshot({ path: path.join(outDir, `${year}-${scene.name}.png`) });
-    if (year === 1900) {
+    if (CLOSE) {
+      // Wait until the people are in deck.gl (the settlement model has run for this view) and the network is quiet, then let tiles finish.
+      await page.waitForFunction(() => {
+        for (const el of document.querySelectorAll('canvas')) {
+          let f = el[Object.keys(el).find((k) => k.startsWith('__reactFiber'))];
+          for (; f; f = f.return)
+            for (let h = f.memoizedState; h; h = h.next) {
+              const deck = h.memoizedState?.current?.deck;
+              if (deck?.layerManager) return deck.props.layers.flat(Infinity).some((l) => l?.id === 'people' && l.props.data?.length > 0);
+            }
+        }
+        return false;
+      }, undefined, { timeout: 240_000 }).catch(() => console.log('no people drawn'));
+      await settle(15000);
+      results[`still ${year} ${scene.name}`] = await measure(() => page.waitForTimeout(6000));
+      console.log(`still ${year} ${scene.name}`, results[`still ${year} ${scene.name}`]);
+    }
+    if (year === 1900 || CLOSE) {
       results[`pan ${year} ${scene.name}`] = await measure(pan);
       console.log(`pan ${year} ${scene.name}`, results[`pan ${year} ${scene.name}`]);
     }
   }
 }
 
-// Scrub all 30 years, ~4 per second, at world zoom (glow) and units zoom.
+if (!CLOSE) // Scrub all 30 years, ~4 per second, at world zoom (glow) and units zoom.
 for (const [name, query] of [
   ['scrub world', 'lat=30&lon=20&zoom=2'],
   ['scrub units', 'lat=48&lon=10&zoom=6'],

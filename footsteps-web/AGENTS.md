@@ -153,3 +153,7 @@ which are not in git. `SKIP_TILES=1` skips PMTiles only.
 - `?figures=1` changes only the newest footprint slot to an upright imagined person; `footprintData` still repeats each `Person` three times and ids/picking stay unchanged. `PeopleLayer` shares its gait and routine shader between figures and footprints. Other-human people receive the same flag. Keep the TS/GLSL gait contract intact.
 - `layers/AnimalsLayer.ts` animates one instanced silhouette per `lib/animals.ts` `AnimalInstance`, via uniforms only. `hooks/useAnimalsLayer.ts` loads own-cell PHYLACINE presence and the full food-model domestic roster (independent of `?food=1`). Do not substitute the truncated food hover row or invent species when data is absent. Counts, spots and looks are imagined; wild ranges and domestic availability are modelled, with different picking labels.
 - Figures and wildlife stay opt-in pending Will's production review; footprints remain default. See `docs/ops/close-up-scene.md` and `scripts/measure-figures.mjs` for the real-data scene checks.
+
+## Opt-in hearth smoke and firelight
+
+- `?smoke=1` (`lib/hearths.ts`, `layers/SmokeLayer.ts`, `hooks/useSmokeLayer.ts`): one hearth per household in view (same places as `?shelters=1` dwellings, from `useGridLayer`'s `hearths`), a GPU-animated smoke plume and, by the local sun clock, a flickering pool of light. Drawn at z = 0 like the people, top-level (not inside a Close3D tile); `lib/groundHeights.ts` only drops hearths over water. `scripts/smoke-shots.mjs` takes the proof shots. See `docs/ops/close-up-scene.md`.

@@ -25,6 +25,7 @@ opt-in looks and says so on screen.
 | `?plants=1` | off | Low-poly plant marks by Krapp biome in the close-up 3D | [close-up-scene.md](close-up-scene.md) | no (off because they read as toys) |
 | `?shelters=1` | off | One dwelling per household in the close-up, typed from the analog society's house codes | [settlements.md](settlements.md) | no |
 | `?fields=1` | off | Imagined fields, gardens, terraces, corrals, grazed grass and worn paths round each group in the close-up (zoom ~11.5+, 3D only); farmed share from HYDE cropland, crops from the food table, tracks towards fresh water | [close-up-scene.md](close-up-scene.md) | no |
+| `?smoke=1` | off | A smoke plume from each household's hearth, drifting with the wind, and warm light pools on the ground at night (all imagined) | [close-up-scene.md](close-up-scene.md) | no |
 | `?routine=1` | off | Each person at street zoom follows a daily routine for the local sun time (asleep, hearth, play, trip) | [routine.md](routine.md) | no |
 | `?figures=1` | off | The newest footprint slot of each person becomes an upright imagined figure; also feeds the food row | [close-up-scene.md](close-up-scene.md) | no |
 | `?ice=1` | off | Dated ice-sheet margins (PaleoMIST 1.0, nearest 2.5 ka epoch, 0-80 ka): white overlay, close-up ice surface, groups kept off the ice, hover row | [ice-sheets.md](ice-sheets.md) | no |

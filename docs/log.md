@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | A featured person at street zoom, without a click
+
+Will asked for the left column to show a person by default when zoomed in. At street zoom (people at least half faded in)
+`FeaturedPerson.tsx` shows someone in frame: `lib/featuredPerson.ts` keeps the current pick while they stay well inside the view
+(half of a 15% inset) and otherwise picks whoever is nearest the middle of an inset frame, so zooming in narrows the choice and
+panning brings a new person; keyed by place, because `Person.id` counts the people in view and changes as it moves. It takes the
+hover card's place at that zoom; clicking it opens the full person panel ("Imagine their day"). Portraits were seeded with `id` too,
+so the same person's look changed as you panned: now seeded by `Person.gait` (their spot). Checked near Rome at 1000 BCE: card at
+zoom 13, opens the panel, a new person after a pan. `pnpm visual`: the person scene re-baselined (portrait seed). The richer
+3D animated person Will chose is two Manager jobs behind `?avatar=3d` (b79d9ae9 figure and viewer, 26286cca wardrobe and work).
+
 ## [2026-11-24] fix | Bands no longer vanish at street zoom; other kinds of human drawn smaller, their sites as rings
 
 Will zoomed in on a group and it disappeared at the closest zoom. Reproduced at 50,000 BCE in East Africa: a forager band's

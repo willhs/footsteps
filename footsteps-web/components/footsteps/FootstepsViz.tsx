@@ -36,6 +36,8 @@ import HoverCard from './overlays/HoverCard';
 import { tourParam } from '@/lib/tourParam';
 import dynamic from 'next/dynamic';
 import WaySign from './overlays/WaySign';
+import FeaturedPerson from './overlays/FeaturedPerson';
+import { personKey, pickFeatured } from '@/lib/featuredPerson';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
 import { regionTintLayer } from './layers/regionTint';
@@ -307,6 +309,27 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     () => (otherHumans.people.length ? [...people, ...otherHumans.people] : people),
     [people, otherHumans.people],
   );
+  // At street zoom the left column shows someone in frame without a click: kept while they stay in frame, else the
+  // one nearest the middle (lib/featuredPerson.ts). Zooming in narrows the frame, so the choice narrows with it.
+  const featuredKey = useRef<string | null>(null);
+  const featuredOn = !!screenSize && (renderMode === 'auto' || renderMode === 'units') && blend.people >= 0.5 && !is3DMode && !selectedPlace && taggedPeople.length > 0;
+  const featured = useMemo(() => {
+    if (!featuredOn || !screenSize) return null;
+    const [west, south, east, north] = new WebMercatorViewport({
+      longitude: deckViewState.longitude,
+      latitude: deckViewState.latitude,
+      zoom: deckViewState.zoom,
+      pitch: deckViewState.pitch ?? 0,
+      bearing: deckViewState.bearing ?? 0,
+      width: screenSize.width,
+      height: screenSize.height,
+    }).getBounds();
+    const pick = pickFeatured(taggedPeople, { west, south: Math.max(-90, south), east, north: Math.min(90, north) }, [deckViewState.longitude, deckViewState.latitude], featuredKey.current);
+    return pick;
+  }, [featuredOn, taggedPeople, deckViewState.longitude, deckViewState.latitude, deckViewState.zoom, deckViewState.pitch, deckViewState.bearing, screenSize?.width, screenSize?.height]);
+  useEffect(() => {
+    featuredKey.current = featured ? personKey(featured) : null;
+  }, [featured]);
   const tagLayers = usePersonTags({
     people: taggedPeople,
     view: deckViewState,
@@ -556,12 +579,24 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         {evidenceHover && <EvidenceTooltip hover={evidenceHover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
         {otherHover && <OtherHumansTooltip hover={otherHover} />}
         {shelterInfo && <ShelterTooltip hover={shelterInfo} table={dwellings} />}
-        {cardPoint && !selectedAnimal && !(peopleView && selectedPlace) && (
+        {featured && !selectedAnimal && (
+          <FeaturedPerson
+            person={featured}
+            year={Math.round(time)}
+            routineMs={routineOn ? now.getTime() : undefined}
+            onOpen={() => {
+              setSelectedPerson(featured);
+              setSelectedGroup(null);
+              setSelectedPlace([featured.position[0], featured.position[1]]);
+            }}
+          />
+        )}
+        {cardPoint && !featured && !selectedAnimal && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 
         {/* Legend: hidden while the details panel or the hover card is up, which need the height. */}
-        {peopleView && !selectedAnimal && !selectedPlace && !columnBusy ? (
+        {peopleView && !selectedAnimal && !selectedPlace && !columnBusy && !featured ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (

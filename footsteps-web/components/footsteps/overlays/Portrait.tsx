@@ -128,7 +128,8 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
     </div>
   );
   const rec = atlas.rec;
-  const seed = Math.round(person.position[0] * 1e5) ^ Math.round(person.position[1] * 1e5) ^ (person.id * 2654435761);
+  // From the person's fixed spot (its gait hash), not `id`: ids count the people in view and change as the view moves.
+  const seed = Math.round(person.position[0] * 1e5) ^ Math.round(person.position[1] * 1e5) ^ Math.round(person.gait * 2654435761);
   const r = rng(seed);
   const child = person.age < 13;
   const elder = person.age >= 55;

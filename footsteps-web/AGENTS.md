@@ -86,6 +86,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   The opt-in `?food=1` row (`lib/food.ts`, `hooks/useFood.ts`) lazily loads `/food/food.json`; export with `food/export_web.py` (docs/ops/food.md).
   The card's top picture is an imagined, pre-painted scene (`lib/groundScene.ts` picks it from biome, date and way of life;
   `public/ground/` holds the WebPs and `index.json`; only listed scenes show). See docs/ops/ground-view.md.
+- Featured person: at street zoom (people at least half faded in, flat map or close-up), the left column shows someone in frame without a click (`overlays/FeaturedPerson.tsx`, picked by `lib/featuredPerson.ts`: kept while well inside the frame, else the one nearest the middle, so zooming in narrows the choice; keyed by place, never by `Person.id`, which counts people in view). It replaces the place hover card there; clicking it opens the full person panel. Portraits are seeded by the person's spot (`Person.gait`), not `id`, so a person keeps their look as the view moves. A 3D animated person is being built behind `?avatar=3d` (tasks b79d9ae9, 26286cca; docs/ops/avatar.md).
 - Name tags (Marauder's Map): from zoom ~16.6 (full at 17.4), flat map only, each of up to 150 people nearest the view centre
   gets a tag "role, age" ("potter, 34") beside their newest footprint. Imagined, like the people (the person card says so).
   The tag follows the walker because `lib/gait.ts` is a TS port of the footprint shader's `gait` GLSL in `layers/people.ts`:

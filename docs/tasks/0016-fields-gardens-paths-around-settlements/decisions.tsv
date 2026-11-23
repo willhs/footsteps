@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-23T11:02:32Z	plan	draped quad meshes per tile (option C)	vertex colours too coarse (~70 m), texture clashes with ?ground=1	plan.md Design options	chosen
+2026-11-23T11:02:32Z	plan	close-up only, no flat-map fields	no heights on flat map -> no fine water test	task.md Assumptions	chosen
+2026-11-23T11:02:32Z	plan	DEM slope for terraces, not site_terrain slope class	site terrain lives in the worker; DEM finer and gives contour direction	task.md Assumptions	chosen

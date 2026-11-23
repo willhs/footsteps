@@ -5,7 +5,7 @@ import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time'
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
-import { close3dNote, groundParam, plantsParam } from '@/lib/close3d';
+import { close3dNote, groundParam, plantsParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
 
 const LOD_SUMMARY: Record<number, string> = {
@@ -93,10 +93,12 @@ function SupportingText({
     };
   }, []);
   useEffect(() => setPlantsOn(plantsParam(window.location.search)), []);
+  const [treesOn, setTreesOn] = useState(false);
+  useEffect(() => setTreesOn(treesParam(window.location.search)), []);
   useEffect(() => setGroundOn(groundParam(window.location.search)), []);
   useEffect(() => setWeatherOn(weatherParam(window.location.search)), []);
 
-  const note = close3dNote(plantsOn, groundOn, weatherOn);
+  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(

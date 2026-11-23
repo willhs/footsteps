@@ -9,6 +9,8 @@ import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
 import type { LakePlane } from '@/lib/pastWater';
 import { shelterMeshes, type Shelter } from './shelters';
+import type { TreeInstance, TreeClearing } from '@/lib/trees';
+type TreeModule = typeof import('./TreeLayer');
 import { loadDetailManifest, loadDetailPixels, type DetailPixels } from '@/lib/terrainDetail';
 import { coarsenFar, type TileIndex } from '@/lib/demLod';
 import {
@@ -47,6 +49,8 @@ type Props = {
   ice?: IceCover | null;
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;
+  trees?: boolean;
+  clearings?: readonly TreeClearing[];
   /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
   detail?: boolean;
   /** Draw the imagined weather (`?weather=1`; lib/weather.ts): cloud shadows and gusts in the ground shader, with or without `detail`. */
@@ -72,6 +76,9 @@ const MESH_CELLS = 256 / MESH_STEP;
 /** The plant marks' candidate spots per tile: 900 per tile of the old, one zoom finer tiles, so 4× here (same density). */
 const PLANT_CANDIDATES = 3600;
 const built = new WeakMap<TileData, Built>();
+/** Trees per DEM tile: candidates by era key, those outside the current clearings, and the LOD prefix drawn. */
+const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearings: readonly TreeClearing[]; visible: TreeInstance[]; drawn: TreeInstance[] }>();
+const NO_CLEARINGS: readonly TreeClearing[] = [];
 
 /** Main-thread milliseconds of mesh building per frame. Tiles that arrive together are built over the next frames instead of in
  * one long task (each tile takes a few ms); a tile not built yet shows the flat map under it for a frame or two. */
@@ -181,10 +188,13 @@ export default class Close3DLayer extends CompositeLayer<Props> {
     });
   }
 
-  declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef };
+  declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef; treeModule: TreeModule | null };
 
   initializeState() {
-    this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null } };
+    this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null }, treeModule: null };
+    if (this.props.trees) import('./TreeLayer').then(treeModule => {
+      if (this.internalState) this.setState({ treeModule });
+    });
   }
 
   shouldUpdateState({ changeFlags }: UpdateParameters<this>) {
@@ -201,10 +211,32 @@ export default class Close3DLayer extends CompositeLayer<Props> {
     });
   }
 
+  /** Screen pixels a 20 m tree spans at the tile's point nearest the camera (its corners and centre, on the mean ground). */
+  treePixels(bbox: Bbox, heights: Float32Array): number {
+    const viewport = this.context.viewport;
+    const lat = (bbox.north + bbox.south) / 2;
+    const step = 20 / (111320 * Math.cos((lat * Math.PI) / 180));
+    const h = heights[128 * 256 + 128] * EXAGGERATION;
+    let best = 0;
+    for (const lon of [bbox.west, (bbox.west + bbox.east) / 2, bbox.east])
+      for (const y of [bbox.south, lat, bbox.north]) {
+        const [ax, ay] = viewport.project([lon, y, h]);
+        const [bx, by] = viewport.project([lon + step, y, h]);
+        best = Math.max(best, Math.hypot(bx - ax, by - ay));
+      }
+    return best;
+  }
+
+  /** Coarse camera key: tree LOD is re-judged per tile when the camera moves enough to change it, not every frame. */
+  treeViewKey(): string {
+    const v = this.context.viewport as unknown as { longitude: number; latitude: number; bearing?: number; pitch?: number };
+    return `${Math.round(v.longitude * 400)},${Math.round(v.latitude * 400)},${Math.round((v.bearing ?? 0) / 10)},${Math.round((v.pitch ?? 0) / 5)}`;
+  }
+
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, detail = false, weather = false, shelters = [], colourTiles = false } = this.props;
+    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, trees = false, clearings = NO_CLEARINGS, detail = false, weather = false, shelters = [], colourTiles = false } = this.props;
     const ground = bare && ice ? withIce(bare, ice) : bare;
     // The weather is the place at the screen centre's, set on every view change: the ground tiles read it each frame without being rebuilt.
     const centre = this.context.viewport as unknown as { longitude: number };
@@ -228,7 +260,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         const [data, tile] = await Promise.all([loadHeights(url!, signal), colour]);
         return { ...data, detail: tile };
       },
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, this.state.buildTick] },
+      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : ''] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !ground || !('west' in props.tile.bbox)) return null;
@@ -280,6 +312,33 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
         });
         const layers = [ground3d];
+        const treeShare = trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(this.treePixels(bbox, data.heights)) : 0;
+        if (treeShare > 0 && this.state.treeModule) {
+          const { default: TreeLayer, treesForTile, outsideClearings, TREE_MAPPING } = this.state.treeModule;
+          let cached = treeBuilt.get(data);
+          if (!cached || cached.key !== key) {
+            const instances = treesForTile(data.heights, bbox, [x, y, z], seaLevel, ground, lake);
+            const visible = outsideClearings(instances, clearings);
+            cached = { key, trees: instances, clearings, visible, drawn: visible };
+            treeBuilt.set(data, cached);
+          } else if (cached.clearings !== clearings) {
+            cached.visible = outsideClearings(cached.trees, clearings);
+            cached.drawn = cached.visible;
+            cached.clearings = clearings;
+          }
+          // A stable array per tile, so deck keeps its instance buffers between frames.
+          const count = Math.round(cached.visible.length * treeShare);
+          if (cached.drawn.length !== count) cached.drawn = count === cached.visible.length ? cached.visible : cached.visible.slice(0, count);
+          layers.push(new TreeLayer({
+            ...this.getSubLayerProps({ id: `${props.id}-trees` }),
+            id: `${props.id}-trees`, data: cached.drawn,
+            iconAtlas: '/trees/atlas.webp', iconMapping: TREE_MAPPING,
+            getIcon: t => `${t.kind}-${t.variant}`, getPosition: t => t.position,
+            getSize: t => t.height, getColor: t => t.tint, sizeUnits: 'meters',
+            billboard: true, alphaCutoff: 0.25, pickable: false,
+            parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
+          }) as unknown as typeof ground3d);
+        }
         if (shelters.length) layers.push(...(this.shelterLayers(props.id, data.heights, bbox, shelters, seaLevel, mpp, zoom) as unknown as typeof layers));
         for (const kind of ['conifer', 'broadleaf', 'acacia', 'shrub'] as const) {
           const these = plants.filter((p) => p.kind === kind);

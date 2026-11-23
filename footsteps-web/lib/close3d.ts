@@ -25,6 +25,11 @@ export function plantsParam(search: string): boolean {
   return new URLSearchParams(search).get('plants') === '1';
 }
 
+/** Shaded tree impostors are opt-in until reviewed. */
+export function treesParam(search: string): boolean {
+  return new URLSearchParams(search).get('trees') === '1';
+}
+
 /** Biome surface detail in the ground shader (grass, closed canopy, sand ripples, cracked ice, reeds, rock):
  * off until Will has looked at it on prod. `?ground=1` turns it on. */
 export function groundParam(search: string): boolean {
@@ -34,9 +39,13 @@ export function groundParam(search: string): boolean {
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
 
 /** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
-export function close3dNote(plants: boolean, ground: boolean, weather = false): { label: string; title: string } {
+export function close3dNote(plants: boolean, ground: boolean, weather = false, trees = false): { label: string; title: string } {
   const imagined: string[] = [];
   const how: string[] = [];
+  if (trees) {
+    imagined.push('trees');
+    how.push('Tree types follow modelled biomes; individual trees, heights, density and household clearings are imagined.');
+  }
   if (ground) {
     imagined.push('surface');
     how.push(

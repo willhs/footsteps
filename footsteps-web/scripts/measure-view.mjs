@@ -10,6 +10,11 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 
+if (process.argv.includes('--trees')) {
+  await import('./measure-trees.mjs');
+  process.exit(process.exitCode ?? 0);
+}
+
 const [base = 'http://localhost:4600', outDir = 'perf-out'] =
   process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const headed = process.argv.includes('--headed') || !!process.env.HEADED;

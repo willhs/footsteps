@@ -30,30 +30,30 @@ new TreeLayer({data: visible, iconAtlas: '/trees/atlas.webp'});
 ## Assumptions and ordering
 
 - Reuse `plantsForTile` for biome/snow/water eligibility at higher candidate density, without modifying it. Refine tree type for palms/dead variants only in the new module.
-- Use no sprites far away; fade by projected size. Do not create another canopy data product.
+- Use no sprites far away; fade by projected size. Do not create another canopy data product. LOD is judged per tile from the projected pixel size of a 20 m tree (tile zoom proved useless: every close-up tile is z13).
 - Reuse the household shelter positions for clearings even when roofs are off. Loading that table is restricted to trees/shelters flags.
 - Atlas creation and pure placement are independent; integrate only after their contracts exist. Work inline in this managed branch, no shared writes.
 - Acceptance verification runs once at the end after all edits; repeat only on failures or changes. The committed plan is the prerequisite commit; implementation lands in one final commit per dispatch instructions.
 
 ## Phase 1: Assets and placement
 
-- [ ] Commit a deterministic unpaid atlas generator and its generated WebP for all six types with three variants each.
-- [ ] Implement typed tree placement, clearings and LOD with unit tests for determinism, water, ice and clearings.
+- [x] Commit a deterministic unpaid atlas generator and its generated WebP for all six types with three variants each.
+- [x] Implement typed tree placement, clearings and LOD with unit tests for determinism, water, ice and clearings.
 
 ## Phase 2: Render and integrate
 
-- [ ] Add camera-facing metre-scaled sprites with shader wind and alpha cutoff.
-- [ ] Connect flag, cached tile trees, independently computed household clearings and imagined label, preserving flag-off behaviour.
-- [ ] Register flag and update close-up documentation and job log fragment.
+- [x] Add camera-facing metre-scaled sprites with shader wind and alpha cutoff.
+- [x] Connect flag, cached tile trees, independently computed household clearings and imagined label, preserving flag-off behaviour.
+- [x] Register flag and update close-up documentation and job log fragment.
 
 ## Phase 3: Verification
 
-- [ ] Run `pnpm --dir footsteps-web test -- --runInBand`, `pnpm --dir footsteps-web exec tsc --noEmit`, `pnpm --dir footsteps-web lint`, `pnpm --dir footsteps-web build`.
-- [ ] Capture the five required real scenes off/on/old plants under workspace evidence; measure z13–15 using `scripts/measure-view.mjs`.
-- [ ] Run `pnpm --dir footsteps-web visual` with FOOTSTEPS_DATA; inspect differences without blindly updating baselines.
-- [ ] Run the flag verification script; inspect the dependency surface and demonstrate legacy placement behaviour is unchanged.
+- [x] Run `pnpm --dir footsteps-web test -- --runInBand`, `pnpm --dir footsteps-web exec tsc --noEmit`, `pnpm --dir footsteps-web lint`, `pnpm --dir footsteps-web build`.
+- [x] Capture the five required real scenes off/on/old plants under workspace evidence; measure z13–15 using `scripts/measure-view.mjs`.
+- [x] Run `pnpm --dir footsteps-web visual` with FOOTSTEPS_DATA; inspect differences without blindly updating baselines. (10/10 pass.)
+- [x] Run the flag verification script (scoped: none/trees/all-opt-in; only missing optional-data 404s); inspect the dependency surface and demonstrate legacy placement behaviour is unchanged.
 
 ## Phase 4: Wrap (commit & finalize)
 
-- [ ] Check acceptance evidence and update this checklist and decision trail honestly.
-- [ ] Run `git diff --check`; stage only changed paths and commit implementation, assets and docs. Manager owns review and landing.
+- [x] Check acceptance evidence and update this checklist and decision trail honestly.
+- [x] Run `git diff --check`; stage only changed paths and commit implementation, assets and docs. Manager owns review and landing.

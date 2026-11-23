@@ -58,6 +58,7 @@ import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSp
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
 import { shelterHoverOf, type ShelterHover } from './layers/shelters';
+import { treesParam } from '@/lib/close3d';
 import ShelterTooltip from './overlays/ShelterTooltip';
 
 // Opt-in code, loaded only when its flag is on (docs/ops/first-load.md).
@@ -242,11 +243,13 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
 
   // Close-up dwellings (`?shelters=1`, off by default until reviewed): type modelled from analogs, place imagined (lib/dwellings.ts).
   const [sheltersOn, setSheltersOn] = useState(false);
+  const [treesOn, setTreesOn] = useState(false);
+  useEffect(() => setTreesOn(treesParam(window.location.search)), []);
   useEffect(() => setSheltersOn(sheltersParam(window.location.search)), []);
   const [dwellings, setDwellings] = useState<DwellingTable | null>(null);
   useEffect(() => {
-    if (sheltersOn) loadDwellings().then(setDwellings).catch((error) => console.warn('[shelters] failed to load', error));
-  }, [sheltersOn]);
+    if (sheltersOn || treesOn) loadDwellings().then(setDwellings).catch((error) => console.warn('[shelters] failed to load', error));
+  }, [sheltersOn, treesOn]);
   const [shelterHover, setShelterHover] = useState<ShelterHover | null>(null);
   // The dwelling under the cursor is gone when the set changes (a pan, zoom out or scrub): drop its card rather than leave it stale.
 
@@ -269,7 +272,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     households: settlements,
     routineEpoch,
     figures,
-    dwellings: sheltersOn && settlements && close3d ? dwellings : null,
+    dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
@@ -403,10 +406,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setShelterHover(null), [shelters]);
   const sceneBackground = useMemo(
     () =>
-      sheltersOn && shelters.length
-        ? shadedBackground.map((layer) => (layer.id === 'close3d' ? layer.clone({ shelters, onHover: (info: PickingInfo) => setShelterHover(shelterHoverOf(info)) }) : layer))
+      (sheltersOn || treesOn) && shelters.length
+        ? shadedBackground.map((layer) => (layer.id === 'close3d' ? layer.clone({ shelters: sheltersOn ? shelters : [], clearings: treesOn ? shelters.map(s => ({ position: s.position, radius: Math.max(18, s.size[0] * 2) })) : [], onHover: (info: PickingInfo) => setShelterHover(shelterHoverOf(info)) }) : layer))
         : shadedBackground,
-    [shadedBackground, sheltersOn, shelters],
+    [shadedBackground, sheltersOn, treesOn, shelters],
   );
   const layers: LayersList = [
     ...sceneBackground,
@@ -611,7 +614,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
               {!showGlowLegend && blend.pickable && (
                 <li className="text-[var(--ov-text-3)]">Click a mark to name it</li>
               )}
-              {shelters.length > 0 && (
+              {sheltersOn && shelters.length > 0 && (
                 <li className="text-[var(--ov-text-3)]">Dwellings: type modelled from analogs, place imagined. Hover one.</li>
               )}
             </ul>

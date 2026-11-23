@@ -19,6 +19,7 @@ opt-in looks and says so on screen.
 
 | Flag | Default | What it does | Ops doc | Reviewed |
 |---|---|---|---|---|
+| `?trees=1` | off | Shaded biome tree impostors, household clearings and distance LOD; trees imagined | [close-up-scene.md](close-up-scene.md) | no |
 | `?ground=1` | off | Biome surface detail (grass, canopy, sand ripples, cracked ice, reeds, rock) in the close-up ground shader; the note says "surface imagined" | [close-up-scene.md](close-up-scene.md) | no |
 | `?weather=1` | off | Imagined weather in the close-up ground shader: cloud shadows drifting by the place's rainfall, gusts through grass and reeds; works with or without `ground=1`; the note says "weather imagined" | [close-up-scene.md](close-up-scene.md) | no |
 | `?plants=1` | off | Low-poly plant marks by Krapp biome in the close-up 3D | [close-up-scene.md](close-up-scene.md) | no (off because they read as toys) |

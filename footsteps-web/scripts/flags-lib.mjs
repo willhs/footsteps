@@ -16,6 +16,7 @@ export const VIEWPORT = { width: 1280, height: 800 };
 /** @type {Array<{name:string,kind:string,on?:string,default:string,what:string,doc:string,reviewed:string,aliases?:string[]}>} */
 export const FLAGS = [
   // Opt-in: the look is off until the flag is set. Order is the order the sweep turns them on together.
+  { name: 'trees', kind: 'opt-in', on: '1', default: 'off', what: 'Shaded biome tree impostors, household clearings and distance LOD; trees imagined', doc: 'close-up-scene.md', reviewed: 'no' },
   { name: 'ground', kind: 'opt-in', on: '1', default: 'off', what: 'Biome surface detail (grass, canopy, sand ripples, cracked ice, reeds, rock) in the close-up ground shader; the note says "surface imagined"', doc: 'close-up-scene.md', reviewed: 'no' },
   { name: 'weather', kind: 'opt-in', on: '1', default: 'off', what: 'Imagined weather in the close-up ground shader: cloud shadows drifting by the place\'s rainfall, gusts through grass and reeds; works with or without ground=1; the note says "weather imagined"', doc: 'close-up-scene.md', reviewed: 'no' },
   { name: 'plants', kind: 'opt-in', on: '1', default: 'off', what: 'Low-poly plant marks by Krapp biome in the close-up 3D', doc: 'close-up-scene.md', reviewed: 'no (off because they read as toys)' },

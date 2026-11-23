@@ -39,12 +39,18 @@ export function groundParam(search: string): boolean {
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
 
 /** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
-export function close3dNote(plants: boolean, ground: boolean, weather = false, trees = false): { label: string; title: string } {
+export function close3dNote(plants: boolean, ground: boolean, weather = false, trees = false, sky = false): { label: string; title: string } {
   const imagined: string[] = [];
   const how: string[] = [];
   if (trees) {
     imagined.push('trees');
     how.push('Tree types follow modelled biomes; individual trees, heights, density and household clearings are imagined.');
+  }
+  if (sky) {
+    imagined.push('light');
+    how.push(
+      "The sun stands where the local sun clock puts it, but the light's colour, the haze, the sky and the moving water are imagined presentation, not data.",
+    );
   }
   if (ground) {
     imagined.push('surface');
@@ -73,10 +79,21 @@ export function close3dParam(search: string): boolean {
   return new URLSearchParams(search).get('close3d') !== '0';
 }
 
-/** Camera tilt for a zoom: flat until CLOSE3D_ZOOM, CLOSE3D_PITCH by CLOSE3D_FULL_ZOOM. */
-export function pitchForZoom(zoom: number): number {
+/** Tilt reached with `?sky=1` (lib/sky.ts) by SKY_FULL_ZOOM: steep enough that the horizon, and the sky above it, are in frame
+ * (at CLOSE3D_PITCH the top of the screen looks 16.6° below the horizon). */
+export const SKY_PITCH = 74;
+const SKY_FROM_ZOOM = 10;
+const SKY_FULL_ZOOM = 12;
+
+const smooth = (t: number) => t * t * (3 - 2 * t);
+
+/** Camera tilt for a zoom: flat until CLOSE3D_ZOOM, CLOSE3D_PITCH by CLOSE3D_FULL_ZOOM; with `sky`, on from SKY_FROM_ZOOM to SKY_PITCH by SKY_FULL_ZOOM. */
+export function pitchForZoom(zoom: number, sky = false): number {
   const t = Math.min(1, Math.max(0, (zoom - CLOSE3D_ZOOM) / (CLOSE3D_FULL_ZOOM - CLOSE3D_ZOOM)));
-  return CLOSE3D_PITCH * t * t * (3 - 2 * t);
+  const pitch = CLOSE3D_PITCH * smooth(t);
+  if (!sky) return pitch;
+  const s = Math.min(1, Math.max(0, (zoom - SKY_FROM_ZOOM) / (SKY_FULL_ZOOM - SKY_FROM_ZOOM)));
+  return pitch + (SKY_PITCH - CLOSE3D_PITCH) * smooth(s);
 }
 
 /** Metres per screen pixel at a zoom and latitude (deck.gl's 512 px world). */
@@ -243,6 +260,8 @@ export type Cover = { dryCold: number; layer: number };
 
 /** `layer` of open water. */
 export const COVER_WATER = -1;
+/** Cover of land in a mesh built `lit` without `cover`: only the water/land split is read (layers/skyLight.ts). */
+const LIT_LAND: Cover = { dryCold: 1, layer: 0 };
 /** `layer` of wet low ground. */
 export const COVER_WET = -0.5;
 
@@ -291,14 +310,22 @@ export function openWater(below: Uint8Array, n: number, minArea = 60): Uint8Arra
   return water;
 }
 
-/** Open water on a tile's vertex grid (`step` pixels apart): returns the grid size and the mask. */
-export function tileWater(heights: Float32Array, sea: number, step = 4): { n: number; water: Uint8Array } {
+/** Sea levels (m) within which a pixel of exactly 0 m counts as sea when `zeroIsSea`: around today's level, where it is the DEM's fill. */
+const ZERO_SEA_BAND = 2;
+
+/** Open water on a tile's vertex grid (`step` pixels apart): returns the grid size and the mask. `zeroIsSea` (`?sky=1` meshes): a pixel of
+ * exactly 0 m is below the sea too while the sea is within ZERO_SEA_BAND of today's. Terrarium has no bathymetry in some coastal tiles
+ * (the Bay of Naples at zoom 12 is all 0.0: SRTM's sea fill), which otherwise draws the sea as land at 0 m; openWater still keeps only
+ * patches that reach the tile edge or are large. Off by default so the default close-up is unchanged until it is reviewed. */
+export function tileWater(heights: Float32Array, sea: number, step = 4, zeroIsSea = false): { n: number; water: Uint8Array } {
   const size = 256;
   const n = size / step + 1;
   const below = new Uint8Array(n * n);
   for (let j = 0; j < n; j++)
-    for (let i = 0; i < n; i++)
-      below[j * n + i] = heights[Math.min(size - 1, j * step) * size + Math.min(size - 1, i * step)] < sea ? 1 : 0;
+    for (let i = 0; i < n; i++) {
+      const h = heights[Math.min(size - 1, j * step) * size + Math.min(size - 1, i * step)];
+      below[j * n + i] = h < sea || (zeroIsSea && h === 0 && Math.abs(sea) <= ZERO_SEA_BAND) ? 1 : 0;
+    }
   return { n, water: openWater(below, n) };
 }
 
@@ -391,7 +418,8 @@ export type TerrainMesh = {
   normals: Float32Array;
   colors: Float32Array; // 0..1
   indices: Uint32Array;
-  /** Per vertex [Cover.dryCold, Cover.layer], only when built with `cover` (`?ground=1`). */
+  /** Per vertex [Cover.dryCold, Cover.layer], when built with `cover` (`?ground=1`) or `lit` (`?sky=1`: then only the layer's open-water
+   * value is meaningful unless `cover` is also set; land is `{ 1, 0 }`). */
   texCoords?: Float32Array;
 };
 
@@ -400,14 +428,17 @@ export type TerrainMesh = {
  * also carries its Cover for the ground shader, and the coarse per-vertex mottling is left out when `paints` (default: with `cover`) says the shader
  * does it finer (`?ground=1`; with `?weather=1` alone the shader only needs the Cover, so the mottling stays and the ground looks as it did). With `lake`, the
  * past water's vertices (lakeVertices) are open water flat at its own level, and low ground by it is shore relative to that level, not the sea's. */
-export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null, ice: IceCover | null = null, paints = cover): TerrainMesh {
+export function buildTerrainMesh(
+  heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null, ice: IceCover | null = null,
+  lit = false, paints = cover,
+): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
   const { west, south, east, north } = bbox;
   const positions = new Float32Array(n * n * 3);
   const normals = new Float32Array(n * n * 3);
   const colors = new Float32Array(n * n * 3);
-  const texCoords = cover ? new Float32Array(n * n * 2) : undefined;
+  const texCoords = cover || lit ? new Float32Array(n * n * 2) : undefined;
   const latMid = ((south + north) / 2) * (Math.PI / 180);
   const mPerLon = 111_320 * Math.cos(latMid);
   const dxM = ((east - west) / (n - 1)) * mPerLon;
@@ -417,7 +448,7 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
   // Heights per vertex, then which below-sea vertices are open water and which land is on its shore.
   const hv = new Float32Array(n * n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) hv[j * n + i] = at(i * step, j * step);
-  const ocean = tileWater(heights, sea, step).water;
+  const ocean = tileWater(heights, sea, step, lit).water;
   const lakeLevel = lake ? lakeVertices(heights, bbox, lake, step) : null;
   // `?ice=1`: vertices under the ice sheet are ground (ice), never sea or past water, even where the ice is grounded below the year's sea.
   const iced = ice ? new Uint8Array(n * n) : null;
@@ -455,17 +486,20 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       const slope = Math.hypot(hx, hy);
       const c = groundColour(h, slope, level, lon, lat, ground, base, wet, shore[v] === 1);
       if (texCoords) {
-        const biome = ground.biomeAt(lon, lat);
-        const lowFlat = !wet && h - level < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
-        const cv = wet
-          ? { dryCold: 1, layer: COVER_WATER }
-          : coverFor(biome, snowMix(h, lon, lat, ground, base), lowFlat);
+        let cv: Cover;
+        if (wet) cv = { dryCold: 1, layer: COVER_WATER };
+        else if (!cover) cv = LIT_LAND;
+        else {
+          const biome = ground.biomeAt(lon, lat);
+          const lowFlat = h - level < (biome === 21 ? WET_DESERT_MAX_HEIGHT : WET_MAX_HEIGHT) && slope < WET_MAX_SLOPE;
+          cv = coverFor(biome, snowMix(h, lon, lat, ground, base), lowFlat);
+        }
         texCoords[v * 2] = cv.dryCold;
         texCoords[v * 2 + 1] = cv.layer;
       }
-      // Baked hillshade (sun from the north-west, 45° up); water stays flat-lit.
-      const lit = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
-      let k = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
+      // Baked hillshade (sun from the north-west, 45° up); water stays flat-lit. `lit` (`?sky=1`): none, the shader lights it.
+      const shade = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
+      let k = wet || lit ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * shade));
       // Small stable mottling so flat ground does not read as one blurred colour.
       if (!wet && !paints) k *= 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
       colors[v * 3] = (c[0] * k) / 255;

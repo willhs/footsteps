@@ -90,6 +90,7 @@ separate series from `tasks/0001-0003`.
 - [`tasks/0013-ice-sheets-dated-extent/task.md`](tasks/0013-ice-sheets-dated-extent/task.md) ([plan](tasks/0013-ice-sheets-dated-extent/plan.md)) — ice sheets at their dated extent behind `?ice=1`, on the Earth image and the close-up
 - [`tasks/0017-biome-tree-impostors/task.md`](tasks/0017-biome-tree-impostors/task.md) — opt-in shaded tree impostors, placement and performance acceptance
 - [`tasks/0017-biome-tree-impostors/plan.md`](tasks/0017-biome-tree-impostors/plan.md) — implementation, alternatives and verification
+- [`tasks/0015-close-up-light-sky-water/task.md`](tasks/0015-close-up-light-sky-water/task.md) ([plan](tasks/0015-close-up-light-sky-water/plan.md)) — close-up light from the sun clock, haze into a sky and moving water behind `?sky=1`
 
 ## Design
 

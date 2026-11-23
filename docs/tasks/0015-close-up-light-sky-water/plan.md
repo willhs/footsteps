@@ -62,10 +62,14 @@ Design alternatives:
 Shadows, clouds, stars, moon phases; haze on people/fires/shelters/flat map; default flips.
 
 ## Assumptions
-- Tilt with `?sky=1`: 55° up to zoom 11, smooth to 74° by zoom 12.5 (horizon ~7% below the top of the frame; with haze the
-  sky-coloured band is ~15%). One constant, `SKY_PITCH`.
+- Tilt with `?sky=1`: 55° up to zoom 10, smooth to 74° by zoom 12 (horizon ~7% below the top of the frame). One constant, `SKY_PITCH`.
+  (Changed while building: first 11→12.5, but Doggerland at z12 then showed no horizon.)
+- Added while building: the camera is lifted by the ground height (`hooks/useGroundLift.ts`, `cameraLift`) and the elevation TileLayer
+  gets `zRange`, because at 74° deck.gl's sea-level camera stood inside the Alps; only with the flag.
+- Added while building: lit meshes count Terrarium's exact-0 m sea fill as sea (`tileWater(..., zeroIsSea)`), because the Bay of
+  Naples drew as land; only with the flag, so flag-off pixels do not move.
 - One light per view, from the view centre (task.md).
-- Haze: `1 − exp(−d / 45 km)`, plus a ramp to full haze from 55% to 90% of the far-plane distance so the mesh meets the backdrop's
+- Haze: `1 − exp(−d / 60 km)`, plus a ramp to full haze from 55% to 97% of the far-plane depth (clip w, from the projection matrix) so the mesh meets the backdrop's
   horizon colour with no edge.
 - Water ripples: two scrolling value-noise layers with wavelengths ≥ 3 px (like `groundDetail.ts gFbm`), so they do not shimmer.
 - Foam: the band where the interpolated cover layer crosses −0.75 (the shoreline rule `groundDetail.ts` already uses), broken by
@@ -76,39 +80,39 @@ Shadows, clouds, stars, moon phases; haze on people/fires/shelters/flat map; def
 
 ## Phase 1: Model and flag
 
-- [ ] `lib/sky.ts`: `skyParam(search)`, `sunVector(lon, lat, sun)`, `sceneLight(lon, lat, ms)`, `skyBackdrop(light, pitch, height)` (CSS gradient), `SKY_NOTE`.
-- [ ] `lib/close3d.ts`: `pitchForZoom(zoom, sky = false)` with `SKY_PITCH`; `close3dNote(plants, ground, sky = false)` adds "light imagined".
-- [ ] `lib/sky.test.ts`: noon sun high and south-ish in the north; dusk warm (red > blue) and low; night: direct is blue-grey and dim, ambient floor > 0; sun vector unit length; pitch unchanged without the flag.
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand lib/sky lib/close3d` — pass.
+- [x] `lib/sky.ts`: `skyParam(search)`, `sunVector(lon, lat, sun)`, `sceneLight(lon, lat, ms)`, `skyBackdrop(light, pitch, height)` (CSS gradient), `SKY_NOTE`.
+- [x] `lib/close3d.ts`: `pitchForZoom(zoom, sky = false)` with `SKY_PITCH`; `close3dNote(plants, ground, sky = false)` adds "light imagined".
+- [x] `lib/sky.test.ts`: noon sun high and south-ish in the north; dusk warm (red > blue) and low; night: direct is blue-grey and dim, ambient floor > 0; sun vector unit length; pitch unchanged without the flag.
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand lib/sky lib/close3d` — pass.
 
 ## Phase 2: Unshaded mesh
 
-- [ ] `buildTerrainMesh(..., lit = false)`: when lit, land colour has no hillshade (mottling kept unless `cover`) and texCoords are emitted (`{1, -1}` water, `{1, 0}` land unless `cover`).
-- [ ] Test: lit mesh has texCoords and its flat-land colour equals the unshaded ground colour; the unlit mesh is unchanged.
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand lib/close3d` — pass.
+- [x] `buildTerrainMesh(..., lit = false)`: when lit, land colour has no hillshade (mottling kept unless `cover`) and texCoords are emitted (`{1, -1}` water, `{1, 0}` land unless `cover`).
+- [x] Test: lit mesh has texCoords and its flat-land colour equals the unshaded ground colour; the unlit mesh is unchanged.
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand lib/close3d` — pass.
 
 ## Phase 3: Shader and wiring
 
-- [ ] `components/footsteps/layers/skyLight.ts`: `SkyLight` LayerExtension (uniform block `sky`: sun, direct, ambient, horizon, glint, time, farM, mPerCommon, enabled); light × albedo, water (ripple normals, glint, shallow band, foam), haze last.
-- [ ] `Close3DLayer`: `light?: SceneLight | null` prop; mesh built `lit` when set; ground layer gets `[GroundDetail?, SkyLight]` and `light` prop; key includes `l`; light key in renderSubLayers triggers.
-- [ ] `useTerrainLayers`: nothing (light is cloned in FootstepsViz like the night props).
-- [ ] `FootstepsViz`: `skyOn` from URL; pitch via `pitchForZoom(zoom, skyOn)`; clone `close3d` with `light: sceneLight(viewState.longitude, viewState.latitude, now)` when close-up and skyOn; `DeckGLView backdrop` from `skyBackdrop`.
-- [ ] `DeckGLView`: optional `backdrop` CSS background replacing the radial gradient.
-- [ ] `SupportingText`/note: label "light imagined" with the flag.
-- [ ] Run: `pnpm --dir footsteps-web exec tsc --noEmit` and `pnpm --dir footsteps-web lint` — clean.
+- [x] `components/footsteps/layers/skyLight.ts`: `SkyLight` LayerExtension (uniform block `sky`: sun, direct, ambient, horizon, glint, time, farM, mPerCommon, enabled); light × albedo, water (ripple normals, glint, shallow band, foam), haze last.
+- [x] `Close3DLayer`: `light?: SceneLight | null` prop; mesh built `lit` when set; ground layer gets `[GroundDetail?, SkyLight]` and `light` prop; key includes `l`; light key in renderSubLayers triggers.
+- [x] `useTerrainLayers`: nothing (light is cloned in FootstepsViz like the night props).
+- [x] `FootstepsViz`: `skyOn` from URL; pitch via `pitchForZoom(zoom, skyOn)`; clone `close3d` with `light: sceneLight(viewState.longitude, viewState.latitude, now)` when close-up and skyOn; `DeckGLView backdrop` from `skyBackdrop`.
+- [x] `DeckGLView`: optional `backdrop` CSS background replacing the radial gradient.
+- [x] `SupportingText`/note: label "light imagined" with the flag.
+- [x] Run: `pnpm --dir footsteps-web exec tsc --noEmit` and `pnpm --dir footsteps-web lint` — clean.
 
 ## Phase 4: Look and measure
 
-- [ ] `scripts/sky-shots.mjs` (six scenes, off/on, still) and `.gitignore` `footsteps-web/sky-shots/`.
-- [ ] `scripts/terrain-bench.mjs`: `--zooms` may name zooms outside the default list (so `--zooms 14` works).
-- [ ] Build; run sky-shots; look at every pair; tune constants.
-- [ ] Run terrain-bench at nile z14 3d with `--query sky=1` and without; record fps.
+- [x] `scripts/sky-shots.mjs` (six scenes, off/on, still) and `.gitignore` `footsteps-web/sky-shots/`.
+- [x] `scripts/terrain-bench.mjs`: `--zooms` may name zooms outside the default list (so `--zooms 14` works).
+- [x] Build; run sky-shots; look at every pair; tune constants.
+- [x] Run terrain-bench at nile z14 3d with `--query sky=1` and without; record fps.
 
 ## Phase 5: Docs
 
-- [ ] `scripts/flags-lib.mjs` FLAGS row; `docs/ops/flags.md` row; `docs/ops/close-up-scene.md` section with the measured cost; AGENTS.md line; `docs/log.d/<job>.md`, `docs/index.d/<job>.md`.
+- [x] `scripts/flags-lib.mjs` FLAGS row; `docs/ops/flags.md` row; `docs/ops/close-up-scene.md` section with the measured cost; AGENTS.md line; `docs/log.d/<job>.md`, `docs/index.d/<job>.md`.
 
 ## Phase 6: Checks and wrap
 
-- [ ] Run: `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`, `test -- --runInBand`, `build`, `visual` — all pass, visual 0 failures.
-- [ ] Commit (Manager job: commit only).
+- [x] Run: `pnpm --dir footsteps-web lint`, `exec tsc --noEmit`, `test -- --runInBand`, `build`, `visual` — all pass, visual 0 failures.
+- [x] Commit (Manager job: commit only).

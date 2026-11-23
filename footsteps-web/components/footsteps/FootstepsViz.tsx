@@ -46,9 +46,11 @@ import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLay
 import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 import useSolarClock from './hooks/useSolarClock';
+import useGroundLift from './hooks/useGroundLift';
 import { epochHour, routineParam } from '@/lib/routine';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
+import { sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
@@ -176,8 +178,21 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // Zoomed in, the map tilts into a 3D landscape (lib/close3d.ts); ?close3d=0 keeps it flat.
   const [close3dOn, setClose3dOn] = useState(false);
   useEffect(() => setClose3dOn(close3dParam(window.location.search)), []);
+  // `?sky=1` (lib/sky.ts, off until reviewed on prod): the close-up lit by the sun clock, hazed into a sky, with moving water. It also
+  // tilts the close-up further from zoom 11 so the horizon is in frame.
+  const [skyOn, setSkyOn] = useState(false);
+  useEffect(() => setSkyOn(skyParam(window.location.search)), []);
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
-  const deckViewState = close3dOn && !is3DMode ? { ...viewState, pitch: pitchForZoom(viewState.zoom) } : viewState;
+  const closePitch = pitchForZoom(viewState.zoom, skyOn);
+  // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
+  const lift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
+  const deckViewState = close3dOn && !is3DMode
+    ? { ...viewState, pitch: closePitch, ...(skyOn && close3d ? { position: [0, 0, lift] as [number, number, number] } : {}) }
+    : viewState;
+  // One light for the view, from its centre (rounded to 0.1°, so panning does not rebuild it every frame).
+  const lightLon = Math.round(viewState.longitude * 10) / 10;
+  const lightLat = Math.round(viewState.latitude * 10) / 10;
+  const light = useMemo(() => (skyOn && close3d ? sceneLight(lightLon, lightLat, now.getTime()) : null), [skyOn, close3d, lightLon, lightLat, now]);
 
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
   // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
@@ -185,8 +200,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const shadedBackground = useMemo(() => {
     const nightSun = nightOn ? sunPosition(now) : null;
     const props = { extensions: [NIGHT], nightSun };
-    return backgroundLayers.map(layer => layer.clone(props));
-  }, [backgroundLayers, nightOn, now]);
+    return backgroundLayers.map(layer => layer.clone((light && layer.id === 'close3d' ? { ...props, light, groundTop: lift } : props) as typeof props));
+  }, [backgroundLayers, nightOn, now, light, lift]);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
     enabled: renderMode === 'dots',
@@ -435,6 +450,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         onAfterRender={onAfterRender}
         mode={is3DMode ? '3d' : '2d'}
         viewState={deckViewState}
+        backdrop={light ? skyBackdrop(light, deckViewState.pitch ?? 0) : undefined}
         onViewStateChange={onViewStateChange}
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}

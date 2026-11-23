@@ -7,6 +7,7 @@ import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
 import { close3dNote, groundParam, plantsParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
+import { skyParam } from '@/lib/sky';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -97,8 +98,10 @@ function SupportingText({
   useEffect(() => setTreesOn(treesParam(window.location.search)), []);
   useEffect(() => setGroundOn(groundParam(window.location.search)), []);
   useEffect(() => setWeatherOn(weatherParam(window.location.search)), []);
+  const [skyOn, setSkyOn] = useState(false);
+  useEffect(() => setSkyOn(skyParam(window.location.search)), []);
 
-  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn);
+  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn, skyOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(

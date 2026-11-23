@@ -24,6 +24,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
   Will reviews it (`?ground=1`; the note then says "surface imagined"). Imagined weather in the same shader (cloud shadows by the place's rainfall, wind in the grass) is off too:
   `?weather=1`, `lib/weather.ts`, the note adds "weather imagined". On by default; `?close3d=0` keeps it flat.
+  `?sky=1` (off until reviewed; `lib/sky.ts`, `layers/skyLight.ts`): the ground lit by the local sun clock, haze into a CSS sky backdrop, moving water with
+  glint and shore foam; it tilts to 74° from zoom 10-12 and lifts the camera over high ground (`hooks/useGroundLift.ts`).
   See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB

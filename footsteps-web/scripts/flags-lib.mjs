@@ -34,6 +34,7 @@ export const FLAGS = [
   { name: 'tour', kind: 'opt-in', on: '1', default: 'off', what: 'Guided tour: nine sourced stops that fly the camera and set the year', doc: 'tour.md', reviewed: 'no' },
   { name: 'chart', kind: 'opt-in', on: '1', default: 'off', what: 'World-population chart under the counter (modelled band, HYDE line, slider year; click or drag sets the year)', doc: '../../footsteps-web/AGENTS.md (no ops doc)', reviewed: 'no' },
   { name: 'seasons', kind: 'opt-in', on: '1', default: 'off', what: 'Off / Jun / Dec season controls in the settlement note; also keeps the settlement model on', doc: 'settlements.md, site-terrain.md', reviewed: 'no' },
+  { name: 'sky', kind: 'opt-in', on: '1', default: 'off', what: 'Close-up light from the local sun clock, distance haze into a sky at the horizon (steeper tilt from zoom 10, camera lifted over high ground), animated water with glint, shallows and shore foam', doc: 'close-up-scene.md', reviewed: 'no' },
   // Off switches: on by default, `=0` turns it off (compare, or a fallback).
   { name: 'settlements', kind: 'off-switch', on: '0', default: 'on', what: 'The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots (`seasons=1` keeps it on)', doc: 'settlements.md', reviewed: 'n/a (default)' },
   { name: 'sites', kind: 'off-switch', on: '0', default: 'on', what: 'Spot ranking inside each cell (flat, near fresh water, off the sea); `=0` keeps the old random positions', doc: 'site-terrain.md', reviewed: 'n/a (default)' },

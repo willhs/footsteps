@@ -32,6 +32,8 @@ interface DeckGLViewProps {
   /** Filled with a function that turns container pixels into lon/lat (null off the map). */
   unprojectRef?: MutableRefObject<((x: number, y: number) => [number, number] | null) | null>;
   children?: ReactNode;
+  /** CSS background shown wherever nothing is drawn (`?sky=1`: the sky, lib/sky.ts skyBackdrop); the default is the night gradient. */
+  backdrop?: string;
 }
 
 export default function DeckGLView({
@@ -45,6 +47,7 @@ export default function DeckGLView({
   containerProps,
   unprojectRef,
   children,
+  backdrop,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
   // Let deck.gl size its own canvas from the container (it handles DPR and
@@ -115,7 +118,7 @@ export default function DeckGLView({
           position: 'absolute',
           top: '0px',
           left: '0px',
-          background: is3D ? '#000010' : '#000810',
+          background: backdrop ?? (is3D ? '#000010' : '#000810'),
         }}
       >
         <div
@@ -123,9 +126,9 @@ export default function DeckGLView({
             position: 'absolute',
             width: '100%',
             height: '100%',
-            background: is3D
+            background: backdrop ?? (is3D
               ? 'radial-gradient(circle at center, #000020 0%, #000000 100%)'
-              : 'radial-gradient(circle at center, #001122 0%, #000000 100%)',
+              : 'radial-gradient(circle at center, #001122 0%, #000000 100%)'),
             zIndex: -1,
           }}
         />

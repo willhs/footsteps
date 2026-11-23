@@ -5,6 +5,8 @@ import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import GroundDetail, { type WeatherRef } from './groundDetail';
 import { weatherFor } from '@/lib/weather';
+import SkyLight from './skyLight';
+import type { SceneLight } from '@/lib/sky';
 import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
 import type { LakePlane } from '@/lib/pastWater';
@@ -55,6 +57,12 @@ type Props = {
   detail?: boolean;
   /** Draw the imagined weather (`?weather=1`; lib/weather.ts): cloud shadows and gusts in the ground shader, with or without `detail`. */
   weather?: boolean;
+  /** `?sky=1` (lib/sky.ts): the sun clock's light. The ground is built unshaded and lit, hazed and its water drawn in the shader
+   * (layers/skyLight.ts); null or absent keeps the baked hillshade. */
+  light?: SceneLight | null;
+  /** With `light`: drawn metres the camera is lifted by (hooks/useGroundLift.ts), about the ground's height in view. Tells the tile
+   * selection the ground stands that high, so it does not pick tiles as if the ground were at sea level and leave the foreground empty. */
+  groundTop?: number;
   /** Dwellings to stand on the ground (`?shelters=1`; layers/shelters.ts). Each sits on the tile height under it, never in water. */
   shelters?: readonly Shelter[];
 };
@@ -64,7 +72,8 @@ type Standing = { shelter: Shelter; position: [number, number, number] };
 type Built = { key: string; mesh: TerrainMesh; meshProp: object; plants: Plant[] };
 
 const MESHES = plantMeshes();
-const GROUND_DETAIL = [new GroundDetail()];
+const GROUND_DETAIL = new GroundDetail();
+const SKY_LIGHT = new SkyLight();
 const SHELTER_MESHES = shelterMeshes();
 /** A dwelling is never drawn smaller than this on screen (pixels across), however far out: at zoom 12 a hut is a few metres in
  * ~15 m pixels, so it is enlarged to stay readable. Closer in it is its real size. */
@@ -236,12 +245,13 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, trees = false, clearings = NO_CLEARINGS, detail = false, weather = false, shelters = [], colourTiles = false } = this.props;
+    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, trees = false, clearings = NO_CLEARINGS, detail = false, weather = false, shelters = [], colourTiles = false, light = null, groundTop = 0 } = this.props;
+    const lit = light !== null;
     const ground = bare && ice ? withIce(bare, ice) : bare;
     // The weather is the place at the screen centre's, set on every view change: the ground tiles read it each frame without being rebuilt.
     const centre = this.context.viewport as unknown as { longitude: number };
     this.state.weatherRef.current = weather && ground ? weatherFor(ground.precipAt(centre.longitude, latitude), latitude) : null;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${weather ? 'w' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${weather ? 'w' : ''}${lit ? 'l' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM_TILE_URLS,
@@ -255,12 +265,14 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       maxRequests: DEM_MAX_REQUESTS,
       debounceTime: 100,
       refinementStrategy: 'best-available',
+      // Lit (`?sky=1`): the ground may stand far above sea level under a lifted camera; select tiles for that height range.
+      ...(lit && groundTop > 0 ? { zRange: [0, groundTop * 1.2] as [number, number] } : {}),
       getTileData: async ({ url, signal, index: { x, y, z } }) => {
         const colour = colourTiles ? loadDetailManifest().then((m) => loadDetailPixels(m, z, x, y)).catch(() => null) : null;
         const [data, tile] = await Promise.all([loadHeights(url!, signal), colour]);
         return { ...data, detail: tile };
       },
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : ''] },
+      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !ground || !('west' in props.tile.bbox)) return null;
@@ -275,7 +287,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           }
           // The colour pyramid's tile over this ground tile, when tiles are on (lib/terrainDetail.ts).
           const tileGround = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
-          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail || weather, lake, ice, detail);
+          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail || weather, lake, ice, lit, detail);
           b = {
             key,
             mesh,
@@ -284,7 +296,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
                 positions: { value: mesh.positions, size: 3 },
                 normals: { value: mesh.normals, size: 3 },
                 colors: { value: mesh.colors, size: 3 },
-                // [dryCold, layer] per vertex for the GroundDetail shader (biome detail and wind).
+                // [dryCold, layer] per vertex for the GroundDetail shader (biome detail and wind); the layer marks open water for SkyLight.
                 ...(mesh.texCoords ? { texCoords: { value: mesh.texCoords, size: 2 } } : {}),
               },
               indices: { value: mesh.indices, size: 1 },
@@ -303,10 +315,11 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           getColor: [255, 255, 255],
           _instanced: false,
           mesh: meshProp as never,
-          extensions: detail || weather ? GROUND_DETAIL : [],
+          extensions: [...(detail || weather ? [GROUND_DETAIL] : []), ...(lit ? [SKY_LIGHT] : [])],
           groundBiome: detail,
           weatherRef: weather ? this.state.weatherRef : null,
-          // Colours carry a baked hillshade (lib/close3d.ts): light them flat.
+          ...(lit ? { skyLight: light } : {}),
+          // Colours carry a baked hillshade (lib/close3d.ts), or none when SkyLight lights them: light them flat.
           material: { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
           pickable: false,
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },

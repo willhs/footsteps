@@ -1,6 +1,7 @@
 import {
   CLOSE3D_PITCH,
   COVER_WATER,
+  SKY_PITCH,
   COVER_WET,
   EXAGGERATION,
   MESH_STEP,
@@ -41,6 +42,42 @@ test('the flag and the tilt', () => {
   expect(pitchForZoom(12)).toBe(CLOSE3D_PITCH);
   expect(pitchForZoom(9)).toBeGreaterThan(0);
   expect(pitchForZoom(9)).toBeLessThan(CLOSE3D_PITCH);
+  // ?sky=1 tilts on toward the horizon only from zoom 10; below that, and without the flag, nothing changes.
+  for (const z of [6, 8, 9, 10]) expect(pitchForZoom(z, true)).toBe(pitchForZoom(z));
+  expect(pitchForZoom(12, true)).toBe(SKY_PITCH);
+  expect(pitchForZoom(14)).toBe(CLOSE3D_PITCH);
+  expect(pitchForZoom(14, true)).toBe(SKY_PITCH);
+  expect(pitchForZoom(11.7, true)).toBeGreaterThan(CLOSE3D_PITCH);
+});
+
+test('a lit mesh (?sky=1) carries no baked hillshade and marks its water; the unlit mesh is unchanged by the option', () => {
+  // A ridge (the hillshade would darken one side) east of a sea.
+  const heights = heightsOf((x, y) => (x < 64 ? -40 : 30 + 2000 * Math.abs(Math.sin(x / 20)) + y * 0.1));
+  const plain = buildTerrainMesh(heights, bbox, 0, flat(), 4);
+  const unlit = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, null, null, false);
+  expect(unlit.colors).toEqual(plain.colors);
+  expect(plain.texCoords).toBeUndefined();
+  const lit = buildTerrainMesh(heights, bbox, 0, flat(), 4, false, null, null, true);
+  expect(lit.positions).toEqual(plain.positions);
+  expect(lit.normals).toEqual(plain.normals);
+  const n = 256 / 4 + 1;
+  // Land: the year's colour times the small mottling only (0.92..1.08), whatever the slope; the unlit ridge spans a wider range.
+  const ratios = (m: typeof lit) => Array.from({ length: n }, (_, i) => 32 * n + i).filter((v) => v % n > 20).map((v) => m.colors[v * 3 + 1] * 255 / 120);
+  for (const r of ratios(lit)) {
+    expect(r).toBeGreaterThanOrEqual(0.919);
+    expect(r).toBeLessThanOrEqual(1.081);
+  }
+  expect(Math.max(...ratios(plain)) - Math.min(...ratios(plain))).toBeGreaterThan(0.3);
+  // Water vertices say so in the layer; land is 0.
+  expect(lit.texCoords![(n - 1) * 2 + 1]).toBe(0);
+  // A DEM with no bathymetry (sea filled with exactly 0 m) is sea in a lit mesh while the sea is near today's, land otherwise.
+  const filled = heightsOf((x) => (x < 128 ? 0 : 25));
+  const litFilled = buildTerrainMesh(filled, bbox, -0.4, flat(), 4, false, null, null, true);
+  expect(litFilled.texCoords![1]).toBe(COVER_WATER);
+  expect(buildTerrainMesh(filled, bbox, -0.4, flat(), 4).colors).toEqual(buildTerrainMesh(filled, bbox, -0.4, flat(), 4, false, null, null, false).colors);
+  expect(buildTerrainMesh(filled, bbox, -40, flat(), 4, false, null, null, true).texCoords![1]).toBe(0);
+  expect(lit.texCoords![1]).toBe(COVER_WATER);
+  expect(lit.texCoords![(n - 1) * 2 + 1]).toBe(0);
 });
 
 test('Terrarium pixels decode to metres', () => {
@@ -214,7 +251,7 @@ test('the note says the weather is imagined only when ?weather=1 is on', () => {
 test('with the weather on and the ground off the mesh carries its cover and keeps the per-vertex mottling', () => {
   const n = 129;
   const h = heightsOf(() => 50);
-  const withCover = buildTerrainMesh(h, bbox, 0, flat(4), 2, true, null, null, false);
+  const withCover = buildTerrainMesh(h, bbox, 0, flat(4), 2, true, null, null, false, false);
   const plain = buildTerrainMesh(h, bbox, 0, flat(4), 2);
   const painted = buildTerrainMesh(h, bbox, 0, flat(4), 2, true);
   expect(withCover.texCoords).toBeDefined();

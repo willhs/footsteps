@@ -4,6 +4,16 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | Close-up light, sky and water behind ?sky=1
+
+With `?sky=1` (off by default) the close-up 3D is lit in the shader by the local sun clock's sun (warm at dawn and dusk, a moonlit
+blue-grey floor at night), hazes into the sky's horizon colour with distance, and ends in a sky gradient instead of an edge; open water
+has drifting ripples, sky reflection, a glint, lighter shallows and broken shore foam (`lib/sky.ts`, `layers/skyLight.ts`). At the
+plain 55° tilt the horizon is never in frame, so the flag tilts on to 74° from zoom 10 to 12 and lifts the camera over high ground
+(deck.gl put it inside the Alps); lit meshes also treat Terrarium's exact-0 m sea fill as sea (the Bay of Naples had drawn as land).
+Flag off is pixel-identical (`pnpm visual` passes). Pan fps at zoom 14 on a loaded machine: ~28 both ways. Task 0015,
+[close-up-scene.md](ops/close-up-scene.md).
+
 ## [2026-11-24] feature | Opt-in biome tree impostors
 
 Added `?trees=1`: a generated, shaded sprite atlas (55 KB; conifer, broadleaf, palm, acacia, shrub, dead, three variants each), placement by the same biome, snow and water rules as the old plants but denser, no trees on ice, lakes or household clearings, real-metre heights, wind sway, and a per-tile distance LOD from projected tree size. On six real scenes the trees cost at most about 5 fps headless, within run-to-run noise. Rainforest reads as scattered crowns, not a closed canopy, because of the per-tile cap. The flag is off by default and `?plants=1` is unchanged. See [close-up scene](../ops/close-up-scene.md) and [task 0017](../tasks/0017-biome-tree-impostors/task.md).

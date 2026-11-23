@@ -82,6 +82,44 @@ the other scenes one): mean 19.9 fps off and 21.6 on at zoom 10, 15.8 off and 15
 ranged from 10 to 48 fps either way, so the shader's cost is inside the noise: the frame is limited by the page's CPU work (settlements,
 tile meshes), not by this shader.
 
+## `?sky=1`: light from the sun clock, haze into a sky, moving water (2026-11-24, task 0015)
+
+Off by default until Will has looked at it on prod. The "3D:" note then reads "3D: ground measured, light imagined" (its hover text:
+the sun stands where the local sun clock puts it; the light's colour, haze, sky and moving water are imagined presentation).
+
+| Part | How | Code |
+|---|---|---|
+| Sun | the local sun clock (`lib/sunTime.ts`, `lib/solarClock.ts`: `?utc=`, `?warp=`, frozen by `?still=1`) at the view centre (rounded to 0.1°) gives a unit vector east-north-up | `lib/sky.ts` `sunVector`, `sceneLight` |
+| Light colours | one table over the sun's altitude (−90…90°): direct light, sky fill (ambient), zenith and horizon colour, glint strength, interpolated. Low sun warm, night a moon opposite the sun 35° up with a blue-grey floor so the hearths carry the scene | `lib/sky.ts` `KEYS` |
+| Relief light | the mesh is built without the baked hillshade (`buildTerrainMesh(..., lit)`); the shader lights it: `albedo × (0.7 ambient + 0.8 direct × max(n·sun, 0))`, then a little more saturation | `layers/skyLight.ts` |
+| Haze | `1 − exp(−d / 60 km)` in the horizon colour, ramped to full between 55% and 97% of deck.gl's far clipping plane depth (read from the projection matrix), so the ground meets the sky with no edge | `layers/skyLight.ts` |
+| Sky | a CSS gradient behind the deck canvas (zenith → horizon colour at the horizon row): it shows wherever nothing is drawn, above the horizon and past the far plane | `lib/sky.ts` `skyBackdrop`, `views/DeckGLView.tsx` `backdrop` |
+| Tilt | 55° is 16.6° short of the horizon (deck.gl's 36.9° field of view), so the flag tilts on from zoom 10 to 74° by zoom 12 (`SKY_PITCH`); the horizon then sits ~7% below the top | `lib/close3d.ts` `pitchForZoom(zoom, sky)` |
+| Camera lift | deck.gl measures the camera from sea level; at 74° and zoom 13 it is ~2.2 km up, inside the Alps' drawn (×1.6) summits. The flag lifts the whole camera (`viewState.position[2]`) to the drawn ground height at the view centre, or more if the ground under the camera needs it, from one zoom-10 Terrarium tile; the elevation `TileLayer` gets the same height as `zRange` so it picks the foreground tiles | `hooks/useGroundLift.ts`, `lib/sky.ts` `cameraLift`, `Close3DLayer` `groundTop` |
+| Water | wherever the mesh's cover layer says open water (sea, `?pastwater=1` lakes; `?ice=1` has no meltwater of its own, so water by the ice is sea or a past-water lake): two drifting noise layers as ripple normals (lattice ≥ 4 px so they do not shimmer), sky reflection by Fresnel, a specular glint toward the sun or moon, a lighter greener band in the shallows next to the shore, and a broken foam line where the layer crosses the shoreline (−0.75), pulsing with the shader clock | `layers/skyLight.ts` |
+| Sea with no bathymetry | Terrarium is exactly 0 m over some coastal seas (the Bay of Naples at zoom 12: SRTM's fill), which the default close-up draws as land. Lit meshes count an exact 0 m patch that reaches the tile edge as sea while the sea level is within 2 m of today's | `lib/close3d.ts` `tileWater(..., zeroIsSea)` |
+
+The light changes with the sun clock (every 20 s, or every second with `?utc=`/`?warp=`); the water moves with the shader clock, which
+`?still=1` stops. Flag off: the mesh, tilt, camera and backdrop are exactly as before (`pnpm visual` passes, 2026-11-24).
+
+**Look.** `node footsteps-web/scripts/sky-shots.mjs [--scenes ids] [--query k=v] [--only on|off] [--moving]` (after `pnpm build`) takes
+flag-off and flag-on shots of Nile 3000 BCE z14 at midday, dusk and night, the Bay of Naples 100 CE z13 morning and evening, Alps
+1000 BCE z13 morning and Doggerland 10,000 BCE z12, all `?still=1`.
+
+**Cost.** `node footsteps-web/scripts/terrain-bench.mjs --scenes nile,alps --zooms 14 --modes 3d [--query sky=1]` (`--zooms` now takes
+zooms outside the default list). 2026-11-24, headless, on a Mac with a 1-minute load average of 33-42 from other jobs: pan fps
+(cold/warm) flag off Nile 28.4/27.5, Alps 28.1/29.6; flag on Nile 32.2/28.2, Alps 26.8/28.6. The flag's cost is inside the noise of
+a loaded machine; neither reaches 45 fps under that load. A second pair at load ~8 (01:00) gave 12.1-13.0 off and 11.8-13.4 on, every run
+with the same 133 ms p95 frame: headless frames were throttled to ~7.5 Hz (display asleep), so it again shows no difference and no
+absolute number. Re-measure on a quiet, awake machine (headed: `HEADED=1`) before Will's review. Cold time to detail is
+longer with the flag (Nile 1.6 s vs 0.65 s, Alps 2.5 s vs 0.9 s): the steeper view reaches ~10× further and needs more tiles.
+
+**Limits.** One light for the whole view. No shadows cast by relief, clouds, stars or moon phases. People, fires, shelters and the
+flat map are not lit or hazed. Where the ground lies below sea level (Doggerland), a one-pixel line of the flat era image can show at
+the horizon (the era images stay drawn under the close-up as its stand-in while the ground decodes). The glint is toward the sun, and
+the camera always looks north, so in the northern hemisphere it is only in frame with the sun low in the north-east or north-west.
+The steeper tilt shows people and shelters more foreshortened.
+
 ## Check it
 
 ```bash

@@ -37,8 +37,8 @@ export function variants(filter = {}) {
   const out = [];
   for (const scene of SCENES) {
     if (filter.scenes && !filter.scenes.includes(scene.name)) continue;
-    for (const zoom of ZOOMS) {
-      if (filter.zooms && !filter.zooms.includes(zoom)) continue;
+    // --zooms may name zooms outside the default list (e.g. 14, the street-level close-up).
+    for (const zoom of filter.zooms ?? ZOOMS) {
       for (const mode of modesFor(zoom)) {
         if (filter.modes && !filter.modes.includes(mode)) continue;
         out.push({ id: variantId(scene.name, zoom, mode), scene, zoom, mode });

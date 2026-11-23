@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-23T13:55:25Z	plan	Outfit as pieces by slot (top/bottom/over/head) + material, not one mesh per culture	12 pieces dress every row and compose	plan.md Design options	chosen
+2026-11-23T13:55:25Z	plan	Work loops keyframed in code as offsets over pack clips	pack has no knapping/grinding/spinning clips; offsets reuse rotateWorld, cost no bytes, testable	UAL1_Standard.glb clip list	chosen
+2026-11-23T13:55:25Z	plan	Tools, ornaments, caps as runtime primitives on bones	zero asset bytes; small at 120 px	plan.md	chosen

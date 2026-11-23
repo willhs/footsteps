@@ -1,92 +1,18 @@
 'use client';
 
-// People-drawer: a layered SVG portrait built from a template. Inputs are the
-// imagined person (age, sex, role, band or village) and the anthropology atlas
-// record for their place and era (clothing colours and materials, hair styles,
-// ornaments, body paint, skin and hair palettes). When the record is unavailable
-// or has nothing, era and way of life choose from broad defaults and
-// skin/hair tones come from wide ranges nudged by latitude. Deterministic per
-// person and record. An illustration of the kind of person, never a likeness.
+// People-drawer: a layered SVG portrait built from a template. Skin, hair,
+// clothing colours and hair style come from `portraitLooks` (lib/avatar.ts,
+// shared with the 3D figure behind ?avatar=3d), from the imagined person and the
+// anthropology atlas record for their place and era. Deterministic per person and
+// record. An illustration of the kind of person, never a likeness.
 
 import type { Person } from '../layers/people';
 import { UnitKind } from '../layers/units';
-import { useAnthropology, type AtlasRecord } from '../hooks/useAnthropology';
+import { useAnthropology } from '../hooks/useAnthropology';
+import { portraitLooks } from '@/lib/avatar';
 
-function rng(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const pick = <T,>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
-const mix = (a: number[], b: number[], t: number) =>
-  `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
-
-// Broad skin range, light to deep; latitude shifts the centre, the spread stays wide.
-const SKIN_LIGHT = [236, 200, 170];
-const SKIN_DEEP = [92, 58, 40];
-const HAIR = ['#1b1410', '#2a1d15', '#3b2a1e', '#5a3d26', '#7a5a35', '#a07a4a'];
-
-type Palette = { garment: string; trim: string; accent: string };
-function clothing(year: number, kind: number, lat: number, r: () => number): Palette & { fur: boolean } {
-  const cold = Math.abs(lat) > 45;
-  if (kind === UnitKind.Band || year < -6000)
-    return {
-      garment: pick(r, ['#7b5a3c', '#8a6a48', '#6b4c33', '#9a7a52']), // hide, bark cloth
-      trim: pick(r, ['#c9a46a', '#5a4030']),
-      accent: pick(r, ['#b5532c', '#d9c7a3', '#2f2a26']), // ochre, shell, charcoal
-      fur: cold || r() < 0.25,
-    };
-  const dyed = year > -2000;
-  return {
-    garment: pick(r, dyed ? ['#d8c7a2', '#c9b48a', '#8f3b2b', '#3e4f6b', '#b88a3e'] : ['#d8c7a2', '#c9b48a', '#a8916a']), // undyed wool/linen, madder, indigo, weld
-    trim: pick(r, dyed ? ['#7a2e22', '#2d3a55', '#e2d6b8'] : ['#8a7350', '#e2d6b8']),
-    accent: pick(r, year > -1500 ? ['#c08a2e', '#b5532c', '#3f7a6a'] : ['#b5532c', '#e2d6b8']), // bronze/copper later
-    fur: cold && r() < 0.6,
-  };
-}
-
-// Garments only: materials lists include sandals and belts, so 'leather' there says nothing about a fur wrap.
-const FUR = /\bfurs?\b|\bhides?\b|\bpelts?\b|\bskins?\b/i;
-/** Atlas text that records an absence ("none recorded", "no evidence") rather than a thing. */
-export const saysNone = (s: string | null | undefined) => !s || /^\s*(none|no|not|unknown)\b/i.test(s);
-
-/** Atlas clothing over the era defaults: its palette for garment and trim, fur if its materials say so. */
-function atlasClothing(base: Palette & { fur: boolean }, rec: AtlasRecord | null, r: () => number) {
-  const c = rec?.fields.clothing?.value;
-  const palette = (c?.palette ?? []).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
-  if (!c || palette.length === 0) return base;
-  const text = (c.garments ?? []).join(' ');
-  return {
-    garment: palette[Math.floor(r() * Math.min(2, palette.length))],
-    trim: palette[palette.length - 1],
-    accent: base.accent,
-    fur: base.fur || FUR.test(text),
-  };
-}
-
-type HairStyle = 'long' | 'tied' | 'braid' | 'short' | 'wrap';
-/** Map the atlas's hair-style phrases onto the styles the template can draw. */
-export function hairStylesFrom(phrases: string[]): HairStyle[] {
-  const out = new Set<HairStyle>();
-  for (const p of phrases) {
-    if (/braid|plait/i.test(p)) out.add('braid');
-    if (/tied|bun|knot|topknot|tail/i.test(p)) out.add('tied');
-    if (/cover|wrap|cap|veil|turban|headdress|hood|scarf/i.test(p)) out.add('wrap');
-    if (/short|shaved|shorn|cropped/i.test(p)) out.add('short');
-    if (/long|loose/i.test(p) && !/tied|braid/i.test(p)) out.add('long');
-  }
-  return [...out];
-}
-
-const pickHex = (r: () => number, xs: string[] | undefined) => {
-  const ok = (xs ?? []).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
-  return ok.length ? pick(r, ok) : null;
-};
+// The palette logic lives in lib/avatar.ts (shared with the 3D figure); these stay importable from here.
+export { hairStylesFrom, saysNone } from '@/lib/avatar';
 
 /** A small object in hand that says what they do. */
 function Tool({ role, r }: { role: string; r: () => number }) {
@@ -128,36 +54,13 @@ export default function Portrait({ person, year, lat }: { person: Person; year: 
     </div>
   );
   const rec = atlas.rec;
-  // From the person's fixed spot (its gait hash), not `id`: ids count the people in view and change as the view moves.
-  const seed = Math.round(person.position[0] * 1e5) ^ Math.round(person.position[1] * 1e5) ^ Math.round(person.gait * 2654435761);
-  const r = rng(seed);
-  const child = person.age < 13;
-  const elder = person.age >= 55;
-
-  // skin: wide random spread, centre nudged deeper toward the tropics
-  const latPull = 1 - Math.min(1, Math.abs(lat) / 60); // 1 at equator, 0 at 60°
-  const tone = Math.min(1, Math.max(0, 0.25 + 0.5 * latPull + (r() - 0.5) * 0.6));
-  const looks = rec?.fields.skin_hair?.value;
-  const atlasSkin = pickHex(r, looks?.skin_palette);
-  const skin = atlasSkin ?? mix(SKIN_LIGHT, SKIN_DEEP, tone);
-  const skinShade = atlasSkin ? `color-mix(in srgb, ${atlasSkin} 82%, black)` : mix(SKIN_LIGHT, SKIN_DEEP, Math.min(1, tone + 0.18));
-  let hair = pickHex(r, looks?.hair_palette) ?? (Math.abs(lat) > 45 && r() < 0.35 ? pick(r, HAIR.slice(3)) : pick(r, HAIR.slice(0, 4)));
-  if (elder) hair = r() < 0.7 ? '#bdb6ac' : '#8f8a83';
-  const cloth = atlasClothing(clothing(year, person.groupKind, lat, r), rec, r);
-  const adorn = rec?.fields.hair_adornment?.value;
-  const atlasStyles = hairStylesFrom(adorn?.styles ?? []);
-  // most, not all: people in one place still differ. null: the atlas says nothing, use chance
-  const beads = adorn?.ornaments?.length ? r() < 0.85 : null;
-  const paint = adorn ? (saysNone(adorn.body_paint) ? false : r() < 0.6) : null;
+  const { skin, skinShade, hair, cloth, beads, paint, hairStyle, child, elder, r } = portraitLooks(person, year, lat, rec);
 
   // proportions: children have bigger heads on smaller bodies
   const headR = child ? 25 : 21;
   const headY = child ? 66 : 58;
   const shoulderY = child ? 112 : 104;
   const shoulderW = child ? 26 : person.female ? 32 : 36;
-  const hairStyle: HairStyle = atlasStyles.length
-    ? pick(r, atlasStyles)
-    : pick(r, person.female ? ['long', 'tied', 'braid', 'short', 'wrap'] : ['short', 'long', 'tied', 'short', 'wrap']);
   const dress = rec?.fields.clothing?.value?.garments?.[0];
   const sources = rec
     ? [...new Set(['clothing', 'hair_adornment', 'skin_hair'].map((k) => rec.fields[k]?.source).filter((x): x is string => !!x && x !== 'none'))]

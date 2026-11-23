@@ -29,8 +29,12 @@ export function adjustedSpreadYear(year: number): boolean {
   return ADJUSTED_SPREAD_YEARS.includes(year);
 }
 
+/** Bump when the adjusted images change. The edge also kept 404s for the bare URLs from before they were published
+ * (2026-11-21), so the versioned URL is what reaches the files. */
+export const ADJUSTED_VERSION = 1;
+
 export function adjustedGridUrl(year: number): string {
-  return `/grid/adjusted/humans_${year}.webp`;
+  return `/grid/adjusted/humans_${year}.webp?v=${ADJUSTED_VERSION}`;
 }
 
 /** Does a decoded adjusted image keep HYDE's world total for its year? False for a year with no HYDE total. */

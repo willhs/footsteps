@@ -71,8 +71,10 @@ else
 fi
 # Climate-adjusted HYDE spread (?spread=1; footstep-generator/hyde_climate_spread.py, published by deploy-budgie.sh to grid/adjusted/).
 # Optional: the app falls back to HYDE's images and says so while it is unpublished, so absent is a warning; present must be a lossless WebP.
+# Ask with the app's ?v= (ADJUSTED_VERSION in lib/adjustedSpread.ts): the edge kept 404s for the bare URLs from before publishing.
+ADJ_V=$(sed -n 's/^export const ADJUSTED_VERSION = \([0-9]*\);/\1/p' "$(dirname "$0")/../footsteps-web/lib/adjustedSpread.ts")
 for y in -10000 -8000 -4000; do
-  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/adjusted/humans_${y}.webp" 2>/dev/null | od -An -tx1 | tr -d ' \n') || magic=""
+  magic=$(curl -fsS --max-time 20 -r 0-15 -H 'Accept-Encoding: identity' "$BASE/grid/adjusted/humans_${y}.webp?v=${ADJ_V:-0}" 2>/dev/null | od -An -tx1 | tr -d ' \n') || magic=""
   if [[ -z "$magic" ]]; then echo "WARN grid adjusted $y not published (GRID_ONLY=1 scripts/deploy-budgie.sh); ?spread=1 shows HYDE's"
   elif [[ "${magic:0:8}" == 52494646 && "${magic:16:16}" == 574542505650384c ]]; then echo "ok   grid adjusted $y"
   else echo "FAIL grid adjusted $y"; fail=1; fi

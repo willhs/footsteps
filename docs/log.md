@@ -4,6 +4,13 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] fix | ?spread=1 reads its published images: versioned URLs past the edge's cached 404s
+
+The after-merge job for the climate-adjusted spread (a01a8ba7) published all seven `grid/adjusted/` images to budgie but parked:
+Cloudflare had cached 404s for the bare URLs from before they existed, so `?spread=1` fell back to HYDE's images on prod. As with
+the terrain pyramid (9a291c4), the app now asks for `?v=${ADJUSTED_VERSION}` (`lib/adjustedSpread.ts`) and `smoke.sh` checks the
+same URLs: prod `ok grid adjusted -10000/-8000/-4000`. Bump `ADJUSTED_VERSION` whenever the images change.
+
 ## [2026-11-24] feature | 3D person part 2: wardrobe by era and place, tools and work loops (behind ?avatar=3d)
 
 The 3D person in the card now changes with time, place and role. `lib/wardrobe.ts` is a cited table of 28 rows (era band ×

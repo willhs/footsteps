@@ -18,7 +18,7 @@ test('covers 10,000 to 4,000 BCE, every one a HYDE year with a world total', () 
   }
   expect(adjustedSpreadYear(-3000)).toBe(false);
   expect(adjustedSpreadYear(-11000)).toBe(false);
-  expect(adjustedGridUrl(-6000)).toBe('/grid/adjusted/humans_-6000.webp');
+  expect(adjustedGridUrl(-6000)).toBe('/grid/adjusted/humans_-6000.webp?v=1');
 });
 
 test('the world total must be HYDE\'s, within rounding', () => {

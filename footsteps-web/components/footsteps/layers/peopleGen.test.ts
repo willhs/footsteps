@@ -4,10 +4,10 @@ import { describePerson, footprintData, type GroupInView, peopleForGroups, peopl
 import { UnitKind } from './units';
 
 describe('people from head counts', () => {
-  it('rejects tiny groups and includes an adult in every generated group', () => {
-    expect(
-      peopleForGroups([{ lon: 0, lat: 0, kind: UnitKind.Band, people: 0.1 }]),
-    ).toEqual([]);
+  it('draws a thin cell\'s group as a typical band and includes an adult in every generated group', () => {
+    expect(peopleForGroups([{ lon: 0, lat: 0, kind: UnitKind.Band, people: 0 }])).toEqual([]);
+    // A unit under 15 people is still one whole group (units.ts): close in it is a typical band, not nothing.
+    expect(peopleForGroups([{ lon: 0, lat: 0, kind: UnitKind.Band, people: 0.1 }])).toHaveLength(30);
     for (let i = 0; i < 200; i++) {
       const group = peopleForGroups([
         { lon: i / 100, lat: 20, kind: UnitKind.Band, people: 15 },
@@ -107,8 +107,9 @@ describe('people between two data years', () => {
     expect(change.entering.every((p) => p.groupKind === UnitKind.Village)).toBe(true);
   });
 
-  it('draws a group dropping below the sparse threshold as leaving, never as a pop', () => {
-    expect(count(peopleForMorph([{ ...at, kind: UnitKind.Band, from: 30, to: 5 }]))).toEqual([0, 30, 0]);
+  it('keeps a group that thins below 15 as a whole band, and fades one that is gone', () => {
+    expect(count(peopleForMorph([{ ...at, kind: UnitKind.Band, from: 30, to: 5 }]))).toEqual([30, 0, 0]);
+    expect(count(peopleForMorph([{ ...at, kind: UnitKind.Band, from: 30, to: 0 }]))).toEqual([0, 30, 0]);
   });
 
   it('at either end of the year fraction shows exactly the people of that year', () => {

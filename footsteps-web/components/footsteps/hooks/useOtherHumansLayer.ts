@@ -169,7 +169,9 @@ export default function useOtherHumansLayer({
   const blend = viewBlend(zoom, 'auto');
   const visibleFraction = bandsFile ? bandShare(bandsFile.band_people, year, zoom, blend.glow) : 1;
   // Close in our own bands are fire sprites of at least `halo` px; match them.
-  const radiusScale = Math.max(1, blend.halo / fireRadius(bandsFile?.band_people ?? 15)) * (1 - blend.glow) + blend.glow;
+  // Our band's sign at middle zoom shows a hot core about a third of the sprite (MorphScatterplotLayer); a fire sprite's core is
+  // smaller still, so 0.7 of the halo keeps theirs no bigger than ours. Far out (glow) both are plain firelight.
+  const radiusScale = Math.max(0.8, (0.7 * blend.halo) / fireRadius(bandsFile?.band_people ?? 15)) * (1 - blend.glow) + 0.8 * blend.glow;
 
   const below = useMemo<FireLayer[]>(
     () =>
@@ -212,17 +214,19 @@ export default function useOtherHumansLayer({
               id: 'other-humans-sites',
               data: data.sites,
               getPosition: (s) => s.position,
-              getRadius: (s) => (s.active ? 4.5 : 3),
-              getFillColor: (s) => [...RGB, Math.round((s.active ? 245 : 170) * s.presence)],
-              getLineColor: (s) => (s.active ? [245, 240, 255, Math.round(230 * s.presence)] : [20, 16, 40, Math.round(200 * s.presence)]),
+              // A dated find, not people: a small hollow ring, so it never reads as a population mark.
+              getRadius: (s) => (s.active ? 3.5 : 2.5),
+              getFillColor: [0, 0, 0, 0],
+              getLineColor: (s) => [...RGB, Math.round((s.active ? 235 : 130) * s.presence)],
               lineWidthUnits: 'pixels',
-              getLineWidth: 1,
+              getLineWidth: (s) => (s.active ? 1.5 : 1),
               stroked: true,
+              filled: true,
               radiusUnits: 'pixels',
               parameters: globe ? {} : OVER_GROUND,
               pickable: true,
               onHover: onSiteHover,
-              updateTriggers: { getRadius: year, getFillColor: [key, year], getLineColor: [key, year] },
+              updateTriggers: { getRadius: year, getLineColor: [key, year], getLineWidth: year },
             }),
           ]
         : [],

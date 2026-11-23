@@ -44,7 +44,7 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
 - **Fade**: each species is drawn fully until the earliest of its last dates and fades to nothing by the latest
   (`presenceAt`); its bands drop out one by one in a fixed random order, so half-way through the fade half are left. The end dates match `footstep-generator/prehistory/arrivals.yaml` `other_hominins`, which the
   anthropology atlas (`anthropology/deep.py`) also reads; keep the two in step.
-- **Sites**: 24 key dated sites with the find, a source and its DOI; brighter when the year shown is within the site's dates.
+- **Sites**: 24 key dated sites with the find, a source and its DOI, drawn as a small hollow lavender ring (a find, not people, so it never reads as a population mark; since 2026-11-24), brighter and thicker when the year shown is within the site's dates. Bands are drawn at 0.7 of our own band sign's size at middle zoom, so they are no bigger than ours.
   Each is `checked: true` or has a `couldNotVerify` reason, which the tooltip shows. See "Source check" below.
 
 Lavender, so it reads as cool next to the evidence marks (blue, teal) and never as people (the only warm colour).

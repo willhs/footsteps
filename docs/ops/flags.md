@@ -24,6 +24,7 @@ opt-in looks and says so on screen.
 | `?shelters=1` | off | One dwelling per household in the close-up, typed from the analog society's house codes | [settlements.md](settlements.md) | no |
 | `?routine=1` | off | Each person at street zoom follows a daily routine for the local sun time (asleep, hearth, play, trip) | [routine.md](routine.md) | no |
 | `?figures=1` | off | The newest footprint slot of each person becomes an upright imagined figure; also feeds the food row | [close-up-scene.md](close-up-scene.md) | no |
+| `?ice=1` | off | Dated ice-sheet margins (PaleoMIST 1.0, nearest 2.5 ka epoch, 0-80 ka): white overlay, close-up ice surface, groups kept off the ice, hover row | [ice-sheets.md](ice-sheets.md) | no |
 | `?pastwater=1` | off | Dated past-water scenarios (Lake Mega-Chad, European LGM lakes and rivers, Mesopotamian coast) in the Earth image, the site ranker and the close-up lake plane | [past-water.md](past-water.md) | no |
 | `?terrain_tiles=1` | off | The 500 m photo pyramid recoloured per year on the GPU, zoom 3-8 and the close-up ground colours | [terrain-images.md](terrain-images.md), [terrain-bench.md](terrain-bench.md) | no |
 | `?evidence=1` | off | Radiocarbon sites and ancient-DNA individuals as cool marks that fade with time | [footstep-generator/evidence/README.md](../../footstep-generator/evidence/README.md) | no |

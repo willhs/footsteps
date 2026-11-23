@@ -4,6 +4,18 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] fix | Bands no longer vanish at street zoom; other kinds of human drawn smaller, their sites as rings
+
+Will zoomed in on a group and it disappeared at the closest zoom. Reproduced at 50,000 BCE in East Africa: a forager band's
+fire showed to zoom 11.8, faded by 12.8 and nothing replaced it, because a unit whose cell holds under 15 people (one whole group
+with probability people ÷ group size, `units.ts`) drew no individuals (`peopleDrawn`). It is now drawn as a typical group of its
+kind (`nominalPeople`, moved from shelters.ts to people.ts: band 30, camp 60, village 300), members and dwellings alike; checked in
+the browser (the band becomes walkers at zoom 12-13). A 1000 CE village on the Meseta (700 m) already held to zoom 17 in 3D, so
+elevation was not the cause there. Other kinds of human: their guessed bands are 0.7 of our band sign's size at middle zoom and
+0.8 far out, and their 24 dated sites are small hollow lavender rings instead of flat filled discs that read as population marks.
+Also registers `?ice=1` in the flag inventory (`flags-lib.mjs`, flags.md; the ice job had left `lib/flags.test.ts` failing).
+`pnpm visual`: the Croatia scene re-baselined (ring, smaller sparks, and the counter range from the P8 model rerun).
+
 ## [2026-11-22] feature | Ice sheets at their dated extent (?ice=1)
 
 Task 0013 (`docs/tasks/0013-ice-sheets-dated-extent/`), research 0014 rank 2. Source: PaleoMIST 1.0 (Gowan et al. 2021, PANGAEA

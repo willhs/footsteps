@@ -5,7 +5,9 @@
 // place always draws the same roofs.
 import { MATERIALS, NO_SOCIETY, shelterSpec, townMix, type DwellingTable, type ShapeId, type ShelterSpec } from '@/lib/dwellings';
 import { HOUSEHOLD_SPACING_M, householdsOf, offsetByMetres } from './households';
-import { groupSeed, peopleDrawn } from './people';
+import { groupSeed, nominalPeople, peopleDrawn } from './people';
+
+export { nominalPeople };
 import { BAND_SIZE, CAMP_SIZE, MIN_GROUP_PEOPLE, UnitKind, VILLAGE_SIZE } from './units';
 
 /** One drawn dwelling. `homes` is how many households it stands for: 1 in a camp or village, more in a town. */
@@ -74,14 +76,6 @@ function shelter(
     homes,
     group,
   };
-}
-
-/** A unit's head count can be under MIN_GROUP_PEOPLE (a thin cell holds one whole group with probability people ÷ group size,
- * units.ts): the group is still there, so it gets its dwellings, for a typical group of its kind. People.ts draws no
- * individuals for it, so a sparse deep-time cell shows roofs and no walkers. */
-export function nominalPeople(kind: number, people: number): number {
-  if (people >= MIN_GROUP_PEOPLE) return people;
-  return kind === UnitKind.Village ? VILLAGE_SIZE : kind === UnitKind.Camp ? CAMP_SIZE : BAND_SIZE;
 }
 
 /** Dwellings for the bands, camps and villages in view, one per household in the order `people.ts` fills them (so each

@@ -27,6 +27,7 @@ export const FLAGS = [
   { name: 'food', kind: 'opt-in', on: '1', default: 'off', what: 'Hover card row: crops and animals around, and forager staples (modelled)', doc: 'food.md', reviewed: 'no' },
   { name: 'coast', kind: 'opt-in', on: '1', default: 'off', what: 'Draws the modern coastline (Natural Earth 110m) over the terrain image', doc: 'terrain-images.md', reviewed: 'n/a (debug overlay)' },
   { name: 'spread', kind: 'opt-in', on: '1', default: 'off', what: 'HYDE people moved by climate-then-vs-now within continent regions, 10,000-4,000 BCE ("Adjusted spread (modelled on HYDE)")', doc: 'hyde-climate-spread.md', reviewed: 'no' },
+  { name: 'ice', kind: 'opt-in', on: '1', default: 'off', what: 'Dated ice-sheet margins (PaleoMIST 1.0, nearest 2.5 ka epoch, 0-80 ka): white overlay, close-up ice surface, groups kept off the ice, hover row', doc: 'ice-sheets.md', reviewed: 'no' },
   { name: 'langs', kind: 'opt-in', on: 'deep', default: 'off', what: '"Languages spreading here" hover line from cited expansion boxes (never before 3050 BCE)', doc: 'languages.md', reviewed: 'no' },
   { name: 'tour', kind: 'opt-in', on: '1', default: 'off', what: 'Guided tour: nine sourced stops that fly the camera and set the year', doc: 'tour.md', reviewed: 'no' },
   { name: 'chart', kind: 'opt-in', on: '1', default: 'off', what: 'World-population chart under the counter (modelled band, HYDE line, slider year; click or drag sets the year)', doc: '../../footsteps-web/AGENTS.md (no ops doc)', reviewed: 'no' },

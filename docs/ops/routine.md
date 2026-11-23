@@ -81,7 +81,7 @@ mothers staying with infants.
 
 **Seen in the browser** (production build, real data): Nile 1500 CE village at 31.076°E 30.890°N, `zoom=17`: at 3 am (`utc=1`) everyone is at home, still, paired feet; at midday (`utc=10`)
 adults are away (at zoom 13 they are scattered through the fields up to 2 km out), children play, tags show who is left. A forager band could not be shown: a band whose cell has fewer than 15
-people draws no individuals at street zoom with or without the flag (`peopleDrawn` in `layers/people.ts`; Kalahari 1800 CE is such a place), so the forager schedule is checked in `routine.test.ts` only. Worth a look separately.
+people drew no individuals at street zoom before 2026-11-24 (`peopleDrawn` in `layers/people.ts`; Kalahari 1800 CE was such a place); it is now drawn as a typical band (`nominalPeople`), so the forager schedule can be seen there too.
 
 Tests: `lib/routine.test.ts` (share of people in each state by hour for a forager band, a farming village and a herding
 camp; deterministic; food-getting hours equal the yaml's), `lib/gait.test.ts` (`routineGaitAt`), `lib/solarClock.test.ts`,

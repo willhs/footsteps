@@ -5,7 +5,7 @@
 // people appear every time you look at the same place.
 import type { DefaultProps } from '@deck.gl/core';
 import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
-import { MIN_GROUP_PEOPLE, UnitKind, WAY_OF_KIND } from './units';
+import { BAND_SIZE, CAMP_SIZE, MIN_GROUP_PEOPLE, UnitKind, VILLAGE_SIZE, WAY_OF_KIND } from './units';
 import { LOOKS } from '@/lib/waysOfLife';
 import { AGE_LABEL, AGE_STRUCTURE_NAME, ageDraws, ageStructureFor, sampleLivingAge, type AgeStructureId } from '@/lib/demography';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
@@ -108,8 +108,17 @@ export type MorphGroupInView = {
 
 /** How many individuals a group of `people` is drawn as (none for a glow or a sparse cell). */
 export function peopleDrawn(kind: number, people: number) {
-  if (kind === UnitKind.Glow || people < MIN_GROUP_PEOPLE) return 0;
-  return Math.min(MAX_PER_GROUP, Math.round(people));
+  if (kind === UnitKind.Glow || people <= 0) return 0;
+  return Math.min(MAX_PER_GROUP, Math.round(nominalPeople(kind, people)));
+}
+
+/** A unit's head count can be under MIN_GROUP_PEOPLE: a thin cell holds one whole group with probability people ÷ group
+ * size (units.ts), so the expected head count stays right while the group itself is whole. Close in it is drawn as a
+ * typical group of its kind (band 30, camp 60, village 300), its members and its dwellings alike, so a deep-time band
+ * does not vanish when its fire hands over to its people. */
+export function nominalPeople(kind: number, people: number): number {
+  if (people >= MIN_GROUP_PEOPLE) return people;
+  return kind === UnitKind.Village ? VILLAGE_SIZE : kind === UnitKind.Camp ? CAMP_SIZE : BAND_SIZE;
 }
 
 /** People for the stretch between two data years, split by what the year fraction does

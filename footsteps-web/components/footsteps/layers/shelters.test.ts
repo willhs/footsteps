@@ -57,10 +57,10 @@ describe('dwellings of a band, camp or village', () => {
     expect(sheltersForGroups([{ ...band, people: 0 }, { ...band, kind: UnitKind.Glow, people: 5000 }], 1900, table)).toEqual([]);
   });
 
-  it('draws a thin cell’s whole group as a typical band, though people.ts draws none of its members', () => {
+  it('draws a thin cell’s whole group as a typical band, roofs and members alike', () => {
     const sparse = sheltersForGroups([{ ...band, people: 3 }], 1900, table);
     expect(sparse).toEqual(sheltersForGroups([band], 1900, table).map((d) => ({ ...d, group: { ...d.group, people: 30 } })));
-    expect(peopleForGroups([{ lon: band.lon, lat: band.lat, kind: band.kind, people: 3 }])).toEqual([]);
+    expect(peopleForGroups([{ lon: band.lon, lat: band.lat, kind: band.kind, people: 3 }])).toHaveLength(30);
   });
 
   it('falls back to the kind of group when no analog was drawn', () => {

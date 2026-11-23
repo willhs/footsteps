@@ -11,8 +11,17 @@ import { useAnthropology } from '../hooks/useAnthropology';
 import Portrait from './Portrait';
 import { mountAvatar } from './avatarScene';
 import { portraitLooks } from '@/lib/avatar';
-import { avatarSpec, OTHER_HUMAN_BODY_NOTE } from '@/lib/avatarSpec';
+import { avatarCaption, avatarSpec, OTHER_HUMAN_BODY_NOTE } from '@/lib/avatarSpec';
+import { epochHour, localHourAt, planOf, routineParam, stateAt } from '@/lib/routine';
+import { solarNowMs } from '@/lib/solarClock';
 import { stillOn } from '@/lib/still';
+
+/** With `?routine=1`, what the person is doing now (read once when the card opens). */
+function routineNow(person: Person) {
+  if (typeof window === 'undefined' || !routineParam(window.location.search)) return null;
+  const ms = solarNowMs();
+  return stateAt(planOf(person, epochHour(ms)), localHourAt(ms, person.position[0]));
+}
 
 const W = 120;
 const H = 168;
@@ -21,7 +30,10 @@ const box = 'rounded-[var(--ov-radius-sm)] bg-[radial-gradient(ellipse_at_50%_35
 export default function Avatar3D({ person, year, lat }: { person: Person; year: number; lat: number }) {
   const atlas = useAnthropology(lat, person.position[0], year);
   const rec = atlas.kind === 'settled' ? atlas.rec : undefined;
-  const spec = useMemo(() => (rec === undefined ? null : avatarSpec(person, portraitLooks(person, year, lat, rec))), [person, year, lat, rec]);
+  const spec = useMemo(
+    () => (rec === undefined ? null : avatarSpec(person, portraitLooks(person, year, lat, rec), { year, rec, state: routineNow(person) })),
+    [person, year, lat, rec],
+  );
   const canvas = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -59,7 +71,6 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
         Preparing illustration…
       </div>
     );
-  const dress = rec?.fields.clothing?.value?.garments?.[0];
   return (
     <figure className="m-0 shrink-0" data-testid="avatar-3d">
       <div className="relative" style={{ width: W, height: H }}>
@@ -78,7 +89,7 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
         )}
       </div>
       <figcaption className="mt-1.5 text-[11px] leading-snug text-[var(--ov-text-3)]" style={{ width: W }}>
-        {dress && <span className="block text-[var(--ov-text-2)]">{dress}</span>}
+        <span className="block text-[var(--ov-text-2)]">{avatarCaption(spec)}</span>
         Imagined illustration, not a likeness
         {spec.otherHuman && <span className="mt-1 block">{OTHER_HUMAN_BODY_NOTE}</span>}
       </figcaption>

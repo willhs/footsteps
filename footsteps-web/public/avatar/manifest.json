@@ -29,7 +29,8 @@
     }
   ],
   "encoding": {
-    "COLOR_0": "body, brows and hair: (shade / 1.5, garment 0-1, trim 0-1); eyes: RGB",
+    "COLOR_0": "body, brows, hair and garment pieces: (shade / 1.5, garment 0-1, trim 0-1); eyes: RGB",
+    "_COVER": "body only: bits of the fitted pieces covering the vertex (vest 1, shortsleeve 2, longsleeve 4, trousers 8, hood 16); the viewer hides covered triangles",
     "shade_max": 1.5,
     "skeleton": "65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)"
   },
@@ -38,6 +39,11 @@
       "name": "crouch",
       "source": "Crouch_Idle_Loop",
       "seconds": 2.93
+    },
+    {
+      "name": "dance",
+      "source": "Dance_Loop",
+      "seconds": 1
     },
     {
       "name": "work",
@@ -53,6 +59,16 @@
       "name": "talk",
       "source": "Idle_Talking_Loop",
       "seconds": 2.93
+    },
+    {
+      "name": "hold",
+      "source": "Idle_Torch_Loop",
+      "seconds": 1.27
+    },
+    {
+      "name": "push",
+      "source": "Push_Loop",
+      "seconds": 2.67
     },
     {
       "name": "sit",
@@ -81,11 +97,14 @@
       },
       "body": {
         "vertices": 7281,
-        "garmentVertices": 1654
+        "garmentVertices": 0
       },
-      "garment": {
-        "vertices": 1652,
-        "triangles": 2834
+      "cover": {
+        "vest": 703,
+        "shortsleeve": 847,
+        "longsleeve": 1281,
+        "trousers": 994,
+        "hood": 540
       }
     },
     "female": {
@@ -95,24 +114,263 @@
       },
       "body": {
         "vertices": 7376,
-        "garmentVertices": 1816
+        "garmentVertices": 0
       },
-      "garment": {
-        "vertices": 1816,
-        "triangles": 3198
+      "cover": {
+        "vest": 927,
+        "shortsleeve": 1041,
+        "longsleeve": 1625,
+        "trousers": 962,
+        "hood": 460
+      }
+    },
+    "pieces": {
+      "vest_male": {
+        "vertices": 1002,
+        "triangles": 1618
+      },
+      "shortsleeve_male": {
+        "vertices": 1184,
+        "triangles": 1964
+      },
+      "longsleeve_male": {
+        "vertices": 1702,
+        "triangles": 2930
+      },
+      "trousers_male": {
+        "vertices": 1108,
+        "triangles": 2012
+      },
+      "hood_male": {
+        "vertices": 855,
+        "triangles": 1386
+      },
+      "drape_male": {
+        "vertices": 462,
+        "triangles": 675
+      },
+      "loin_male": {
+        "vertices": 222,
+        "triangles": 360
+      },
+      "skirt_short_male": {
+        "vertices": 407,
+        "triangles": 720
+      },
+      "skirt_knee_male": {
+        "vertices": 592,
+        "triangles": 1080
+      },
+      "skirt_long_male": {
+        "vertices": 1036,
+        "triangles": 1944
+      },
+      "strings_male": {
+        "vertices": 518,
+        "triangles": 936
+      },
+      "cape_male": {
+        "vertices": 448,
+        "triangles": 810
+      },
+      "cloak_male": {
+        "vertices": 990,
+        "triangles": 1856
+      },
+      "vest_female": {
+        "vertices": 1146,
+        "triangles": 1956
+      },
+      "shortsleeve_female": {
+        "vertices": 1322,
+        "triangles": 2286
+      },
+      "longsleeve_female": {
+        "vertices": 2086,
+        "triangles": 3610
+      },
+      "trousers_female": {
+        "vertices": 1080,
+        "triangles": 1950
+      },
+      "hood_female": {
+        "vertices": 911,
+        "triangles": 1532
+      },
+      "drape_female": {
+        "vertices": 496,
+        "triangles": 775
+      },
+      "loin_female": {
+        "vertices": 222,
+        "triangles": 360
+      },
+      "skirt_short_female": {
+        "vertices": 407,
+        "triangles": 720
+      },
+      "skirt_knee_female": {
+        "vertices": 592,
+        "triangles": 1080
+      },
+      "skirt_long_female": {
+        "vertices": 1036,
+        "triangles": 1944
+      },
+      "strings_female": {
+        "vertices": 518,
+        "triangles": 936
+      },
+      "cape_female": {
+        "vertices": 448,
+        "triangles": 810
+      },
+      "cloak_female": {
+        "vertices": 990,
+        "triangles": 1856
       }
     }
   },
   "files": [
     {
       "file": "body_male.glb",
-      "bytes": 194988,
-      "sha256": "2e18626448f5b99e59a0767ad59eeddf1942c50904e8a03b20c11ec3af95a98e"
+      "bytes": 160888,
+      "sha256": "c782c2f306bd461b321efd105ec5f340fc46bd92f46e11f9c2ce773a2aa3a773"
     },
     {
       "file": "body_female.glb",
-      "bytes": 202468,
-      "sha256": "5a57a511f226efc9abfd1735083ad6c255ced8fdba3010088fc1eabec83534a3"
+      "bytes": 165904,
+      "sha256": "492360d329f46758eae2f632ca492120ea22799f8bb72fd8df1a98d812f1939e"
+    },
+    {
+      "file": "piece_vest_male.glb",
+      "bytes": 38224,
+      "sha256": "b4969662d1d5aed0603ed0c51d2fefbc88b1ea73b5fdbb3cd13e00cc6b8281c2"
+    },
+    {
+      "file": "piece_shortsleeve_male.glb",
+      "bytes": 41328,
+      "sha256": "9144489e352219527bb583f9f5a2bca2bcce589dac2f7fc4956ede4072ec0763"
+    },
+    {
+      "file": "piece_longsleeve_male.glb",
+      "bytes": 48624,
+      "sha256": "651145f02ea0566125dfc2cc89af80f0b89011e580a6cb930402c9d525ed1bd0"
+    },
+    {
+      "file": "piece_trousers_male.glb",
+      "bytes": 36852,
+      "sha256": "020d6be87a865bb687781d49b351982d71a1cb0176208fe807d969fe7d8e41df"
+    },
+    {
+      "file": "piece_hood_male.glb",
+      "bytes": 33564,
+      "sha256": "240e2c05f113d4f0608cc25bcf2ebaf166c6950f273ff9626cf3491b2f8c1038"
+    },
+    {
+      "file": "piece_drape_male.glb",
+      "bytes": 27696,
+      "sha256": "8f116a0576c363f2e035df4e3b535f4347e935ad76a9e659d6af6cc244803ed4"
+    },
+    {
+      "file": "piece_loin_male.glb",
+      "bytes": 22232,
+      "sha256": "f309c626f69d9ae9a58625be667de0563ba2db1833f32f6e90636d61bd67421d"
+    },
+    {
+      "file": "piece_skirt_short_male.glb",
+      "bytes": 24280,
+      "sha256": "13c859a4272e302d809afc533bda577e94423105d974ad0c7b1442ea63200d76"
+    },
+    {
+      "file": "piece_skirt_knee_male.glb",
+      "bytes": 26128,
+      "sha256": "91f50c096f138ea16f02922273db00d9eceeb4fb14792b28d556bd85e8892592"
+    },
+    {
+      "file": "piece_skirt_long_male.glb",
+      "bytes": 29352,
+      "sha256": "adaba09db5083e497f5e4baa5c0e0c6f34e6354738b69c5d243fa8f5289ecac5"
+    },
+    {
+      "file": "piece_strings_male.glb",
+      "bytes": 25208,
+      "sha256": "eb8fe099969fd5974275edd0e4801e5df12496d5a09fd9287c8f1f26a5ef9e4f"
+    },
+    {
+      "file": "piece_cape_male.glb",
+      "bytes": 25308,
+      "sha256": "1ab25fbcef168c8930b07c9c48208fcc828f9393f525633ba7c93dfc5233aba7"
+    },
+    {
+      "file": "piece_cloak_male.glb",
+      "bytes": 30336,
+      "sha256": "1be2997b96c2ae032c75c3d271b6e5349128ecb2917502454cafa73b7b792306"
+    },
+    {
+      "file": "piece_vest_female.glb",
+      "bytes": 41076,
+      "sha256": "b15b2e1d980271e377ad06b6e6c6b4cd3ddaafa2805e88728913be8a0446e5c7"
+    },
+    {
+      "file": "piece_shortsleeve_female.glb",
+      "bytes": 43564,
+      "sha256": "3dcadbfd733ab01c59d64c742ba1c24f3a20a1578d7768a85a2d945b169cc14e"
+    },
+    {
+      "file": "piece_longsleeve_female.glb",
+      "bytes": 55324,
+      "sha256": "b8004f5772c1519b8a98eae0ae7d15bf79393618cda201e3a01ba29595e79e0b"
+    },
+    {
+      "file": "piece_trousers_female.glb",
+      "bytes": 37028,
+      "sha256": "ac0b084e75ea6e7acae94cbc05a5ac7bf57d0bf989eadd30bb4cb3fbd522cc75"
+    },
+    {
+      "file": "piece_hood_female.glb",
+      "bytes": 34836,
+      "sha256": "432fcf6cfce69830e026b9f9d8b624ff162156cbe8a95d1f5fbefffcc521bcde"
+    },
+    {
+      "file": "piece_drape_female.glb",
+      "bytes": 28716,
+      "sha256": "d93f401b35663457d0813dd4bbfc9f6fd6da02b37e166a2e4dc24aa5582b9195"
+    },
+    {
+      "file": "piece_loin_female.glb",
+      "bytes": 22764,
+      "sha256": "6b8d268be9feb1187c5d54afb279745e28ae6263a6718443c993572e896618ad"
+    },
+    {
+      "file": "piece_skirt_short_female.glb",
+      "bytes": 24588,
+      "sha256": "55865e1c7f1b2ffdd5806986c2ae9800d9e5a6fb976dd913d3db4f6600b4d97a"
+    },
+    {
+      "file": "piece_skirt_knee_female.glb",
+      "bytes": 26504,
+      "sha256": "e167e104866a9812a7fc44e253843cb36662666cd842038df6f8bdeabbf5c35d"
+    },
+    {
+      "file": "piece_skirt_long_female.glb",
+      "bytes": 29584,
+      "sha256": "8f0e852c93f41f796048263953ca74ffea7cdad698a179a2d8d2e9f88574c0ca"
+    },
+    {
+      "file": "piece_strings_female.glb",
+      "bytes": 25444,
+      "sha256": "27942d4da562e0b3c90d21a0fabab389e450608ccc0852dc46c4fec817691bc0"
+    },
+    {
+      "file": "piece_cape_female.glb",
+      "bytes": 25900,
+      "sha256": "7d8de4a6abfde96b1de15eb94b6e62c342a07c65872bad317caa7ff39d39bebc"
+    },
+    {
+      "file": "piece_cloak_female.glb",
+      "bytes": 30816,
+      "sha256": "379e15e88bfcf59ea762445990d6ddab03048d326483dd60610826a067a99e73"
     },
     {
       "file": "hair_long.glb",
@@ -146,9 +404,9 @@
     },
     {
       "file": "anims.glb",
-      "bytes": 241416,
-      "sha256": "78dbe26b3ddae272807f8b95a24c6e10c7d4c8756ebaffb7d4e3a68114c9db3f"
+      "bytes": 321960,
+      "sha256": "682666291487b47d940e6f9b42eb2c21fbae21cb54034337996ccf79ab49aeb8"
     }
   ],
-  "total_bytes": 871728
+  "total_bytes": 1716884
 }

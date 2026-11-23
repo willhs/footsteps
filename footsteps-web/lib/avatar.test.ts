@@ -64,21 +64,33 @@ describe('portraitLooks', () => {
 });
 
 describe('avatarSpec', () => {
-  const spec = (p: Person, year = -3000, lat = 26) => avatarSpec(p, portraitLooks(p, year, lat, null));
+  const spec = (p: Person, year = -3000, lat = 26) => avatarSpec(p, portraitLooks(p, year, lat, null), { year });
 
-  it('takes the same skin, hair and garment colours as the SVG', () => {
-    for (const p of people(20)) {
-      const l = portraitLooks(p, -3000, 26, null);
-      const s = avatarSpec(p, portraitLooks(p, -3000, 26, null));
+  it('takes the same skin and hair as the SVG, and its cloth colours for woven cloth with no row palette', () => {
+    // central Europe, 1200 CE: wool, and the europe-later row names no palette
+    for (const p of people(20, { position: [10, 50] })) {
+      const l = portraitLooks(p, 1200, 50, null);
+      const s = avatarSpec(p, portraitLooks(p, 1200, 50, null), { year: 1200 });
+      expect(s.outfit.material).toBe('wool');
       expect([s.skin, s.hairColour, s.garment, s.trim]).toEqual([l.skin, l.hair, l.cloth.garment, l.cloth.trim]);
     }
+  });
+
+  it('colours natural materials by the material, and keeps the atlas palette for cloth', () => {
+    const hunter = avatarSpec(person({ position: [16.6, 48.9], groupKind: 0, role: 'hunter' }), portraitLooks(person(), -20000, 48.9, null), { year: -20000 });
+    expect(hunter.outfit.material).toBe('fur');
+    expect(['#6b4c33', '#8a6a48', '#5a4434', '#9c8466']).toContain(hunter.garment);
+    const rec = { cell: { key: 'x' }, era: { start: 0, label: '' }, fields: { clothing: { value: { palette: ['#123456', '#654321'] }, source: 'model' } } } as AtlasRecord;
+    const p = person({ position: [12.5, 41.9], female: false });
+    const l = portraitLooks(p, 100, 41.9, rec);
+    expect(avatarSpec(p, l, { year: 100, rec }).garment).toBe(l.cloth.garment);
   });
 
   it('is deterministic and does not disturb the SVG draws', () => {
     const p = person({ female: false, id: 12 });
     expect(spec(p)).toEqual(spec(p));
     const l = portraitLooks(p, -3000, 26, null);
-    avatarSpec(p, l);
+    avatarSpec(p, l, { year: -3000 });
     expect(l.r()).toBe(portraitLooks(p, -3000, 26, null).r());
   });
 
@@ -113,14 +125,34 @@ describe('avatarSpec', () => {
     expect(men).toBeLessThan(60);
   });
 
-  it('maps hair styles onto the meshes there are', () => {
-    for (const p of people(60)) {
-      const l = portraitLooks(p, -3000, 26, null);
-      const s = avatarSpec(p, l);
-      const want = { long: 'long', braid: 'long', tied: 'buns', wrap: 'buns', short: 'buzzed_female' }[l.hairStyle];
+  it('maps the atlas hair styles onto the meshes there are', () => {
+    const rec = { cell: { key: 'x' }, era: { start: 0, label: '' }, fields: { hair_adornment: { value: { styles: ['long loose hair', 'braids', 'hair tied in a bun', 'short cropped hair'] }, source: 'model' } } } as AtlasRecord;
+    for (const p of people(60, { position: [10, 50] })) {
+      const l = portraitLooks(p, 1200, 50, rec);
+      const s = avatarSpec(p, l, { year: 1200, rec });
+      if (s.outfit.head !== 'none') continue; // hoods, caps and head cloths have their own rules
+      const want = { long: 'long', braid: 'buzzed_female', tied: 'buns', wrap: 'buns', short: 'buzzed_female' }[l.hairStyle];
       expect(s.hair).toBe(want);
-      expect(s.hairIsWrap).toBe(l.hairStyle === 'wrap');
+      expect(s.hairExtra).toBe(l.hairStyle === 'braid' ? 'braids' : null);
     }
+  });
+
+  it('dresses, equips and sets to work by era, place and role', () => {
+    const nile = spec(person({ position: [32.6, 26.1], role: 'potter' }), -3000, 26.1);
+    expect(nile.wardrobeRow).toBe('nile');
+    expect(nile.outfit.material).toBe('linen');
+    expect(nile.pieces.length).toBeGreaterThan(0);
+    expect(nile.tool).toBe('pot');
+    expect(nile.loop).toBe('shape');
+    const neanderthal = spec(person({ position: [-3, 43.3], groupKind: 0, role: 'toolmaker', kindOfHuman: 'neanderthals' }), -60000, 43.3);
+    expect(neanderthal.wardrobeRow).toBe('other-human');
+    expect(neanderthal.loop).toBe('knap');
+  });
+
+  it('follows the routine state when given one', () => {
+    const p = person({ role: 'toolmaker', groupKind: 0 });
+    const s = avatarSpec(p, portraitLooks(p, -3000, 26, null), { year: -3000, state: { activity: 'asleep' } });
+    expect([s.tool, s.loop]).toEqual(['none', 'doze']);
   });
 
   it('names other kinds of human so the card can say the body is ours', () => {

@@ -94,6 +94,7 @@ separate series from `tasks/0001-0003`.
 - [`tasks/0015-close-up-light-sky-water/task.md`](tasks/0015-close-up-light-sky-water/task.md) ([plan](tasks/0015-close-up-light-sky-water/plan.md)) — close-up light from the sun clock, haze into a sky and moving water behind `?sky=1`
 - [`tasks/0016-fields-gardens-paths-around-settlements/task.md`](tasks/0016-fields-gardens-paths-around-settlements/task.md) ([plan](tasks/0016-fields-gardens-paths-around-settlements/plan.md)) — fields, gardens, corrals and worn paths round settlements in the close-up behind `?fields=1`
 - [`tasks/0018-3d-animated-person-part-1/task.md`](tasks/0018-3d-animated-person-part-1/task.md) ([plan](tasks/0018-3d-animated-person-part-1/plan.md)) — 3D animated person, part 1: a rigged CC0 human in the person card behind `?avatar=3d`
+- [`tasks/0019-3d-animated-person-part-2-wardrobe-work/task.md`](tasks/0019-3d-animated-person-part-2-wardrobe-work/task.md) ([plan](tasks/0019-3d-animated-person-part-2-wardrobe-work/plan.md)) — 3D animated person, part 2: wardrobe by era, region, climate and way of life from a cited table, tools and work loops by role, behind `?avatar=3d`
 
 ## Design
 

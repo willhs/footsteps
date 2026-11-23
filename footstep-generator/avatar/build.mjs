@@ -8,15 +8,16 @@
 //
 // Output (all meshopt-compressed GLB, no textures):
 //   body_male.glb, body_female.glb   the body, eyes and eyebrows, skinned to the pack's 65-joint skeleton
+//   piece_<name>_<sex>.glb           one garment piece each (pieces.mjs): fitted shells and hanging lathes on the same skeleton
 //   hair_<style>.glb                 one skinned hair mesh per style (long, buns, parted, buzzed, buzzed_female, beard)
-//   anims.glb                        the skeleton and the clips we keep (idle, talk, walk, sit, crouch, work), no mesh
+//   anims.glb                        the skeleton and the clips we keep (idle, talk, walk, sit, crouch, work, hold, dance, push), no mesh
 //   manifest.json                    sources, licence, sha256 and bytes of every file, clip names, the vertex-colour encoding
 //
 // Why no textures: the pack's PNGs are 1-4 MB each and would need a KTX2 toolchain; at card size the useful detail fits in
 // vertex colours. COLOR_0 on body and hair = (shade / SHADE_MAX, garment, trim): shade is the texture's brightness relative
-// to its typical skin (or hair) pixel, garment is 1 where the person's garment colour goes (the pack's painted underwear,
-// plus a plain knee-length tunic band added here so the figure is dressed), trim marks the tunic's hem, belt and neckline.
-// Eyes keep real RGB. The viewer turns these
+// to its typical skin (or hair) pixel, garment is 1 where the person's garment colour goes (the pack's painted underwear
+// on the body; all of a garment piece), trim marks a piece's hem, cuffs and neck. The body also carries `_COVER`: which
+// fitted pieces cover each vertex, so the viewer can hide skin under them. Eyes keep real RGB. The viewer turns these
 // into per-person colours on the CPU (footsteps-web/components/footsteps/overlays/avatarScene.ts).
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
@@ -29,6 +30,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { LATHES, SHELLS, bodyData, coverBits, latheGeometry, shellGeometry } from './pieces.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..', '..');
@@ -44,6 +46,9 @@ const CLIPS = {
   sit: 'Sitting_Idle_Loop',
   crouch: 'Crouch_Idle_Loop',
   work: 'Fixing_Kneeling',
+  hold: 'Idle_Torch_Loop',
+  dance: 'Dance_Loop',
+  push: 'Push_Loop',
 };
 const HAIR = {
   long: 'Hair_Long',
@@ -128,35 +133,6 @@ async function loadImage(file, size = 512) {
 }
 const lum = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 1;
-const smooth = (e0, e1, x) => {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * A plain short-sleeved tunic in the bind pose (metres, y up, T-pose arms along x): mid-thigh to the shoulders, a round neck
- * opening, sleeves to mid upper arm. Soft edges, so the hem is not a stair of triangles.
- */
-function tunic([x, y]) {
-  const ax = Math.abs(x);
-  const torso = smooth(0.5, 0.56, y) * (1 - smooth(1.62, 1.68, y)) * (1 - smooth(0.2, 0.25, ax));
-  const neck = smooth(1.4, 1.46, y) * (1 - smooth(0.07, 0.11, ax));
-  const sleeve = smooth(0.18, 0.22, ax) * (1 - smooth(0.34, 0.38, ax)) * smooth(1.28, 1.32, y) * (1 - smooth(1.6, 1.64, y));
-  return Math.max(torso * (1 - neck), sleeve);
-}
-
-/** A soft band of width ~w centred on v0. */
-const band = (v, v0, w) => Math.max(0, 1 - Math.abs(v - v0) / w);
-/**
- * Where the garment's trim colour goes: a hem, a belt and the sleeve ends. Without them a hide tunic the colour of skin
- * reads as bare skin at card size.
- */
-const trimOf = ([x, y]) => {
-  const ax = Math.abs(x);
-  const body = Math.min(1, band(y, 0.535, 0.03) + band(y, 1.0, 0.025)) * (1 - smooth(0.2, 0.25, ax));
-  const cuff = band(ax, 0.355, 0.02) * smooth(1.28, 1.32, y);
-  return Math.min(1, body + cuff);
-};
 
 /** Underwear in the base colour: near black and grey, where skin is never that dark in the light-skin texture. */
 const painted = (rgb) => (lum(rgb) < 0.12 ? 1 : 0);
@@ -193,7 +169,9 @@ async function readGltf(io, file) {
   }
 }
 
-const KEEP = ['POSITION', 'NORMAL', 'JOINTS_0', 'WEIGHTS_0', 'COLOR_0'];
+const KEEP = ['POSITION', 'NORMAL', 'JOINTS_0', 'WEIGHTS_0', 'COLOR_0', '_COVER'];
+/** Each body's bind-pose data and joint names, for the garment pieces made from it. */
+const bodies = {};
 
 async function bakeBody(io, dir, sex) {
   const base = path.join(dir, 'Base Characters');
@@ -224,75 +202,75 @@ async function bakeBody(io, dir, sex) {
         const typical = median(skinLums);
         let garmentVerts = 0;
         for (let i = 0; i < n; i++) {
-          const g = part === 'body' ? Math.max(painted(rgbs[i]), tunic(pos.getElement(i, []))) : 0;
+          // The pack's painted underwear stays in the garment colour: what shows when an outfit leaves the hips bare.
+          const g = part === 'body' ? painted(rgbs[i]) : 0;
           // Garment is flat cloth; skin keeps the painted muscle and face shading.
           const shade = painted(rgbs[i]) ? 1 : Math.min(SHADE_MAX, Math.max(0.35, lum(rgbs[i]) / typical));
           out[i * 3] = shade / SHADE_MAX;
           out[i * 3 + 1] = g;
-          out[i * 3 + 2] = part === 'body' ? trimOf(pos.getElement(i, [])) * g : 0;
+          out[i * 3 + 2] = 0;
           if (g > 0.5) garmentVerts++;
         }
         stats[part] = { vertices: n, garmentVertices: garmentVerts };
       }
       setColour(doc, prim, out);
       stripTo(prim, KEEP);
-      if (part === 'body') stats.garment = garmentShell(doc, node, prim);
+      if (part === 'body') {
+        const data = bodyData(prim);
+        const bits = coverBits(data);
+        prim.setAttribute('_COVER', doc.createAccessor().setType('SCALAR').setArray(bits).setBuffer(doc.getRoot().listBuffers()[0]));
+        stats.cover = Object.fromEntries(Object.entries(SHELLS).filter(([, v]) => v.bit).map(([k, v]) => [k, bits.reduce((a, b) => a + ((b & v.bit) ? 1 : 0), 0)]));
+        bodies[sex] = { data, joints: node.getSkin().listJoints().map((j) => j.getName()) };
+      }
     }
   }
   return { doc, stats };
 }
 
 /**
- * A plain tunic as its own skinned mesh: the body's triangles inside the tunic band, pushed out along their normals (1 cm
- * at the chest, flaring to 3 cm at the hem) so the garment has an edge and a silhouette. Painted the same way: COLOR_0 =
- * (shade, 1, trim). Part 2's wardrobe replaces it with real clothes on the same skeleton.
+ * One garment piece as its own file: the body's skeleton and skin, and one skinned mesh (lib/wardrobe.ts PIECE_FILES).
+ * Read the body afresh, drop its meshes, add the piece bound to the same skin.
  */
-function garmentShell(doc, bodyNode, prim) {
-  const pos = prim.getAttribute('POSITION');
-  const nor = prim.getAttribute('NORMAL');
-  const idx = prim.getIndices().getArray();
-  const keep = [];
-  const inside = (i) => tunic(pos.getElement(i, [])) > 0.5;
-  for (let t = 0; t < idx.length; t += 3) if (inside(idx[t]) && inside(idx[t + 1]) && inside(idx[t + 2])) keep.push(idx[t], idx[t + 1], idx[t + 2]);
-  const remap = new Map();
-  for (const i of keep) if (!remap.has(i)) remap.set(i, remap.size);
-  const n = remap.size;
-  const out = { POSITION: new Float32Array(n * 3), NORMAL: new Float32Array(n * 3), COLOR_0: new Float32Array(n * 3) };
-  const col = prim.getAttribute('COLOR_0');
-  const joints = prim.getAttribute('JOINTS_0');
-  const weights = prim.getAttribute('WEIGHTS_0');
-  const J = new (joints.getArray().constructor)(n * 4);
-  const W = new (weights.getArray().constructor)(n * 4);
-  for (const [src, dst] of remap) {
-    const p = pos.getElement(src, []);
-    const v = nor.getElement(src, []);
-    const push = 0.01 + 0.02 * (1 - smooth(0.56, 1.0, p[1]));
-    for (let k = 0; k < 3; k++) {
-      out.POSITION[dst * 3 + k] = p[k] + v[k] * push;
-      out.NORMAL[dst * 3 + k] = v[k];
+async function bakePiece(io, dir, sex, name) {
+  const base = path.join(dir, 'Base Characters');
+  const doc = await readGltf(io, path.join(base, 'Godot - UE', `Superhero_${sex === 'male' ? 'Male' : 'Female'}_FullBody.gltf`));
+  const { data, joints } = bodies[sex];
+  let skin = null;
+  let parent = null;
+  for (const node of doc.getRoot().listNodes()) {
+    if (!node.getMesh()) continue;
+    if (node.getSkin() && !skin) {
+      skin = node.getSkin();
+      parent = node.getParentNode();
     }
-    const c = col.getElement(src, []);
-    // Cloth: most of the body's painted muscle shading gone.
-    out.COLOR_0.set([(1 + (c[0] * SHADE_MAX - 1) * 0.3) / SHADE_MAX, 1, c[2]], dst * 3);
-    J.set(joints.getElement(src, []), dst * 4);
-    W.set(weights.getElement(src, []), dst * 4);
+    node.setMesh(null);
+    node.setSkin(null);
   }
+  const jointIndex = {
+    toThigh: (j) => {
+      const n = joints[j];
+      const side = /_l$/.test(n) ? 'l' : /_r$/.test(n) ? 'r' : null;
+      return side && /^(calf|foot|ball)/.test(n) ? joints.indexOf(`thigh_${side}`) : j;
+    },
+  };
+  const built = SHELLS[name] ? shellGeometry(data, SHELLS[name]) : latheGeometry(data, LATHES[name], { pelvisJoint: joints.indexOf('pelvis'), jointIndex });
   const buffer = doc.getRoot().listBuffers()[0];
-  const acc = (type, array, normalized = false) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer).setNormalized(normalized);
-  const shell = doc
+  const acc = (type, array) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+  const g = built.geo;
+  const prim = doc
     .createPrimitive()
-    .setAttribute('POSITION', acc('VEC3', out.POSITION))
-    .setAttribute('NORMAL', acc('VEC3', out.NORMAL))
-    .setAttribute('COLOR_0', acc('VEC3', out.COLOR_0))
-    .setAttribute('JOINTS_0', acc('VEC4', J))
-    .setAttribute('WEIGHTS_0', acc('VEC4', W, weights.getNormalized()))
-    .setIndices(acc('SCALAR', new Uint32Array(keep.map((i) => remap.get(i)))))
+    .setAttribute('POSITION', acc('VEC3', g.POSITION))
+    .setAttribute('NORMAL', acc('VEC3', g.NORMAL))
+    .setAttribute('COLOR_0', acc('VEC3', g.COLOR_0))
+    .setAttribute('JOINTS_0', acc('VEC4', g.JOINTS_0))
+    .setAttribute('WEIGHTS_0', acc('VEC4', g.WEIGHTS_0))
+    .setIndices(acc('SCALAR', g.indices))
     .setMaterial(doc.createMaterial('garment').setDoubleSided(true));
-  const node = doc.createNode('garment').setMesh(doc.createMesh('garment').addPrimitive(shell)).setSkin(bodyNode.getSkin());
-  const parent = bodyNode.getParentNode();
+  const node = doc.createNode('garment').setMesh(doc.createMesh('garment').addPrimitive(prim)).setSkin(skin);
   if (parent) parent.addChild(node);
   else doc.getRoot().listScenes()[0].addChild(node);
-  return { vertices: n, triangles: keep.length / 3 };
+  for (const m of doc.getRoot().listMeshes()) if (m !== node.getMesh()) m.dispose();
+  return { doc, stats: { vertices: built.vertices, triangles: built.triangles } };
 }
 
 async function bakeHair(io, dir, name) {
@@ -395,6 +373,14 @@ for (const sex of ['male', 'female']) {
   stats[sex] = s;
   files.push(await write(io, doc, path.join(OUT, `body_${sex}.glb`)));
 }
+const PIECES = [...Object.keys(SHELLS), ...Object.keys(LATHES)];
+stats.pieces = {};
+for (const sex of ['male', 'female'])
+  for (const name of PIECES) {
+    const { doc, stats: s } = await bakePiece(io, dirs.characters, sex, name);
+    stats.pieces[`${name}_${sex}`] = s;
+    files.push(await write(io, doc, path.join(OUT, `piece_${name}_${sex}.glb`)));
+  }
 for (const [style, name] of Object.entries(HAIR)) files.push(await write(io, await bakeHair(io, dirs.characters, name), path.join(OUT, `hair_${style}.glb`)));
 const { doc: animDoc, clips } = await trimAnims(io, dirs.animations);
 
@@ -418,7 +404,8 @@ const manifest = {
   author: SOURCES.author,
   sources: SOURCES.packs.map(({ id, title, page, itch, upload_id, file, version, sha256: s }) => ({ id, title, page, itch, upload_id, file, version, sha256: s })),
   encoding: {
-    COLOR_0: `body, brows and hair: (shade / ${SHADE_MAX}, garment 0-1, trim 0-1); eyes: RGB`,
+    COLOR_0: `body, brows, hair and garment pieces: (shade / ${SHADE_MAX}, garment 0-1, trim 0-1); eyes: RGB`,
+    _COVER: 'body only: bits of the fitted pieces covering the vertex (vest 1, shortsleeve 2, longsleeve 4, trousers 8, hood 16); the viewer hides covered triangles',
     shade_max: SHADE_MAX,
     skeleton: '65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)',
   },

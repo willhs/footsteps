@@ -71,43 +71,53 @@ offsets chosen: they reuse the part-1 `rotateWorld` path, are testable and cost 
 
 ## Phase 1: Wardrobe table
 
-- [ ] Write `lib/wardrobe.ts`: types (`Top`, `Bottom`, `Over`, `Head`, `Material`, `Ornament`, `Outfit`, `WardrobeRow`),
+- [x] Write `lib/wardrobe.ts`: types (`Top`, `Bottom`, `Over`, `Head`, `Material`, `Ornament`, `Outfit`, `WardrobeRow`),
       regions, climate, rows with sources and status, `wardrobeFor`, atlas overrides.
-- [ ] Check every cited DOI against Crossref (title, year); mark rows `checked` only when the claim matches the source.
-- [ ] Tests `lib/wardrobe.test.ts`: every row has a source; lookup per era/region for the twelve contact-sheet people;
+- [x] Check every cited DOI against Crossref (title, year); mark rows `checked` only when the claim matches the source.
+- [x] Tests `lib/wardrobe.test.ts`: every row has a source; lookup per era/region for the twelve contact-sheet people;
       determinism; atlas overrides; fallback always returns an outfit.
-- [ ] Run: `pnpm --dir footsteps-web exec jest lib/wardrobe` — pass.
+- [x] Run: `pnpm --dir footsteps-web exec jest lib/wardrobe` — pass.
 
 ## Phase 2: Garment pieces in the build
 
-- [ ] `build.mjs`: drop the painted tunic band and the single shell; add `PIECES` (shell masks and lathes) per sex; write
+- [x] `build.mjs`: drop the painted tunic band and the single shell; add `PIECES` (shell masks and lathes) per sex; write
       `piece_<name>_<sex>.glb`; `_COVER` per body vertex; add clip `hold` (`Idle_Torch_Loop`) and `dance` (`Dance_Loop`).
-- [ ] Run the build; manifest lists every file with bytes; total < 6 MB.
+- [x] Run the build; manifest lists every file with bytes; total < 6 MB.
 
 ## Phase 3: Work and tools
 
-- [ ] `lib/avatarWork.ts`: `Tool`, `WorkLoop`, `workFor`, `workPose`, `routineWork`; tests (era gates, determinism,
+- [x] `lib/avatarWork.ts`: `Tool`, `WorkLoop`, `workFor`, `workPose`, `routineWork`; tests (era gates, determinism,
       each loop returns bounded offsets).
-- [ ] `lib/avatarSpec.ts`: `outfit`, `work`, colours by material; tests updated.
+- [x] `lib/avatarSpec.ts`: `outfit`, `work`, colours by material; tests updated.
 
 ## Phase 4: Viewer
 
-- [ ] `avatarScene.ts`: load pieces, hide covered body triangles, paint by material, attach primitives (tools, ornaments,
+- [x] `avatarScene.ts`: load pieces, hide covered body triangles, paint by material, attach primitives (tools, ornaments,
       cap, braids/topknot), play base clip + work offsets alternating with idle; dispose everything.
-- [ ] `Avatar3D.tsx`: caption shows the outfit label; routine state with `?routine=1`.
+- [x] `Avatar3D.tsx`: caption shows the outfit label; routine state with `?routine=1`.
 
 ## Phase 5: Contact sheet, measure, docs
 
-- [ ] `footstep-generator/avatar/sheet.mjs`: bundle + render 12 people → `docs/ops/avatar-sheet.webp` (small).
-- [ ] Look at every figure; fix what reads wrong.
-- [ ] Run tsc, lint, jest, build, `pnpm visual`, `node scripts/first-load.mjs --flags`.
-- [ ] `docs/ops/avatar.md`, log fragment, decisions.tsv.
+- [x] `footstep-generator/avatar/sheet.mjs`: bundle + render 12 people → `docs/ops/avatar-sheet.webp` (small).
+- [x] Look at every figure; fix what reads wrong.
+- [x] Run tsc, lint, jest, build, `pnpm visual`, `node scripts/first-load.mjs --flags`.
+- [x] `docs/ops/avatar.md`, log fragment, decisions.tsv.
 
 ## Phase 6: Wrap (commit & finalize)
 
-- [ ] `git status` clean after the final commit; last commit holds every phase's changes.
+- [x] `git status` clean after the final commit; last commit holds every phase's changes.
 
 ## References
 
 - Task: `docs/tasks/0019-3d-animated-person-part-2-wardrobe-work/task.md`
 - Part 1: `docs/tasks/0018-3d-animated-person-part-1/`, `docs/ops/avatar.md`
+
+## As built (2026-11-24)
+
+- Phase 2 made 13 pieces, not 12: `vest`, `shortsleeve`, `longsleeve`, `trousers`, `hood`, `drape` (shells), `loin`,
+  `skirt_short`, `skirt_knee`, `skirt_long`, `strings`, `cape`, `cloak` (lathes); a long top over trousers adds
+  `skirt_short` as coat tails. Clips added: `hold`, `dance`, `push`.
+- Assumption 3 was tightened after the first sheet: a modelled atlas (`source: model`) overrides only rows resting on
+  unverified sources (`rowIsFirm`), for clothes, hair and ornaments alike; real atlas sources always override.
+- Carrying is hands-free (loads on the head); props are offset by each body's own bone positions.
+- Still frames show work at full strength.

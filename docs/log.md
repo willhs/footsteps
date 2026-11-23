@@ -4,6 +4,22 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | 3D person part 2: wardrobe by era and place, tools and work loops (behind ?avatar=3d)
+
+The 3D person in the card now changes with time, place and role. `lib/wardrobe.ts` is a cited table of 28 rows (era band ×
+region × climate × way of life, with sex-specific outfits, hair-dos, ornaments and paint): sewn fur parkas in glacial
+Eurasia, hide and string skirts, Nile linen kilts and sheath dresses, Bronze and Iron Age wool tunics and cloaks, tunic and
+toga in Rome, steppe felt and trousers, Han robes, Andean unku and mantles, Mesoamerican loincloth and huipil, draped
+capes for Neanderthals. 18 sources checked on Crossref, the rest marked unverified with why. The atlas record overrides the
+table when its source is real, and a modelled gap-fill only over unverified rows. The build makes 13 garment pieces per
+body from the bodies themselves (fitted shells, hanging lathes; 1,677 KiB for all avatar files, 0.6-0.75 MB per person);
+body triangles under fitted cloth are hidden so skin never pokes through. Tools, ornaments, caps and braids are
+primitives on bones. `lib/avatarWork.ts` gives each role a tool and a keyframed work loop over the pack's clips
+(knapping, grinding, spinning, herding, digging, reaping, shaping a pot, scraping, holding, carrying), era-gated and
+alternating with the idle; with `?routine=1` the state now chooses where it maps cleanly. Contact sheet:
+`docs/ops/avatar-sheet.webp` (`node footstep-generator/avatar/sheet.mjs`). Flag off: no change. Task 0019,
+docs/ops/avatar.md.
+
 ## [2026-11-24] feature | Hearth smoke and firelight (?smoke=1)
 
 Close-up (zoom 12-18) made more alive, behind `?smoke=1` (off by default, nothing else changes; Vision: Footsteps the close-up scene). Every household of a group in view gets a

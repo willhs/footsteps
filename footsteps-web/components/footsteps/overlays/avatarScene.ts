@@ -3,8 +3,10 @@
 // visible, at most 30 frames a second, and gives its GPU context back when the card closes.
 //
 // Assets come from public/avatar/ (footstep-generator/avatar/build.mjs): a body per sex, a hair mesh per style, and the
-// clips on the same 65-joint skeleton. Bodies carry COLOR_0 = (shade / SHADE_MAX, garment, 0); this file turns that into
-// the person's skin and garment colours on the CPU, so there are no textures to fetch.
+// clips on the same 65-joint skeleton, and garment pieces (lib/wardrobe.ts) bound to it. Meshes carry COLOR_0 = (shade /
+// SHADE_MAX, garment, trim); this file turns that into the person's skin and cloth colours on the CPU, so there are no
+// textures to fetch. Tools, ornaments and caps are primitives fixed to bones (avatarProps.ts); work loops are the pack's
+// clips plus keyframed bone turns (lib/avatarWork.ts).
 import {
   AnimationMixer,
   CanvasTexture,
@@ -36,7 +38,10 @@ import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { AvatarSpec } from '@/lib/avatarSpec';
+import { LOOPS, workPose, workWeight } from '@/lib/avatarWork';
+import type { Material } from '@/lib/wardrobe';
 import { STILL_SECONDS } from '@/lib/still';
+import { potOnGround, REF_BONES, toolProps, wornProps, type Placed } from './avatarProps';
 
 /** Where the build writes the files, and its shade encoding (build.mjs `SHADE_MAX`). */
 const BASE = '/avatar/';
@@ -63,8 +68,25 @@ function load(name: string): Promise<GLTF> {
 
 const linear = (css: string) => new Color().setStyle(css, SRGBColorSpace);
 
+/** A stable 0-1 hash per vertex, for the grain of fur and hide. */
+const grain = (i: number) => (Math.imul(i ^ 0x9e3779b9, 0x85ebca6b) >>> 0) / 4294967296;
+/** How much each material's surface varies vertex to vertex (fur is tufted, silk is even). */
+const GRAIN: Record<Material, number> = { fur: 0.35, hide: 0.12, bark: 0.18, fibre: 0.2, felt: 0.08, linen: 0.04, wool: 0.08, cotton: 0.04, silk: 0 };
+/** And how rough it is to the light (silk has a sheen). */
+const ROUGH: Record<Material, number> = { fur: 1, hide: 0.85, bark: 0.95, fibre: 0.95, felt: 1, linen: 0.85, wool: 0.95, cotton: 0.9, silk: 0.45 };
+
+/** Ochre lines across the cheeks and brow, in the bind pose (metres). */
+const facePaint = (x: number, y: number, z: number) => {
+  if (z < 0.04 || y < 1.62 || y > 1.78) return 0;
+  const ax = Math.abs(x);
+  const cheeks = ax > 0.028 && ax < 0.075 && (Math.abs(y - 1.668) < 0.006 || Math.abs(y - 1.684) < 0.006) ? 1 : 0;
+  const brow = ax < 0.06 && Math.abs(y - 1.748) < 0.005 ? 1 : 0;
+  return Math.max(cheeks, brow);
+};
+const OCHRE = new Color().setStyle('#a8442a', SRGBColorSpace);
+
 /** Per-vertex colour for one person: skin, garment or trim by the baked masks, times the baked shading. */
-function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | null = null) {
+function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | null = null, { grainAmount = 0, face = false } = {}) {
   const geo = mesh.geometry.clone();
   mesh.geometry = geo;
   const src = geo.getAttribute('color') as BufferAttribute | undefined;
@@ -80,11 +102,36 @@ function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | nul
     if (garment && g > 0) c.lerp(garment, g);
     const t = trim && src ? src.getZ(i) : 0;
     if (trim && t > 0) c.lerp(trim, t);
-    out[i * 3] = c.r * s;
-    out[i * 3 + 1] = c.g * s;
-    out[i * 3 + 2] = c.b * s;
+    const k = s * (1 - grainAmount / 2 + grainAmount * grain(i));
+    if (face) {
+      const pos = geo.getAttribute('position');
+      if (facePaint(pos.getX(i), pos.getY(i), pos.getZ(i))) c.lerp(OCHRE, 0.85);
+    }
+    out[i * 3] = c.r * k;
+    out[i * 3 + 1] = c.g * k;
+    out[i * 3 + 2] = c.b * k;
   }
   geo.setAttribute('color', new Float32BufferAttribute(out, 3));
+}
+
+/** Cover bits of the fitted pieces (build.mjs, pieces.mjs `SHELLS`). */
+const COVER_BIT: Record<string, number> = { vest: 1, shortsleeve: 2, longsleeve: 4, trousers: 8, hood: 16 };
+
+/** Hide the body's triangles that a worn fitted piece covers entirely, so skin never pokes through the cloth. */
+function hideCovered(mesh: Mesh, pieces: string[]) {
+  const bits = pieces.reduce((a, p) => a | (COVER_BIT[p] ?? 0), 0);
+  const cover = mesh.geometry.getAttribute('_cover') as BufferAttribute | undefined;
+  const index = mesh.geometry.index;
+  if (!bits || !cover || !index) return;
+  const keep: number[] = [];
+  for (let t = 0; t < index.count; t += 3) {
+    const a = index.getX(t);
+    const b = index.getX(t + 1);
+    const c = index.getX(t + 2);
+    if (cover.getX(a) & bits && cover.getX(b) & bits && cover.getX(c) & bits) continue;
+    keep.push(a, b, c);
+  }
+  mesh.geometry.setIndex(keep);
 }
 
 /** The eyes keep their baked colours, which are sRGB texture values: make them linear like everything else. */
@@ -176,6 +223,8 @@ export function glanceAt(seed: number, t: number): { yaw: number; pitch: number 
 
 const X = new Vector3(1, 0, 0);
 const Y = new Vector3(0, 1, 0);
+const Z = new Vector3(0, 0, 1);
+const AXES = { x: X, y: Y, z: Z };
 const tmpQ = new Quaternion();
 const parentQ = new Quaternion();
 const axis = new Vector3();
@@ -199,7 +248,7 @@ export type AvatarView = {
  * Draws `spec` into `canvas` until disposed. `still`: one fixed frame (no idle, no glances), redrawn only when dragged.
  * Drag (pointer) turns the figure; it never turns by itself.
  */
-export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still }: { still: boolean }): AvatarView {
+export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still, stillAt = STILL_SECONDS }: { still: boolean; stillAt?: number }): AvatarView {
   const t0 = performance.now();
   performance.mark(AVATAR_REQUESTED);
   let disposed = false;
@@ -279,12 +328,14 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
   let shown = false;
   // Bones the pose adjusts after the clip (stoop, glances). three's mixer only writes a bone when its animated value
   // changes, so an adjustment left on a bone would pile up frame after frame: put each back to the clip's pose first.
-  const ADJUSTED = ['spine_02', 'spine_03', 'neck_01', 'Head'];
+  const loop = LOOPS[spec.loop];
+  const workBones = new Set(Array.from({ length: 8 }, (_, i) => workPose(spec.loop, i * 0.37).map((t) => t.bone)).flat());
+  const ADJUSTED = [...new Set(['spine_02', 'spine_03', 'neck_01', 'Head', ...workBones])];
   const clipPose = new Map<string, Quaternion>();
   function pose(seconds: number) {
     for (const [name, q] of clipPose) bones.get(name)?.quaternion.copy(q);
     if (mixer) {
-      if (still) mixer.setTime(STILL_SECONDS % clipSeconds);
+      if (still) mixer.setTime(stillAt % clipSeconds);
       else mixer.setTime(((spec.phase * clipSeconds + seconds * spec.idleSpeed) % clipSeconds + clipSeconds) % clipSeconds);
     }
     for (const name of ADJUSTED) {
@@ -303,7 +354,16 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
       if (neck) rotateWorld(neck, X, spec.stoop * 0.2, figureQ);
       if (head) rotateWorld(head, X, -spec.stoop * 0.6, figureQ); // still looks ahead
     }
-    if (head && !still) {
+    // The work loop over the clip, faded in and out as work and rest alternate.
+    // A still frame shows the work itself, not a rest from it.
+    const t = still ? stillAt : seconds;
+    const w = still ? 1 : workWeight(spec.loop, spec.workSeed, t);
+    if (w > 0) for (const turn of workPose(spec.loop, t)) {
+      const b = bones.get(turn.bone);
+      if (b) rotateWorld(b, AXES[turn.axis], turn.angle * w, figureQ);
+    }
+    // Glances only while resting from work, or for loops that keep the head free.
+    if (head && !still && (w < 0.05 || !loop.rests)) {
       const g = glanceAt(spec.turnSeed, seconds);
       rotateWorld(head, Y, g.yaw, figureQ);
       rotateWorld(head, X, g.pitch, figureQ);
@@ -348,9 +408,15 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
   document.addEventListener('visibilitychange', wake);
 
   (async () => {
-    const parts = await Promise.all([load(`body_${spec.body}`), load(`hair_${spec.hair}`), load('anims'), spec.beard ? load('hair_beard') : null]);
+    const parts = await Promise.all([
+      load(`body_${spec.body}`),
+      load(`hair_${spec.hair}`),
+      load('anims'),
+      spec.beard ? load('hair_beard') : null,
+      Promise.all(spec.pieces.map((p) => load(`piece_${p}_${spec.body}`))),
+    ]);
     if (disposed) return;
-    const [bodyFile, hairFile, animFile, beardFile] = parts;
+    const [bodyFile, hairFile, animFile, beardFile, pieceFiles] = parts;
     const body = cloneSkinned(bodyFile.scene);
     figure.add(body);
     body.traverse((o) => {
@@ -358,46 +424,73 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
     });
     const skin = linear(spec.skin);
     const garment = linear(spec.garment);
-    const hairColour = linear(spec.hairIsWrap ? spec.trim : spec.hairColour);
+    const trim = linear(spec.trim);
+    const hairColour = linear(spec.hairIsWrap ? spec.garment : spec.hairColour);
     const browColour = linear(spec.hairColour);
+    const cloth = spec.outfit.material;
     body.traverse((o) => {
       const m = o as Mesh;
       if (!m.isMesh) return;
       if (m.name.startsWith('eyes')) {
         linearizeEyes(m);
         m.material = material(0.3);
-      } else if (m.name.startsWith('garment')) {
-        paint(m, garment, null, linear(spec.trim));
-        m.material = material(0.95);
-        (m.material as MeshStandardMaterial).side = DoubleSide;
       } else if (m.name.startsWith('brows')) {
         paint(m, browColour, null);
         m.material = material(0.9);
       } else {
-        paint(m, skin, garment, linear(spec.trim));
+        paint(m, skin, garment, trim, { face: spec.paint });
+        hideCovered(m, spec.pieces);
         m.material = material(0.72);
       }
       disposables.push(m.geometry, m.material as MeshStandardMaterial);
     });
+    let bodyParent: Object3D = body;
+    body.traverse((o) => {
+      if ((o as SkinnedMesh).isSkinnedMesh && o.name.startsWith('body') && o.parent) bodyParent = o.parent;
+    });
     for (const [file, colour] of [[hairFile, hairColour], [beardFile, browColour]] as const) {
       if (!file) continue;
-      let bodyParent: Object3D = body;
-      body.traverse((o) => {
-        if ((o as SkinnedMesh).isSkinnedMesh && o.name.startsWith('body') && o.parent) bodyParent = o.parent;
-      });
       for (const m of attachToSkeleton(cloneSkinned(file.scene), bones, bodyParent)) {
         paint(m, colour, null);
         m.material = material(0.85);
         disposables.push(m.geometry, m.material as MeshStandardMaterial);
       }
     }
+    for (const file of pieceFiles)
+      for (const m of attachToSkeleton(cloneSkinned(file.scene), bones, bodyParent)) {
+        paint(m, garment, garment, trim, { grainAmount: GRAIN[cloth] });
+        const mm = material(ROUGH[cloth]);
+        mm.side = DoubleSide;
+        m.material = mm;
+        disposables.push(m.geometry, mm);
+      }
+
+    // Tools, ornaments, hair extras and a cap: placed in the bind pose, then fixed to their bones.
+    const placed: Placed[] = [
+      ...(spec.loop === 'shape' ? [potOnGround()] : toolProps(spec.tool)),
+      ...wornProps({ ornaments: spec.ornaments, accent: spec.accent, hairExtra: spec.hairExtra, hairColour: spec.hairColour, cap: spec.outfit.head === 'cap', capColour: spec.garment }),
+    ];
+    body.updateMatrixWorld(true);
+    const inBody = new Vector3();
+    for (const { object, bone } of placed) {
+      body.add(object);
+      const b = bone ? bones.get(bone) : null;
+      const ref = bone ? REF_BONES[bone] : null;
+      if (b && ref) object.position.add(body.worldToLocal(b.getWorldPosition(inBody)).sub(new Vector3(...ref)));
+      object.updateMatrixWorld(true);
+      if (b) b.attach(object);
+      object.traverse((o) => {
+        const m = o as Mesh;
+        if (m.isMesh) disposables.push(m.geometry, m.material as MeshStandardMaterial);
+      });
+    }
     body.scale.setScalar(spec.height);
     bones.get('Head')?.scale.setScalar(spec.headScale);
 
     mixer = new AnimationMixer(body);
-    const idle = animFile.animations.find((a: AnimationClip) => a.name === 'idle') ?? animFile.animations[0];
-    clipSeconds = idle.duration;
-    mixer.clipAction(idle).play();
+    const clip = animFile.animations.find((a: AnimationClip) => a.name === loop.clip) ?? animFile.animations.find((a: AnimationClip) => a.name === 'idle') ?? animFile.animations[0];
+    clipSeconds = clip.duration;
+    mixer.clipAction(clip).play();
     clockStart = performance.now();
     draw(performance.now());
     wake();

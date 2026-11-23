@@ -8,6 +8,7 @@ import { ZOOM } from '../hooks/peopleView';
 import { close3dNote, groundParam, plantsParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
 import { skyParam } from '@/lib/sky';
+import { fieldsParam } from '../layers/fields';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -80,6 +81,7 @@ function SupportingText({
   const [plantsOn, setPlantsOn] = useState(false);
   const [groundOn, setGroundOn] = useState(false);
   const [weatherOn, setWeatherOn] = useState(false);
+  const [fieldsOn, setFieldsOn] = useState(false);
   // The left column (hover card, notes, legend) starts below this panel, whose height changes with its lines.
   const panelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -100,8 +102,9 @@ function SupportingText({
   useEffect(() => setWeatherOn(weatherParam(window.location.search)), []);
   const [skyOn, setSkyOn] = useState(false);
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
+  useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
 
-  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn, skyOn);
+  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn, skyOn, fieldsOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(

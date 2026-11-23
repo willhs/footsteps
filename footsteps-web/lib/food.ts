@@ -12,6 +12,19 @@ export type FoodData = {
 
 export const foodEnabled = (search: string) => new URLSearchParams(search).get('food') === '1';
 
+/** Ids of the crops around a place (its 5° cell) by a HYDE-era time, staples (the table's order) first; empty before HYDE or with none.
+ * The close-up fields (`?fields=1`) colour their plots by these. */
+export function cropsAround(data: FoodData, lon: number, lat: number, time: number): string[] {
+  if (time < HYDE_MIN || !Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90) return [];
+  const west = Math.floor(((((lon + 180) % 360) + 360) % 360 - 180) / 5) * 5;
+  const south = Math.min(85, Math.floor(lat / 5) * 5);
+  const cell = data.cells[`${south},${west}`];
+  if (!cell) return [];
+  let era = 0;
+  while (era + 1 < data.eras.length && data.eras[era + 1] <= time) era++;
+  return data.taxa.filter((t) => t.kind === 'crop' && cell[t.id] && cell[t.id][0] <= era).map((t) => t.id);
+}
+
 /** Possible availability, not calorie shares or evidence of farming at this spot. */
 export function foodHere(data: FoodData, lon: number, lat: number, time: number, habitat: HabitatCell | null): FoodItem[] {
   if (habitat?.surface !== 'land' || !Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90) return [];

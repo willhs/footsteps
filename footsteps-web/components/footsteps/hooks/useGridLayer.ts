@@ -32,6 +32,8 @@ import {
 
 const NO_PEOPLE: readonly Person[] = [];
 const NO_SHELTERS: readonly Shelter[] = [];
+/** The groups and towns in view at one data year. */
+export type GroupsInView = { year: number; groups: ShelterGroup[]; towns: TownInView[] };
 
 export { gridUrl, type GridData, type YearGrid } from './gridData';
 export { loadGrid } from './gridLoader';
@@ -63,6 +65,7 @@ export default function useGridLayer({
   routineEpoch = null,
   figures = false,
   dwellings = null,
+  fields = false,
   setFeatureCount,
   setTotalPopulation,
   setMetricsLoading,
@@ -83,6 +86,8 @@ export default function useGridLayer({
   figures?: boolean;
   /** `?shelters=1`: the dwelling table; the dwellings in view are returned as `shelters` (layers/shelters.ts). Null: none. */
   dwellings?: DwellingTable | null;
+  /** `?fields=1`: return the groups in view as `inView` for the land round them (layers/fields.ts). */
+  fields?: boolean;
   setFeatureCount: (v: number) => void;
   setTotalPopulation: (v: number) => void;
   setMetricsLoading: (v: boolean) => void;
@@ -99,6 +104,8 @@ export default function useGridLayer({
   scenePeople: readonly Person[];
   /** One dwelling per household in view, and roof clusters for towns, at the nearer data year (`?shelters=1`; else empty). */
   shelters: readonly Shelter[];
+  /** The groups and towns in view at the nearer data year (`?shelters=1` or `?fields=1`, people drawn); else null. */
+  inView: GroupsInView | null;
 } {
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
@@ -338,13 +345,14 @@ export default function useGridLayer({
   }, [peopleOn, morphScene, boundsKey, households]);
   const nearerPart = morphProgress < 0.5 ? 'leaving' : 'entering';
   const scenePeople = useMemo(() => people ? [...people.steady, ...people[nearerPart]] : NO_PEOPLE, [people, nearerPart]);
-  // Dwellings (`?shelters=1`): the same groups in view, read at the nearer data year, so a roof never stands without its people.
+  // The groups and towns in view at the nearer data year, for the dwellings (`?shelters=1`) and the land round them (`?fields=1`), so a roof
+  // or a field never stands without its people. Rebuilt only when the snapped view box, the scene or the nearer year changes.
   const nearTo = morphProgress >= 0.5;
-  const shelters = useMemo(() => {
-    if (!dwellings || !peopleOn || !morphScene || !bounds) return NO_SHELTERS;
+  const inView = useMemo((): GroupsInView | null => {
+    if ((!dwellings && !fields) || !peopleOn || !morphScene || !bounds) return null;
     const pad = 0.05;
     const { west, south, east, north } = bounds;
-    const inView = (lon: number, lat: number) => lon >= west - pad && lon <= east + pad && lat >= south - pad && lat <= north + pad;
+    const within = (lon: number, lat: number) => lon >= west - pad && lon <= east + pad && lat >= south - pad && lat <= north + pad;
     const pos = morphScene.data.attributes.getPosition.value;
     const { kind, people: to, fromPeople: from, society } = morphScene.data.info;
     const year = nearTo ? morphScene.y1 : morphScene.y0;
@@ -354,15 +362,21 @@ export default function useGridLayer({
       const lon = pos[i * 2];
       const lat = pos[i * 2 + 1];
       const count = nearTo ? to[i] : from[i];
-      if (count <= 0 || !inView(lon, lat)) continue;
+      if (count <= 0 || !within(lon, lat)) continue;
       if (kind[i] === UnitKind.Glow) towns.push({ lon, lat, people: count, society: society[i] });
       else groups.push({ lon, lat, kind: kind[i], people: count, society: society[i] });
     }
     for (const city of nearTo ? morphScene.citiesTo : morphScene.citiesFrom)
-      if (city.people > 0 && inView(city.position[0], city.position[1])) towns.push({ lon: city.position[0], lat: city.position[1], people: city.people });
-    return [...sheltersForGroups(groups, year, dwellings), ...towns.flatMap((town) => sheltersForTown(town, year, dwellings))];
+      if (city.people > 0 && within(city.position[0], city.position[1])) towns.push({ lon: city.position[0], lat: city.position[1], people: city.people });
+    return { year, groups, towns };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dwellings, peopleOn, morphScene, boundsKey, nearTo]);
+  }, [dwellings, fields, peopleOn, morphScene, boundsKey, nearTo]);
+  const shelters = useMemo(
+    () => (dwellings && inView
+      ? [...sheltersForGroups(inView.groups, inView.year, dwellings), ...inView.towns.flatMap((town) => sheltersForTown(town, inView.year, dwellings))]
+      : NO_SHELTERS),
+    [dwellings, inView],
+  );
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
   // years stay put; the ones that leave or arrive fade out or in.
@@ -468,5 +482,6 @@ export default function useGridLayer({
     people: people?.steady ?? NO_PEOPLE,
     scenePeople,
     shelters,
+    inView,
   };
 }

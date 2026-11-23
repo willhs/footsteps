@@ -39,7 +39,7 @@ export function groundParam(search: string): boolean {
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
 
 /** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
-export function close3dNote(plants: boolean, ground: boolean, weather = false, trees = false, sky = false): { label: string; title: string } {
+export function close3dNote(plants: boolean, ground: boolean, weather = false, trees = false, sky = false, fields = false): { label: string; title: string } {
   const imagined: string[] = [];
   const how: string[] = [];
   if (trees) {
@@ -67,6 +67,12 @@ export function close3dNote(plants: boolean, ground: boolean, weather = false, t
   if (plants) {
     imagined.push('plants');
     how.push("Each plant mark stands for many plants of the year's biome, placed and sized by hand.");
+  }
+  if (fields) {
+    imagined.push('fields and paths');
+    how.push(
+      "Fields, gardens, corrals, grazed grass and worn paths round each group are imagined: their layout is invented, how much land is farmed follows HYDE's cropland in the cell shared among its groups by head count (modelled), with at least half a hectare per villager, out to at most 2 km from a village (site-catchment studies), crops from the food table, tracks towards the nearest fresh water and the nearest neighbours.",
+    );
   }
   return {
     label: imagined.length ? `3D: ground measured, ${imagined.join(' and ')} imagined` : '3D: ground measured',

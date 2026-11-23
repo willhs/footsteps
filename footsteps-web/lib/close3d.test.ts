@@ -238,6 +238,9 @@ test('the note says the surface is imagined only when ?ground=1 is on', () => {
   expect(close3dNote(false, true).title).toMatch(/modelled/);
   expect(close3dNote(false, true).title).toMatch(/imagined/);
   expect(close3dNote(false, false).title).not.toMatch(/imagined/);
+  expect(close3dNote(false, false, true).label).toBe('3D: ground measured, fields and paths imagined');
+  expect(close3dNote(false, true, true).label).toBe('3D: ground measured, surface and fields and paths imagined');
+  expect(close3dNote(false, false, true).title).toMatch(/HYDE's cropland in the cell/);
 });
 
 test('the note says the weather is imagined only when ?weather=1 is on', () => {

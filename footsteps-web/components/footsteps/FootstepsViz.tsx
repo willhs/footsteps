@@ -59,6 +59,8 @@ import { iceNote, iceParam } from '@/lib/iceSheets';
 import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
 import ToggleButton from '@/components/ui/ToggleButton';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
+import { fieldsParam } from './layers/fields';
+import useLand from './hooks/useLand';
 import { shelterHoverOf, type ShelterHover } from './layers/shelters';
 import { treesParam } from '@/lib/close3d';
 import ShelterTooltip from './overlays/ShelterTooltip';
@@ -266,6 +268,9 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     if (sheltersOn || treesOn) loadDwellings().then(setDwellings).catch((error) => console.warn('[shelters] failed to load', error));
   }, [sheltersOn, treesOn]);
   const [shelterHover, setShelterHover] = useState<ShelterHover | null>(null);
+  // Close-up fields, gardens and paths (`?fields=1`, off by default until reviewed): imagined layout, farmed share from HYDE (layers/fields.ts).
+  const [fieldsOn, setFieldsOn] = useState(false);
+  useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
   // The dwelling under the cursor is gone when the set changes (a pan, zoom out or scrub): drop its card rather than leave it stale.
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
@@ -275,7 +280,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters } = useGridLayer({
+  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters, inView } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -288,10 +293,13 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     routineEpoch,
     figures,
     dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
+    fields: fieldsOn && settlements && close3d,
     setFeatureCount,
     setTotalPopulation,
     setMetricsLoading,
   });
+
+  const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
   const animalLayers = useAnimalsLayer({
     enabled: figures && !is3DMode && blend.people > 0 && (renderMode === 'auto' || renderMode === 'units'),
@@ -419,12 +427,22 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   }, [emptyCheck, deckViewState.longitude, deckViewState.latitude, deckViewState.zoom, deckViewState.pitch, deckViewState.bearing, otherHumans.bands, modelled]);
   // The dwellings stand on the close-up ground, so they ride in its layer (it samples the relief under each).
   useEffect(() => setShelterHover(null), [shelters]);
+  // The fields and paths are draped on the same ground (`?fields=1`).
   const sceneBackground = useMemo(
     () =>
-      (sheltersOn || treesOn) && shelters.length
-        ? shadedBackground.map((layer) => (layer.id === 'close3d' ? layer.clone({ shelters: sheltersOn ? shelters : [], clearings: treesOn ? shelters.map(s => ({ position: s.position, radius: Math.max(18, s.size[0] * 2) })) : [], onHover: (info: PickingInfo) => setShelterHover(shelterHoverOf(info)) }) : layer))
+      ((sheltersOn || treesOn) && shelters.length) || land
+        ? shadedBackground.map((layer) =>
+            layer.id === 'close3d'
+              ? layer.clone({
+                  shelters: sheltersOn ? shelters : [],
+                  clearings: treesOn ? shelters.map((s) => ({ position: s.position, radius: Math.max(18, s.size[0] * 2) })) : [],
+                  onHover: (info: PickingInfo) => setShelterHover(shelterHoverOf(info)),
+                  ...(land ? { land } : {}),
+                })
+              : layer,
+          )
         : shadedBackground,
-    [shadedBackground, sheltersOn, treesOn, shelters],
+    [shadedBackground, sheltersOn, treesOn, shelters, land],
   );
   const layers: LayersList = [
     ...sceneBackground,

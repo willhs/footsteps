@@ -1,7 +1,7 @@
 ---
 id: ops-close-up-scene
 type: ops
-purpose: "How the close-up 3D ground is drawn, and what ?ground=1 (biome surface detail) and ?weather=1 (cloud shadows, wind in the grass) add in the shader: what is measured, modelled and imagined, how to check it"
+purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface detail), ?weather=1 (cloud shadows, wind in the grass) and ?fields=1 (fields, gardens, paths) add: what is measured, modelled and imagined, how to check it"
 ---
 
 # Close-up scene: the 3D ground
@@ -19,6 +19,7 @@ From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/co
 | Plant marks (`?plants=1`) | cones and blobs by biome, hand-placed | imagined (off: they read as toys) |
 | Surface detail (`?ground=1`) | procedural pattern in the fragment shader, below | imagined |
 | Weather (`?weather=1`) | cloud shadows and gusts in the same shader; cover from the place's modelled rainfall, [Weather](#weather-weather1) | rainfall modelled, the weather imagined |
+| Fields, gardens, corrals, grazed grass, paths (`?fields=1`) | farmed area from HYDE cropland, layout invented, below | imagined (extent modelled) |
 
 ## How the ground streams in (2026-11-21, task 0009)
 
@@ -192,6 +193,65 @@ texture or tile; the frame is limited by the page's CPU work, not the shader. Ru
 - Biome borders follow the 0.5° cells, so a change of cover is a sharp line.
 - The relief colour and baked hillshade are unchanged; the shader multiplies and tints them.
 - Globe view is not supported (the shader reads mesh offsets as degrees); the close-up is flat-map only.
+
+## Fields, gardens and paths (`?fields=1`)
+
+Off by default until Will has looked at it on prod (2026-11-24, task 0016). Around each group in view the close-up draws what its way of
+life did to the land, draped on the 3D ground: the "3D:" note then reads "3D: ground measured, fields and paths imagined", and its hover text
+says what is modelled and what is invented. Needs the settlement model and the close-up 3D (like `?shelters=1`; nothing on `?close3d=0`).
+
+| What | Rule | Label |
+|---|---|---|
+| Farmed area of a village | HYDE cropland of its 5′ cell (`/grid/landuse_{year}.png`, the image the ways of life come from) × the group's share of the cell's people; at least 0.5 ha per villager (`SUBSISTENCE_M2_PER_PERSON`) | modelled (HYDE), floor imagined |
+| How far out | packed round the village, as far as 60 % of the ring holds that area, never past 2 km; intensity falls off as 1 - (d/R)² | radius cited (Chisholm 1962; Vita-Finzi & Higgs 1970), layout imagined |
+| Plots | 150 m blocks on a grid turned per village, each split into 1-3 strips with balks between, corners jittered; 20 % fallow, 10 % pasture | imagined |
+| Crop colour | one of the crops the food table has round the 5° cell at the era (staples favoured): ripening cereals gold, paddies bright green, maize and roots dark green; winter look in the hemisphere's winter with `?seasons=1` | crops modelled (food.md), colour imagined |
+| Terraces | farmland on a slope of 8-25° (the close-up's own Terrarium heights) becomes three beds along the contour; steeper is not farmed | imagined |
+| Kitchen gardens | one beside each of a village's first households (households.ts, where its houses stand) | imagined |
+| Towns and cities | gardens among the roofs, then a ring of fields beyond the last roof from the town's cell cropland | imagined |
+| Herding camps | grazed, paler grass out to 200 m + 600 m × the cell's grazing share, painted into the ground's colours; a corral ring by the camp | imagined |
+| Foragers | nothing planted: a trodden clearing round the hearths | imagined |
+| Paths | a worn track towards the nearest fresh water (`water_distance.webp`, downhill in distance, 100 m-3 km), and to the nearest one or two neighbours within 4 km | imagined |
+
+Two neighbouring villages split the land between them (each strip belongs to the nearer village), so their fields never lie on top of each
+other. Nothing is draped where the ground is sea, past water (`?pastwater=1`) or ice (`?ice=1`).
+
+**How it is built.** `components/footsteps/layers/fields.ts` turns the groups in view (`useGridLayer`'s `inView`, the list the shelters use,
+built once per snapped view box) into a flat list of ground quads (`LandPatch`), seeded per group like households; each site's patches are
+cached by its inputs and its neighbours, so a pan rebuilds only the sites whose neighbourhood changed. `hooks/useLand.ts` reads the inputs
+(a window of the 5′ land-use and water-distance images, the people per cell from the year's grid, the food table). `layers/fieldsDrape.ts`
+drapes them per elevation tile, once per tile and patch set under the close-up's frame budget: each patch is cut into pieces a ground cell
+across, whose corners sit on the highest corner of the cell under them (so no piece dips under the ground) a few metres up; washes (grazed
+grass) are painted into the ground mesh's own vertex colours and drawn as a second copy of the ground, so they follow every fold.
+
+**Cost.** Measured 2026-11-24 (production build, headed Chromium on Apple M5 Pro, 1440 × 900, pan and wheel for ~5 s,
+`CLOSE=lat,lon,year [QUERY=fields=1] HEADED=1 node footsteps-web/scripts/measure-view.mjs --serve <dir>`):
+
+| Scene | z13 off / on | z14 off / on | z15 off / on | longest task off / on |
+|---|---|---|---|---|
+| Meseta 1000 CE (41.6, -4.75) | 108 / 100 | 113 / 101 | 114 / 109 | 73 / 83 ms |
+| Nile 3000 BCE (29.85, 31.25) | 112 / 82 | 111 / 110 | 109 / 112 | 81 / 98 ms |
+| Rome 100 CE (41.9, 12.5) | 117 / 87 | 115 / 102 | 102 / 104 | 192 / 105 ms |
+| Mongolia 1000 CE (49.71, 105.96) | 114 / 83 | 114 / 98 | 114 / 105 | 53 / 94 ms |
+
+fps while panning; at least 82 with the flag on everywhere (aim was 45). The cost is the first drape of each tile and the land of new sites
+as the view box moves (cached per site): a few more long tasks under ~100 ms while panning. Before the per-site cache, one-cell pieces and
+one hash per corner, the same runs showed 65-90 fps at z13 and long tasks up to 370 ms.
+
+Headless Chromium on the same machine was throttled to ~14 fps for both (frames stuck at 133 ms), so measure headed.
+
+**Check it.** `pnpm --dir footsteps-web build && node footsteps-web/scripts/fields-shots.mjs --out <dir>` loads the four scenes (Nile
+3000 BCE z13, northern Meseta 1000 CE z13, Rome 100 CE z12, Mongolian steppe 1000 CE z13) with and without the flag, serving the real data
+from the primary checkout; `--scene id,year,lat,lon,zoom` adds one, `--query` adds flags.
+
+**Limits.**
+- HYDE's early cropland is thin (Memphis 3000 BCE ~1 % of each 5′ cell, Rome 100 CE ~2 %), so most early villages show the subsistence floor,
+  not HYDE's number.
+- The terrace test uses the close-up DEM, not `site_terrain.webp`'s 2.5′ slope class (finer, and it gives the contour direction).
+- A herding camp's people stand where the people layer puts them; its grazed patch is centred on the camp's spot.
+- At some flat Mongolian valley floors near Ulaanbaatar (e.g. 47.95° N 106.23° E, 49.70° N 105.97° E at zoom 14-15) the close-up 3D ground
+  itself is not drawn, flag on or off (`?ground=1` shows no surface there either), so nothing is draped there.
+- Fields are not drawn on the flat map (`?close3d=0`) or on the globe.
 
 ## People and animals (`?figures=1`)
 

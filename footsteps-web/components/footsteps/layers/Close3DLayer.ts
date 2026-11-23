@@ -13,6 +13,8 @@ import type { LakePlane } from '@/lib/pastWater';
 import { shelterMeshes, type Shelter } from './shelters';
 import type { TreeInstance, TreeClearing } from '@/lib/trees';
 type TreeModule = typeof import('./TreeLayer');
+import type { LandPatch } from './fields';
+import { drapeLand, type DrapedMesh } from './fieldsDrape';
 import { loadDetailManifest, loadDetailPixels, type DetailPixels } from '@/lib/terrainDetail';
 import { coarsenFar, type TileIndex } from '@/lib/demLod';
 import {
@@ -65,7 +67,13 @@ type Props = {
   groundTop?: number;
   /** Dwellings to stand on the ground (`?shelters=1`; layers/shelters.ts). Each sits on the tile height under it, never in water. */
   shelters?: readonly Shelter[];
+  /** Fields, gardens and paths round the groups in view (`?fields=1`; layers/fields.ts), draped on each tile (fieldsDrape.ts). `key` changes
+   * with the patches, so a tile drapes them again only then. */
+  land?: LandSet | null;
 };
+export type LandSet = { key: string; patches: readonly LandPatch[] };
+/** A tile's draped land: the shapes' mesh, and the ground mesh with washes painted in (null: none, draw the plain ground). */
+type Draped = { key: string; solid: object | null; ground: object | null };
 type TileData = { heights: Float32Array; detail: DetailPixels | null };
 type Standing = { shelter: Shelter; position: [number, number, number] };
 /** `meshProp` is the SimpleMeshLayer `mesh` object, kept so a re-render passes the same object and nothing is uploaded again. */
@@ -88,6 +96,16 @@ const built = new WeakMap<TileData, Built>();
 /** Trees per DEM tile: candidates by era key, those outside the current clearings, and the LOD prefix drawn. */
 const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearings: readonly TreeClearing[]; visible: TreeInstance[]; drawn: TreeInstance[] }>();
 const NO_CLEARINGS: readonly TreeClearing[] = [];
+const draped = new WeakMap<TileData, Draped>();
+const meshProp = (m: DrapedMesh | null) =>
+  m && {
+    attributes: {
+      positions: { value: m.positions, size: 3 },
+      normals: { value: m.normals, size: 3 },
+      colors: { value: m.colors, size: 3 },
+    },
+    indices: { value: m.indices, size: 1 },
+  };
 
 /** Main-thread milliseconds of mesh building per frame. Tiles that arrive together are built over the next frames instead of in
  * one long task (each tile takes a few ms); a tile not built yet shows the flat map under it for a frame or two. */
@@ -199,6 +217,63 @@ export default class Close3DLayer extends CompositeLayer<Props> {
 
   declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef; treeModule: TreeModule | null };
 
+  /** The tile's fields, gardens and paths (`?fields=1`), draped once per tile and land set under the frame budget, then reused: the shapes'
+   * mesh, and the ground mesh again with the washes (grazed grass) painted into its colours. Null while the budget is spent. */
+  drapeFor(data: TileData, bbox: Bbox, z: number, land: LandSet, groundKey: string, ground: Built): Draped | null {
+    const { seaLevel, lake = null, ice = null } = this.props;
+    const key = `${land.key}|${groundKey}`;
+    const d = draped.get(data);
+    if (d && d.key === key) return d;
+    const t0 = performance.now();
+    if (!budgetLeft(t0)) {
+      this.queueRebuild();
+      return null;
+    }
+    const mesh = drapeLand(data.heights, bbox, z, land.patches, seaLevel, lake, ice);
+    let painted: object | null = null;
+    if (mesh.paint) {
+      const { weight, rgb } = mesh.paint;
+      const colors = ground.mesh.colors.slice();
+      for (let v = 0; v < weight.length; v++) {
+        const w = weight[v];
+        if (w > 0) for (let c = 0; c < 3; c++) colors[v * 3 + c] += (rgb[v * 3 + c] - colors[v * 3 + c]) * w;
+      }
+      const base = ground.meshProp as { attributes: Record<string, unknown>; indices: unknown };
+      painted = { attributes: { ...base.attributes, colors: { value: colors, size: 3 } }, indices: base.indices };
+    }
+    const out = { key, solid: meshProp(mesh.solid), ground: painted };
+    draped.set(data, out);
+    budget.spent += performance.now() - t0;
+    return out;
+  }
+
+  /** A tile's land, fading in with the people as the dwellings do: the ground again with the washes painted in (the same vertices as the
+   * ground, so it lies exactly on it and wins the depth test, drawn after it), then the draped shapes. */
+  landLayers(id: string, bbox: Bbox, d: Draped, zoom: number, detail: boolean) {
+    const t = Math.min(1, Math.max(0, (zoom - ZOOM.peopleIn + 0.4) / (ZOOM.peopleFull - ZOOM.peopleIn)));
+    const fade = t * t * (3 - 2 * t);
+    if (fade <= 0) return [];
+    const part = (name: string, mesh: object, extra: object) =>
+      new SimpleMeshLayer<{ p: [number, number, number] }>({
+        ...this.getSubLayerProps({ id: `${id}-${name}` }),
+        id: `${id}-${name}`,
+        data: [{ p: [bbox.west, bbox.south, 0] }],
+        getPosition: (p) => p.p,
+        getColor: [255, 255, 255],
+        _instanced: false,
+        mesh: mesh as never,
+        opacity: fade,
+        material: { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
+        pickable: false,
+        ...extra,
+      });
+    return [
+      ...(d.ground ? [part('land-paint', d.ground, { extensions: detail ? GROUND_DETAIL : [], parameters: { depthWriteEnabled: false, depthCompare: 'less-equal' } })] : []),
+      ...(d.solid ? [part('land', d.solid, { parameters: { depthWriteEnabled: true, depthCompare: 'less-equal', depthBias: -2, depthBiasSlopeScale: -2 } })] : []),
+    ];
+  }
+
+
   initializeState() {
     this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null }, treeModule: null };
     if (this.props.trees) import('./TreeLayer').then(treeModule => {
@@ -245,7 +320,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, trees = false, clearings = NO_CLEARINGS, detail = false, weather = false, shelters = [], colourTiles = false, light = null, groundTop = 0 } = this.props;
+    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, trees = false, clearings = NO_CLEARINGS, detail = false, weather = false, shelters = [], colourTiles = false, light = null, groundTop = 0, land = null } = this.props;
     const lit = light !== null;
     const ground = bare && ice ? withIce(bare, ice) : bare;
     // The weather is the place at the screen centre's, set on every view change: the ground tiles read it each frame without being rebuilt.
@@ -272,7 +347,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         const [data, tile] = await Promise.all([loadHeights(url!, signal), colour]);
         return { ...data, detail: tile };
       },
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key] },
+      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !ground || !('west' in props.tile.bbox)) return null;
@@ -307,6 +382,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           budget.spent += performance.now() - t0;
         }
         const { meshProp, plants } = b;
+        const landHere = land?.patches.length ? this.drapeFor(data, bbox, z, land, key, b) : null;
         const ground3d = new SimpleMeshLayer<{ p: [number, number, number] }>({
           ...this.getSubLayerProps({ id: `${props.id}-ground` }),
           id: `${props.id}-ground`,
@@ -325,7 +401,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
         });
         const layers = [ground3d];
-        const treeShare = trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(this.treePixels(bbox, data.heights)) : 0;
+        const treeShare =trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(this.treePixels(bbox, data.heights)) : 0;
         if (treeShare > 0 && this.state.treeModule) {
           const { default: TreeLayer, treesForTile, outsideClearings, TREE_MAPPING } = this.state.treeModule;
           let cached = treeBuilt.get(data);
@@ -352,6 +428,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
             parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
           }) as unknown as typeof ground3d);
         }
+        if (landHere) layers.push(...(this.landLayers(props.id, bbox, landHere, zoom, detail) as unknown as typeof layers));
         if (shelters.length) layers.push(...(this.shelterLayers(props.id, data.heights, bbox, shelters, seaLevel, mpp, zoom) as unknown as typeof layers));
         for (const kind of ['conifer', 'broadleaf', 'acacia', 'shrub'] as const) {
           const these = plants.filter((p) => p.kind === kind);

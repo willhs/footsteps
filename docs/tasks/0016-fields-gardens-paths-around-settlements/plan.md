@@ -75,44 +75,50 @@ the food table and a new message type for the same work.
   each group to its nearest one or two. Imagined.
 - Path width at drape: max(5 m, 1.3 × the tile's metres per screen pixel at its zoom), so a track stays visible at z12-13.
 - Season: summer look unless `?seasons=1` picks the hemisphere's winter (see task.md).
+- (Decided while building.) Cropland comes from the 5′ HYDE land-use image the grid worker classes ways of life by, not the hover card's 0.5°
+  average (which blurs a river valley into the desert). A village's farmed area is its cell's cropland × its share of the cell's people
+  (people per cell from the year's grid), packed round it as far as 60 % of the ring holds it, never past 2 km; at least 0.5 ha per
+  villager, because early HYDE cells are often farmer by head count with ~0 cropland (Kaplan et al. 2009 use 0.2-1 ha per person).
+  This replaces the block probability rule above; expected area still scales linearly with cropland.
+- (Decided while building.) Grazed grass is painted into the ground's vertex colours rather than drawn as a translucent mesh.
 
 ---
 
 ## Phase 1: Generator (`lib/fields.ts`) and its tests
 
-- [ ] `lib/fields.ts`: types, `fieldsParam`, crop colours by crop and season, `landPatches` (farmers, towns, herders, foragers, paths), Voronoi ownership.
-- [ ] `lib/food.ts`: `cropsAround(data, lon, lat, time)` returns the crop ids around a 5° cell at an era.
-- [ ] `lib/fields.test.ts`: deterministic; field area scales with cropland (ratio of means within 15 %); 0 crop gives no fields; herders get a corral and grazed wash, foragers a clearing only; paths head towards water; neighbours' fields never overlap.
-- [ ] Run: `pnpm --dir footsteps-web test -- --runInBand lib/fields` — pass.
+- [x] `lib/fields.ts` (built as `components/footsteps/layers/fields.ts`, beside `shelters.ts` whose helpers it uses): types, `fieldsParam`, crop colours by crop and season, `landPatches` (farmers, towns, herders, foragers, paths), Voronoi ownership.
+- [x] `lib/food.ts`: `cropsAround(data, lon, lat, time)` returns the crop ids around a 5° cell at an era.
+- [x] `lib/fields.test.ts` (built as `components/footsteps/layers/fields.test.ts`): deterministic; field area scales with cropland (ratio of means within 15 %); 0 crop gives no fields; herders get a corral and grazed wash, foragers a clearing only; paths head towards water; neighbours' fields never overlap.
+- [x] Run: `pnpm --dir footsteps-web test -- --runInBand components/footsteps/layers/fields` — pass (17 tests).
 
 ## Phase 2: Drape in the close-up
 
-- [ ] `lib/fields.ts` `drapeLand(heights, bbox, z, land, sea, lake, ice)`: per tile, sub-divide each patch whose centre lies in the tile, sample the ground's own triangles, drop pieces on water/past water/ice, make steep fields terraces along the contour; returns `{ solid, wash }` meshes.
-- [ ] Tests: a patch over sea is dropped; a patch on flat ground sits at ground height + lift; a steep field turns into a terrace.
-- [ ] `Close3DLayer.ts`: `land` prop; per tile cached drape built under the same frame budget; two SimpleMeshLayers (solid, wash with opacity) fading in with people.
-- [ ] Run: tests + tsc.
+- [x] `layers/fieldsDrape.ts` `drapeLand(heights, bbox, z, land, sea, lake, ice)`: per tile, sub-divide each patch whose centre lies in the tile, sample the ground's own triangles, drop pieces on water/past water/ice, make steep fields terraces along the contour; returns `{ solid, wash }` meshes.
+- [x] Tests: a patch over sea is dropped; a patch on flat ground sits at ground height + lift; a steep field turns into a terrace.
+- [x] `Close3DLayer.ts`: `land` prop; per tile cached drape built under the same frame budget; the shapes' mesh fading in with people. Deviation: washes are painted into the ground's vertex colours and drawn as a second copy of the ground (a translucent overlay mesh z-fought and showed holes; see decisions.tsv).
+- [x] Run: tests + tsc.
 
 ## Phase 3: Wire the flag
 
-- [ ] `useGridLayer.ts`: share the groups-in-view memo between shelters and fields; return `landGroups` (`?fields=1`).
-- [ ] `hooks/useLand.ts`: land use (habitat lookup), food, water window → `LandGroup`s → `landPatches`, cached per group.
-- [ ] `FootstepsViz.tsx`: `fieldsParam`; pass `land` to the close3d layer; `SupportingText`: note says fields and paths imagined.
-- [ ] `close3dNote` gains `fields`; its test.
-- [ ] `scripts/flags-lib.mjs` + `docs/ops/flags.md` row.
-- [ ] Run: tsc, lint, tests.
+- [x] `useGridLayer.ts`: share the groups-in-view memo between shelters and fields; return `landGroups` (`?fields=1`).
+- [x] `hooks/useLand.ts`: land use (5′ HYDE image, not the 0.5° habitat lookup: see Assumptions), food, water window, people per cell → `LandGroup`s → `landPatches`, cached per group.
+- [x] `FootstepsViz.tsx`: `fieldsParam`; pass `land` to the close3d layer; `SupportingText`: note says fields and paths imagined.
+- [x] `close3dNote` gains `fields`; its test.
+- [x] `scripts/flags-lib.mjs` + `docs/ops/flags.md` row.
+- [x] Run: tsc, lint, tests.
 
 ## Phase 4: Prove it
 
-- [ ] `scripts/fields-shots.mjs`: the four scenes on and off (real data), screenshots to the evidence dir.
-- [ ] `scripts/measure-view.mjs`: a close-up mode (`SCENES=fields`) measuring pan fps at zoom 13, 14, 15 with `QUERY`; run with and without `fields=1`.
-- [ ] Run: `pnpm --dir footsteps-web build` then `pnpm --dir footsteps-web visual` — flag off changes no pixel.
+- [x] `scripts/fields-shots.mjs`: the four scenes on and off (real data), screenshots to the evidence dir.
+- [x] `scripts/measure-view.mjs`: a close-up mode (`CLOSE=lat,lon,year`, `QUERY`, `--serve`) measuring pan fps at zoom 13, 14, 15; run headed with and without `fields=1` (headless is throttled to ~14 fps on this machine).
+- [x] Run: `pnpm --dir footsteps-web build` then `pnpm --dir footsteps-web visual` — flag off changes no pixel (10/10 PASS, within the 1024 px noise limit).
 
 ## Phase 5: Docs and wrap
 
-- [ ] `docs/ops/close-up-scene.md` section "`?fields=1`".
-- [ ] Log + index fragments.
-- [ ] decisions.tsv; commit.
+- [x] `docs/ops/close-up-scene.md` section "`?fields=1`".
+- [x] Log + index fragments.
+- [x] decisions.tsv; commit.
 
 ## Documentation updates
 
-- [ ] `docs/ops/close-up-scene.md`, `docs/ops/flags.md`, `footsteps-web/AGENTS.md` close-up line.
+- [x] `docs/ops/close-up-scene.md`, `docs/ops/flags.md`, `AGENTS.md` close-up line.

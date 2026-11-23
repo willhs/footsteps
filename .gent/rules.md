@@ -26,6 +26,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `?weather=1`, `lib/weather.ts`, the note adds "weather imagined". On by default; `?close3d=0` keeps it flat.
   `?sky=1` (off until reviewed; `lib/sky.ts`, `layers/skyLight.ts`): the ground lit by the local sun clock, haze into a CSS sky backdrop, moving water with
   glint and shore foam; it tilts to 74° from zoom 10-12 and lifts the camera over high ground (`hooks/useGroundLift.ts`).
+  Fields, gardens, terraces, corrals, grazed grass and worn paths round each group (`?fields=1`, off until reviewed; `layers/fields.ts` generates,
+  `layers/fieldsDrape.ts` drapes per elevation tile, `hooks/useLand.ts` reads 5′ HYDE cropland, water distance and the food table): extent modelled, layout imagined.
   See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB

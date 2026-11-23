@@ -1,4 +1,5 @@
-import { avatarFromParams, avatarSpec, GREY_HAIR, personSeed, portraitLooks, SKIN_DEEP, SKIN_LIGHT } from './avatar';
+import { avatarFromParams, GREY_HAIR, personSeed, portraitLooks, SKIN_DEEP, SKIN_LIGHT } from './avatar';
+import { avatarSpec } from './avatarSpec';
 import type { Person } from '@/components/footsteps/layers/people';
 import type { AtlasRecord } from '@/components/footsteps/hooks/useAnthropology';
 

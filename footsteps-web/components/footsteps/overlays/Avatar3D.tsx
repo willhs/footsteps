@@ -10,7 +10,8 @@ import type { Person } from '../layers/people';
 import { useAnthropology } from '../hooks/useAnthropology';
 import Portrait from './Portrait';
 import { mountAvatar } from './avatarScene';
-import { avatarSpec, OTHER_HUMAN_BODY_NOTE, portraitLooks } from '@/lib/avatar';
+import { portraitLooks } from '@/lib/avatar';
+import { avatarSpec, OTHER_HUMAN_BODY_NOTE } from '@/lib/avatarSpec';
 import { stillOn } from '@/lib/still';
 
 const W = 120;

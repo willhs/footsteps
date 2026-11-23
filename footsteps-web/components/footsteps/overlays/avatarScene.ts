@@ -35,7 +35,7 @@ import {
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import type { AvatarSpec } from '@/lib/avatar';
+import type { AvatarSpec } from '@/lib/avatarSpec';
 import { STILL_SECONDS } from '@/lib/still';
 
 /** Where the build writes the files, and its shade encoding (build.mjs `SHADE_MAX`). */

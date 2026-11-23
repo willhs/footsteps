@@ -4,6 +4,21 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | 3D animated person in the card behind ?avatar=3d (part 1)
+
+With `?avatar=3d` the person card shows a rigged, animated 3D figure instead of the SVG drawing: CC0 Quaternius "Universal
+Base Characters" and "Universal Animation Library" (licence checked on the pages and in the zips, sha256 pinned in
+`footstep-generator/avatar/sources.json`), built by `footstep-generator/avatar/build.mjs` into nine meshopt GLBs
+(851 KiB in all, ~0.45-0.5 MB per person) with colour baked into vertices and a plain tunic shell, no textures. The palette
+moved from `Portrait.tsx` to `lib/avatar.ts` with its draw order kept, so the SVG draws exactly what it did (210 people
+checked) and the figure takes the same skin, hair and garment colours; `lib/avatarSpec.ts` adds body by sex and age
+(children scaled with bigger heads, elders stoop), hair mesh and beard. The viewer (`overlays/Avatar3D.tsx`,
+`avatarScene.ts`, three.js through `lib/lazyModule.ts`) idles, glances, turns when dragged, gives one still frame with
+`?still=1` or reduced motion, draws at most 30 fps and only on screen. First frame 200-300 ms from the click; no map fps
+drop; default first load +866 B; `pnpm visual` unchanged. Other kinds of human get "Illustration of our own species'
+body; their build differed." Measured with `scripts/avatar-shots.mjs`. Off until Will reviews it; part 2 adds wardrobe
+and work animations. See docs/ops/avatar.md, task 0018.
+
 ## [2026-11-24] feature | Fields, gardens and paths round settlements behind ?fields=1 (task 0016)
 
 The close-up can now show what each group's way of life did to the land, off by default until Will reviews it: farm strips, fallow and

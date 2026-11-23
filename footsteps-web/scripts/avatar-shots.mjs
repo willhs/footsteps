@@ -179,6 +179,7 @@ try {
       page.on('console', (m) => m.type() === 'error' && !/anthropology|api\//.test(m.text()) && errors.push(m.text()));
       const target = await select(page, s, await approach(page, s, flag === 'on' ? { avatar: '3d', still: '1' } : { still: '1' }));
       row.person = { ...target.person, card: target.card };
+      if (flag === 'on') row.point = { x: target.x, y: target.y };
       if (flag === 'on') {
         await page.waitForFunction(() => performance.getEntriesByName('footsteps:avatar-first-frame').length > 0, undefined, { timeout: 30_000 });
         await page.waitForTimeout(400);
@@ -194,30 +195,45 @@ try {
       await context.close();
     }
 
-    // Numbers: flag on, live (no still), a fresh browser context each time so nothing is cached.
+    // First frame and bytes: a fresh context (empty cache), the same still view, one click on the point that picked this person.
+    {
+      const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+      await cacheElevationTiles(context, path.join(WEB, 'visual-cache'), () => {});
+      const page = await context.newPage();
+      await approach(page, s, { avatar: '3d', still: '1' });
+      // the viewer's code is prefetched after first people: wait for it, as a visitor who looks around first would
+      await page.waitForFunction(() => performance.getEntriesByType('resource').some((r) => /\.js$/.test(r.name) && performance.now() - r.responseEnd > 500), undefined, { timeout: 10_000 }).catch(() => {});
+      const clickAt = await page.evaluate(() => performance.now());
+      await page.mouse.click(row.point.x, row.point.y);
+      await page.waitForFunction(() => performance.getEntriesByName('footsteps:avatar-first-frame').length > 0, undefined, { timeout: 30_000 });
+      const marks = await page.evaluate(() => ({
+        requested: performance.getEntriesByName('footsteps:avatar-requested').at(-1)?.startTime,
+        first: performance.getEntriesByName('footsteps:avatar-first-frame').at(-1)?.startTime,
+        title: document.querySelector('[aria-label="What we know here"] .ov-title')?.innerText,
+      }));
+      row.first_frame_ms = { from_click: Math.round(marks.first - clickAt), from_mount: Math.round(marks.first - marks.requested) };
+      row.measured_title = marks.title;
+      const res = await page.evaluate(() => performance.getEntriesByType('resource').map((r) => ({ name: r.name, bytes: r.transferSize || r.encodedBodySize })));
+      const glb = res.filter((r) => /\/avatar\/.+\.glb$/.test(r.name));
+      const js = res.filter((r) => /\.js$/.test(r.name) && !jsOff.has(new URL(r.name).pathname));
+      row.bytes = {
+        files: glb.map((r) => ({ file: new URL(r.name).pathname, bytes: r.bytes })),
+        files_total: glb.reduce((a, r) => a + r.bytes, 0),
+        code: js.map((r) => ({ file: new URL(r.name).pathname, bytes: r.bytes })),
+        code_total: js.reduce((a, r) => a + r.bytes, 0),
+      };
+      await context.close();
+    }
+
+    // Frame rates: flag on, live (no still).
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
     await cacheElevationTiles(context, path.join(WEB, 'visual-cache'), () => {});
     const page = await context.newPage();
     const targets = await approach(page, s, { avatar: '3d' });
     row.fps_no_card = await fps(page, 4000);
-    // Earlier clicks can land on a neighbour (select tries again): time and count bytes from the click that picked the person.
-    const { clickAt, tries } = await select(page, s, targets);
-    row.clicks = tries;
+    await select(page, s, targets);
     await page.waitForFunction(() => performance.getEntriesByName('footsteps:avatar-first-frame').length > 0, undefined, { timeout: 30_000 });
-    const marks = await page.evaluate(() => ({
-      requested: performance.getEntriesByName('footsteps:avatar-requested').at(-1)?.startTime,
-      first: performance.getEntriesByName('footsteps:avatar-first-frame').at(-1)?.startTime,
-    }));
-    row.first_frame_ms = { from_click: Math.round(marks.first - clickAt), from_mount: Math.round(marks.first - marks.requested) };
-    const res = await page.evaluate(() => performance.getEntriesByType('resource').map((r) => ({ name: r.name, start: r.startTime, bytes: r.transferSize || r.encodedBodySize })));
-    const glb = res.filter((r) => /\/avatar\/.+\.glb$/.test(r.name) && (tries === 1 || r.start >= clickAt));
-    const js = res.filter((r) => /\.js$/.test(r.name) && !jsOff.has(new URL(r.name).pathname));
-    row.bytes = {
-      files: glb.map((r) => ({ file: new URL(r.name).pathname, bytes: r.bytes })),
-      files_total: glb.reduce((a, r) => a + r.bytes, 0),
-      code: js.map((r) => ({ file: new URL(r.name).pathname, bytes: r.bytes })),
-      code_total: js.reduce((a, r) => a + r.bytes, 0),
-    };
+    await page.waitForTimeout(500);
     row.fps_card_open = await fps(page, 4000);
     const framesOf = () => page.evaluate(() => document.querySelector('[data-testid="avatar-3d"] canvas')?.__avatarFrames ?? null);
     const f0 = await framesOf();

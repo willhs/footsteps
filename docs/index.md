@@ -46,6 +46,7 @@ separate series from `tasks/0001-0003`.
 - [`ops/visual-regression.md`](ops/visual-regression.md) — screenshot regression over ten fixed scenes: running it, updating baselines, why CI skips it
 - [`ops/water-distance.md`](ops/water-distance.md) — the baked distance-to-fresh-water image that group placement reads
 - [`ops/ice-sheets.md`](ops/ice-sheets.md) — PaleoMIST 1.0 dated ice-sheet masks behind `?ice=1`: source, licence, method, regeneration, checks
+- [`ops/avatar.md`](ops/avatar.md) — the 3D person in the card behind `?avatar=3d`: CC0 Quaternius assets and licence, the build script, person → figure, the viewer, how to measure it
 
 ## Research: question, evidence, verdict (check the status line at the top of each: several recommendations are built)
 
@@ -92,6 +93,7 @@ separate series from `tasks/0001-0003`.
 - [`tasks/0017-biome-tree-impostors/plan.md`](tasks/0017-biome-tree-impostors/plan.md) — implementation, alternatives and verification
 - [`tasks/0015-close-up-light-sky-water/task.md`](tasks/0015-close-up-light-sky-water/task.md) ([plan](tasks/0015-close-up-light-sky-water/plan.md)) — close-up light from the sun clock, haze into a sky and moving water behind `?sky=1`
 - [`tasks/0016-fields-gardens-paths-around-settlements/task.md`](tasks/0016-fields-gardens-paths-around-settlements/task.md) ([plan](tasks/0016-fields-gardens-paths-around-settlements/plan.md)) — fields, gardens, corrals and worn paths round settlements in the close-up behind `?fields=1`
+- [`tasks/0018-3d-animated-person-part-1/task.md`](tasks/0018-3d-animated-person-part-1/task.md) ([plan](tasks/0018-3d-animated-person-part-1/plan.md)) — 3D animated person, part 1: a rigged CC0 human in the person card behind `?avatar=3d`
 
 ## Design
 

@@ -78,41 +78,54 @@ SVG draws the same pixels and the 3D figure gets the same colours.
 
 ## Phase 1: Asset pipeline
 
-- [ ] Create `footstep-generator/avatar/package.json` (gltf-transform core/extensions/functions, meshoptimizer, sharp) and install.
-- [ ] Create `footstep-generator/avatar/build.mjs`: fetch (or `--zips DIR`), verify sha256, unzip, bake vertex colours, rename meshes (`body`, `eyes`, `brows`, `hair_*`), drop textures/extra UVs/colour sets, keep 6 clips, resample, weld, quantize, meshopt, write GLBs and `manifest.json`.
-- [ ] Create `footstep-generator/avatar/sources.json`: URLs, upload ids, versions (upload dates), sha256, licence.
-- [ ] Run: `node footstep-generator/avatar/build.mjs` — four GLBs, total < 3 MB, manifest written.
+- [x] Create `footstep-generator/avatar/package.json` (gltf-transform core/extensions/functions, meshoptimizer, sharp) and install.
+- [x] Create `footstep-generator/avatar/build.mjs`: fetch (or `--zips DIR`), verify sha256, unzip, bake vertex colours, rename meshes (`body`, `eyes`, `brows`, `hair_*`), drop textures/extra UVs/colour sets, keep 6 clips, resample, weld, quantize, meshopt, write GLBs and `manifest.json`.
+- [x] Create `footstep-generator/avatar/sources.json`: URLs, upload ids, versions (upload dates), sha256, licence.
+- [x] Run: `node footstep-generator/avatar/build.mjs` — four GLBs, total < 3 MB, manifest written.
 
 ## Phase 2: Shared palette (`lib/avatar.ts`)
 
-- [ ] Move `rng`, `pick`, `mix`, skin/hair ranges, `clothing`, `atlasClothing`, `pickHex`, `hairStylesFrom`, `saysNone` to `lib/avatar.ts`; add `personSeed` and `portraitLooks(person, year, lat, rec)` returning the colours, hair style, beads/paint and the rng in its state.
-- [ ] Portrait uses `portraitLooks`; re-exports `hairStylesFrom`/`saysNone` for existing tests.
-- [ ] Add `avatarBuild(person, looks)`: body, height scale, head scale, stoop, beard, hair mesh, colours.
-- [ ] Add `avatarFromParams(search)`.
-- [ ] Tests `lib/avatar.test.ts`: determinism, SVG fill = looks.skin, latitude pull, elder hair grey, child build, hair mapping.
-- [ ] Run: `pnpm test -- --runInBand lib/avatar Portrait portraitAtlas` — green.
+- [x] Move `rng`, `pick`, `mix`, skin/hair ranges, `clothing`, `atlasClothing`, `pickHex`, `hairStylesFrom`, `saysNone` to `lib/avatar.ts`; add `personSeed` and `portraitLooks(person, year, lat, rec)` returning the colours, hair style, beads/paint and the rng in its state.
+- [x] Portrait uses `portraitLooks`; re-exports `hairStylesFrom`/`saysNone` for existing tests.
+- [x] Add `avatarBuild(person, looks)`: body, height scale, head scale, stoop, beard, hair mesh, colours.
+- [x] Add `avatarFromParams(search)`.
+- [x] Tests `lib/avatar.test.ts`: determinism, SVG fill = looks.skin, latitude pull, elder hair grey, child build, hair mapping.
+- [x] Run: `pnpm test -- --runInBand lib/avatar Portrait portraitAtlas` — green.
 
 ## Phase 3: Viewer
 
-- [ ] `pnpm add three` + `@types/three` (dev).
-- [ ] Create `overlays/avatarScene.ts`: load GLBs (GLTFLoader + MeshoptDecoder, cached), build the figure, lights, blob shadow, mixer, head turns, drag, visibility pause, still frame, first-frame mark.
-- [ ] Create `overlays/Avatar3D.tsx`: the React wrapper (canvas, atlas wait like Portrait, caption, other-human line).
-- [ ] GroundingPanel: `?avatar=3d` → `useLazy(AVATAR)`; Portrait until the chunk is in; prefetch after first people.
-- [ ] Flag row in `scripts/flags-lib.mjs` + `docs/ops/flags.md`; SWEEP row in `scripts/first-load.mjs`.
-- [ ] Run: `pnpm exec tsc --noEmit && pnpm lint` — clean.
+- [x] `pnpm add three` + `@types/three` (dev).
+- [x] Create `overlays/avatarScene.ts`: load GLBs (GLTFLoader + MeshoptDecoder, cached), build the figure, lights, blob shadow, mixer, head turns, drag, visibility pause, still frame, first-frame mark.
+- [x] Create `overlays/Avatar3D.tsx`: the React wrapper (canvas, atlas wait like Portrait, caption, other-human line).
+- [x] GroundingPanel: `?avatar=3d` → `useLazy(AVATAR)`; Portrait until the chunk is in; prefetch after first people.
+- [x] Flag row in `scripts/flags-lib.mjs` + `docs/ops/flags.md`; SWEEP row in `scripts/first-load.mjs`.
+- [x] Run: `pnpm exec tsc --noEmit && pnpm lint` — clean.
 
 ## Phase 4: Prove it
 
-- [ ] Create `scripts/avatar-shots.mjs` (three scenes, flag on/off, bytes, first frame, fps).
-- [ ] Run: `pnpm build` then `node scripts/avatar-shots.mjs <evidence dir>` — six shots, numbers.
-- [ ] Run: `pnpm visual` — all scenes pass.
-- [ ] Run: `node scripts/first-load.mjs --flags` — default row unchanged, `?avatar=3d` loads its chunk.
+- [x] Create `scripts/avatar-shots.mjs` (three scenes, flag on/off, bytes, first frame, fps).
+- [x] Run: `pnpm build` then `node scripts/avatar-shots.mjs <evidence dir>` — six shots, numbers.
+- [x] Run: `pnpm visual` — all scenes pass.
+- [x] Run: `node scripts/first-load.mjs --flags` — default row unchanged, `?avatar=3d` loads its chunk.
 
 ## Phase 5: Docs and wrap
 
-- [ ] `docs/ops/avatar.md`; AGENTS.md line; log and index fragments.
-- [ ] Run: `pnpm test -- --runInBand`, tsc, lint — green.
-- [ ] Commit.
+- [x] `docs/ops/avatar.md`; AGENTS.md line; log and index fragments.
+- [x] Run: `pnpm test -- --runInBand`, tsc, lint — green.
+- [x] Commit.
+
+## As built (changes from the plan)
+
+- **Tunic shell and trim** (Phase 1): flat vertex-colour garments the colour of skin read as bare skin at card size, so the
+  build adds a separate garment mesh (the tunic's triangles pushed out 1-3 cm, flaring to the hem, short sleeves, round
+  neck) and a trim channel (hem, belt, cuffs) in COLOR_0's third component. Bodies grew from ~158 to ~194 KiB.
+- **Children use the man's body** (Phase 2): the woman's mesh is an adult's; before puberty bodies differ little by sex.
+- **Framing fixed for an adult** (Phase 3), so a child stands smaller in the card.
+- **Bones adjusted after the clip are restored each frame** (Phase 3): three's PropertyMixer only writes a bone when its
+  value changes, so the stoop and glances piled up (found with a drag test in a throwaway gallery harness).
+- **`avatarSpec` moved to `lib/avatarSpec.ts`** (Phase 4): in `lib/avatar.ts` it was not tree-shaken and added ~2 KB to
+  the first load; now the default visit gains 866 B (the flag read and the lazy hook).
+- `pnpm test -- --runInBand` passes `--runInBand` to jest as a pattern under pnpm 10 here; `pnpm exec jest --runInBand` runs the suite.
 
 ## References
 

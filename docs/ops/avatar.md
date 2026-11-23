@@ -46,10 +46,10 @@ What it writes (meshopt, no textures):
 
 | File | What | KiB |
 |---|---|---|
-| `body_male.glb`, `body_female.glb` | body, eyes, eyebrows, and a tunic shell, skinned | ~185, ~193 |
+| `body_male.glb`, `body_female.glb` | body, eyes, eyebrows, and a tunic shell, skinned | ~190, ~198 |
 | `hair_{long,buns,parted,buzzed,buzzed_female,beard}.glb` | one skinned hair mesh each | 25-63 |
 | `anims.glb` | skeleton + 6 clips: `idle`, `talk`, `walk`, `sit`, `crouch`, `work` (`Fixing_Kneeling`) | ~236 |
-| total | | ~851 |
+| total | | ~851 (871,728 B) |
 
 One person loads a body, one hair file, maybe the beard, and `anims.glb`: about 0.45-0.5 MB, once per visit.
 
@@ -73,7 +73,7 @@ bodies lack.
   equator), hair (atlas palette, else dark with lighter shades above 45°; grey for 55+), clothing colours (era and way of
   life defaults, atlas palette over them) and hair style (atlas phrases, else by sex). Its random draw order is the SVG's,
   unchanged: the SVG still draws exactly what it drew before (checked on 210 people against the old code).
-- `avatarSpec(person, looks)`: the figure. Body by sex (children use the man's body: before puberty bodies differ little
+- `avatarSpec(person, looks)` (`lib/avatarSpec.ts`, kept apart so it loads only with the viewer): the figure. Body by sex (children use the man's body: before puberty bodies differ little
   by sex, and the woman's mesh is an adult's); height from a growth fit (77 + 6.1 × age cm against 170 cm, close to the
   WHO medians) for under-18s, 0.98 for elders; a bigger head for children (`Head` bone × 1 + 0.6 × (1 − height)); elders
   (55+) stoop (0.2-0.4 rad over spine and neck, the head lifted back to look ahead) and idle at 0.8× speed. Hair mesh from
@@ -114,7 +114,23 @@ It finds a forager child at 50,000 BCE (East Africa), a farmer woman at 3000 BCE
 (Meseta) at street zoom, checks the card names the wanted person, and writes `<scene>-{off,on}.png`,
 `avatar-report.{json,md}`.
 
-MEASUREMENTS
+Measured 2026-11-24 on the local static export (M-series Mac, headless Chromium on Metal, a busy machine: the page ran
+at only 11-14 fps with or without the card; what matters is the difference). First frame and bytes come from a fresh
+browser context per scene, clicking the person once after the viewer's code had been prefetched:
+
+| Scene | Person | Viewer code (JS the default visit never loads) | GLB files | First frame from click / from mount | Page fps: no card · card open · card offscreen · card closed | Canvas fps · frames drawn offscreen in 3 s |
+|---|---|---|---|---|---|---|
+| Forager child, 50,000 BCE (East Africa) | girl, 10 | 166 KiB | 490 KiB | 259 / 95 ms | 13.6 · 13.2 · 13.3 · 13.0 | 10.5 · 0 |
+| Farmer woman, 3000 BCE (Nile) | woman, 18, farmer | 166 KiB | 497 KiB | 301 / 152 ms | 12.2 · 12.5 · 11.8 · 14.1 | 10.0 · 0 |
+| Elder man, 1500 CE (Meseta) | man, 78, elder | 166 KiB | 456 KiB | 198 / 101 ms | 12.2 · 11.9 · 10.8 · 11.1 | 9.5 · 0 |
+
+- No fps drop with the card open (differences are within run-to-run noise); the canvas draws nothing while off screen and
+  starts again when back.
+- The default first load gains 866 B of raw JS (the flag read and the lazy hook), no avatar or three.js code:
+  1,596,694 → 1,597,560 B across the 11 scripts in `index.html` (base 751de0b vs this branch). `first-load.mjs --flags`:
+  `?avatar=3d` loads its chunk, the default visit does not.
+- `pnpm visual` (flag off): all ten scenes pass; `rome-1000bce-person` (the SVG portrait) differs by 2 px, within the
+  usual run-to-run noise.
 
 ## Checks
 

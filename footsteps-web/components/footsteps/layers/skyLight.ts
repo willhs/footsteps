@@ -142,7 +142,10 @@ export default class SkyLight extends LayerExtension {
         'vs:#main-end': VS_MAIN_END,
         'vs:DECKGL_FILTER_GL_POSITION': VS_GL_POSITION,
         'fs:#decl': FS_DECL,
-        'fs:DECKGL_FILTER_COLOR': { order: 50, injection: FS_FILTER_COLOR },
+        // A plain string, never `{ order, injection }`: deck.gl's mergeShaders joins every extension's injection for a hook as
+        // text in extension order, so an object beside groundDetail's string became "[object Object]" in the shader and the
+        // close-up failed to compile with ?sky=1 and ?ground=1 or ?weather=1. Close3DLayer lists GROUND_DETAIL before SKY_LIGHT.
+        'fs:DECKGL_FILTER_COLOR': FS_FILTER_COLOR,
       },
     };
   }

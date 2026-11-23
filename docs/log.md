@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] fix | Close-up shader failed with ?sky=1 plus ?ground=1 or ?weather=1; featured card shows the 3D figure
+
+On prod, `?sky=1` with `?ground=1` or `?weather=1` broke the close-up ground: "Fragment shader is not compiled". A link-time
+WebGL hook showed `[object Object]` at line 462 of simple-mesh-layer-fs. deck.gl's `mergeShaders` joins every extension's
+injection for a hook as text, so `skyLight.ts`'s `{ order: 50, injection }` became "[object Object]" beside `groundDetail.ts`'s
+string. Both it and `NightExtension.ts` now inject plain strings (extension order sets the order; Close3DLayer lists
+GROUND_DETAIL before SKY_LIGHT); `layers/shaderInjections.test.ts` keeps it so. Checked on a local build: sky+ground, sky+weather
+and all eight close-up flags with `?avatar=3d` load with no shader failure at Rome 1000 BCE z14. The overnight flag sweep missed it
+because its close-up scene is the Nile at zoom ~10. Also: the featured-person card uses the 3D figure under `?avatar=3d`, prefers
+someone aged 5 or more (a baby only if no one else is in frame), and babies' ages read "under a year old", not "about 0".
+
 ## [2026-11-24] fix | ?spread=1 reads its published images: versioned URLs past the edge's cached 404s
 
 The after-merge job for the climate-adjusted spread (a01a8ba7) published all seven `grid/adjusted/` images to budgie but parked:

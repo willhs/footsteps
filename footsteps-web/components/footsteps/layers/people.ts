@@ -240,26 +240,32 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number, lay
 export function describePerson(p: Person, routineMs?: number) {
   const now = routineMs === undefined ? '' : ` ${routineLine(p, routineMs)}`;
   const who =
-    p.age < 13
+    p.age < 2
       ? p.female
-        ? 'A girl'
-        : 'A boy'
-      : p.female
-        ? 'A woman'
-        : 'A man';
+        ? 'A baby girl'
+        : 'A baby boy'
+      : p.age < 13
+        ? p.female
+          ? 'A girl'
+          : 'A boy'
+        : p.female
+          ? 'A woman'
+          : 'A man';
+  // "about 0" reads oddly: a baby's age is said in words.
+  const ageWords = p.age < 1 ? 'under a year old' : p.age < 2 ? 'about a year old' : `about ${p.age}`;
   const group = LOOKS[WAY_OF_KIND[p.groupKind as keyof typeof WAY_OF_KIND]].mark;
   const ageNote = ` Age drawn from the ${AGE_STRUCTURE_NAME[p.ageStructure]}. ${AGE_LABEL}.`;
   if (p.kindOfHuman) {
     const kind = OTHER_HUMANS.find((h) => h.id === p.kindOfHuman)!;
-    const noun = who.slice(2).toLowerCase();
+    const noun = who.replace(/^A (baby )?/, '').toLowerCase();
     const title = kind.adjective ? `A ${kind.adjective} ${noun}` : `A ${noun} of ${kind.name}`;
     return {
-      title: `${title}, about ${p.age}`,
+      title: `${title}, ${ageWords}`,
       detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a band of about ${Math.round(p.groupPeople)} ${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${ageNote}${now}`,
     };
   }
   return {
-    title: `${who}, about ${p.age}`,
+    title: `${who}, ${ageWords}`,
     detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${ageNote}${now}`,
   };
 }

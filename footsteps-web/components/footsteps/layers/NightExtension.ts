@@ -30,9 +30,8 @@ export default class NightExtension extends LayerExtension {
           nightPosition = geometry.position.xyz + project.commonOrigin;
         `,
         'fs:#decl': 'in vec3 nightPosition; flat in int nightGlobe;',
-        'fs:DECKGL_FILTER_COLOR': {
-          order: 90,
-          injection: `
+        // A plain string (see skyLight.ts): deck.gl joins extensions' injections as text, so an object form breaks beside any other.
+        'fs:DECKGL_FILTER_COLOR': `
             if (night.enabled > 0.5) {
             vec2 nightPoint;
             if (nightGlobe == 1) {
@@ -45,7 +44,6 @@ export default class NightExtension extends LayerExtension {
             color.rgb *= nightBrightness(nightPoint);
             }
           `,
-        },
       },
     };
   }

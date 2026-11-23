@@ -16,7 +16,7 @@ const inside = (p: Placed, b: Box) => {
 
 /** The featured person: `previous` (by key) if still well inside `box`, else whoever is nearest `centre`, else null.
  * `inset` shrinks the box by that share of its size on every side, so the pick is well inside the frame, not under a panel. */
-export function pickFeatured<P extends Placed>(people: readonly P[], box: Box, centre: [number, number], previous: string | null, inset = 0.15): P | null {
+export function pickFeatured<P extends Placed & { age?: number }>(people: readonly P[], box: Box, centre: [number, number], previous: string | null, inset = 0.15): P | null {
   const dx = (box.west <= box.east ? box.east - box.west : box.east + 360 - box.west) * inset;
   const dy = (box.north - box.south) * inset;
   const inner = { west: box.west + dx, east: box.east - dx, south: box.south + dy, north: box.north - dy };
@@ -27,10 +27,20 @@ export function pickFeatured<P extends Placed>(people: readonly P[], box: Box, c
     if (kept && inside(kept, keep)) return kept;
   }
   const cosLat = Math.cos((centre[1] * Math.PI) / 180);
+  // Someone with a day to show: a person aged 5 or more when there is one, a baby only if no one else is in frame.
   let best: P | null = null;
   let bestD = Infinity;
+  let baby: P | null = null;
+  let babyD = Infinity;
   for (const p of people) {
     if (!inside(p, inner)) continue;
+    if (p.age !== undefined && p.age < 5) {
+      const ex = (p.position[0] - centre[0]) * cosLat;
+      const ey = p.position[1] - centre[1];
+      const d = ex * ex + ey * ey;
+      if (d < babyD) { babyD = d; baby = p; }
+      continue;
+    }
     const ex = (p.position[0] - centre[0]) * cosLat;
     const ey = p.position[1] - centre[1];
     const d = ex * ex + ey * ey;
@@ -39,5 +49,5 @@ export function pickFeatured<P extends Placed>(people: readonly P[], box: Box, c
       best = p;
     }
   }
-  return best;
+  return best ?? baby;
 }

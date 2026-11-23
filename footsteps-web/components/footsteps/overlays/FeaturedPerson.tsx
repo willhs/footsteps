@@ -1,6 +1,10 @@
 import type { Person } from '../layers/people';
 import { describePerson } from '../layers/people';
+import { useState } from 'react';
 import Portrait from './Portrait';
+import { AVATAR_3D } from './avatarLazy';
+import { avatarFromParams } from '@/lib/avatar';
+import { useLazy } from '@/lib/lazyModule';
 
 /** At street zoom, the left column shows a person in frame without a click (lib/featuredPerson.ts picks them). A click on
  * the card opens their full panel (grounding facts, "Imagine their day"), as clicking them on the map does. */
@@ -16,6 +20,10 @@ export default function FeaturedPerson({
   onOpen: () => void;
 }) {
   const { title, detail } = describePerson(person, routineMs);
+  // `?avatar=3d`: the 3D figure, as in the person panel (docs/ops/avatar.md); the drawing shows until its code is in.
+  const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
+  const Avatar = useLazy(AVATAR_3D, avatar3d)?.default;
+  const portrait = { person, year, lat: person.position[1] };
   return (
     <button
       type="button"
@@ -26,7 +34,7 @@ export default function FeaturedPerson({
     >
       <p className="ov-note mb-2 text-[var(--ov-text-3)]">Someone in view · imagined</p>
       <div className="flex gap-3">
-        <Portrait person={person} year={year} lat={person.position[1]} />
+        {Avatar ? <Avatar {...portrait} /> : <Portrait {...portrait} />}
         <div className="min-w-0">
           <p className="ov-title text-[var(--ov-warm)]">{title}</p>
           <p className="ov-body mt-1 text-[var(--ov-text)]">{detail}</p>

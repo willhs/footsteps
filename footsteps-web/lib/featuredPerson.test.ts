@@ -33,4 +33,11 @@ describe('featured person', () => {
     const people = [p(179.9, 0), p(0, 0)];
     expect(pickFeatured(people, wrap, [180, 0], null)).toBe(people[0]);
   });
+
+  it('prefers someone aged 5 or more over a small child nearer the middle', () => {
+    const baby = { position: [0.5, 0.5] as [number, number], age: 0 };
+    const adult = { position: [0.6, 0.6] as [number, number], age: 30 };
+    expect(pickFeatured([baby, adult], box, [0.5, 0.5], null)).toBe(adult);
+    expect(pickFeatured([baby], box, [0.5, 0.5], null)).toBe(baby);
+  });
 });

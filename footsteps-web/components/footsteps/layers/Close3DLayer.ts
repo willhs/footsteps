@@ -3,7 +3,8 @@
 import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
-import GroundDetail from './groundDetail';
+import GroundDetail, { type WeatherRef } from './groundDetail';
+import { weatherFor } from '@/lib/weather';
 import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
 import type { LakePlane } from '@/lib/pastWater';
@@ -48,6 +49,8 @@ type Props = {
   plants?: boolean;
   /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
   detail?: boolean;
+  /** Draw the imagined weather (`?weather=1`; lib/weather.ts): cloud shadows and gusts in the ground shader, with or without `detail`. */
+  weather?: boolean;
   /** Dwellings to stand on the ground (`?shelters=1`; layers/shelters.ts). Each sits on the tile height under it, never in water. */
   shelters?: readonly Shelter[];
 };
@@ -178,10 +181,10 @@ export default class Close3DLayer extends CompositeLayer<Props> {
     });
   }
 
-  declare state: { buildTick: number; rebuildQueued: boolean };
+  declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef };
 
   initializeState() {
-    this.state = { buildTick: 0, rebuildQueued: false };
+    this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null } };
   }
 
   shouldUpdateState({ changeFlags }: UpdateParameters<this>) {
@@ -201,9 +204,12 @@ export default class Close3DLayer extends CompositeLayer<Props> {
   renderLayers() {
     const { zoom, latitude } = this.context.viewport as unknown as { zoom: number; latitude: number };
     if (zoom < CLOSE3D_ZOOM - 0.5) return null;
-    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, detail = false, shelters = [], colourTiles = false } = this.props;
+    const { ground: bare, groundKey, seaLevel, lake = null, ice = null, plants: drawPlants = false, detail = false, weather = false, shelters = [], colourTiles = false } = this.props;
     const ground = bare && ice ? withIce(bare, ice) : bare;
-    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
+    // The weather is the place at the screen centre's, set on every view change: the ground tiles read it each frame without being rebuilt.
+    const centre = this.context.viewport as unknown as { longitude: number };
+    this.state.weatherRef.current = weather && ground ? weatherFor(ground.precipAt(centre.longitude, latitude), latitude) : null;
+    const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${weather ? 'w' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM_TILE_URLS,
@@ -237,7 +243,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           }
           // The colour pyramid's tile over this ground tile, when tiles are on (lib/terrainDetail.ts).
           const tileGround = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
-          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail, lake, ice);
+          const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail || weather, lake, ice, detail);
           b = {
             key,
             mesh,
@@ -246,7 +252,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
                 positions: { value: mesh.positions, size: 3 },
                 normals: { value: mesh.normals, size: 3 },
                 colors: { value: mesh.colors, size: 3 },
-                // [dryCold, layer] per vertex for the GroundDetail shader.
+                // [dryCold, layer] per vertex for the GroundDetail shader (biome detail and wind).
                 ...(mesh.texCoords ? { texCoords: { value: mesh.texCoords, size: 2 } } : {}),
               },
               indices: { value: mesh.indices, size: 1 },
@@ -265,7 +271,9 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           getColor: [255, 255, 255],
           _instanced: false,
           mesh: meshProp as never,
-          extensions: detail ? GROUND_DETAIL : [],
+          extensions: detail || weather ? GROUND_DETAIL : [],
+          groundBiome: detail,
+          weatherRef: weather ? this.state.weatherRef : null,
           // Colours carry a baked hillshade (lib/close3d.ts): light them flat.
           material: { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
           pickable: false,

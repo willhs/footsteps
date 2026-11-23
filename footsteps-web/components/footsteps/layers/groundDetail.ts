@@ -7,7 +7,34 @@
 // Pattern size: every pattern is a few octaves of value noise on the ground's metres, with a nominal size (a crown is
 // ~14 m). At close-up zoom a pixel is 20-80 m, so a lattice never drops below ~3 pixels: it grows with the pixel size
 // (`gFbm`) and cross-fades between doublings, so the texture stays visible and does not shimmer as the camera moves.
+//
+// The same extension also draws the imagined weather (`?weather=1`, lib/weather.ts): cloud shadows drifting over everything,
+// and gusts running through grass, reeds and crops. `weather.biome` and `weather.on` say which of the two parts run, so
+// `?ground=1` alone and `?weather=1` alone each paint only their own part, and with neither flag no extension is attached.
 import { LayerExtension } from '@deck.gl/core';
+import { advanceWeather, newWeatherClock, type Weather, type WeatherClock } from '@/lib/weather';
+import { animSeconds, stillOn } from '@/lib/still';
+
+/** The weather a ground tile's layer draws: `Close3DLayer` sets `current` each time the view moves (the place at the screen centre),
+ * and the same object goes to every tile so a pan costs no new props. */
+export type WeatherRef = { current: Weather | null };
+
+/** One clock per page: every tile's draw advances it to the frame's time, so the patterns agree across tile edges. */
+const clock: WeatherClock = newWeatherClock();
+
+const WEATHER_MODULE = {
+  name: 'weather',
+  fs: /* glsl */ `uniform weatherUniforms {
+  float on;
+  float biome;
+  float cover;
+  vec2 wind;
+  vec2 cloud;
+  vec2 gust;
+} weather;
+`,
+  uniformTypes: { on: 'f32', biome: 'f32', cover: 'f32', wind: 'vec2<f32>', cloud: 'vec2<f32>', gust: 'vec2<f32>' },
+} as const;
 
 const VS_DECL = `out vec4 vGround;`;
 // Ground position in degrees (tile corner + offset: float32 is good to ~1 m, finer than any pattern), the mesh normal's
@@ -58,7 +85,7 @@ const FS_FILTER_COLOR = `
   float gmpp = max(max(fwidth(gm.x), fwidth(gm.y)) * 0.5, 0.01);
   float gHeightRate = fwidth(vGround.w);
   float gLayer = geometry.uv.y;
-  if (gLayer > -0.75) {
+  if (gLayer > -0.75 && weather.biome > 0.5) {
     vec3 c = color.rgb;
     float dc = geometry.uv.x;
     float wDesert = clamp(1.0 - dc, 0.0, 1.0);
@@ -141,18 +168,65 @@ const FS_FILTER_COLOR = `
   }
 `;
 
+const FS_WEATHER = `
+  if (weather.on > 0.5) {
+    vec3 w = color.rgb;
+    vec2 wd = weather.wind;
+    // Wind: grass, reeds and crops (the green axis, open or wet, thinned by tree cover) brighten and dim as gusts travel through.
+    // Patches of gust a few hundred metres across, and, close in, ripples in the grass a few metres apart that run with the wind
+    // and show only inside a gust.
+    if (gLayer > -0.75) {
+      float sway = clamp(1.0 - abs(geometry.uv.x - 1.0), 0.0, 1.0) * (1.0 - 0.85 * clamp(gLayer, 0.0, 1.0));
+      if (sway > 0.01) {
+        float gust = gFbm(gm - weather.gust, 90.0, gmpp);
+        float front = smoothstep(0.42, 0.7, gust);
+        float ripple = sin(6.2832 * (dot(gm - weather.gust, wd) / 13.0) + 4.0 * gust);
+        w *= 1.0 + sway * (0.5 * (gust - 0.5) + 0.12 * front * ripple * gFade(13.0, gmpp));
+      }
+    }
+    // Cloud shadows: soft patches a kilometre or two across, more of them the cloudier the place; over land and water alike.
+    // The cutoff 0.71 - 0.58 cover puts about that share of the noise above it, and the shadow is a little cool as well as dark.
+    float thr = 0.71 - 0.58 * weather.cover;
+    float cloud = smoothstep(thr, thr + 0.16, gFbm(gm - weather.cloud + 8000.0, 1100.0, gmpp));
+    w = mix(w, w * vec3(0.9, 0.95, 1.04), 0.6 * cloud) * (1.0 - 0.3 * cloud);
+    color.rgb = clamp(w, 0.0, 1.0);
+  }
+`;
+
 /** Add to the ground mesh's SimpleMeshLayer: `extensions: [new GroundDetail()]`. It reads the mesh's texCoords as
- * lib/close3d.ts `Cover` (dryCold, layer), so only a mesh built with `cover` should get it. */
+ * lib/close3d.ts `Cover` (dryCold, layer), so only a mesh built with `cover` should get it.
+ * Layer props (declared below): `groundBiome` (default true) paints the biome; `weatherRef` (default none) draws the weather. */
 export default class GroundDetail extends LayerExtension {
   static extensionName = 'GroundDetail';
+  static defaultProps = {
+    groundBiome: { type: 'boolean', value: true },
+    weatherRef: { type: 'object', value: null, compare: false },
+  };
+
+  draw(this: { props: Record<string, unknown>; state: { model?: { shaderInputs: { setProps: (p: object) => void } } } }) {
+    const { groundBiome, weatherRef } = this.props as { groundBiome: boolean; weatherRef: WeatherRef | null };
+    const target = weatherRef?.current ?? null;
+    if (target) advanceWeather(clock, target, animSeconds(1e9), stillOn());
+    this.state.model?.shaderInputs.setProps({
+      weather: {
+        on: target ? 1 : 0,
+        biome: groundBiome ? 1 : 0,
+        cover: clock.cover,
+        wind: target?.wind ?? [1, 0],
+        cloud: clock.cloud,
+        gust: clock.gust,
+      },
+    });
+  }
 
   getShaders() {
     return {
+      modules: [WEATHER_MODULE],
       inject: {
         'vs:#decl': VS_DECL,
         'vs:#main-end': VS_MAIN_END,
         'fs:#decl': FS_DECL,
-        'fs:DECKGL_FILTER_COLOR': FS_FILTER_COLOR,
+        'fs:DECKGL_FILTER_COLOR': FS_FILTER_COLOR + FS_WEATHER,
       },
     };
   }

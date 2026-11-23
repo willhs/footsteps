@@ -34,7 +34,7 @@ export function groundParam(search: string): boolean {
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
 
 /** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
-export function close3dNote(plants: boolean, ground: boolean): { label: string; title: string } {
+export function close3dNote(plants: boolean, ground: boolean, weather = false): { label: string; title: string } {
   const imagined: string[] = [];
   const how: string[] = [];
   if (ground) {
@@ -43,6 +43,12 @@ export function close3dNote(plants: boolean, ground: boolean): { label: string; 
       "The biome under each patch of ground is modelled (Krapp biomes, Beyer climate). The surface drawn on it, grass tufts, tree crowns, sand ripples, ice cracks, reeds and rock bands, is imagined: a formula picks it from the biome, and its details are not found anywhere.",
     );
   } else how.push("Ground colour comes from the year's biome.");
+  if (weather) {
+    imagined.push('weather');
+    how.push(
+      "Cloud shadows and wind are imagined: how cloudy a place is follows its modelled rainfall (Beyer climate) and the wind direction its latitude, but the clouds, their speed (sped up to be seen) and the gusts in the grass are drawn by a formula, not recorded for that year.",
+    );
+  }
   if (plants) {
     imagined.push('plants');
     how.push("Each plant mark stands for many plants of the year's biome, placed and sized by hand.");
@@ -148,6 +154,8 @@ export type Ground = {
   biomeAt: (lon: number, lat: number) => number;
   /** Annual mean temperature (°C) of the 0.5° cell, or null. */
   tempAt: (lon: number, lat: number) => number | null;
+  /** Annual precipitation (mm) of the 0.5° cell, or null (the weather's cloud cover, lib/weather.ts). */
+  precipAt: (lon: number, lat: number) => number | null;
   /** The same ground coloured with a colour-pyramid tile's detail (lib/terrainDetail.ts); absent when tiles are off. */
   withDetail?: (tile: DetailPixels) => Ground;
 };
@@ -380,9 +388,10 @@ export type TerrainMesh = {
 
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
- * also carries its Cover for the ground shader, and the coarse per-vertex mottling (the shader does it finer) is left out. With `lake`, the
+ * also carries its Cover for the ground shader, and the coarse per-vertex mottling is left out when `paints` (default: with `cover`) says the shader
+ * does it finer (`?ground=1`; with `?weather=1` alone the shader only needs the Cover, so the mottling stays and the ground looks as it did). With `lake`, the
  * past water's vertices (lakeVertices) are open water flat at its own level, and low ground by it is shore relative to that level, not the sea's. */
-export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null, ice: IceCover | null = null): TerrainMesh {
+export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number, ground: Ground, step = 4, cover = false, lake: LakePlane | null = null, ice: IceCover | null = null, paints = cover): TerrainMesh {
   const size = 256;
   const n = size / step + 1;
   const { west, south, east, north } = bbox;
@@ -449,7 +458,7 @@ export function buildTerrainMesh(heights: Float32Array, bbox: Bbox, sea: number,
       const lit = (nx * SUN[0] + ny * SUN[1] + SUN[2]) / len;
       let k = wet ? 1 : Math.min(1.25, Math.max(0.35, 0.2 + 1.1 * lit));
       // Small stable mottling so flat ground does not read as one blurred colour.
-      if (!wet && !cover) k *= 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
+      if (!wet && !paints) k *= 0.92 + 0.16 * hash2(Math.round(lon * 2000), Math.round(lat * 2000));
       colors[v * 3] = (c[0] * k) / 255;
       colors[v * 3 + 1] = (c[1] * k) / 255;
       colors[v * 3 + 2] = (c[2] * k) / 255;

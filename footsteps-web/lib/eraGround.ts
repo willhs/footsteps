@@ -1,7 +1,7 @@
 // The year's ground for the close-up 3D (lib/close3d.ts `Ground`), from the two era images either side of the year,
 // the habitat lookup and, with `?terrain_tiles=1`, the colour pyramid's reference photo (lib/terrainDetail.ts).
 // Called for every vertex of every ground tile (~17,000 per tile), so the samplers below avoid allocating.
-import { cellOffset, decodeTemp } from './habitat';
+import { cellOffset, decodePrecip, decodeTemp } from './habitat';
 import type { Ground } from './close3d';
 import { photoWeight, recolour, sampleDetail, WEIGHT_TAP_PX, type DetailPixels } from './terrainDetail';
 
@@ -97,6 +97,10 @@ export function makeGround(
     tempAt: (lon, lat) => {
       const b = habitat[cellOffset(lon, lat) + 1];
       return b ? decodeTemp(b) : null;
+    },
+    precipAt: (lon, lat) => {
+      const b = habitat[cellOffset(lon, lat) + 2];
+      return b ? decodePrecip(b) : null;
     },
   };
   if (ref)

@@ -12,6 +12,7 @@ import { makeGround } from '@/lib/eraGround';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
 import { groundParam, plantsParam } from '@/lib/close3d';
+import { weatherParam } from '@/lib/weather';
 import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
 import { iceBounds, iceEpochAt, iceOverlayPixels, iceParam, iceShareAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
 import {
@@ -322,7 +323,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
     if (!close3dModule) return layers;
     const Close3DLayer = close3dModule.default;
-    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search) }));
+    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

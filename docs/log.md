@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-24] feature | Cloud shadows and wind in the close-up behind ?weather=1
+
+Off by default behind `?weather=1`; works with or without `?ground=1`. In the ground fragment shader (`layers/groundDetail.ts`, uniforms, no new geometry):
+cloud shadows drift over land and water along the wind, their cover from the place's Beyer precipitation (`lib/weather.ts` `cloudCover`: 34 mm Nile 3000 BCE 0.09,
+708 mm Britain 1000 CE 0.56, 849 mm Pampas 1500 CE 0.61), and grass, reeds and crops brighten and dim as gusts travel through, with ripples inside the gusts at zoom 15+.
+Wind direction is from the latitude's planetary belt; the patterns drift in a time-lapse (clouds 60 m/s, gusts 90 m/s) integrated frame by frame so a pan bends the drift
+instead of jumping it; `?still=1` freezes it. The note adds "weather imagined". `Ground.precipAt` is new; `buildTerrainMesh` takes `paints` so weather alone keeps the
+per-vertex mottling and the ground looks as it did. `pnpm visual` with the flag off: all ten scenes pass. fps at zoom 14 within noise (frame is CPU-limited).
+`scripts/weather-shots.mjs` takes the on/off shots, a frame sequence and the fps. Flag row in `flags.md` and `flags-lib.mjs`; section "Weather" in `ops/close-up-scene.md`.
+Found, not fixed: `lib/flags.test.ts` already fails on main because `?ice=1` (task 0013) is in neither the registry nor `flags.md`.
+
 ## [2026-11-24] feature | A featured person at street zoom, without a click
 
 Will asked for the left column to show a person by default when zoomed in. At street zoom (people at least half faded in)

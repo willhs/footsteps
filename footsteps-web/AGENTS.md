@@ -42,7 +42,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   draws a 3D landscape per Terrarium elevation tile: relief ×1.6, water flat at `seaLevelAt`, colour from the era
   image with a baked hillshade, sand, rock and snow, and low-poly plants by Krapp biome (`lib/close3d.ts`). Plant
   placement and size are invented and the screen says so. `?ground=1` adds biome surface detail in the ground's fragment shader
-  (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). All deck.gl packages must resolve to the same build
+  (`layers/groundDetail.ts`, a deck.gl extension reading two numbers per vertex from `lib/close3d.ts` `coverFor`; `docs/ops/close-up-scene.md`). `?weather=1` adds cloud shadows (cover from the place's Beyer rainfall) and gusts in grass and reeds through the same extension (`lib/weather.ts`, uniforms only; `?still=1` freezes it; `scripts/weather-shots.mjs`). All deck.gl packages must resolve to the same build
   (ES modules since task 0014, so they tree-shake; `next.config.js`): a CJS/ESM mix gives two luma.gl shader assemblers and the shaders lose deck.gl's hooks.
   `Close3DLayer` loads on first use (`useLazy`, prefetched after first people): never import it statically. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.

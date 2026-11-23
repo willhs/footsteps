@@ -22,7 +22,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour with the colour pyramid's detail. Plant marks by Krapp biome
   are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
-  Will reviews it (`?ground=1`; the note then says "surface imagined"). On by default; `?close3d=0` keeps it flat.
+  Will reviews it (`?ground=1`; the note then says "surface imagined"). Imagined weather in the same shader (cloud shadows by the place's rainfall, wind in the grass) is off too:
+  `?weather=1`, `lib/weather.ts`, the note adds "weather imagined". On by default; `?close3d=0` keeps it flat.
   See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB

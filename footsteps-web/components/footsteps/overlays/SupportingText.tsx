@@ -6,6 +6,7 @@ import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
 import { close3dNote, groundParam, plantsParam } from '@/lib/close3d';
+import { weatherParam } from '@/lib/weather';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -77,6 +78,7 @@ function SupportingText({
   const isDevelopment = process.env.NODE_ENV === 'development';
   const [plantsOn, setPlantsOn] = useState(false);
   const [groundOn, setGroundOn] = useState(false);
+  const [weatherOn, setWeatherOn] = useState(false);
   // The left column (hover card, notes, legend) starts below this panel, whose height changes with its lines.
   const panelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -92,8 +94,9 @@ function SupportingText({
   }, []);
   useEffect(() => setPlantsOn(plantsParam(window.location.search)), []);
   useEffect(() => setGroundOn(groundParam(window.location.search)), []);
+  useEffect(() => setWeatherOn(weatherParam(window.location.search)), []);
 
-  const note = close3dNote(plantsOn, groundOn);
+  const note = close3dNote(plantsOn, groundOn, weatherOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(

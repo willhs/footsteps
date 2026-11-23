@@ -23,6 +23,7 @@ const flat = (biome = 4, temp = 10): Ground => ({
   colourAt: () => [100, 120, 80],
   biomeAt: () => biome,
   tempAt: () => temp,
+  precipAt: () => 800,
 });
 const bbox = { west: 0, south: 0, east: 0.35, north: 0.35 };
 const heightsOf = (f: (x: number, y: number) => number) => {
@@ -200,6 +201,25 @@ test('the note says the surface is imagined only when ?ground=1 is on', () => {
   expect(close3dNote(false, true).title).toMatch(/modelled/);
   expect(close3dNote(false, true).title).toMatch(/imagined/);
   expect(close3dNote(false, false).title).not.toMatch(/imagined/);
+});
+
+test('the note says the weather is imagined only when ?weather=1 is on', () => {
+  expect(close3dNote(false, false, false).label).toBe('3D: ground measured');
+  expect(close3dNote(false, false, true).label).toBe('3D: ground measured, weather imagined');
+  expect(close3dNote(false, true, true).label).toBe('3D: ground measured, surface and weather imagined');
+  expect(close3dNote(false, false, true).title).toMatch(/Cloud shadows and wind are imagined/);
+  expect(close3dNote(false, false, true).title).toMatch(/rainfall/);
+});
+
+test('with the weather on and the ground off the mesh carries its cover and keeps the per-vertex mottling', () => {
+  const n = 129;
+  const h = heightsOf(() => 50);
+  const withCover = buildTerrainMesh(h, bbox, 0, flat(4), 2, true, null, null, false);
+  const plain = buildTerrainMesh(h, bbox, 0, flat(4), 2);
+  const painted = buildTerrainMesh(h, bbox, 0, flat(4), 2, true);
+  expect(withCover.texCoords).toBeDefined();
+  expect(Array.from(withCover.colors.slice(0, n * 3))).toEqual(Array.from(plain.colors.slice(0, n * 3))); // same look as no flags
+  expect(Array.from(painted.colors.slice(0, n * 3))).not.toEqual(Array.from(plain.colors.slice(0, n * 3)));
 });
 
 // --- ?pastwater=1: the modelled lake plane -----------------------------------------------------------------------------------

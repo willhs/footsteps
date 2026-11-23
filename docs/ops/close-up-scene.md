@@ -1,7 +1,7 @@
 ---
 id: ops-close-up-scene
 type: ops
-purpose: "How the close-up 3D ground is drawn, and what ?ground=1 adds: biome surface detail in the shader, what is measured, modelled and imagined, how to check it"
+purpose: "How the close-up 3D ground is drawn, and what ?ground=1 (biome surface detail) and ?weather=1 (cloud shadows, wind in the grass) add in the shader: what is measured, modelled and imagined, how to check it"
 ---
 
 # Close-up scene: the 3D ground
@@ -18,6 +18,7 @@ From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/co
 | Biome under each spot | Krapp2021 biome per 0.5° cell, Beyer climate ([habitat-lookup](habitat-lookup.md)) | modelled |
 | Plant marks (`?plants=1`) | cones and blobs by biome, hand-placed | imagined (off: they read as toys) |
 | Surface detail (`?ground=1`) | procedural pattern in the fragment shader, below | imagined |
+| Weather (`?weather=1`) | cloud shadows and gusts in the same shader; cover from the place's modelled rainfall, [Weather](#weather-weather1) | rainfall modelled, the weather imagined |
 
 ## How the ground streams in (2026-11-21, task 0009)
 
@@ -91,6 +92,60 @@ node footsteps-web/scripts/measure-ground.mjs http://localhost:4600 /tmp/ground-
 It loads five scenes (Amazon 1000 CE, Sahara 1000 CE, Mongolian steppe 0 CE, Scandinavia 20,000 BCE, Mesopotamia 3000 BCE) at zoom
 10 and 12, with and without `?ground=1`, saves the pairs and prints fps per run. It needs a headed browser (headless Chromium
 throttles animation frames). Frame rate is limited by the page's CPU work as much as by the GPU, so repeat runs and compare means.
+
+## Weather (`?weather=1`)
+
+Off by default until Will has looked at it on prod; no default flips. Works with or without `?ground=1`. The "3D:" note then adds "weather imagined"
+("3D: ground measured, weather imagined"; "surface and weather imagined" with both), and its hover text says what is modelled and what is not.
+
+**What it draws** (the same fragment shader, `layers/groundDetail.ts`; no new geometry, no texture, no tile):
+
+1. **Cloud shadows**: soft patches (noise lattice ~1.1 km, coarsened to 3 pixels like the other patterns) that darken and cool the ground, over land and
+   water alike, drifting along the wind. The more of them, the cloudier the place.
+2. **Wind in the grass**: grass, reeds and crops (the green axis of `Cover`, open or wet, thinned by tree cover) brighten and dim as gusts
+   travel through (patches ~90 m and up), and close in (zoom 15 and nearer, where a pixel is under ~1.5 m) ripples 13 m apart run with the wind inside the gusts.
+   There is no crop class in `Cover`: crops are the era image's farmland colour on the grass axis, so they sway like grass.
+
+**Data shape** (`lib/weather.ts`, tested in `weather.test.ts`):
+
+- `Weather = { cover, wind }` for a place. `cover` (0..1, the share of ground in cloud shadow) is `cloudCover(precipMm)`: `0.05 + 0.8 (1 − e^(−mm/700))`,
+  so 34 mm (the Nile at 3000 BCE) gives 0.09, 849 mm (the Pampas at 1500 CE) 0.61, 708 mm (central England at 1000 CE) 0.56, 3,000 mm 0.84; a cell with no climate value gets 0.3.
+  The rainfall is the hover card's Beyer BIO12 for the year's Krapp step, read from the habitat image (`Ground.precipAt`, `lib/eraGround.ts`).
+  `wind` is a unit vector from the latitude (`windToward`): the planetary belts, easterly trades to 30°, westerlies peaking at 60°, polar easterlies beyond 75°.
+  It is not a wind record. (The dunes and ice streaks in `?ground=1` keep their own fixed direction; that is left as it was so `?ground=1` does not change.)
+- The place is the one at the screen centre, set by `Close3DLayer.renderLayers` on every view change and read by every ground tile each frame
+  (`weatherRef`), so a pan rebuilds no mesh. One cover across the whole screen means no seam at a 0.5° cell edge or a tile edge; panning across one eases cover at 0.25/s.
+- `WeatherClock`: the cover eased to the target and the distance the cloud and gust patterns have travelled, summed frame by frame in float64
+  (`advanceWeather`), so a wind that bends as you pan bends the drift from then on instead of shoving the pattern, and the shader never sees a large time.
+  Time-lapse: the clouds drift at 60 m/s (real clouds ~8 m/s are a few pixels a minute at this zoom) and gusts at 90 m/s; zoom 14 is then ~12 pixels a second.
+- `?still=1` (`lib/still.ts`) freezes it: the target cover at once, drift 0, so the same scene gives the same pixels.
+- The ground mesh carries `Cover` (the wind needs it) with `?weather=1` alone, built with its per-vertex mottling kept (`buildTerrainMesh`'s `paints` argument), so with
+  the weather on and `?ground=1` off the ground looks as it did and only the weather is added. With neither flag no extension is attached and no pixel changes.
+
+**Imagined.** Only the rainfall that sets the cover is data. The clouds' shapes, speed, the wind direction and the gusts are drawn by a formula; there is no weather record for any year.
+
+**Checked** (2026-11-24, production build, real data, headed Chromium on an Apple GPU, 1280 × 800; `node footsteps-web/scripts/weather-shots.mjs --fps`):
+
+| Scene (zoom 13) | Place's rainfall → cover (Beyer, read from the habitat image) | What the shots show |
+|---|---|---|
+| Nile 3000 BCE | 34 mm → 0.09; 25.7°N, trades | a few small shadows; most of the ground is clear |
+| Britain 1000 CE | 708 mm → 0.56; 52.2°N, westerlies | broad shadows over about half the ground |
+| Pampas 1500 CE | 849 mm → 0.61; 35.5°S, westerlies | broad shadows, gusts in the grass (clearer at zoom 16 and with `?ground=1`) |
+
+Each has `_off`, `_on` (both `?still=1`), `_on_ground` (with `?ground=1`) and a 4-frame sequence 3 s apart (`_seq_0..3`); 9-41% of the pixels differ between the first and last frame.
+The Pampas at zoom 16 is `pampas-1500ce-z16_*`. Flag off: `pnpm visual` passes all ten scenes (0-577 differing pixels of 1,024,000, none over the limit of 1,024; the same noise a scene with no 3D at all shows).
+
+**Cost** (frames per second while the camera wiggles at zoom 14, three runs per scene and variant, frame limit lifted; mean over the three scenes):
+
+| | off | `?weather=1` | `?ground=1` | `?ground=1&weather=1` |
+|---|---|---|---|---|
+| Nile | 138 | 134 | 165 | 127 |
+| Britain | 46 | 112 | 133 | 104 |
+| Pampas | 64 | 56 | 87 | 90 |
+
+Single runs range from 19 to 188 fps within one cell, and the "off" runs came first in each scene, so tiles were still warming (Britain's 46), so the runs do not separate the
+cost from the noise: on the Nile and the Pampas, where the off run is not obviously cold, the weather alone is 3% and 13% slower. The shader adds three fbm lookups per pixel (nine value-noise taps) and, like `?ground=1`, no
+texture or tile; the frame is limited by the page's CPU work, not the shader. Run `weather-shots.mjs --fps` on a quiet machine to compare.
 
 ## Limits
 

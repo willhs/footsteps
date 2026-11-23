@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-11-24T00:00:00Z	premise	At 55° pitch the close-up never shows a horizon; tilt to 74° with ?sky=1	deck fovy 36.87°: top ray 16.6° below horizon, so a sky needs a steeper camera; behind the flag	web-mercator-utils getProjectionParameters; before screenshots evidence/before/*	chosen
+2026-11-24T00:00:00Z	premise	?ice=1 has no meltwater; the water shader covers sea and past-water lakes	lib/iceSheets.ts is a mask of ice ground only	grep melt: none	recorded
+2026-11-24T00:00:00Z	design	Shader extension + CSS backdrop sky (option A) over a sky wall layer or a fake band	backdrop shows exactly where nothing is drawn (above horizon, past far plane); no new geometry	plan.md Design table	chosen

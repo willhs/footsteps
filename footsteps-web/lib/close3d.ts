@@ -103,6 +103,27 @@ export function pitchForZoom(zoom: number, sky = false): number {
 }
 
 /** Metres per screen pixel at a zoom and latitude (deck.gl's 512 px world). */
+/** deck.gl's default field of view (altitude 1.5) and far-plane multiplier for a MapView. */
+const FOVY_DEG = 36.87;
+const DECK_FAR_MULTIPLIER = 1.01;
+/** How far the sky view draws, in camera distances (deck.gl stops at 10 once the horizon is in frame). Past this the haze
+ * (layers/skyLight.ts, ramped to the far plane) has turned the ground the sky's colour anyway. Measured 2026-11-24 at
+ * 1728 x 1080 @2x on prod with `?sky=1`: 14 fps panning at zoom 12 with deck.gl's 10. */
+export const SKY_FAR_DISTANCES = 5;
+
+/**
+ * deck.gl's `farZMultiplier` that puts the far plane at most `distances` camera distances away at this pitch
+ * (math.gl's getProjectionParameters: far = min(furthest × multiplier, 10 camera distances)). Never above deck.gl's default,
+ * so a view that does not reach that far is unchanged. The far plane also culls tiles, so fewer are fetched and drawn.
+ */
+export function farMultiplier(pitch: number, distances = SKY_FAR_DISTANCES): number {
+  const rad = Math.PI / 180;
+  const above = (FOVY_DEG / 2) * rad;
+  const angle = Math.min(Math.PI - 0.01, Math.max(0.01, Math.PI / 2 - pitch * rad - above));
+  const furthest = (Math.sin(pitch * rad) * Math.sin(above)) / Math.sin(angle) + 1;
+  return Math.min(DECK_FAR_MULTIPLIER, distances / furthest);
+}
+
 export function metersPerPixel(zoom: number, lat: number): number {
   return (40_075_016 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
 }

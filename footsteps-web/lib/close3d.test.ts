@@ -1,4 +1,6 @@
 import {
+  farMultiplier,
+  SKY_FAR_DISTANCES,
   CLOSE3D_PITCH,
   COVER_WATER,
   SKY_PITCH,
@@ -322,4 +324,18 @@ test('under the ice the ground is white ice, never sea, flat at sea level where 
   expect(iced.positions[east * 3 + 2]).toBe(bare.positions[east * 3 + 2]);
   // no ice cover at all: the tile is what it was
   expect(buildTerrainMesh(heights, bbox, 0, flat(), 4, true, null, null).positions).toEqual(bare.positions);
+});
+
+describe('farMultiplier', () => {
+  it('leaves a view that does not reach the horizon at deck.gl default', () => {
+    expect(farMultiplier(0)).toBeCloseTo(1.01);
+    expect(farMultiplier(55)).toBeCloseTo(1.01);
+  });
+
+  it('pulls the far plane in to SKY_FAR_DISTANCES camera distances at the sky tilt', () => {
+    // math.gl: furthest = sin(pitch) · sin(fov/2) / sin(max(0.01, 90° − pitch − fov/2)) + 1 camera distances.
+    const furthest = (Math.sin((74 * Math.PI) / 180) * Math.sin((18.435 * Math.PI) / 180)) / Math.sin(0.01) + 1;
+    expect(farMultiplier(74) * furthest).toBeCloseTo(SKY_FAR_DISTANCES, 2);
+    expect(farMultiplier(74)).toBeLessThan(farMultiplier(70));
+  });
 });

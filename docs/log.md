@@ -835,3 +835,9 @@ are staged in hidden chunks before a fade starts. Units draws a single union of
 stable unit IDs, interpolating colours/radii on the GPU and keeping persistent
 bands at full brightness. See the
 [usage and verification instructions](../README.md#verification).
+
+## 2026-11-24 — Featured 3D figure, zoom with tilt, sky draw distance
+
+- `?avatar=3d`: the featured card's figure no longer turns back into the drawing after a zoom (the rebuild reused a canvas whose WebGL context had been shut down; now a fresh canvas, and the same person keeps the same object).
+- Close-up: zooming keeps the spot under the cursor put while the map tilts (`views/tiltController.ts`), so you can zoom straight onto a group.
+- `?sky=1`: the ground is drawn to 5 camera distances, not 10 (`farMultiplier`): ~20% fewer elevation tiles, 53 → 59 fps panning at zoom 12. Frame rate at Retina size (1728 × 1080 @2x, prod, settled): default 45-60 fps at zoom 10-15 with or without the close-up; `?trees=1` and `?fields=1` are the costly flags (18-19 fps at zoom 12 with the sky); a view still building its tiles runs far slower than a settled one.

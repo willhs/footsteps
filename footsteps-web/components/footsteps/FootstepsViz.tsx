@@ -21,7 +21,7 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, close3dParam, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
 import { smokeParam } from '@/lib/hearths';
 import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
@@ -191,6 +191,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
   const closePitch = pitchForZoom(viewState.zoom, skyOn);
+  // With the sky the camera looks out to the horizon; draw the ground only as far as the haze leaves it visible (rounded, so
+  // the view is not rebuilt every frame of a zoom).
+  const farZ = skyOn && close3d ? Math.round(farMultiplier(closePitch) * 100) / 100 : undefined;
+  const farZMultiplier = farZ !== undefined && farZ < 1.01 ? farZ : undefined;
   const tiltForZoom = useMemo(() => (close3dOn && !is3DMode ? (zoom: number) => pitchForZoom(zoom, skyOn) : undefined), [close3dOn, is3DMode, skyOn]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
   const lift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
@@ -489,6 +493,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         backdrop={light ? skyBackdrop(light, deckViewState.pitch ?? 0) : undefined}
         onViewStateChange={onViewStateChange}
         tilt={tiltForZoom}
+        farZMultiplier={farZMultiplier}
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}
         unprojectRef={hoverCard ? unprojectRef : undefined}

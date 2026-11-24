@@ -37,6 +37,8 @@ interface DeckGLViewProps {
   backdrop?: string;
   /** The map's tilt for a zoom when it tilts with zoom (the close-up); zooming then keeps the spot under the cursor put. */
   tilt?: (zoom: number) => number | null;
+  /** deck.gl's far-plane multiplier for the map (lib/close3d.ts farMultiplier); unset keeps deck.gl's default. */
+  farZMultiplier?: number;
 }
 
 export default function DeckGLView({
@@ -52,6 +54,7 @@ export default function DeckGLView({
   children,
   backdrop,
   tilt,
+  farZMultiplier,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
   // Let deck.gl size its own canvas from the container (it handles DPR and
@@ -78,7 +81,7 @@ export default function DeckGLView({
   }, [unprojectRef]);
 
   const globeView = useMemo(() => new GlobeView(), []);
-  const mapView = useMemo(() => new MapView(), []);
+  const mapView = useMemo(() => new MapView(farZMultiplier ? { farZMultiplier } : {}), [farZMultiplier]);
 
   const controller = useMemo(
     () => ({

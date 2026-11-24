@@ -6,7 +6,7 @@ purpose: "How the other-kinds-of-human layer is drawn, where its numbers come fr
 
 # Other kinds of human
 
-On by default (View panel "Other humans"; `?humans=0` starts it off). Before about 30,000 BCE the map shows
+On by default (the map controls' Features menu, "Other humans"; `?humans=0` starts it off). Before about 30,000 BCE the map shows
 the other humans alive at the same time as *Homo sapiens*:
 
 | Who | Where | Drawn until (fades between) | Basis |

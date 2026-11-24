@@ -98,7 +98,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   dates (in step with `arrivals.yaml` `other_hominins`) and 24 key dated sites, plus guessed bands of ~15 (drawn as
   our own people's fires, lavender) placed by `footstep-generator/other_humans_bands.py` (guessed numbers in `other_humans/bands.yaml` × the pre-HYDE habitat
   model inside hand-drawn ranges → `footsteps-web/public/other_humans/bands.json`, committed), drawn by `hooks/useOtherHumansLayer.ts`
-  until each was last seen. On by default (View panel; `?humans=0` off). See `docs/ops/other-humans.md`.
+  until each was last seen. On by default (Features menu; `?humans=0` off). See `docs/ops/other-humans.md`.
 - `footstep-generator/evidence/`: p3k14c radiocarbon dates calibrated, grouped into sites and exported
   (`data/evidence/p3k14c_sites.json.gz`); drawn only behind `?evidence=1` (cool marks that fade with time, bunched when zoomed out:
   `footsteps-web/lib/evidenceMarks.ts`, `hooks/useEvidenceLayer.ts`). Copy it to `footsteps-web/public/evidence/`. See its README and research 0003.
@@ -118,6 +118,8 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   10,000 BCE (`deep.py`) it is a modelled record: foragers only, arrival table, Neanderthals and Denisovans, a cited
   technocomplex table (`deep_past.yaml`), Beyer/Krapp climate, fauna ranges. "Imagine their day" works there, labelled more strongly.
   `scripts/smoke.sh [base-url]`: HTML and WebP/PNG/PMTiles signatures (grid, terrain) for configured years.
+
+- Features menu (map controls, top right): the features behind flags as checkboxes, remembered in this browser (`lib/flagChoices.ts`, written into the URL at load by a head script; `docs/ops/flags.md`).
 
 ## Data and development
 

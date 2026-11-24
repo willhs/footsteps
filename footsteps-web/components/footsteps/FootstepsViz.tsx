@@ -65,6 +65,7 @@ import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
 import { iceNote, iceParam } from '@/lib/iceSheets';
 import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
 import ToggleButton from '@/components/ui/ToggleButton';
+import FeaturesMenu from '@/components/ui/FeaturesMenu';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
 import { fieldsParam } from './layers/fields';
 import useLand from './hooks/useLand';
@@ -317,7 +318,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const [evidenceOn, setEvidenceOn] = useState(false);
   useEffect(() => setEvidenceOn(evidenceParam()), []);
   const evidence = useEvidenceLayer({ enabled: evidenceOn, time, zoom: viewState.zoom });
-  // Other kinds of human (Neanderthals, Denisovans, ...): on by default; ?humans=0 or the View panel turns it off.
+  // Other kinds of human (Neanderthals, Denisovans, ...): on by default; ?humans=0 or the Features menu turns it off.
   const [otherHumansOn, setOtherHumansOn] = useState(true);
   useEffect(() => setOtherHumansOn(new URLSearchParams(window.location.search).get('humans') !== '0'), []);
   const otherHumans = useOtherHumansLayer({
@@ -812,11 +813,15 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
               {nightOn ? 'On · live sun' : 'Off'}
             </ToggleButton>
           </ControlRow>
-          <ControlRow label="Other humans">
-            <ToggleButton pressed={otherHumansOn} onClick={() => setOtherHumansOn(on => !on)} label="Other kinds of human" title="Neanderthals, Denisovans, Homo floresiensis and Homo luzonensis: guessed bands drawn like our own people and key dated sites, until each was last seen">
-              {otherHumansOn ? 'On' : 'Off'}
-            </ToggleButton>
-          </ControlRow>
+          <FeaturesMenu
+            live={{ humans: { on: otherHumansOn, set: setOtherHumansOn } }}
+            viewParams={() => ({
+              lat: viewState.latitude.toFixed(4),
+              lon: viewState.longitude.toFixed(4),
+              zoom: viewState.zoom.toFixed(2),
+              year: String(Math.round(time)),
+            })}
+          />
           {seasonsEnabled && peopleView && (
             <ControlRow label="Season · modelled">
               <div className="ov-seg" role="group" aria-label="Seasonal scenario">

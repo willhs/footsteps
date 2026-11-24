@@ -2,7 +2,7 @@
 id: ops-flags
 type: ops
 purpose: "Inventory of every URL flag the app reads (default, what it does, its ops doc, reviewed or not) and the flag sweep that loads them on and off across six scenes"
-updated: 2026-11-22
+updated: 2026-11-25
 ---
 
 # URL flags
@@ -11,6 +11,12 @@ Every query parameter the app reads, found by grepping the source for `URLSearch
 is `footsteps-web/scripts/flags-lib.mjs` `FLAGS`, and `lib/flags.test.ts` fails if the code reads a parameter that is not in the registry or
 not in this page (or the reverse). **Adding a flag: add it to `FLAGS`, add a row here, then run the sweep.** No flag changes a default
 by being listed; "Reviewed" is whether Will has looked at the look on prod (no ops doc records a review of any opt-in yet, so they all stay off).
+
+**Features menu** (map controls, top right; `components/ui/FeaturesMenu.tsx`, `lib/flagChoices.ts` `MENU_FLAGS`): the opt-in features below
+(not `coast`) plus `humans` as checkboxes, remembered in this browser (localStorage `footsteps.flags.v1`). Remembered choices are written into
+the URL by a script in the page head before anything reads it, so each feature keeps reading its own parameter; a parameter already in the
+URL wins. Most features read their flag once at load, so a change waits for "Reload to apply" (the view and year are kept); other humans
+changes at once. A new opt-in flag goes in `MENU_FLAGS` too (`lib/flagChoices.test.ts` checks it matches the registry).
 
 Flags combine: `?ground=1&shelters=1&mode=grid` is valid. `lon` also reads `lng`, `zoom` also reads `z`. The Dots-only data (PMTiles) ignores most
 opt-in looks and says so on screen.

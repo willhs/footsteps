@@ -3,6 +3,7 @@ import './globals.css';
 import NetworkIndicator from '@/components/ui/NetworkIndicator';
 import ServiceWorkerRegistrar from '@/components/ui/ServiceWorkerRegistrar';
 import { preloadScript } from '@/lib/firstLoadPreload';
+import { flagChoicesScript } from '@/lib/flagChoices';
 
 export const metadata: Metadata = {
   title: 'footsteps',
@@ -24,6 +25,8 @@ export default function RootLayout({
         {/* Reduce connection setup latency for tiles CDN */}
         <link rel="preconnect" href={preconnectOrigin} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={preconnectOrigin} />
+        {/* Features turned on or off in the map controls, remembered in this browser, written into the URL before anything reads it (lib/flagChoices.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: flagChoicesScript() }} />
         {/* The opening year's people and Earth images start with the HTML, not after the scripts (lib/firstLoadPreload.ts). */}
         <script dangerouslySetInnerHTML={{ __html: preloadScript() }} />
       </head>

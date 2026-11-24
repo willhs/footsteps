@@ -41,6 +41,7 @@ opt-in looks and says so on screen.
 | `?chart=1` | off | World-population chart under the counter (modelled band, HYDE line, slider year; click or drag sets the year) | [footsteps-web/AGENTS.md](../../footsteps-web/AGENTS.md) (no ops doc) | no |
 | `?seasons=1` | off | Off / Jun / Dec season controls in the settlement note; also keeps the settlement model on | [settlements.md](settlements.md), [site-terrain.md](site-terrain.md) | no |
 | `?sky=1` | off | Close-up light from the local sun clock, distance haze into a sky at the horizon (steeper tilt from zoom 10, camera lifted over high ground), animated water with glint, shallows and shore foam | [close-up-scene.md](close-up-scene.md) | no |
+| `?tilt=1` | off | The close-up tilts as you zoom in (55° from zoom 8), as it did by default until 2026-11-24; `?sky=1` tilts anyway | [close-up-scene.md](close-up-scene.md) | no |
 
 ## Off switches (on until `=0`)
 
@@ -49,7 +50,7 @@ opt-in looks and says so on screen.
 | `?settlements=0` | on | The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots (`seasons=1` keeps it on) | [settlements.md](settlements.md) | n/a (default) |
 | `?sites=0` | on | Spot ranking inside each cell (flat, near fresh water, off the sea); `=0` keeps the old random positions | [site-terrain.md](site-terrain.md) | n/a (default) |
 | `?humans=0` | on | Other kinds of human (Neanderthals, Denisovans, floresiensis, luzonensis) | [other-humans.md](other-humans.md) | n/a (default) |
-| `?close3d=0` | on | The tilt into a 3D landscape from zoom 8; `=0` keeps the map flat | [close-up-scene.md](close-up-scene.md) | n/a (default) |
+| `?close3d=0` | on | The 3D landscape from zoom 8, seen from straight above; `=0` keeps the map flat | [close-up-scene.md](close-up-scene.md) | n/a (default) |
 | `?hover=0` | on | The hover card (habitat, climate, people, way of life under the cursor) | [habitat-lookup.md](habitat-lookup.md) | n/a (default) |
 | `?tags=0` | on | Name tags on people at street zoom | [footsteps-web/AGENTS.md](../../footsteps-web/AGENTS.md) (no ops doc) | n/a (default) |
 

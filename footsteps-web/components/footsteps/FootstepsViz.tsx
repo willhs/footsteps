@@ -21,7 +21,7 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, tiltParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
 import { heightAt } from '@/lib/groundHeights';
 import { reanchor } from './views/liftAnchor';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
@@ -184,20 +184,24 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const [totalPopulation, setTotalPopulation] = useState<number>(0);
   const [yearChangedAt, setYearChangedAt] = useState<number>(() => Date.now());
 
-  // Zoomed in, the map tilts into a 3D landscape (lib/close3d.ts); ?close3d=0 keeps it flat.
+  // Zoomed in, the map shows the 3D landscape (lib/close3d.ts); ?close3d=0 keeps it flat.
   const [close3dOn, setClose3dOn] = useState(false);
   useEffect(() => setClose3dOn(close3dParam(window.location.search)), []);
   // `?sky=1` (lib/sky.ts, off until reviewed on prod): the close-up lit by the sun clock, hazed into a sky, with moving water. It also
   // tilts the close-up further from zoom 11 so the horizon is in frame.
   const [skyOn, setSkyOn] = useState(false);
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
+  // `?tilt=1` (or `?sky=1`): the close-up tilts with zoom; otherwise it stays a bird's-eye view (lib/close3d.ts tiltParam).
+  const [tiltOn, setTiltOn] = useState(false);
+  useEffect(() => setTiltOn(tiltParam(window.location.search)), []);
+  const autoTilt = close3dOn && !is3DMode && (tiltOn || skyOn);
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
-  const closePitch = pitchForZoom(viewState.zoom, skyOn);
+  const closePitch = autoTilt ? pitchForZoom(viewState.zoom, skyOn) : viewState.pitch ?? 0;
   // With the sky the camera looks out to the horizon; draw the ground only as far as the haze leaves it visible (rounded, so
   // the view is not rebuilt every frame of a zoom).
   const farZ = skyOn && close3d ? Math.round(farMultiplier(closePitch) * 100) / 100 : undefined;
   const farZMultiplier = farZ !== undefined && farZ < 1.01 ? farZ : undefined;
-  const tiltForZoom = useMemo(() => (close3dOn && !is3DMode ? (zoom: number) => pitchForZoom(zoom, skyOn) : undefined), [close3dOn, is3DMode, skyOn]);
+  const tiltForZoom = useMemo(() => (autoTilt ? (zoom: number) => pitchForZoom(zoom, skyOn) : undefined), [autoTilt, skyOn]);
   // The close-up ground's drawn height (lib/groundHeights.ts, exaggerated as drawn; the sea's surface at 0), for zooming onto what is under the cursor.
   const groundZ = useMemo(() => (tiltForZoom ? (lon: number, lat: number) => { const h = heightAt(lon, lat); return h === null ? null : Math.max(0, h) * EXAGGERATION; } : undefined), [tiltForZoom]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).

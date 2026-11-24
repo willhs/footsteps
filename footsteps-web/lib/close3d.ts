@@ -85,6 +85,13 @@ export function close3dParam(search: string): boolean {
   return new URLSearchParams(search).get('close3d') !== '0';
 }
 
+/** `?tilt=1`: the close-up tilts with zoom (`pitchForZoom`), as it did by default until 2026-11-24. Off by default: the map stays a bird's-eye
+ * view at every zoom, because a tilt that changes as you zoom made it hard to zoom onto a group (the 3D relief is still drawn, and a
+ * right-drag still tilts by hand). `?sky=1` tilts anyway: its sky needs the horizon in frame. */
+export function tiltParam(search: string): boolean {
+  return new URLSearchParams(search).get('tilt') === '1';
+}
+
 /** Tilt reached with `?sky=1` (lib/sky.ts) by SKY_FULL_ZOOM: steep enough that the horizon, and the sky above it, are in frame
  * (at CLOSE3D_PITCH the top of the screen looks 16.6° below the horizon). */
 export const SKY_PITCH = 74;

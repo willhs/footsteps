@@ -6,10 +6,12 @@ purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface det
 
 # Close-up scene: the 3D ground
 
-From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/components/footsteps/layers/Close3DLayer.ts`,
-`lib/close3d.ts`). On by default; `?close3d=0` keeps the map flat.
+From zoom 8 on the flat map the ground is drawn as a 3D landscape (`footsteps-web/components/footsteps/layers/Close3DLayer.ts`,
+`lib/close3d.ts`). On by default; `?close3d=0` keeps the map flat. Since 2026-11-24 it is seen from straight above at every zoom (a
+right-drag still tilts it by hand): the tilt that grew with zoom made zooming onto a group hard (Will). `?tilt=1` brings that tilt back
+(`pitchForZoom`, 55° from zoom 8), and `?sky=1` tilts as before, since its sky needs the horizon in frame.
 
-Zooming on the tilted map (`components/footsteps/views/tiltController.ts`): the zoom sets the tilt itself, holds the point where the cursor
+Zooming on the tilted map (`?tilt=1` or `?sky=1`; `components/footsteps/views/tiltController.ts`): the zoom sets the tilt itself, holds the point where the cursor
 meets the 3D ground (the loaded relief, `lib/groundHeights.ts` `heightAt`; sea level put the spot well beyond the group pointed at), and
 zooming in glides that point halfway to the middle of the screen per zoom level, so a group aimed at near the horizon comes in front of
 you instead of staying edge-on. One scroll (wheel events with the cursor still) keeps the same point; zooming out holds the cursor's point.
@@ -111,6 +113,7 @@ the sun stands where the local sun clock puts it; the light's colour, haze, sky 
 | Relief light | the mesh is built without the baked hillshade (`buildTerrainMesh(..., lit)`); the shader lights it: `albedo × (0.7 ambient + 0.8 direct × max(n·sun, 0))`, then a little more saturation | `layers/skyLight.ts` |
 | Haze | `1 − exp(−d / 60 km)` in the horizon colour, ramped to full between 55% and 97% of deck.gl's far clipping plane depth (read from the projection matrix), so the ground meets the sky with no edge | `layers/skyLight.ts` |
 | Draw distance | the far plane at 5 camera distances (`SKY_FAR_DISTANCES`; deck.gl's own is 10 once the horizon is in frame), set per tilt as the MapView's `farZMultiplier`; the haze ramp follows it. It also culls tiles: Rome 1000 BCE at zoom 12, 1728 × 1080 @2x, 112 elevation tiles instead of 138, 59 fps panning instead of 53 (2026-11-24, one run each) | `lib/close3d.ts` `farMultiplier`, `FootstepsViz.tsx` |
+| Haze | `1 − exp(−d · density / 45 km)`, density the air's mean along the line of sight (thinning over 8 km of height), so zooming out does not fog the view: before 2026-11-24 it counted distance only (`1 − exp(−d / 60 km)`) and whited the view out from zoom ~11.5 down (the camera is ~150 km from the ground at zoom 9, nearly all through thin air). The fade into the sky at the far plane applies only where the far plane cuts the ground short of the screen's top (`farFade`) | `layers/skyLight.ts` |
 | Sky | a CSS gradient behind the deck canvas (zenith → horizon colour at the horizon row): it shows wherever nothing is drawn, above the horizon and past the far plane | `lib/sky.ts` `skyBackdrop`, `views/DeckGLView.tsx` `backdrop` |
 | Tilt | 55° is 16.6° short of the horizon (deck.gl's 36.9° field of view), so the flag tilts on from zoom 10 to 74° by zoom 12 (`SKY_PITCH`); the horizon then sits ~7% below the top | `lib/close3d.ts` `pitchForZoom(zoom, sky)` |
 | Camera lift | deck.gl measures the camera from sea level; at 74° and zoom 13 it is ~2.2 km up, inside the Alps' drawn (×1.6) summits. The flag lifts the whole camera (`viewState.position[2]`) to the drawn ground height at the view centre, or more if the ground under the camera needs it, from one zoom-10 Terrarium tile; the elevation `TileLayer` gets the same height as `zRange` so it picks the foreground tiles | `hooks/useGroundLift.ts`, `lib/sky.ts` `cameraLift`, `Close3DLayer` `groundTop` |

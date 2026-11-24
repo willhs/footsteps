@@ -4,12 +4,15 @@
 // unshaded for it (`buildTerrainMesh(..., lit)`), with open water marked in texCoords.y (lib/close3d.ts COVER_WATER). Imagined
 // presentation: no part of it is data.
 //
-// Haze: `1 − exp(−d / HAZE_M)`, then ramped to full between 55% and 97% of the depth of deck.gl's far clipping plane (10 × the camera's
-// distance to the view centre once the horizon is in frame), so the mesh meets the sky backdrop (lib/sky.ts skyBackdrop) at the
-// horizon colour instead of ending on an edge.
+// Haze: `1 − exp(−d · density / HAZE_M)`, where density is the air's mean along the line of sight (exp(−z / HAZE_SCALE_M), thinner up
+// high), so zooming out does not fog the view over: at zoom 9 the camera is ~150 km from the ground it looks at, but almost all of that
+// through thin air (before 2026-11-24 the haze counted distance only and whited the view out from zoom ~11.5 down). Then, where the far
+// clipping plane cuts the ground short of the top of the screen (`farFade`, the steep sky tilt), ramped to full between 55% and 97% of the
+// far plane's depth, so the mesh meets the sky backdrop (lib/sky.ts skyBackdrop) at the horizon colour instead of ending on an edge.
 import { LayerExtension, type Layer } from '@deck.gl/core';
 import { animSeconds } from '@/lib/still';
 import type { SceneLight } from '@/lib/sky';
+import { farMultiplier } from '@/lib/close3d';
 
 type SkyProps = { skyLight: SceneLight | null };
 
@@ -26,6 +29,7 @@ const sky = {
     float glint;
     float time;
     float farW;
+    float farFade;
     float mPerUnit;
     float enabled;
   } sky;`,
@@ -37,24 +41,28 @@ const sky = {
     glint: 'f32',
     time: 'f32',
     farW: 'f32',
+    farFade: 'f32',
     mPerUnit: 'f32',
     enabled: 'f32',
   },
 } as const;
 
-const VS_DECL = `out vec3 vSkyNormal; out vec2 vSkyPos; out vec3 vSkyEye; out float vSkyW;`;
+const VS_DECL = `out vec3 vSkyNormal; out vec2 vSkyPos; out vec3 vSkyEye; out float vSkyW; out float vSkyZ;`;
 // The mesh normal is east-north-up (lib/close3d.ts), like the light vector; the position in degrees is the tile corner + offset.
 const VS_MAIN_END = `vSkyNormal = normals; vSkyPos = instancePositions.xy + positions.xy;`;
 // From the point to the camera in common space (x east, y north, z up), set once geometry.position is known.
-const VS_GL_POSITION = `vSkyEye = project.cameraPosition - geometry.position.xyz; vSkyW = position.w;`;
+const VS_GL_POSITION = `vSkyEye = project.cameraPosition - geometry.position.xyz; vSkyW = position.w; vSkyZ = geometry.position.z;`;
 
 const FS_DECL = `
 in vec3 vSkyNormal;
 in vec2 vSkyPos;
 in vec3 vSkyEye;
 in float vSkyW;
+in float vSkyZ;
 
-const float HAZE_M = 60000.0;
+// Through sea-level air the haze reaches 63% at HAZE_M; the air thins with height over HAZE_SCALE_M (drawn metres).
+const float HAZE_M = 45000.0;
+const float HAZE_SCALE_M = 8000.0;
 
 float sHash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -123,7 +131,11 @@ const FS_FILTER_COLOR = `
       c = mix(c, wc, water);
     }
     // Distance haze in the horizon's colour; full before the far plane, where the sky backdrop shows.
-    float haze = max(1.0 - exp(-distM / HAZE_M), smoothstep(0.55, 0.97, vSkyW / sky.farW));
+    float zPoint = max(vSkyZ * sky.mPerUnit, 0.0);
+    float zEye = max((vSkyZ + eye.z) * sky.mPerUnit, 0.0);
+    float rise = zEye - zPoint;
+    float density = abs(rise) < 1.0 ? exp(-zPoint / HAZE_SCALE_M) : HAZE_SCALE_M * (exp(-zPoint / HAZE_SCALE_M) - exp(-zEye / HAZE_SCALE_M)) / rise;
+    float haze = max(1.0 - exp(-distM * density / HAZE_M), sky.farFade * smoothstep(0.55, 0.97, vSkyW / sky.farW));
     color.rgb = mix(c, sky.horizon, haze);
   }
 `;
@@ -152,10 +164,14 @@ export default class SkyLight extends LayerExtension {
 
   draw(this: Layer<SkyProps>) {
     const light = this.props.skyLight;
-    const viewport = this.context.viewport as unknown as { projectionMatrix: number[]; distanceScales: { unitsPerMeter: number[] } };
+    const viewport = this.context.viewport as unknown as { projectionMatrix: number[]; distanceScales: { unitsPerMeter: number[] }; pitch?: number };
     // The far clipping plane's depth, in the units of gl_Position.w, from the perspective matrix (m14 = 2fn / (n − f), m10 = (f + n) / (n − f)).
     const p = viewport.projectionMatrix;
     const farW = p[14] / (p[10] + 1);
+    // The far plane cuts the ground before the top of the screen only once the sky tilt draws less than deck.gl would (lib/close3d.ts
+    // farMultiplier); flatter, the ground runs to the screen's edge and needs no fade into the sky.
+    const m = farMultiplier(viewport.pitch ?? 0);
+    const farFade = Math.min(1, Math.max(0, (1.01 - m) / 0.11));
     for (const model of this.getModels()) {
       model.shaderInputs.setProps({
         sky: light
@@ -167,10 +183,11 @@ export default class SkyLight extends LayerExtension {
             glint: light.glint,
             time: animSeconds(CLOCK_WRAP_S),
             farW,
+            farFade,
             mPerUnit: 1 / viewport.distanceScales.unitsPerMeter[2],
             enabled: 1,
           }
-          : { sun: [0, 0, 1], direct: [0, 0, 0], ambient: [1, 1, 1], horizon: [0, 0, 0], glint: 0, time: 0, farW: 1, mPerUnit: 1, enabled: 0 },
+          : { sun: [0, 0, 1], direct: [0, 0, 0], ambient: [1, 1, 1], horizon: [0, 0, 0], glint: 0, time: 0, farW: 1, farFade: 0, mPerUnit: 1, enabled: 0 },
       });
     }
   }

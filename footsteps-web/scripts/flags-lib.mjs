@@ -42,7 +42,8 @@ export const FLAGS = [
   { name: 'settlements', kind: 'off-switch', on: '0', default: 'on', what: 'The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots (`seasons=1` keeps it on)', doc: 'settlements.md', reviewed: 'n/a (default)' },
   { name: 'sites', kind: 'off-switch', on: '0', default: 'on', what: 'Spot ranking inside each cell (flat, near fresh water, off the sea); `=0` keeps the old random positions', doc: 'site-terrain.md', reviewed: 'n/a (default)' },
   { name: 'humans', kind: 'off-switch', on: '0', default: 'on', what: 'Other kinds of human (Neanderthals, Denisovans, floresiensis, luzonensis)', doc: 'other-humans.md', reviewed: 'n/a (default)' },
-  { name: 'close3d', kind: 'off-switch', on: '0', default: 'on', what: 'The tilt into a 3D landscape from zoom 8; `=0` keeps the map flat', doc: 'close-up-scene.md', reviewed: 'n/a (default)' },
+  { name: 'close3d', kind: 'off-switch', on: '0', default: 'on', what: 'The 3D landscape from zoom 8, seen from straight above; `=0` keeps the map flat', doc: 'close-up-scene.md', reviewed: 'n/a (default)' },
+  { name: 'tilt', kind: 'opt-in', on: '1', default: 'off', what: 'The close-up tilts as you zoom in (55° from zoom 8), as it did by default until 2026-11-24; `?sky=1` tilts anyway', doc: 'close-up-scene.md', reviewed: 'no' },
   { name: 'hover', kind: 'off-switch', on: '0', default: 'on', what: 'The hover card (habitat, climate, people, way of life under the cursor)', doc: 'habitat-lookup.md', reviewed: 'n/a (default)' },
   { name: 'tags', kind: 'off-switch', on: '0', default: 'on', what: 'Name tags on people at street zoom', doc: '../../footsteps-web/AGENTS.md (no ops doc)', reviewed: 'n/a (default)' },
   // A value picks a look.

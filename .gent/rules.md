@@ -18,7 +18,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
-- Close-up 3D: from zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/layers/Close3DLayer.ts`,
+- Close-up 3D: from zoom 8 on the flat map the ground is drawn as a 3D landscape, seen from straight above by default (bird's-eye at every zoom; `?tilt=1` tilts it with zoom, `?sky=1` tilts it too) (`footsteps-web/layers/Close3DLayer.ts`,
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour with the colour pyramid's detail. Plant marks by Krapp biome
   are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until

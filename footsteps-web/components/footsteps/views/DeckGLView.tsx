@@ -7,6 +7,7 @@ import {
   type LayersList,
 } from '@deck.gl/core';
 import { lonLatAt } from '@/lib/hoverCard';
+import { TiltMapController } from './tiltController';
 import { HTMLAttributes, MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 type BasicViewState = {
@@ -34,6 +35,8 @@ interface DeckGLViewProps {
   children?: ReactNode;
   /** CSS background shown wherever nothing is drawn (`?sky=1`: the sky, lib/sky.ts skyBackdrop); the default is the night gradient. */
   backdrop?: string;
+  /** The map's tilt for a zoom when it tilts with zoom (the close-up); zooming then keeps the spot under the cursor put. */
+  tilt?: (zoom: number) => number | null;
 }
 
 export default function DeckGLView({
@@ -48,6 +51,7 @@ export default function DeckGLView({
   unprojectRef,
   children,
   backdrop,
+  tilt,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
   // Let deck.gl size its own canvas from the container (it handles DPR and
@@ -78,6 +82,8 @@ export default function DeckGLView({
 
   const controller = useMemo(
     () => ({
+      type: TiltMapController,
+      tilt,
       dragPan: true,
       inertia: 300,
       scrollZoom: { speed: 0.02, smooth: true },
@@ -86,7 +92,7 @@ export default function DeckGLView({
       touchRotate: true,
       keyboard: false,
     }),
-    [],
+    [tilt],
   );
 
   return (

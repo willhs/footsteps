@@ -191,6 +191,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
   const closePitch = pitchForZoom(viewState.zoom, skyOn);
+  const tiltForZoom = useMemo(() => (close3dOn && !is3DMode ? (zoom: number) => pitchForZoom(zoom, skyOn) : undefined), [close3dOn, is3DMode, skyOn]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
   const lift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
   const deckViewState = close3dOn && !is3DMode
@@ -487,6 +488,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         viewState={deckViewState}
         backdrop={light ? skyBackdrop(light, deckViewState.pitch ?? 0) : undefined}
         onViewStateChange={onViewStateChange}
+        tilt={tiltForZoom}
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}
         unprojectRef={hoverCard ? unprojectRef : undefined}

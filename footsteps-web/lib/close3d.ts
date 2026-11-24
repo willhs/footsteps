@@ -89,7 +89,7 @@ export function close3dParam(search: string): boolean {
  * (at CLOSE3D_PITCH the top of the screen looks 16.6° below the horizon). */
 export const SKY_PITCH = 74;
 const SKY_FROM_ZOOM = 10;
-const SKY_FULL_ZOOM = 12;
+export const SKY_FULL_ZOOM = 12;
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 

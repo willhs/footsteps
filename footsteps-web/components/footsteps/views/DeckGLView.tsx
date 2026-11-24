@@ -22,6 +22,7 @@ interface DeckGLViewProps {
   mode: '2d' | '3d';
   viewState: BasicViewState;
   onViewStateChange: DeckGLProps['onViewStateChange'];
+  onInteractionStateChange?: DeckGLProps['onInteractionStateChange'];
   layers: LayersList;
   onClick?: DeckGLProps['onClick'];
   /** Called after every frame deck.gl draws (first-load marks). */
@@ -47,6 +48,7 @@ export default function DeckGLView({
   mode,
   viewState,
   onViewStateChange,
+  onInteractionStateChange,
   layers,
   onClick,
   onAfterRender,
@@ -120,6 +122,7 @@ export default function DeckGLView({
         views={is3D ? globeView : mapView}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
+        onInteractionStateChange={onInteractionStateChange}
         controller={controller}
         layers={layers}
         onClick={onClick}

@@ -21,8 +21,9 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, EXAGGERATION, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
 import { heightAt } from '@/lib/groundHeights';
+import { reanchor } from './views/liftAnchor';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
 import { smokeParam } from '@/lib/hearths';
 import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
@@ -200,10 +201,63 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // The close-up ground's drawn height (lib/groundHeights.ts, exaggerated as drawn; the sea's surface at 0), for zooming onto what is under the cursor.
   const groundZ = useMemo(() => (tiltForZoom ? (lon: number, lat: number) => { const h = heightAt(lon, lat); return h === null ? null : Math.max(0, h) * EXAGGERATION; } : undefined), [tiltForZoom]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
-  const lift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
+  const groundLift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
+  // A view the map moved keeps the lift it was moved with (views/liftAnchor.ts: re-described on the ground when not animating), so the
+  // camera does not jump; a view set any other way (the URL, the tour) starts from `full`. Either way never below the camera's clearance.
+  const liftAnchor = useRef<{ longitude: number; latitude: number; zoom: number; lift: number } | null>(null);
+  const anchor = liftAnchor.current;
+  const anchored = anchor && anchor.longitude === viewState.longitude && anchor.latitude === viewState.latitude && anchor.zoom === viewState.zoom ? anchor.lift : null;
+  const lift = skyOn && close3d ? Math.max(groundLift.min, anchored ?? groundLift.full) : 0;
+  const liftRef = useRef(0);
+  liftRef.current = lift;
+  const viewStateRef = useRef(viewState);
+  viewStateRef.current = viewState;
   const deckViewState = close3dOn && !is3DMode
     ? { ...viewState, pitch: closePitch, ...(skyOn && close3d ? { position: [0, 0, lift] as [number, number, number] } : {}) }
     : viewState;
+  /** How long after the map stops moving its lift is re-described on the ground (longer than a scroll's pause between wheel steps). */
+  const REANCHOR_AFTER_MS = 900;
+  const liftOnAt = useCallback((zoom: number) => skyOn && close3dOn && !is3DMode && zoom >= CLOSE3D_ZOOM - 0.5, [skyOn, close3dOn, is3DMode]);
+
+  // A moment after the map stops moving, describe the view again with its target on the ground the centre looks at: the camera stays
+  // put (views/liftAnchor.ts). Not while it moves: deck drags in a plane at the lift's height, a new centre or zoom cancels its animations,
+  // and a scroll's glide counts zoom levels from its start (views/tiltController.ts). Not below SKY_FULL_ZOOM, where the tilt still follows
+  // the zoom.
+  const interaction = useRef<Record<string, boolean | undefined>>({});
+  const reanchorTimer = useRef<number | undefined>(undefined);
+  const reanchorSoon = useCallback(() => {
+    window.clearTimeout(reanchorTimer.current);
+    reanchorTimer.current = window.setTimeout(() => {
+      if (interaction.current.isDragging || interaction.current.inTransition) return reanchorSoon();
+      const a = liftAnchor.current;
+      const vs = viewStateRef.current;
+      if (!a || !groundZ || !liftOnAt(vs.zoom) || vs.zoom < SKY_FULL_ZOOM || a.longitude !== vs.longitude || a.latitude !== vs.latitude || a.zoom !== vs.zoom) return;
+      const pitch = pitchForZoom(vs.zoom, true);
+      const r = reanchor({ longitude: vs.longitude, latitude: vs.latitude, zoom: vs.zoom, pitch, bearing: vs.bearing ?? 0, width: window.innerWidth, height: window.innerHeight }, a.lift, groundZ, SKY_FULL_ZOOM);
+      if (!r) return;
+      liftAnchor.current = r;
+      onViewStateChange({ viewState: { ...vs, longitude: r.longitude, latitude: r.latitude, zoom: r.zoom, pitch } });
+    }, REANCHOR_AFTER_MS);
+  }, [groundZ, liftOnAt, onViewStateChange]);
+  useEffect(() => () => window.clearTimeout(reanchorTimer.current), []);
+  const onInteractionStateChange = useCallback((state: Record<string, boolean | undefined>) => {
+    interaction.current = state;
+  }, []);
+  const onDeckViewStateChange = useCallback(
+    (change: Parameters<typeof onViewStateChange>[0] & { interactionState?: Record<string, boolean | undefined> }) => {
+      const vs = change.viewState as typeof change.viewState & { position?: number[] };
+      // A move made on the map keeps its lift, and so does any change after one (deck sends one more as a drag ends); a change at load or on
+      // resize, before the ground lift is known, would pin it at 0.
+      const i = change.interactionState ?? {};
+      const moved = Boolean(i.isDragging || i.isPanning || i.isZooming || i.isRotating || i.inTransition) || liftAnchor.current !== null;
+      liftAnchor.current = liftOnAt(vs.zoom) && moved
+        ? { longitude: vs.longitude, latitude: vs.latitude, zoom: vs.zoom, lift: vs.position?.[2] ?? liftRef.current }
+        : null;
+      onViewStateChange(change);
+      if (liftAnchor.current) reanchorSoon();
+    },
+    [onViewStateChange, liftOnAt, reanchorSoon],
+  );
   // One light for the view, from its centre (rounded to 0.1°, so panning does not rebuild it every frame).
   const lightLon = Math.round(viewState.longitude * 10) / 10;
   const lightLat = Math.round(viewState.latitude * 10) / 10;
@@ -494,7 +548,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         mode={is3DMode ? '3d' : '2d'}
         viewState={deckViewState}
         backdrop={light ? skyBackdrop(light, deckViewState.pitch ?? 0) : undefined}
-        onViewStateChange={onViewStateChange}
+        onViewStateChange={onDeckViewStateChange}
+        onInteractionStateChange={onInteractionStateChange}
         tilt={tiltForZoom}
         ground={groundZ}
         farZMultiplier={farZMultiplier}

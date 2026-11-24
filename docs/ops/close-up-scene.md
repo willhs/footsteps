@@ -13,8 +13,17 @@ Zooming on the tilted map (`components/footsteps/views/tiltController.ts`): the 
 meets the 3D ground (the loaded relief, `lib/groundHeights.ts` `heightAt`; sea level put the spot well beyond the group pointed at), and
 zooming in glides that point halfway to the middle of the screen per zoom level, so a group aimed at near the horizon comes in front of
 you instead of staying edge-on. One scroll (wheel events with the cursor still) keeps the same point; zooming out holds the cursor's point.
-With `?sky=1` over mountains the camera lift (`hooks/useGroundLift.ts`) is worked out again after each zoom step and can move the view
-up or down by a few hundred pixels (the Alps at zoom 12-13: lift 4.8-6.3 km); left-right the glide holds.
+
+With `?sky=1` the camera is lifted (deck.gl `position[2]`) so it stands above the ground. A view the map has moved keeps the lift it was
+moved with, so the camera never jumps: before 2026-11-24 a new lift was worked out for each new centre and zoom, which moved the camera and
+slid the whole view by up to a few hundred pixels over mountains (the Alps at zoom 12-13: 4.8-6.3 km). About 0.9 s after the map stops
+(`REANCHOR_AFTER_MS` in `FootstepsViz.tsx`), the view is described again with its target on the ground the centre looks at
+(`views/liftAnchor.ts` `reanchor`): the centre slides along the line of sight and the zoom changes so the camera has not moved, and
+nothing on screen moves. Not during a drag (deck drags in a plane at the lift's height), an animation (a new centre or zoom cancels it) or
+a scroll (the glide counts levels from its start), and not below zoom 12, where the tilt still follows the zoom; there it stops on the
+line of sight at zoom 12. The zoom number can change on that (the Alps: 13.4 → 14.7, the camera now that close to the ground in view).
+`hooks/useGroundLift.ts` still gives the starting lift for a view set from the URL or the tour, and raises the camera whenever it would
+stand less than its clearance above the ground under it (that one move is visible).
 
 | Part | Source | Label |
 |---|---|---|

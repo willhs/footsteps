@@ -43,16 +43,20 @@ async function groundAt(lon: number, lat: number): Promise<number> {
   return best;
 }
 
-/** Drawn metres to lift the camera, 0 when `on` is false. Inputs are rounded so panning refetches only when it moves ~1 km. */
-export default function useGroundLift(on: boolean, lon: number, lat: number, zoom: number, pitch: number, heightPx: number): number {
-  const [lift, setLift] = useState(0);
+/** Drawn metres to lift the camera, 0 when `on` is false: `full` puts the view centre on the ground as well (a view's starting lift), `min`
+ * only keeps the camera clear of the ground under it (all a view the map has moved needs; FootstepsViz keeps its lift otherwise, so the
+ * camera does not jump). Inputs are rounded so panning refetches only when it moves ~1 km. */
+export type Lift = { full: number; min: number };
+const NO_LIFT: Lift = { full: 0, min: 0 };
+export default function useGroundLift(on: boolean, lon: number, lat: number, zoom: number, pitch: number, heightPx: number): Lift {
+  const [lift, setLift] = useState<Lift>(NO_LIFT);
   const rLon = Math.round(lon * 100) / 100;
   const rLat = Math.round(lat * 100) / 100;
   const rZoom = Math.round(zoom * 4) / 4;
   const rPitch = Math.round(pitch);
   useEffect(() => {
     if (!on) {
-      setLift(0);
+      setLift(NO_LIFT);
       return;
     }
     let live = true;
@@ -60,7 +64,7 @@ export default function useGroundLift(on: boolean, lon: number, lat: number, zoo
     // The camera stands south of the centre (bearing 0), its ground distance d · sin(pitch) away.
     const camLat = rLat - (dist * Math.sin((rPitch * Math.PI) / 180)) / 110_540;
     Promise.all([groundAt(rLon, rLat), groundAt(rLon, camLat)]).then(([hCentre, hCamera]) => {
-      if (live) setLift(cameraLift(hCentre, hCamera, dist, rPitch, EXAGGERATION));
+      if (live) setLift({ full: cameraLift(hCentre, hCamera, dist, rPitch, EXAGGERATION), min: cameraLift(0, hCamera, dist, rPitch, EXAGGERATION) });
     });
     return () => {
       live = false;

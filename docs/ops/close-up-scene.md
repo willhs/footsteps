@@ -9,6 +9,13 @@ purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface det
 From zoom 8 on the flat map the camera tilts into a landscape (`footsteps-web/components/footsteps/layers/Close3DLayer.ts`,
 `lib/close3d.ts`). On by default; `?close3d=0` keeps the map flat.
 
+Zooming on the tilted map (`components/footsteps/views/tiltController.ts`): the zoom sets the tilt itself, holds the point where the cursor
+meets the 3D ground (the loaded relief, `lib/groundHeights.ts` `heightAt`; sea level put the spot well beyond the group pointed at), and
+zooming in glides that point halfway to the middle of the screen per zoom level, so a group aimed at near the horizon comes in front of
+you instead of staying edge-on. One scroll (wheel events with the cursor still) keeps the same point; zooming out holds the cursor's point.
+With `?sky=1` over mountains the camera lift (`hooks/useGroundLift.ts`) is worked out again after each zoom step and can move the view
+up or down by a few hundred pixels (the Alps at zoom 12-13: lift 4.8-6.3 km); left-right the glide holds.
+
 | Part | Source | Label |
 |---|---|---|
 | Relief | AWS Terrarium elevation tiles, drawn 1.6 times taller | measured |

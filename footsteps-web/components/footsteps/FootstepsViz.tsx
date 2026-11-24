@@ -21,7 +21,8 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, EXAGGERATION, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { heightAt } from '@/lib/groundHeights';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
 import { smokeParam } from '@/lib/hearths';
 import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
@@ -196,6 +197,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const farZ = skyOn && close3d ? Math.round(farMultiplier(closePitch) * 100) / 100 : undefined;
   const farZMultiplier = farZ !== undefined && farZ < 1.01 ? farZ : undefined;
   const tiltForZoom = useMemo(() => (close3dOn && !is3DMode ? (zoom: number) => pitchForZoom(zoom, skyOn) : undefined), [close3dOn, is3DMode, skyOn]);
+  // The close-up ground's drawn height (lib/groundHeights.ts, exaggerated as drawn; the sea's surface at 0), for zooming onto what is under the cursor.
+  const groundZ = useMemo(() => (tiltForZoom ? (lon: number, lat: number) => { const h = heightAt(lon, lat); return h === null ? null : Math.max(0, h) * EXAGGERATION; } : undefined), [tiltForZoom]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
   const lift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
   const deckViewState = close3dOn && !is3DMode
@@ -493,6 +496,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         backdrop={light ? skyBackdrop(light, deckViewState.pitch ?? 0) : undefined}
         onViewStateChange={onViewStateChange}
         tilt={tiltForZoom}
+        ground={groundZ}
         farZMultiplier={farZMultiplier}
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}

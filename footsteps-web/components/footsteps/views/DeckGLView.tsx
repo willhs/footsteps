@@ -7,7 +7,7 @@ import {
   type LayersList,
 } from '@deck.gl/core';
 import { lonLatAt } from '@/lib/hoverCard';
-import { TiltMapController } from './tiltController';
+import { TiltMapController, type GroundZ } from './tiltController';
 import { HTMLAttributes, MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 type BasicViewState = {
@@ -37,6 +37,8 @@ interface DeckGLViewProps {
   backdrop?: string;
   /** The map's tilt for a zoom when it tilts with zoom (the close-up); zooming then keeps the spot under the cursor put. */
   tilt?: (zoom: number) => number | null;
+  /** Drawn height (m) of the 3D ground under a point, so a tilted zoom holds the ground you point at, not sea level beyond it. */
+  ground?: GroundZ;
   /** deck.gl's far-plane multiplier for the map (lib/close3d.ts farMultiplier); unset keeps deck.gl's default. */
   farZMultiplier?: number;
 }
@@ -54,6 +56,7 @@ export default function DeckGLView({
   children,
   backdrop,
   tilt,
+  ground,
   farZMultiplier,
 }: DeckGLViewProps) {
   const is3D = mode === '3d';
@@ -87,6 +90,7 @@ export default function DeckGLView({
     () => ({
       type: TiltMapController,
       tilt,
+      ground,
       dragPan: true,
       inertia: 300,
       scrollZoom: { speed: 0.02, smooth: true },
@@ -95,7 +99,7 @@ export default function DeckGLView({
       touchRotate: true,
       keyboard: false,
     }),
-    [tilt],
+    [tilt, ground],
   );
 
   return (

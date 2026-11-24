@@ -52,12 +52,18 @@ export const subscribeGround = (fn: () => void) => {
 };
 export const groundVersion = () => version;
 
-/** Whether the ground under a point is at or below `seaLevel` in a loaded tile (the newest tile covering it, which is the finest). */
-export function wetAt(lon: number, lat: number, seaLevel: number): boolean {
+/** The ground height (m, unexaggerated) under a point in the newest loaded tile covering it (the finest), or null where none is loaded. */
+export function heightAt(lon: number, lat: number): number | null {
   const tiles = [...loaded.values()];
   for (let i = tiles.length - 1; i >= 0; i--) {
     const h = groundAt(tiles[i].heights, tiles[i].bbox, lon, lat);
-    if (h !== null) return h <= seaLevel;
+    if (h !== null) return h;
   }
-  return false;
+  return null;
+}
+
+/** Whether the ground under a point is at or below `seaLevel` in a loaded tile (the newest tile covering it, which is the finest). */
+export function wetAt(lon: number, lat: number, seaLevel: number): boolean {
+  const h = heightAt(lon, lat);
+  return h !== null && h <= seaLevel;
 }

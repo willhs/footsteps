@@ -2,12 +2,31 @@
 // otherwise the one nearest the middle of the view. Zooming in narrows the frame, so the choice narrows with it.
 // Pure, so it can be tested; FootstepsViz feeds it the people in view and the view's box.
 
+import type { Person } from '@/components/footsteps/layers/people';
+
 type Placed = { position: [number, number] };
 export type Box = { west: number; south: number; east: number; north: number };
 
 /** A person's stable key: their place is fixed by their group and their index in it (people.ts), unlike `id`, which
  * counts people in view and so changes as the view moves. */
 export const personKey = (p: Placed) => `${p.position[0].toFixed(6)},${p.position[1].toFixed(6)}`;
+
+/** Same person as far as the card shows: everything but the drawing's pixel size and colour, which change with zoom. */
+export function samePerson(a: Person, b: Person): boolean {
+  return (
+    personKey(a) === personKey(b) &&
+    a.age === b.age &&
+    a.female === b.female &&
+    a.role === b.role &&
+    a.groupKind === b.groupKind &&
+    a.groupPeople === b.groupPeople &&
+    a.footwear === b.footwear &&
+    a.gait === b.gait &&
+    a.household === b.household &&
+    a.kindOfHuman === b.kindOfHuman &&
+    a.ageStructure === b.ageStructure
+  );
+}
 
 const inside = (p: Placed, b: Box) => {
   const [lon, lat] = p.position;

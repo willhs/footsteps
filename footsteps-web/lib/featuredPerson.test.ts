@@ -1,4 +1,5 @@
-import { personKey, pickFeatured } from './featuredPerson';
+import type { Person } from '@/components/footsteps/layers/people';
+import { personKey, pickFeatured, samePerson } from './featuredPerson';
 
 const p = (lon: number, lat: number) => ({ position: [lon, lat] as [number, number] });
 const box = { west: 0, south: 0, east: 1, north: 1 };
@@ -39,5 +40,11 @@ describe('featured person', () => {
     const adult = { position: [0.6, 0.6] as [number, number], age: 30 };
     expect(pickFeatured([baby, adult], box, [0.5, 0.5], null)).toBe(adult);
     expect(pickFeatured([baby], box, [0.5, 0.5], null)).toBe(baby);
+  });
+
+  it('treats a redrawn copy of the same person as the same, but not a change of age', () => {
+    const a = { id: 1, position: [1, 2] as [number, number], age: 30, ageStructure: 'forager', female: true, role: 'gatherer', groupKind: 0, groupPeople: 25, color: [0, 0, 0, 255], radius: 2, footwear: 1, gait: 0.3 } as unknown as Person;
+    expect(samePerson(a, { ...a, id: 9, radius: 8, color: [1, 1, 1, 255] } as Person)).toBe(true);
+    expect(samePerson(a, { ...a, age: 31 })).toBe(false);
   });
 });

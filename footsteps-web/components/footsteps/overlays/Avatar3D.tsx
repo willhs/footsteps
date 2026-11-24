@@ -23,6 +23,7 @@ function routineNow(person: Person) {
   return stateAt(planOf(person, epochHour(ms)), localHourAt(ms, person.position[0]));
 }
 
+let canvasCount = 0;
 const W = 120;
 const H = 168;
 const box = 'rounded-[var(--ov-radius-sm)] bg-[radial-gradient(ellipse_at_50%_35%,#3b3428_0%,#2a241d_70%)]';
@@ -35,6 +36,9 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
     [person, year, lat, rec],
   );
   const canvas = useRef<HTMLCanvasElement>(null);
+  // A fresh canvas per figure: dispose() forces the old WebGL context lost, and a lost canvas cannot draw again, so
+  // reusing it made every rebuild (a new spec, e.g. after a zoom) fail and fall back to the drawing.
+  const canvasKey = useMemo(() => ++canvasCount, [spec]);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -62,7 +66,7 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
       live = false;
       view.dispose();
     };
-  }, [spec]);
+  }, [spec, canvasKey]);
 
   if (failed) return <Portrait person={person} year={year} lat={lat} />;
   if (!spec)
@@ -75,6 +79,7 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
     <figure className="m-0 shrink-0" data-testid="avatar-3d">
       <div className="relative" style={{ width: W, height: H }}>
         <canvas
+          key={canvasKey}
           ref={canvas}
           role="img"
           aria-label={`3D illustration of a ${person.role}, about ${person.age}. Drag to turn.`}

@@ -45,9 +45,10 @@ export function treeLodShare(pixelsPerTree: number): number {
   return pixelsPerTree < 1 ? 0 : Math.min(1, pixelsPerTree / 3);
 }
 
-/** Household-sized clearings, spatially indexed so dense woods do not scan every home per tree. */
-export function outsideClearings(trees: readonly TreeInstance[], clearings: readonly TreeClearing[]): TreeInstance[] {
-  if (!clearings.length) return trees as TreeInstance[];
+/** Household-sized clearings, spatially indexed so dense woods do not scan every home per tree. 1 marks a tree standing in one. */
+export function clearedMask(trees: readonly TreeInstance[], clearings: readonly TreeClearing[]): Uint8Array {
+  const mask = new Uint8Array(trees.length);
+  if (!clearings.length) return mask;
   const step = 0.002;
   const bins = new Map<string, TreeClearing[]>();
   for (const c of clearings) {
@@ -60,9 +61,26 @@ export function outsideClearings(trees: readonly TreeInstance[], clearings: read
         const list = bins.get(key) ?? []; list.push(c); bins.set(key, list);
       }
   }
-  return trees.filter(t => !(bins.get(`${Math.floor(t.position[0] / step)},${Math.floor(t.position[1] / step)}`) ?? []).some(c => {
-    const dx = (t.position[0] - c.position[0]) * 111320 * Math.cos(c.position[1] * Math.PI / 180);
-    const dy = (t.position[1] - c.position[1]) * 110540;
-    return Math.hypot(dx, dy) < c.radius + t.height * 0.35;
-  }));
+  trees.forEach((t, i) => {
+    const near = bins.get(`${Math.floor(t.position[0] / step)},${Math.floor(t.position[1] / step)}`);
+    if (near?.some(c => {
+      const dx = (t.position[0] - c.position[0]) * 111320 * Math.cos(c.position[1] * Math.PI / 180);
+      const dy = (t.position[1] - c.position[1]) * 110540;
+      return Math.hypot(dx, dy) < c.radius + t.height * 0.35;
+    })) mask[i] = 1;
+  });
+  return mask;
+}
+
+export function outsideClearings(trees: readonly TreeInstance[], clearings: readonly TreeClearing[]): TreeInstance[] {
+  if (!clearings.length) return trees as TreeInstance[];
+  const mask = clearedMask(trees, clearings);
+  return trees.filter((_, i) => !mask[i]);
+}
+
+/** Content key for a clearings list: the scene hands over a fresh array on most renders, but the homes in it change far less often. */
+export function clearingsKey(clearings: readonly TreeClearing[]): string {
+  let h = clearings.length;
+  for (const c of clearings) h = (Math.imul(h, 31) + Math.round(c.position[0] * 1e5) * 7 + Math.round(c.position[1] * 1e5) * 13 + Math.round(c.radius)) | 0;
+  return `${clearings.length}:${h}`;
 }

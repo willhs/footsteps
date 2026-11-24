@@ -1,4 +1,4 @@
-import { treesForTile, outsideClearings, treeLodShare, TREE_HEIGHT } from './trees';
+import { treesForTile, outsideClearings, clearedMask, clearingsKey, treeLodShare, TREE_HEIGHT } from './trees';
 import { treesParam, withIce, type Ground } from './close3d';
 
 const bbox = { west: 10, east: 10.02, south: 45, north: 45.02 };
@@ -45,4 +45,23 @@ test('distance LOD draws every tree near the camera, a thinner share further out
   expect(treeLodShare(1.5)).toBe(0.5);
   expect(treeLodShare(0.9)).toBe(0);
   for (let px = 0; px < 6; px += 0.25) expect(treeLodShare(px + 0.25)).toBeGreaterThanOrEqual(treeLodShare(px));
+});
+
+test('clearedMask marks the same trees outsideClearings drops', () => {
+  const forest = Array.from({ length: 400 }, (_, i) => ({
+    position: [12.6 + (i % 20) * 0.0002, 41.85 + Math.floor(i / 20) * 0.0002, 0] as [number, number, number],
+    kind: 'broadleaf' as const, variant: 0, height: 20, tint: [255, 255, 255, 255] as [number, number, number, number],
+  }));
+  const clearings = [{ position: [12.602, 41.852] as const, radius: 60 }];
+  const mask = clearedMask(forest, clearings);
+  expect(mask.some(Boolean)).toBe(true);
+  expect(forest.filter((_, i) => !mask[i])).toEqual(outsideClearings(forest, clearings));
+  expect(clearedMask(forest, []).every((m) => m === 0)).toBe(true);
+});
+
+test('clearingsKey follows content, not array identity', () => {
+  const a = [{ position: [12.6, 41.85] as const, radius: 30 }];
+  expect(clearingsKey([...a])).toBe(clearingsKey([{ ...a[0] }]));
+  expect(clearingsKey(a)).not.toBe(clearingsKey([{ position: [12.6001, 41.85] as const, radius: 30 }]));
+  expect(clearingsKey([])).not.toBe(clearingsKey(a));
 });

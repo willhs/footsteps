@@ -32,6 +32,43 @@ export type DrapedLand = { solid: DrapedMesh | null; paint: GroundPaint | null; 
 
 const FARMLAND = new Set(['field', 'fallow', 'pasture']);
 
+/** Each patch's corner box [west, south, east, north] per patch set, worked out once a set, so many tiles can test it cheaply. */
+const boxesOf = new WeakMap<readonly LandPatch[], Float64Array>();
+function patchBoxes(patches: readonly LandPatch[]): Float64Array {
+  let boxes = boxesOf.get(patches);
+  if (boxes) return boxes;
+  boxes = new Float64Array(patches.length * 4);
+  patches.forEach((p, i) => {
+    let [w, s, e, n] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [x, y] of p.kind === 'path' ? p.line : p.corners) [w, s, e, n] = [Math.min(w, x), Math.min(s, y), Math.max(e, x), Math.max(n, y)];
+    boxes!.set([w, s, e, n], i * 4);
+  });
+  boxesOf.set(patches, boxes);
+  return boxes;
+}
+
+/** A content key for the patches that can touch a tile (corner box overlapping it). The set in view is rebuilt as the camera moves, but a
+ * place always gets the same patches (fields.ts), so a tile whose own land is unchanged keeps its drape instead of draping again. */
+export function tileLandKey(patches: readonly LandPatch[], bbox: Bbox): string {
+  const boxes = patchBoxes(patches);
+  let h = 0x811c9dc5;
+  let count = 0;
+  const mix = (v: number) => {
+    h = Math.imul(h ^ v, 16777619);
+  };
+  patches.forEach((p, i) => {
+    const o = i * 4;
+    if (boxes[o + 2] < bbox.west || boxes[o] > bbox.east || boxes[o + 3] < bbox.south || boxes[o + 1] > bbox.north) return;
+    count++;
+    for (const [x, y] of p.kind === 'path' ? p.line : p.corners) {
+      mix(Math.round(x * 1e6) | 0);
+      mix(Math.round(y * 1e6) | 0);
+    }
+    mix(((Math.round(p.rgb[0]) << 16) | (Math.round(p.rgb[1]) << 8) | Math.round(p.rgb[2])) ^ (p.kind.charCodeAt(0) << 24) ^ p.kind.length);
+  });
+  return `${count}:${h >>> 0}`;
+}
+
 class Builder {
   positions: number[] = [];
   colors: number[] = [];

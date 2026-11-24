@@ -18,7 +18,7 @@ import {
   type LandGroup,
   type LandPatch,
 } from './fields';
-import { drapeLand, NOT_FARMED_FROM_DEG, TERRACE_FROM_DEG } from './fieldsDrape';
+import { drapeLand, tileLandKey, NOT_FARMED_FROM_DEG, TERRACE_FROM_DEG } from './fieldsDrape';
 import { UnitKind } from './units';
 
 const ctx: LandContext = { season: 'off', crops: () => ['wheat', 'barley'] };
@@ -240,4 +240,21 @@ test('waterHere: distance between cell centres and the way towards the water', (
   const east = waterHere(w, 0.7, 44.8)!;
   expect(east.dir![0]).toBeLessThan(-0.9);
   expect(waterHere(w, 30, 44.8)).toBeNull();
+});
+
+describe('tileLandKey', () => {
+  const bbox = { west: 12, south: 41, east: 12.1, north: 41.1 };
+  const field = (lon: number, lat: number, rgb: [number, number, number] = [180, 160, 90]): LandPatch => ({
+    kind: 'field', wash: false, rgb,
+    corners: [[lon, lat], [lon + 0.001, lat], [lon + 0.001, lat + 0.001], [lon, lat + 0.001]],
+  });
+  it('follows the patches touching the tile, not the set they came in', () => {
+    const inside = [field(12.05, 41.05), field(12.02, 41.08)];
+    const key = tileLandKey(inside, bbox);
+    // Fresh copies plus a patch far off: the tile keeps its drape.
+    expect(tileLandKey([...[field(12.05, 41.05), field(12.02, 41.08)], field(13, 42)], bbox)).toBe(key);
+    // A patch of its own changes: it drapes again.
+    expect(tileLandKey([inside[0], field(12.02, 41.08, [120, 140, 80])], bbox)).not.toBe(key);
+    expect(tileLandKey([inside[0]], bbox)).not.toBe(key);
+  });
 });

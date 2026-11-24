@@ -14,7 +14,8 @@ import { shelterMeshes, type Shelter } from './shelters';
 import type { TreeInstance, TreeClearing } from '@/lib/trees';
 type TreeModule = typeof import('./TreeLayer');
 import type { LandPatch } from './fields';
-import { drapeLand, type DrapedMesh } from './fieldsDrape';
+import { drapeLand, tileLandKey, type DrapedMesh } from './fieldsDrape';
+import { BLOCK_M } from './fields';
 import { groundAt, rememberGround } from '@/lib/groundHeights';
 import { loadDetailManifest, loadDetailPixels, type DetailPixels } from '@/lib/terrainDetail';
 import { coarsenFar, type TileIndex } from '@/lib/demLod';
@@ -73,8 +74,12 @@ type Props = {
   land?: LandSet | null;
 };
 export type LandSet = { key: string; patches: readonly LandPatch[] };
-/** A tile's draped land: the shapes' mesh, and the ground mesh with washes painted in (null: none, draw the plain ground). */
-type Draped = { key: string; solid: object | null; ground: object | null };
+/** A tile's draped land: the shapes' mesh, and the ground mesh with washes painted in (null: none, draw the plain ground). `key` is the land
+ * set and ground it was last checked against; `tileKey` the tile's own patches and ground it was draped from. */
+type Draped = { key: string; tileKey: string; solid: object | null; ground: object | null };
+/** A field block (fields.ts BLOCK_M) narrower than this many screen pixels on a tile: the tile is not draped, the haze and the ground's own
+ * colour stand in, and panning does not spend frames draping land nobody can make out. */
+const LAND_MIN_PX = 1.5;
 type TileData = { heights: Float32Array; detail: DetailPixels | null };
 type Standing = { shelter: Shelter; position: [number, number, number] };
 /** `meshProp` is the SimpleMeshLayer `mesh` object, kept so a re-render passes the same object and nothing is uploaded again. */
@@ -92,8 +97,9 @@ const SHELTER_LIFT_M = 1;
 /** The plant marks' candidate spots per tile: 900 per tile of the old, one zoom finer tiles, so 4× here (same density). */
 const PLANT_CANDIDATES = 3600;
 const built = new WeakMap<TileData, Built>();
-/** Trees per DEM tile: candidates by era key, those outside the current clearings, and the LOD prefix drawn. */
-const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearings: readonly TreeClearing[]; visible: TreeInstance[]; drawn: TreeInstance[] }>();
+/** Trees per DEM tile: candidates by era key (in random order, so a prefix is an even subsample) and which stand in the current clearings.
+ * `rank` changes identity only when the clearings do, so deck rebuilds that one attribute and nothing else. */
+const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearingsKey: string; rank: (t: TreeInstance, info: { index: number }) => number }>();
 const NO_CLEARINGS: readonly TreeClearing[] = [];
 const draped = new WeakMap<TileData, Draped>();
 const meshProp = (m: DrapedMesh | null) =>
@@ -215,6 +221,13 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       this.queueRebuild();
       return null;
     }
+    // A new set in view, but this tile's own patches may be the same: then keep its drape.
+    const tileKey = `${tileLandKey(land.patches, bbox)}|${groundKey}`;
+    if (d && d.tileKey === tileKey) {
+      d.key = key;
+      budget.spent += performance.now() - t0;
+      return d;
+    }
     const mesh = drapeLand(data.heights, bbox, z, land.patches, seaLevel, lake, ice);
     let painted: object | null = null;
     if (mesh.paint) {
@@ -227,7 +240,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       const base = ground.meshProp as { attributes: Record<string, unknown>; indices: unknown };
       painted = { attributes: { ...base.attributes, colors: { value: colors, size: 3 } }, indices: base.indices };
     }
-    const out = { key, solid: meshProp(mesh.solid), ground: painted };
+    const out = { key, tileKey, solid: meshProp(mesh.solid), ground: painted };
     draped.set(data, out);
     budget.spent += performance.now() - t0;
     return out;
@@ -314,6 +327,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
     this.state.weatherRef.current = weather && ground ? weatherFor(ground.precipAt(centre.longitude, latitude), latitude) : null;
     const key = `${groundKey}|${seaLevel.toFixed(1)}|${drawPlants ? 'p' : ''}${detail ? 'g' : ''}${weather ? 'w' : ''}${lit ? 'l' : ''}${lake ? `|${lake.key}` : ''}${ice ? `|${ice.key}` : ''}`;
     const mpp = metersPerPixel(zoom, latitude);
+    const clearKey = trees && this.state.treeModule ? this.state.treeModule.clearingsKey(clearings) : '';
     return new TileLayer<TileData>(this.getSubLayerProps({ id: 'dem' }), {
       data: DEM_TILE_URLS,
       TilesetClass: DemTileset,
@@ -334,7 +348,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         if ('west' in bbox) rememberGround(`${z}/${x}/${y}`, bbox as Bbox, data.heights);
         return { ...data, detail: tile };
       },
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearings, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
+      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearKey, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !ground || !('west' in props.tile.bbox)) return null;
@@ -369,7 +383,9 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           budget.spent += performance.now() - t0;
         }
         const { meshProp, plants } = b;
-        const landHere = land?.patches.length ? this.drapeFor(data, bbox, z, land, key, b) : null;
+        // Screen pixels per 20 m at the tile's nearest point: tree thinning and whether fields are worth draping here.
+        const px20 = (trees && zoom >= 11 && this.state.treeModule) || land?.patches.length ? this.treePixels(bbox, data.heights) : 0;
+        const landHere = land?.patches.length && px20 * (BLOCK_M / 20) >= LAND_MIN_PX ? this.drapeFor(data, bbox, z, land, key, b) : null;
         const ground3d = new SimpleMeshLayer<{ p: [number, number, number] }>({
           ...this.getSubLayerProps({ id: `${props.id}-ground` }),
           id: `${props.id}-ground`,
@@ -388,29 +404,28 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
         });
         const layers = [ground3d];
-        const treeShare =trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(this.treePixels(bbox, data.heights)) : 0;
+        const treeShare = trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(px20) : 0;
         if (treeShare > 0 && this.state.treeModule) {
-          const { default: TreeLayer, treesForTile, outsideClearings, TREE_MAPPING } = this.state.treeModule;
+          const { default: TreeLayer, treesForTile, clearedMask, TREE_MAPPING } = this.state.treeModule;
           let cached = treeBuilt.get(data);
           if (!cached || cached.key !== key) {
-            const instances = treesForTile(data.heights, bbox, [x, y, z], seaLevel, ground, lake);
-            const visible = outsideClearings(instances, clearings);
-            cached = { key, trees: instances, clearings, visible, drawn: visible };
+            cached = { key, trees: treesForTile(data.heights, bbox, [x, y, z], seaLevel, ground, lake), clearingsKey: '', rank: () => 0 };
             treeBuilt.set(data, cached);
-          } else if (cached.clearings !== clearings) {
-            cached.visible = outsideClearings(cached.trees, clearings);
-            cached.drawn = cached.visible;
-            cached.clearings = clearings;
           }
-          // A stable array per tile, so deck keeps its instance buffers between frames.
-          const count = Math.round(cached.visible.length * treeShare);
-          if (cached.drawn.length !== count) cached.drawn = count === cached.visible.length ? cached.visible : cached.visible.slice(0, count);
+          if (cached.clearingsKey !== clearKey) {
+            const mask = clearedMask(cached.trees, clearings);
+            const n = cached.trees.length;
+            cached.rank = (_t, { index }) => (mask[index] ? 2 : index / n);
+            cached.clearingsKey = clearKey;
+          }
+          // The same data array every frame, so deck keeps the instance buffers; distance thinning is a uniform (TreeLayer).
           layers.push(new TreeLayer({
             ...this.getSubLayerProps({ id: `${props.id}-trees` }),
-            id: `${props.id}-trees`, data: cached.drawn,
+            id: `${props.id}-trees`, data: cached.trees,
             iconAtlas: '/trees/atlas.webp', iconMapping: TREE_MAPPING,
             getIcon: t => `${t.kind}-${t.variant}`, getPosition: t => t.position,
             getSize: t => t.height, getColor: t => t.tint, sizeUnits: 'meters',
+            getRank: cached.rank, lodShare: treeShare, updateTriggers: { getRank: cached.clearingsKey },
             billboard: true, alphaCutoff: 0.25, pickable: false,
             parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
           }) as unknown as typeof ground3d);

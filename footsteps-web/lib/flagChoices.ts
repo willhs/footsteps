@@ -21,6 +21,7 @@ export const FLAG_CHOICES_KEY = 'footsteps.flags.v1';
 export const MENU_FLAGS: readonly MenuFlag[] = [
   { name: 'sky', on: '0', defaultOn: true, group: 'Close-up', label: 'Sky and sunlight', hint: 'Light from the local sun clock, haze into a sky at the horizon (tilt by hand to see it), moving water' },
   { name: 'trees', on: '0', defaultOn: true, group: 'Close-up', label: 'Trees', hint: 'Trees by biome, with clearings round homes (imagined)' },
+  { name: 'rivers', on: '0', defaultOn: true, group: 'Close-up', label: 'Rivers', hint: 'Today’s rivers (Natural Earth 10m) drawn on the close-up ground; courses that moved are drawn where they run now' },
   { name: 'fields', on: '0', defaultOn: true, group: 'Close-up', label: 'Fields and paths', hint: 'Fields, gardens, terraces, corrals and worn paths round each group (extent modelled, layout imagined)' },
   { name: 'shelters', on: '0', defaultOn: true, group: 'Close-up', label: 'Shelters', hint: 'One dwelling per household, its type from the analog society’s house codes' },
   { name: 'smoke', on: '0', defaultOn: true, group: 'Close-up', label: 'Hearth smoke', hint: 'Smoke from each hearth, and firelight at night (imagined)' },
@@ -35,6 +36,7 @@ export const MENU_FLAGS: readonly MenuFlag[] = [
   { name: 'terrain_tiles', on: '0', defaultOn: true, group: 'Data', label: 'Sharper terrain', hint: 'The 500 m photo pyramid, recoloured per year, at zoom 3-8' },
   { name: 'food', on: '0', defaultOn: true, group: 'Extras', label: 'Food in hover card', hint: 'Crops, animals and forager staples around the cursor (modelled)' },
   { name: 'langs', on: '0', defaultOn: true, group: 'Extras', label: 'Spreading languages', hint: '“Languages spreading here” in the hover card (from 3050 BCE)' },
+  { name: 'explain', on: '1', group: 'Extras', label: 'How we estimate this', hint: 'A quiet link under the counter: which sources and methods drive the map here and now, and how far to trust them' },
 ];
 
 /** Whether a feature is on for these URL parameters. */

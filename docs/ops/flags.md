@@ -29,6 +29,7 @@ opt-in looks and says so on screen.
 
 | Flag | Default | What it does | Ops doc | Reviewed |
 |---|---|---|---|---|
+| `?explain=1` | off | "How is this estimated?" link under the counter: a panel naming the sources, methods and a confidence word for the place and year | [estimate-panel.md](estimate-panel.md) | no |
 | `?coast=1` | off | Draws the modern coastline (Natural Earth 110m) over the terrain image | [terrain-images.md](terrain-images.md) | n/a (debug overlay) |
 
 ## Off switches (on until `=0`)
@@ -53,6 +54,7 @@ opt-in looks and says so on screen.
 | `?settlements=0` | on | The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots | [settlements.md](settlements.md) | n/a (default) |
 | `?sites=0` | on | Spot ranking inside each cell (flat, near fresh water, off the sea); `=0` keeps the old random positions | [site-terrain.md](site-terrain.md) | n/a (default) |
 | `?humans=0` | on | Other kinds of human (Neanderthals, Denisovans, floresiensis, luzonensis) | [other-humans.md](other-humans.md) | n/a (default) |
+| `?rivers=0` | on | Today's rivers (Natural Earth 10m, `public/water/rivers.json`) draped on the close-up ground as paths; courses that moved are drawn where they run now; none under the sea, ice or past water | [close-up-scene.md](close-up-scene.md) | no |
 | `?close3d=0` | on | The 3D landscape from zoom 8, seen from straight above; `=0` keeps the map flat | [close-up-scene.md](close-up-scene.md) | n/a (default) |
 | `?hover=0` | on | The hover card (habitat, climate, people, way of life under the cursor) | [habitat-lookup.md](habitat-lookup.md) | n/a (default) |
 | `?tags=0` | on | Name tags on people at street zoom | [footsteps-web/AGENTS.md](../../footsteps-web/AGENTS.md) (no ops doc) | n/a (default) |

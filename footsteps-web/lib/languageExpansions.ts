@@ -54,12 +54,8 @@ export function startWords(r: Pick<ExpansionRow, 'start_year' | 'range_bp'>): st
 }
 
 export function expansionLine(rows: ExpansionRow[]): { text: string; detail: string } {
-  const items = rows.map((r) => {
-    const flags = [r.disputed ? 'disputed' : null, r.checked ? null : 'not verified'].filter(Boolean).join(', ');
-    return `${r.family} (${startWords(r)}; ${r.cite}${flags ? `; ${flags}` : ''})`;
-  });
-  return {
-    text: `Languages spreading here: ${items.join('; ')}`,
-    detail: 'cited studies and records · hand-drawn 5° areas, not boundaries · nothing before 5,000 years ago',
-  };
+  // One short line (Will, 2026-11-28): family and when; the citation stays in the table.
+  const items = rows.map((r) => `${r.family} (${startWords(r)}${r.disputed ? ', disputed' : ''})`);
+  const unverified = rows.some((r) => !r.checked);
+  return { text: `Spreading: ${items.join('; ')}`, detail: unverified ? 'cited, not all verified · rough areas' : 'cited · rough areas' };
 }

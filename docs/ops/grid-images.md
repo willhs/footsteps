@@ -85,3 +85,39 @@ takes its cell's colour. Years before HYDE (the modelled images) have no land us
 The class is a display reading of HYDE, not a record of any one group. If `landuse_{year}.png` is missing
 the people still load and are classed by head count alone (console warning). Shares of the world's people
 by class at 10,000 BCE, 1000 BCE and 1900 CE, and the threshold choices, are in `docs/log.md`.
+
+**Gated by what had arrived** (2026-11-28). HYDE allocates land use and people from per-capita rules, so a cell can show
+cropland before any crop reached it. `classifyCell` takes two more inputs from `lib/domesticatesGate.ts`: whether any crop,
+and any herd animal (sheep, goat, cattle, zebu, horse, donkey, camels, llama, water buffalo), had reached the 1° cell by
+that HYDE year, from the food table's dated claims (`footstep-generator/food/gate.py` → `lib/domesticatesGate.json`, 9 KB,
+regenerate when `crops.py`/`animals.py` change; `test_food_gate.py` checks it is current). Without a crop, cropland is not
+read as farming; without a herd animal, grazing is not read as herding; a crowded cell with neither stays foragers (the
+Northwest Coast, the Calusa and Jōmon villages were dense foragers). Reindeer are not in the table, so Arctic herding reads
+as foraging. Checked on the served images: HYDE's grazing is already 0 in Australia before 1900 and in eastern North
+America before 1700, so the gate mostly changes trace cropland and the crowded-cell fallback.
+
+**Herders are sparse; a little land use is still farming** (2026-11-28). On the served images Germany at 1000 CE had 2,331
+cells (31%) with grazing ≥ 10%, no cropland and a median of ~350 people, drawn as herder camps; the steppe's grazing cells hold
+13 (Mongolia) to 44 (Sahel). A grazing cell with ≥ 150 people (`PASTORAL_MAX_CELL`, ~1.8/km²) where crops are known is now
+mixed farming. Below the old thresholds, grazing ≥ 2% is herding and cropland ≥ 0.5% farming, so Poland and England at
+1000 CE (46% and 35% of cells "foragers" with some land use) and Tibet at 1400 (95%) are no longer foragers. Counts per
+region are in research 0015.
+
+**Islands before their first settlers** (2026-11-28). HYDE spreads each modern country's people over its land at every
+date, so the served images put people on Iceland and the Faroes from 10,000 BCE, on Galápagos (never settled before 1535),
+the Canaries, Madagascar, Hawaii and the Caribbean before their first settlers. `lib/firstSettlement.ts` lists those islands
+with a cited first-settlement year; `gridDataFrom` leaves their cells empty before it. Counts per island and year are in
+`docs/research/0015-world-model-audit/research.md`. The grid has no cells on the Azores or East Polynesia (Tahiti) even in
+1900: `lib/missingIslands.ts` spreads a rough, cited head count over a few 5′ cells of the Society Islands, the Marquesas, Rapa
+Nui and the Azores from their settlement, only where the image has none (modelled; the counts are approximate). Not fixed:
+Greenland is empty in 800 CE though Dorset people lived there.
+
+## After 1900 (rough modern years)
+
+HYDE stops at 1900. `footstep-generator/modern_population.py` writes `humans_1950/2000/2025.webp` by scaling
+HYDE's 1900 image per UN region (six lon/lat boxes) to UN WPP 2024 totals, so world and regional totals are
+right but where people live is 1900's pattern. It also copies `landuse_1900.png` and `habitat/use_1900.webp`
+to the new years. The app lists them as `MODERN_YEARS` and labels those years "rough". To rebuild and publish:
+
+    python footstep-generator/modern_population.py   # reads data/tiles/grid/humans_1900.webp, ~1 min
+    GRID_ONLY=1 scripts/deploy-budgie.sh

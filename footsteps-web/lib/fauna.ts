@@ -56,3 +56,10 @@ export function notableAnimals(species: Species[], ids: number[], max = MAX_ANIM
   for (const s of unique) if (picked.length < max && picked.indexOf(s) < 0) picked.push(s);
   return picked.sort((a, b) => b.kg - a.kg).map((s) => s.common.toLowerCase());
 }
+
+/** Large animals here that people hunted (not predators), biggest first: the forager food row uses these before the biome's
+ * generic list, which put moose and caribou on Ice Age Honshu and Doggerland. */
+export function gameAnimals(species: Species[], ids: number[], max = 3): string[] {
+  const byKg = Array.from(new Set(ids)).map((id) => species[id]).filter((s) => s && s.role !== 'predator').sort((a, b) => b.kg - a.kg);
+  return Array.from(new Set(byKg.map((s) => s.common.toLowerCase()))).slice(0, max);
+}

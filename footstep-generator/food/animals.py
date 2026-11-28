@@ -97,6 +97,11 @@ ANIMALS: tuple[Taxon, ...] = (
         claim(4.5, R.TURKANA, F, "goat: Lake Turkana ~4.5 ka; recalled"),
         claim(3.0, R.ETHIOPIA, F, "goat: Ethiopia ~4-3 ka; recalled"),
         claim(2.2, R.KHOE_CAPE, F, "goat: southern Africa ~2 ka; recalled"),
+        claim(7.0, R.CENTRAL_SUDAN_NILE, F, "goat: the Khartoum Neolithic ~7-6 ka; recalled"),
+        claim(3.8, R.LAKE_CHAD_BASIN, F, "goat: Lake Chad (Gajiganna) ~3.8 ka; recalled"),
+        claim(4.0, R.SAHEL_W, F, "goat: West African Sahel ~4 ka; recalled"),
+        claim(3.5, R.W_AFRICA_FOREST, F, "goat: West African dwarf goats at Kintampo ~3.6 ka (Stahl 1993); recalled"),
+        claim(2.0, R.CONGO_BASIN, F, "goat: the Congo basin with Bantu farmers ~2 ka; recalled, low confidence"),
         claim(1.7, R.SOUTH_AFRICA, F, "goat: South Africa with Bantu farmers ~1.7 ka; recalled"),
         *old_world_to_americas(what="goat", australia=0.16),
     ), ""),
@@ -119,6 +124,10 @@ ANIMALS: tuple[Taxon, ...] = (
         claim(3.0, R.ETHIOPIA, F, "cattle: Ethiopian highlands ~4-3 ka; recalled"),
         claim(2.0, R.GREAT_LAKES, F, "cattle: Great Lakes ~2.5-2 ka, with Bantu and Nilotic herders; recalled"),
         claim(1.8, R.ZAMBEZI, F, "cattle: Zambezi ~1.8 ka; Bantu expansion; recalled"),
+        claim(7.0, R.CENTRAL_SUDAN_NILE, F, "cattle: the Khartoum Neolithic (Kadero, Esh Shaheinab) ~7-6 ka (Krzyzaniak); recalled"),
+        claim(3.8, R.LAKE_CHAD_BASIN, F, "cattle: Gajiganna, Lake Chad ~3.8 ka (Breunig & Neumann); recalled"),
+        claim(4.0, R.SAHEL_W, F, "cattle: Dhar Tichitt and the West African Sahel ~4 ka; recalled"),
+        claim(3.5, R.W_AFRICA_FOREST, F, "cattle: Kintampo, Ghana ~3.6 ka, small taurines of the forest-savanna edge (Stahl 1993); recalled"),
         claim(1.65, R.SOUTH_AFRICA, F, "cattle: South Africa ~1.7-1.65 ka with Bantu-speaking farmers (Early Iron Age); recalled"),
         claim(1.5, R.MADAGASCAR, F, "zebu cattle: Madagascar ~1.5-1 ka; recalled"),
         *old_world_to_americas(what="cattle", australia=0.16),
@@ -247,7 +256,7 @@ ANIMALS: tuple[Taxon, ...] = (
         claim(6.0, R.ANDES_C, D, "Kadwell et al. 2001 Proc R Soc B 268:2575 doi:10.1098/rspb.2001.1774 (abstract): alpaca linked to the vicuna, 'dating domestication to 6000-7000 years before present in the Peruvian Andes'; " + LARSON + " (text): llamas and alpacas domesticated from 6,000-5,000 BP (Mengoni Goñalons 2008). Llama date and place less certain", origin=True, checked=True),
         claim(4.0, R.ANDES_S, F, "llama: NW Argentina and N Chile ~4-3 ka; recalled"),
         claim(2.5, R.ANDES_N, F, "llama: Ecuador and Colombia ~2.5-2 ka; recalled, low confidence"),
-        claim(1.2, R.SOUTH_CONE, F, "llama: Atacama coast and Chile; recalled, low confidence"),
+        claim(1.2, R.CENTRAL_SOUTH_CHILE, F, "llama: central and south Chile (the Mapuche chilihueque); recalled, low confidence"),
     ), "Llamas never reached the lowland tropics or North America before 1492, which is why the Americas had no draught animals."),
 
     Taxon("guinea_pig", "Guinea pig (cuy)", "animal", "livestock", "Andes (probably southern Peru / northern Chile; Colombia a possible second centre)", (
@@ -301,4 +310,15 @@ ANIMALS: tuple[Taxon, ...] = (
         claim(0.5, R.EASTERN_NA, F, "turkey: Eastern Woodlands, wild turkeys used; domestic only locally ~0.5 ka; recalled, low confidence"),
         claim(0.45, R.EUROPE_ALL, H, "turkey to Spain in the 1520s CE, widespread in Europe by 1550s; recalled"),
     ), ""),
+
+    Taxon("reindeer", "Reindeer", "animal", "livestock", "Arctic Siberia (lower Ob, Yamal); Fennoscandia separately", (
+        claim(2.0, (60, 75, 63, 70), D, "Losey et al. 2021 J Archaeol Method Theory 28:197 doi:10.1007/s10816-020-09455-w: reindeer harness parts (bridle cheekpieces) and draught-worn bones at Ust'-Polui on the lower Ob, ~2,000 years old, the earliest firm sign of domestic reindeer", origin=True,
+              unverified="the ~2 ka date is read from the University of Alberta's summary of the paper (Folio, June 2020), not the paper's text"),
+        claim(1.5, (88, 120, 48, 58), F, "reindeer: riding and pack reindeer among Sayan and Baikal peoples (Tofa, Tuvan Todzha, Evenki ancestors) in the first millennium CE; recalled, low confidence"),
+        claim(1.1, R.N_FENNOSCANDIA, H, "reindeer: Ohthere (Ottar) of Halogaland told King Alfred, c. 890 CE, that he kept 600 tame reindeer; small tame herds, not yet large-scale herding; recalled"),
+        claim(1.0, (105, 150, 58, 73), F, "reindeer: Tungus (Evenki, Even) riding reindeer across Yakutia and the Okhotsk coast by ~1 ka; recalled, low confidence"),
+        claim(0.3, (43, 115, 63, 77), H, "reindeer: large-scale tundra pastoralism among the Nenets and their neighbours, and Dolgan herding on Taymyr, from the 18th century (Krupnik 1993, Arctic Adaptations); recalled"),
+        claim(0.3, (150, 180, 58, 70), H, "reindeer: large Chukchi and Koryak herds from the 17th-18th centuries; recalled"),
+        claim(0.06, (-170, -140, 59, 72), H, "reindeer brought from Chukotka to Alaska in 1892 (Sheldon Jackson's programme); recalled"),
+    ), "Reindeer were kept in small numbers for riding, pack and decoys long before the large herds of the last three centuries; this table says only when they were kept at all."),
 )

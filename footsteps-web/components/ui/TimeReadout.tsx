@@ -51,6 +51,13 @@ export default function TimeReadout({ time, loading, note, calendar }: Props) {
           >
             modelled
           </span>
+        ) : time > 1900.5 ? (
+          <span
+            className="text-[12px] text-[var(--ov-text-3)]"
+            title="HYDE stops at 1900. After that, people are HYDE's 1900 map scaled up region by region to UN World Population Prospects totals (1950, 2000, 2025): the totals are right, where people live is only rough."
+          >
+            rough
+          </span>
         ) : !status.exact ? (
           <span
             className="text-[12px] text-[var(--ov-text-3)]"

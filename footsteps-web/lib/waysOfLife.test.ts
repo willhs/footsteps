@@ -38,3 +38,17 @@ test('the palette keeps the channels the unit shader reads', () => {
   expect(g(WayOfLife.Herder)).toBeLessThan(0.8);
   expect(g(WayOfLife.Farmer)).toBeGreaterThanOrEqual(0.8);
 });
+
+describe('classifyCell with the domesticates gate', () => {
+  it('does not read land use as farming or herding before a crop or herd animal arrived', () => {
+    expect(classifyCell(200, 0.3, 0, false, false)).toBe(WayOfLife.Forager);
+    expect(classifyCell(200, 0, 0.5, true, false)).toBe(WayOfLife.Forager);
+    expect(classifyCell(200, 0.3, 0.5, false, true)).toBe(WayOfLife.Herder);
+  });
+
+  it('keeps a dense cell foragers where nothing is domesticated, herders where only herds are', () => {
+    expect(classifyCell(SETTLED_MIN_CELL * 2, 0, 0, false, false)).toBe(WayOfLife.Forager);
+    expect(classifyCell(SETTLED_MIN_CELL * 2, 0, 0.05, false, true)).toBe(WayOfLife.Herder);
+    expect(classifyCell(URBAN_MIN_CELL, 0, 0, false, false)).toBe(WayOfLife.Urban);
+  });
+});

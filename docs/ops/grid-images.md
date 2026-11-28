@@ -85,3 +85,20 @@ takes its cell's colour. Years before HYDE (the modelled images) have no land us
 The class is a display reading of HYDE, not a record of any one group. If `landuse_{year}.png` is missing
 the people still load and are classed by head count alone (console warning). Shares of the world's people
 by class at 10,000 BCE, 1000 BCE and 1900 CE, and the threshold choices, are in `docs/log.md`.
+
+**Gated by what had arrived** (2026-11-28). HYDE allocates land use and people from per-capita rules, so a cell can show
+cropland before any crop reached it. `classifyCell` takes two more inputs from `lib/domesticatesGate.ts`: whether any crop,
+and any herd animal (sheep, goat, cattle, zebu, horse, donkey, camels, llama, water buffalo), had reached the 1° cell by
+that HYDE year, from the food table's dated claims (`footstep-generator/food/gate.py` → `lib/domesticatesGate.json`, 9 KB,
+regenerate when `crops.py`/`animals.py` change; `test_food_gate.py` checks it is current). Without a crop, cropland is not
+read as farming; without a herd animal, grazing is not read as herding; a crowded cell with neither stays foragers (the
+Northwest Coast, the Calusa and Jōmon villages were dense foragers). Reindeer are not in the table, so Arctic herding reads
+as foraging. Checked on the served images: HYDE's grazing is already 0 in Australia before 1900 and in eastern North
+America before 1700, so the gate mostly changes trace cropland and the crowded-cell fallback.
+
+**Islands before their first settlers** (2026-11-28). HYDE spreads each modern country's people over its land at every
+date, so the served images put people on Iceland and the Faroes from 10,000 BCE, on Galápagos (never settled before 1535),
+the Canaries, Madagascar, Hawaii and the Caribbean before their first settlers. `lib/firstSettlement.ts` lists those islands
+with a cited first-settlement year; `gridDataFrom` leaves their cells empty before it. Counts per island and year are in
+`docs/research/0015-world-model-audit/research.md`. Not fixed: the grid has no cells on the Azores or East Polynesia
+(Tahiti) even in 1900, and Greenland is empty in 800 CE though Dorset people lived there.

@@ -14,7 +14,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   Tailwind. No application server in production.
 - The people view is chosen by zoom: firelight far out, Units (bands, villages, herding camps,
   city glow) for the cells around the viewport closer in. Each populated cell has a way of life
-  (forager / farmer / herder / urban) read from HYDE land use (`footsteps-web/lib/waysOfLife.ts`,
+  (forager / farmer / herder / urban) read from HYDE land use, gated by whether a crop or herd animal had arrived (`lib/domesticatesGate.ts`, from `food/gate.py`) (`footsteps-web/lib/waysOfLife.ts`,
   `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
@@ -30,6 +30,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `layers/fieldsDrape.ts` drapes per elevation tile, `hooks/useLand.ts` reads 5′ HYDE cropland, water distance and the food table): extent modelled, layout imagined.
   See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
+- `footsteps-web/lib/firstSettlement.ts`: islands HYDE peoples before their first settlers (Iceland, Faroes, Galápagos, Canaries, Madagascar, Hawaii, Caribbean...) are left empty before a cited year (`gridDataFrom`). Research 0015.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
   lossless WebP per year in `data/tiles/grid/`. Browser decoding is in
   `footsteps-web/components/footsteps/hooks/useGridLayer.ts`.

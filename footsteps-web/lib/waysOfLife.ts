@@ -25,12 +25,20 @@ export const URBAN_MIN_CELL = 40_000;
 /** Class a populated cell. Order matters: a city is a city whatever grows round
  * it, crops outrank pasture (HYDE grazes the farmland too), and a dense cell
  * with no herding is settled rather than foraging. `crop` and `grazing` are
- * shares of the cell, 0–1. */
-export function classifyCell(people: number, crop: number, grazing: number): WayOfLifeValue {
+ * shares of the cell, 0–1.
+ *
+ * `canFarm` / `canHerd`: whether any crop / herd animal had reached the place by
+ * then (lib/domesticatesGate.ts). HYDE allocates land use from population by
+ * per-capita rules, so it puts cropland and pasture where nothing domesticated had
+ * arrived (grazing in Australia before 1788, cropland in the Americas at 10,000 BCE);
+ * there its land use is not read as farming or herding, and a dense cell stays
+ * foragers (the Calusa, the Northwest Coast, Jōmon villages were dense foragers). */
+export function classifyCell(people: number, crop: number, grazing: number, canFarm = true, canHerd = true): WayOfLifeValue {
   if (people >= URBAN_MIN_CELL) return WayOfLife.Urban;
-  if (crop >= FARMER_CROP_SHARE) return WayOfLife.Farmer;
-  if (grazing >= HERDER_GRAZING_SHARE) return WayOfLife.Herder;
-  return people >= SETTLED_MIN_CELL ? WayOfLife.Farmer : WayOfLife.Forager;
+  if (canFarm && crop >= FARMER_CROP_SHARE) return WayOfLife.Farmer;
+  if (canHerd && grazing >= HERDER_GRAZING_SHARE) return WayOfLife.Herder;
+  if (people < SETTLED_MIN_CELL) return WayOfLife.Forager;
+  return canFarm ? WayOfLife.Farmer : canHerd && grazing > 0 ? WayOfLife.Herder : WayOfLife.Forager;
 }
 
 type Look = {

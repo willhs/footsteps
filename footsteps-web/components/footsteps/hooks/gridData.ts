@@ -1,6 +1,8 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
+import { CROPS, HERDS, domesticatesBits, gateEra } from '@/lib/domesticatesGate';
+import { LAST_FIRST_SETTLEMENT, unsettledAt } from '@/lib/firstSettlement';
 import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
 import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
@@ -248,9 +250,14 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const keeps: Uint8Array[] = [];
   const counts: number[] = [];
   const scratch = new Uint8Array(parts);
+  // HYDE peoples islands before anyone reached them (Iceland, the Canaries, Galápagos...): those cells stay empty (lib/firstSettlement.ts).
+  // HYDE images only: the modelled deep past keeps islands empty by its arrival table, and the boxes are finer than a coarse image's cells.
+  const checkSettled = year < LAST_FIRST_SETTLEMENT && sw === HYDE_WIDTH;
+  const sourceDeg = 360 / sw;
   for (let i = 0; i < sw * sh; i++) {
     const level = (px[i * 4] << 8) | px[i * 4 + 1];
     if (!level) continue;
+    if (checkSettled && unsettledAt(-180 + ((i % sw) + 0.5) * sourceDeg, 90 - (Math.floor(i / sw) + 0.5) * sourceDeg, year)) continue;
     occupied++;
     if (mask && slot) {
       const { count, allSea } = landSubcells(mask, i % sw, Math.floor(i / sw), scale, w, drop, scratch);
@@ -269,6 +276,8 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const cellIds = new Uint32Array(length);
   const ways = new Uint8Array(length);
   const cellDeg = 360 / w;
+  // Farming and herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts); none in the modelled deep past.
+  const era = gateEra(year);
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
@@ -291,9 +300,12 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       people[index] = population;
       cellIds[index] = row * w + col;
       const px4 = (row * w + col) * 4;
+      const can = domesticatesBits(positions[index * 2], positions[index * 2 + 1], era);
+      const canFarm = (can & CROPS) !== 0;
+      const canHerd = (can & HERDS) !== 0;
       ways[index] = land
-        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255)
-        : classifyCell(population, 0, 0);
+        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255, canFarm, canHerd)
+        : classifyCell(population, 0, 0, canFarm, canHerd);
       total += population;
       index++;
     }

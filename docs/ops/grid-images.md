@@ -111,3 +111,13 @@ with a cited first-settlement year; `gridDataFrom` leaves their cells empty befo
 1900: `lib/missingIslands.ts` spreads a rough, cited head count over a few 5′ cells of the Society Islands, the Marquesas, Rapa
 Nui and the Azores from their settlement, only where the image has none (modelled; the counts are approximate). Not fixed:
 Greenland is empty in 800 CE though Dorset people lived there.
+
+## After 1900 (rough modern years)
+
+HYDE stops at 1900. `footstep-generator/modern_population.py` writes `humans_1950/2000/2025.webp` by scaling
+HYDE's 1900 image per UN region (six lon/lat boxes) to UN WPP 2024 totals, so world and regional totals are
+right but where people live is 1900's pattern. It also copies `landuse_1900.png` and `habitat/use_1900.webp`
+to the new years. The app lists them as `MODERN_YEARS` and labels those years "rough". To rebuild and publish:
+
+    python footstep-generator/modern_population.py   # reads data/tiles/grid/humans_1900.webp, ~1 min
+    GRID_ONLY=1 scripts/deploy-budgie.sh

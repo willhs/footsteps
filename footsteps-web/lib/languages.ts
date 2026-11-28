@@ -16,22 +16,14 @@ export type LanguageBlock = {
   nearest: { glottocode: string; name: string; family: string; km: number }[];
 };
 
-const FAMILIES_SHOWN = 3;
-const NEAREST_SHOWN = 3;
+const FAMILIES_SHOWN = 2;
 
 /** The words for one block. No family colours and no era-specific claim: the line says "about 1500 CE" whatever year is asked. */
 export function languageLine(b: LanguageBlock): { text: string; detail: string } {
-  const label = `about ${b.baseline_year} CE`;
-  const caveat = 'documented points, not this year · colonial and later movement not applied';
-  const nearest = b.nearest.slice(0, NEAREST_SHOWN).map((n) => `${n.name} (${n.km} km)`).join(', ');
-  if (b.n_languages === 0) {
-    return { text: `No language recorded in this cell (${label})`, detail: `nearest: ${nearest} · ${caveat}` };
-  }
-  const shown = b.families.slice(0, FAMILIES_SHOWN).map((f) => `${f.name} ${f.n}`).join(', ');
+  // One short line (Will, 2026-11-28): the families only; the counts and nearest names are in the data, not the card.
+  const detail = `recorded about ${b.baseline_year}`;
+  if (b.n_languages === 0) return { text: 'No language recorded here', detail };
+  const shown = b.families.slice(0, FAMILIES_SHOWN).map((f) => f.name).join(', ');
   const more = b.n_families - Math.min(FAMILIES_SHOWN, b.families.length);
-  const families = more > 0 ? `${shown} and ${more} more ${more === 1 ? 'family' : 'families'}` : shown;
-  return {
-    text: `Languages recorded here (${label}): ${families}`,
-    detail: `${b.n_languages} ${b.n_languages === 1 ? 'language' : 'languages'}${nearest ? ` · nearest: ${nearest}` : ''} · ${caveat}`,
-  };
+  return { text: `Languages: ${shown}${more > 0 ? ` and ${more} more` : ''}`, detail };
 }

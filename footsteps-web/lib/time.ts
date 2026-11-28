@@ -10,7 +10,8 @@ import { PEOPLE_YEARS, TARGET_YEARS, TERRAIN_YEARS } from './constants';
 export const NOW = 2025;
 /** The slider reaches back to the oldest terrain image (100,000 BCE)... */
 export const TIME_MIN = TERRAIN_YEARS[0];
-export const TIME_MAX = TARGET_YEARS[TARGET_YEARS.length - 1];
+/** ...and forward to the last people image (today). */
+export const TIME_MAX = PEOPLE_YEARS[PEOPLE_YEARS.length - 1];
 /** ...HYDE population data starts here; before it people are modelled. */
 export const HYDE_MIN = TARGET_YEARS[0];
 
@@ -28,6 +29,8 @@ export const HYDE_TOTALS: Record<number, number> = {
   1100: 407.23e6, 1200: 455.6e6, 1300: 467.94e6, 1400: 453.33e6,
   1500: 516.03e6, 1600: 530.95e6, 1700: 608.84e6, 1800: 991.54e6,
   1900: 1730.31e6,
+  // Not HYDE: HYDE 1900 scaled per region to UN WPP 2024 (modern_population.py).
+  1950: 2512e6, 2000: 6142e6, 2025: 8207e6,
 };
 
 /** World total at a people-image year. Measured years have no range (low = high). */

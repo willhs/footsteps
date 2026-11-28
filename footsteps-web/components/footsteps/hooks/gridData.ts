@@ -251,8 +251,8 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const counts: number[] = [];
   const scratch = new Uint8Array(parts);
   // HYDE peoples islands before anyone reached them (Iceland, the Canaries, Galápagos...): those cells stay empty (lib/firstSettlement.ts).
-  // HYDE images only: the modelled deep past keeps islands empty by its arrival table, and the boxes are finer than a coarse image's cells.
-  const checkSettled = year < LAST_FIRST_SETTLEMENT && sw === HYDE_WIDTH;
+  // Real images only (HYDE's 5′, the model's 0.5°): the boxes are finer than a coarse test image's cells.
+  const checkSettled = year < LAST_FIRST_SETTLEMENT && sw >= 720;
   const sourceDeg = 360 / sw;
   for (let i = 0; i < sw * sh; i++) {
     const level = (px[i * 4] << 8) | px[i * 4 + 1];

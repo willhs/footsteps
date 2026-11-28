@@ -212,3 +212,12 @@ describe('hover card language line', () => {
     expect(row?.detail).toContain('nearest: Diuxi-Tilantongo Mixtec (20 km)');
   });
 });
+
+describe('Green Sahara note', () => {
+  it('adds a too-dry note on Saharan land during the African Humid Period only', () => {
+    const habitat = { surface: 'land', biome: 'Desert', tempC: 25, precipMm: 74 } as never;
+    const base = { time: -6000, habitat, today: null, people: null, landUse: null };
+    expect(hoverCardRows({ ...base, greenSahara: true }).map((r) => r.id)).toContain('climate-note');
+    expect(hoverCardRows({ ...base, greenSahara: false }).map((r) => r.id)).not.toContain('climate-note');
+  });
+});

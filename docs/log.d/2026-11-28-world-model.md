@@ -18,3 +18,10 @@ now), geometric between years. 170–400 million at 1 CE; 1.6–1.8 billion by 1
 `arabic-maghreb` (from 670) covered [25, -15, 40, 25], which took in Andalusia, the Peloponnese and southern Italy; it is now
 North Africa plus the Ifriqiya cell (Tunisia and Sicily). `turkic-central-asia` (from 552) took in northern Iran, Afghanistan
 and Tibet and left out Mongolia, where the Khaganate began; it now runs 40-55°N from 50°E to 120°E.
+
+## [2026-11-28] fix | Nobody in Britain or the north European plain at the glacial maximum; no towns before crops; Green Sahara note
+
+The modelled bands ran up to the ice in Denmark, north Germany and Britain at 20,000 BCE; `ABANDONMENTS` in
+`lib/firstSettlement.ts` empties them for the dated gaps. A cell of 40,000+ is a town only once a crop had arrived. The hover
+card's way of life reads land use through the domesticates gate too. On Saharan land 9550-3550 BCE the card says the climate
+model is too dry (the Green Sahara); the terrain itself still shows desert. Research 0015 section 3.

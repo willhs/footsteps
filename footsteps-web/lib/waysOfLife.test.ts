@@ -49,6 +49,7 @@ describe('classifyCell with the domesticates gate', () => {
   it('keeps a dense cell foragers where nothing is domesticated, herders where only herds are', () => {
     expect(classifyCell(SETTLED_MIN_CELL * 2, 0, 0, false, false)).toBe(WayOfLife.Forager);
     expect(classifyCell(SETTLED_MIN_CELL * 2, 0, 0.05, false, true)).toBe(WayOfLife.Herder);
-    expect(classifyCell(URBAN_MIN_CELL, 0, 0, false, false)).toBe(WayOfLife.Urban);
+    expect(classifyCell(URBAN_MIN_CELL, 0, 0, false, false)).toBe(WayOfLife.Forager);
+    expect(classifyCell(URBAN_MIN_CELL, 0, 0, true, false)).toBe(WayOfLife.Urban);
   });
 });

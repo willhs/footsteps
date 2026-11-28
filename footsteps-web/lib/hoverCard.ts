@@ -3,6 +3,7 @@
 // words. Every row carries the kind of claim it is (docs/philosophy/vision.md).
 import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, type LifeKind } from './habitat';
 import { seaLevelLabel } from './climate';
+import { GREEN_SAHARA_NOTE } from './greenSahara';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
@@ -10,7 +11,7 @@ import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
 import { EXPANSIONS_FLOOR_YEAR, expansionLine, type ExpansionRow } from './languageExpansions';
 
 export type CardRow = {
-  id: 'habitat' | 'ice' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
+  id: 'habitat' | 'ice' | 'climate' | 'climate-note' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -38,6 +39,8 @@ export type HoverCardInput = {
   region?: { people: number } | null;
   /** `?ice=1` only: the dated ice sheet under the point (lib/iceSheets.ts `iceHoverRow`), or null off the ice. */
   ice?: { text: string; detail: string } | null;
+  /** The point is in the Sahara during the African Humid Period (lib/greenSahara.ts), which the climate model under-states. */
+  greenSahara?: boolean;
   /** `?settlements=1` only: the biggest settlement in the ~590 km block (lib/rankSize.ts), or null where the model says nothing. */
   largest?: LargestSettlement | null;
 };
@@ -121,6 +124,7 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
     if (i.ice) rows.push({ id: 'ice', ...i.ice, evidence: 'modelled' });
     const c = climateRow(i.habitat, i.today);
     if (c) rows.push(c);
+    if (i.greenSahara && i.habitat.surface === 'land') rows.push({ id: 'climate-note', ...GREEN_SAHARA_NOTE, evidence: 'modelled' });
   }
   // Open sea with no one in it says nothing about people.
   const emptySea = i.habitat?.surface === 'sea' && (i.people?.count ?? 0) <= 0;

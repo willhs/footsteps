@@ -60,3 +60,11 @@ export function domesticatesAt(lon: number, lat: number, era: number): { crops: 
   const bits = domesticatesBits(lon, lat, era);
   return { crops: (bits & CROPS) !== 0, herds: (bits & HERDS) !== 0 };
 }
+
+/** HYDE's land use as farming and herding: cropland where no crop had arrived, or grazing where no herd animal had, reads as
+ * none (the hover card's way of life; the map's is `classifyCell`). */
+export function gatedLandUse<T extends { crop: number; grazing: number }>(use: T, lon: number, lat: number, year: number): T {
+  const bits = domesticatesBits(lon, lat, gateEra(year));
+  if (bits === (CROPS | HERDS)) return use;
+  return { ...use, crop: bits & CROPS ? use.crop : 0, grazing: bits & HERDS ? use.grazing : 0 };
+}

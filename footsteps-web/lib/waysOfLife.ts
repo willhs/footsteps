@@ -34,7 +34,8 @@ export const URBAN_MIN_CELL = 40_000;
  * there its land use is not read as farming or herding, and a dense cell stays
  * foragers (the Calusa, the Northwest Coast, Jōmon villages were dense foragers). */
 export function classifyCell(people: number, crop: number, grazing: number, canFarm = true, canHerd = true): WayOfLifeValue {
-  if (people >= URBAN_MIN_CELL) return WayOfLife.Urban;
+  // A town needs farmed food: HYDE crowds 40,000 into a cell on the Levant coast at 10,000 BCE, before any crop.
+  if (people >= URBAN_MIN_CELL && canFarm) return WayOfLife.Urban;
   if (canFarm && crop >= FARMER_CROP_SHARE) return WayOfLife.Farmer;
   if (canHerd && grazing >= HERDER_GRAZING_SHARE) return WayOfLife.Herder;
   if (people < SETTLED_MIN_CELL) return WayOfLife.Forager;

@@ -1,4 +1,4 @@
-import { domesticatesAt, gateEra } from './domesticatesGate';
+import { domesticatesAt, gateEra, gatedLandUse } from './domesticatesGate';
 
 const at = (lon: number, lat: number, year: number) => domesticatesAt(lon, lat, gateEra(year));
 
@@ -29,5 +29,12 @@ describe('domesticatesGate', () => {
 
   it('has no crops in New Zealand before Polynesian settlement', () => {
     expect(at(175, -38, 1000).crops).toBe(false);
+  });
+});
+
+describe('gatedLandUse', () => {
+  it('drops grazing in Australia before 1788 but keeps it in the Andes', () => {
+    expect(gatedLandUse({ crop: 0.1, grazing: 0.3 }, 145, -30, 1700)).toEqual({ crop: 0, grazing: 0 });
+    expect(gatedLandUse({ crop: 0.1, grazing: 0.3 }, -70, -15, 1000)).toEqual({ crop: 0.1, grazing: 0.3 });
   });
 });

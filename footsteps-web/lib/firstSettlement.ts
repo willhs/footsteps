@@ -29,15 +29,42 @@ export const FIRST_SETTLEMENTS: readonly FirstSettlement[] = [
   { name: 'Lesser Antilles', box: [-63, -59, 12.8, 17.5], year: -3800, source: 'Archaic settlers from ~5 ka BP at the earliest; held to the Caribbean date so no real occupation is cut.' },
 ];
 
-/** First settlement holding a point whose date is after `year`, or null when HYDE's people there stand. */
-export function unsettledAt(lon: number, lat: number, year: number): FirstSettlement | null {
+/** Places people left for a while: the ice-age north of Europe. The pre-HYDE model (prehistory_population.py) thins west
+ * Europe's people to half at the glacial maximum but still has bands right up to the ice in Denmark, north Germany and Britain;
+ * the dated record has nobody there. Modelled years in the window are left empty here. */
+export type Abandonment = { name: string; box: readonly [number, number, number, number]; from: number; to: number; source: string };
+
+export const ABANDONMENTS: readonly Abandonment[] = [
+  {
+    name: 'Britain and Ireland at the glacial maximum',
+    box: [-11, 2, 49.9, 61],
+    from: -24000,
+    to: -13000,
+    source: 'No human presence in Britain between ~25 and ~15 ka cal BP; recolonised from ~14.7 ka (Jacobi & Higham 2011; Pettitt & White 2012, The British Palaeolithic).',
+  },
+  {
+    name: 'The north European plain at the glacial maximum',
+    box: [2, 20, 52, 58],
+    from: -23000,
+    to: -14000,
+    source: 'North of ~52°N between the Rhine and the Vistula, no sites from ~25 to ~16 ka cal BP; Magdalenian and Hamburgian recolonisation from ~16-15 ka (Maier et al. 2016, Quat Int 425:49; Grimm et al. 2020).',
+  },
+];
+
+/** Why nobody should be at a point in a year: before its first settlers, or in a window when the region was left, else null. */
+export function unsettledAt(lon: number, lat: number, year: number): FirstSettlement | Abandonment | null {
   for (const s of FIRST_SETTLEMENTS) {
     if (year >= s.year) continue;
     const [w, e, south, north] = s.box;
     if (lon >= w && lon <= e && lat >= south && lat <= north) return s;
   }
+  for (const a of ABANDONMENTS) {
+    if (year < a.from || year >= a.to) continue;
+    const [w, e, south, north] = a.box;
+    if (lon >= w && lon <= e && lat >= south && lat <= north) return a;
+  }
   return null;
 }
 
 /** The latest first settlement: years from it on need no check. */
-export const LAST_FIRST_SETTLEMENT = Math.max(...FIRST_SETTLEMENTS.map((s) => s.year));
+export const LAST_FIRST_SETTLEMENT = Math.max(...FIRST_SETTLEMENTS.map((s) => s.year), ...ABANDONMENTS.map((a) => a.to));

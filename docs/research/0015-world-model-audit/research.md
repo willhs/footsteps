@@ -47,7 +47,35 @@ crowded-cell rule (≥ 600 people → farmer) named farmers wherever HYDE is den
 **Fixed**: `lib/domesticatesGate.ts` (from `footstep-generator/food/gate.py`, the food table's dated claims at 1°): no
 farmers before a crop, no herders before a herd animal; a crowded cell with neither stays foragers.
 
-## 3. Found, not fixed
+## 3. From looking at the live map (12 views, 2026-11-28)
+
+**Fixed:**
+- **North Europe at the glacial maximum.** At 20,000 BCE the modelled bands ran right up to the ice in Denmark, north Germany,
+  Poland and Britain; the dated record has nobody there (Britain ~25-15 ka cal BP; north of ~52°N ~25-16 ka). `ABANDONMENTS`
+  in `lib/firstSettlement.ts` empties Britain and Ireland 24,000-13,000 BCE and the plain between the Rhine and the Vistula
+  north of 52°N 23,000-14,000 BCE. Kostenki on the Don stays occupied.
+- **Towns at 10,000 BCE.** HYDE crowds over 40,000 people into cells on the Levant coast before any crop; a town now needs a
+  crop to have arrived.
+- **The hover card's way of life** read HYDE land use ungated; it now reads it through the same gate as the map.
+- **Green Sahara.** At 6000 BCE the map and the card say desert, 74 mm of rain (20°N 10°E). The African Humid Period made it
+  grassland and savanna with lakes; Beyer/Krapp's HadCM3 climate under-states it. The card now says "Wetter than shown: the
+  Green Sahara" on Saharan land 9550-3550 BCE (`lib/greenSahara.ts`). The terrain image and the habitat tiles are unchanged:
+  correcting them needs `terrain_image.py`/`habitat_lookup.py` rerun with a Green Sahara biome patch (and `water_distance.py
+  --extra-water` for its lakes and rivers), which needs the data on budgie.
+
+**Not fixed (source data):**
+- Krapp's LGM biome at the ice edge is "deciduous taiga/montane forest" with moose (55.8°N 5.8°E, 20,000 BCE; and Beringia,
+  62°N 170°W). Both were steppe-tundra (mammoth steppe).
+- 40°N 95°W (Kansas/Nebraska) reads "Temperate deciduous forest" at 3000 BCE; it was tallgrass prairie.
+- HYDE draws a bright, city-like glow in central Mexico at 3000 BCE (Late Archaic).
+- Siberia at 1800 is nearly empty (the Sakha alone were ~200,000), and there are no reindeer or horse herders.
+- The card calls a HYDE cell with no one "measured" ("No one counted · measured"). HYDE's pre-1500 cell values are
+  allocations, not counts; the vision table calls HYDE "measured", so the word is Will's to change.
+
+Rendering bugs found on the same pass (antimeridian, 404s, a hole in the Hudson Bay ice, the card and map disagreeing on
+Sunda's land) were passed to the bugs thread.
+
+## 4. Found, not fixed (from the image counts)
 
 - **Missing land**: the Azores and East Polynesia (Tahiti) have no populated cells even in 1900. HYDE's country table or
   land mask misses them; fixing needs the raw HYDE files.

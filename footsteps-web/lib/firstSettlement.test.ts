@@ -34,4 +34,13 @@ describe('firstSettlement', () => {
     }
     expect(LAST_FIRST_SETTLEMENT).toBe(1764);
   });
+
+  it('leaves Britain and the north European plain empty at the glacial maximum, not before or after', () => {
+    expect(unsettledAt(-1.5, 52, -20000)?.name).toMatch(/Britain/);
+    expect(unsettledAt(-1.5, 52, -30000)).toBeNull();
+    expect(unsettledAt(-1.5, 52, -12000)).toBeNull();
+    expect(unsettledAt(10, 54, -18000)?.name).toMatch(/north European plain/);
+    expect(unsettledAt(10, 50, -18000)).toBeNull(); // south Germany kept its people
+    expect(unsettledAt(38, 51, -20000)).toBeNull(); // Kostenki, on the Don, was occupied
+  });
 });

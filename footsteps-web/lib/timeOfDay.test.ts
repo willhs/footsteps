@@ -21,20 +21,20 @@ describe('the time-of-day dial', () => {
       const light = sceneLight(lon, lat, dialInstant(DEFAULT_DIAL_HOUR, lon, lat));
       expect((Math.asin(light.sun[2]) * 180) / Math.PI).toBeGreaterThan(30);
       expect(light.sun[0]).toBeGreaterThan(0); // east-north-up: the morning sun is in the east
-      expect(skyPhase(DEFAULT_DIAL_HOUR, lon, lat)).toBe('day');
+      expect(skyPhase(dialInstant(DEFAULT_DIAL_HOUR, lon, lat), lon, lat)).toBe('day');
     }
   });
 
   it('reaches a dark night at midnight up to about 65°', () => {
     for (const [lon, lat] of PLACES) {
       expect(altitudeDegrees(0, lon, lat)).toBeLessThan(-6);
-      expect(skyPhase(0, lon, lat)).toBe('night');
+      expect(skyPhase(dialInstant(0, lon, lat), lon, lat)).toBe('night');
     }
   });
 
   it('names dawn and dusk from where the sun is', () => {
-    expect(skyPhase(4.75, 8, 46.6)).toBe('dawn');
-    expect(skyPhase(19.25, 8, 46.6)).toBe('dusk');
+    expect(skyPhase(dialInstant(4.75, 8, 46.6), 8, 46.6)).toBe('dawn');
+    expect(skyPhase(dialInstant(19.25, 8, 46.6), 8, 46.6)).toBe('dusk');
   });
 
   it('snaps to quarter hours and wraps round midnight', () => {

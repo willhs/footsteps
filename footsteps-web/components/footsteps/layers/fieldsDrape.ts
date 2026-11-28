@@ -1,5 +1,5 @@
 // Drapes the land patches (fields.ts) on one close-up ground tile: each patch whose middle lies in the tile is cut into pieces about a ground
-// vertex apart, each piece's corners sit at the highest corner of the ground cell under them (lib/close3d.ts buildTerrainMesh: vertex every
+// vertex apart, each piece's corners stand at the highest ground vertex within a piece of them (lib/close3d.ts buildTerrainMesh: vertex every
 // MESH_STEP pixels), so no piece dips under the ground, and are lifted a little, and any piece touching water, past water or ice is left out. Steep farmland turns into
 // terraces along the contour; too steep is not farmed. Wash patches (grazed grass) are not laid as shapes but painted into the ground's
 // own vertex colours (`paint`), so they are soft and follow every fold. Built once per tile and land set (Close3DLayer caches it), never per frame.
@@ -19,10 +19,11 @@ const PATH_MIN_PX = 1.3;
 const LIFT_SHARE = 0.08;
 /** How strongly a wash recolours the ground under it (0..1). */
 export const PAINT_WEIGHT = 0.4;
-/** Pieces are at most this many ground cells across (one is enough: a piece's corners sit on the highest corner of their cell, and two
- * neighbouring cells share the corners on their common edge, so no piece edge dips under the ground), at most MAX_CUTS each way. */
+/** Pieces are about this many ground cells across, at most MAX_CUTS each way. A big field is then cut into pieces wider than a cell,
+ * so each piece corner stands at the highest ground vertex within one piece of it (`topOver`), never only on its own cell's corners:
+ * before 2026-11-28 the ground's bumps showed through big fields on hills at street zoom as holes and shards. */
 const PIECE_CELLS = 1;
-const MAX_CUTS = 8;
+const MAX_CUTS = 16;
 const SUN = [-0.5, 0.5, Math.SQRT1_2];
 
 /** `texCoords`: metres along the patch's first side and across it (u, v); `normals`: metres to the far sides (Lu − u, Lv − v), and
@@ -140,6 +141,16 @@ export function drapeLand(
     const [i, j] = [cell(Math.min(last, Math.max(0, fx))), cell(Math.min(last, Math.max(0, fy)))];
     return Math.max(hv(i, j), hv(i + 1, j), hv(i, j + 1), hv(i + 1, j + 1));
   };
+  /** The highest ground vertex within (rx, ry) vertex units of a point (at least its own cell's corners): a piece whose corners all stand
+   * this high, and is no wider than (rx, ry), clears every ground vertex under it. */
+  const topOver = (fx: number, fy: number, rx: number, ry: number) => {
+    const clamp = (v: number) => Math.min(last, Math.max(0, v));
+    const [i0, i1] = [Math.min(cell(clamp(fx)), Math.floor(clamp(fx - rx))), Math.max(cell(clamp(fx)) + 1, Math.ceil(clamp(fx + rx)))];
+    const [j0, j1] = [Math.min(cell(clamp(fy)), Math.floor(clamp(fy - ry))), Math.max(cell(clamp(fy)) + 1, Math.ceil(clamp(fy + ry)))];
+    let h = -Infinity;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) h = Math.max(h, hv(i, j));
+    return h;
+  };
   const wetAt = (fx: number, fy: number) => {
     const [i, j] = [cell(fx), cell(fy)];
     return wetVertex(i, j) || wetVertex(i + 1, j) || wetVertex(i, j + 1) || wetVertex(i + 1, j + 1);
@@ -204,6 +215,8 @@ export function drapeLand(
     const code = kind + Math.min(0.99, seed);
     const nu = Math.min(MAX_CUTS, Math.max(1, Math.ceil(Math.max(len(p0, p1), len(p3, p2)) / PIECE_CELLS)));
     const nv = Math.min(MAX_CUTS, Math.max(1, Math.ceil(Math.max(len(p0, p3), len(p1, p2)) / PIECE_CELLS)));
+    // How far a piece reaches from each of its corners, in vertex units (over one cell, the ground under it is read from all of it).
+    const reach = Math.max(len(p0, p1), len(p3, p2)) / nu + Math.max(len(p0, p3), len(p1, p2)) / nv;
     const base = out.vertices;
     const wet: boolean[] = [];
     // One shade for the whole patch, at its middle: a field is one colour, lit like the slope it lies on.
@@ -214,7 +227,7 @@ export function drapeLand(
         const [su, tv] = [s / nu, t / nv];
         const fx = (1 - tv) * ((1 - su) * p0[0] + su * p1[0]) + tv * ((1 - su) * p3[0] + su * p2[0]);
         const fy = (1 - tv) * ((1 - su) * p0[1] + su * p1[1]) + tv * ((1 - su) * p3[1] + su * p2[1]);
-        const h = top(fx, fy);
+        const h = reach > 1 ? topOver(fx, fy, reach, reach) : top(fx, fy);
         wet.push(wetAt(fx, fy));
         out.positions.push(lonOf(fx) - west, latOf(fy) - south, h * EXAGGERATION + up);
         out.colors.push(r, g, b);

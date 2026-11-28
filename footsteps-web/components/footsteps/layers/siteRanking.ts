@@ -129,15 +129,30 @@ export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers,
   const liveMasks: LakeMask[] = [];
   let liveWater: WaterPatch | null = null;
   let liveKinds = 0;
+  // The units builder asks about one cell many times in a row (its spots, then each hamlet house): the last answer is kept.
+  let lastRow = -1;
+  let lastCol = -1;
+  let lastEpochs: Epochs | null = null;
+  // The exclusions a call's `epochs` name, in `regions` order: filtered once per epochs list, not once per cell.
+  let activeFor: Epochs | null = null;
+  let active: Exclusion[] = [];
   const setLive = (row: number, col: number, epochs: Epochs) => {
+    if (row === lastRow && col === lastCol && epochs === lastEpochs) return;
+    lastRow = row;
+    lastCol = col;
+    lastEpochs = epochs;
     live = NO_EPOCH;
     liveKinds = 0;
     liveMasks.length = 0;
     liveWater = null;
     if (!epochs.length) return;
+    if (epochs !== activeFor) {
+      activeFor = epochs;
+      active = regions.filter((r) => epochs.includes(r.id));
+    }
     let n = 0;
-    for (const r of regions) {
-      if (n < MAX_LIVE && epochs.includes(r.id) && inRegion(r, row, col)) {
+    for (const r of active) {
+      if (n < MAX_LIVE && inRegion(r, row, col)) {
         live = live * 256 + r.id;
         liveKinds |= r.kind;
         n++;

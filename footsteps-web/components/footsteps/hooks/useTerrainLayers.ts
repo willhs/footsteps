@@ -1,5 +1,6 @@
 'use client';
 
+import { biomeCorrectionKey, withBiomeCorrections } from '@/lib/biomeNotes';
 import { useEffect, useMemo, useState } from 'react';
 import { lazy, useLazy } from '@/lib/lazyModule';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
@@ -253,6 +254,10 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   const fq = shown ? Math.round(Math.min(1, Math.max(0, (clampTime(time) - shown.y0) / Math.max(1, shown.y1 - shown.y0))) * 20) / 20 : 0;
   // Sea level to 0.5 m: it only gates the shelf rule in `recolour`, so the ground is not rebuilt every frame of a scrub.
   const seaQ = Math.round(seaLevelAt(clampTime(time)) * 2) / 2;
+  // The biome corrections change at a few fixed dates: rebuild the ground when the set that holds changes, not per frame. Any year with
+  // the same key gives the same corrections, so the memo may keep the year it was built at.
+  const biomeKey = biomeCorrectionKey(clampTime(time));
+  const biomeYear = clampTime(time);
   const ground = useMemo(() => {
     if (!close3d || !shown || !habitat) return null;
     const lo = eraPixels(shown.y0);
@@ -260,10 +265,12 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     const bmp = bitmaps.get(shown.y0);
     if (!lo || !hi || !bmp) return null;
     return {
-      key: `${shown.y0}-${shown.y1}-${fq}-${habitat.ka}-${detail ? `d${seaQ}` : ''}`,
-      ground: makeGround(lo, hi, bmp.width, bmp.height, fq, habitat.rgba, detail?.refPixels ?? null, seaQ),
+      key: `${shown.y0}-${shown.y1}-${fq}-${habitat.ka}-${biomeKey}-${detail ? `d${seaQ}` : ''}`,
+      // Known biases of the biome model (the Green Sahara, the Sahel, the prairie, the mammoth steppe) corrected for the trees and ground cover.
+      ground: withBiomeCorrections(makeGround(lo, hi, bmp.width, bmp.height, fq, habitat.rgba, detail?.refPixels ?? null, seaQ), biomeYear),
     };
-  }, [close3d, shown, habitat, fq, detail, seaQ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- biomeYear matters only through biomeKey
+  }, [close3d, shown, habitat, fq, detail, seaQ, biomeKey]);
 
   const close3dModule = useLazy(CLOSE3D_MODULE, enabled && close3d);
   const detailModule = useLazy(DETAIL_MODULE, enabled && !!detail && !close3d);

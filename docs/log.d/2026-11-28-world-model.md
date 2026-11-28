@@ -89,3 +89,10 @@ dense farming village, and the hover card's density says village too.
 
 `lib/firstSettlement.ts` now also covers the Marianas (~1500 BCE), Vanuatu, New Caledonia, Fiji, Tonga and Samoa (Lapita, kept
 from HYDE's -1000), Madeira (1420), Cape Verde (1462), Bermuda (1612), St Helena (1659) and the Seychelles (1770).
+
+## [2026-11-28] fix | Trees on the Sahel at 3000 BCE, and the close-up follows the biome corrections
+
+The close-up drew no trees on the Sahel at 3000 BCE: the biome model is too dry there, as in the Green Sahara. The close-up's
+ground now reads corrected biomes (`correctedBiome` in `lib/biomeNotes.ts`): savanna on the Sahel until ~4.5 ka (Shanahan et
+al. 2015) and in the southern Green Sahara, grassland in its north, prairie grass on the Plains, steppe-tundra at the ice edge.
+The ground is rebuilt only when the set of corrections in force changes.

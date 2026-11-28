@@ -14,9 +14,10 @@ const OAXACA = [-97.5, 17.5] as const;
 const CONGO = [17.5, -2.5] as const;
 const ANATOLIA = [33, 39] as const;
 
-test('only langs=deep opts in', () => {
-  for (const query of ['', '?langs=1', '?langs=Deep', '?lang=deep']) expect(langsDeepEnabled(query)).toBe(false);
-  expect(langsDeepEnabled('?mode=units&langs=deep')).toBe(true);
+test('on unless ?langs=0', () => {
+  expect(langsDeepEnabled('')).toBe(true);
+  expect(langsDeepEnabled('?year=-3000&langs=1')).toBe(true);
+  expect(langsDeepEnabled('?langs=0')).toBe(false);
 });
 
 test('a cell and year: Spanish in Mexico from 1519, not before', () => {

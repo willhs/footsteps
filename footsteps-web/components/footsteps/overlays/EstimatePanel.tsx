@@ -11,12 +11,15 @@ import { formatPlace } from '@/lib/hoverCard';
  */
 export default function EstimatePanel({
   time,
+  adjusted = false,
   place,
   placeFrom,
   corrections,
   onClose,
 }: {
   time: number;
+  /** The people on screen are the adjusted spread (grid.adjusted). */
+  adjusted?: boolean;
   place: { lon: number; lat: number };
   /** Where `place` comes from, so the header can say so. */
   placeFrom: 'cursor' | 'selected' | 'centre';
@@ -24,7 +27,7 @@ export default function EstimatePanel({
   onClose: () => void;
 }) {
   const year = Math.round(time);
-  const lines = useMemo(() => estimateLines({ time: year }), [year]);
+  const lines = useMemo(() => estimateLines({ time: year, adjusted }), [year, adjusted]);
   const notes = useMemo(
     () => placeNotes({ time: year, lon: place.lon, lat: place.lat, corrections }),
     [year, place.lon, place.lat, corrections],

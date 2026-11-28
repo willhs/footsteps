@@ -5,10 +5,10 @@ import { foodEnabled, type FoodData } from '@/lib/food';
 
 let pending: Promise<FoodData> | null = null;
 
-/** Only fetch after the first hover with ?food=1. Shared for the page lifetime. */
-export default function useFood(hovering: boolean, figures = false): FoodData | null {
+/** Only fetch after the first hover (or when the close-up's fields need it), unless ?food=0. Shared for the page lifetime. */
+export default function useFood(hovering: boolean, always = false): FoodData | null {
   const [data, setData] = useState<FoodData | null>(null);
-  const enabled = figures || (typeof window !== 'undefined' && foodEnabled(window.location.search));
+  const enabled = always || (typeof window !== 'undefined' && foodEnabled(window.location.search));
   useEffect(() => {
     if (!enabled || !hovering) return;
     let live = true;

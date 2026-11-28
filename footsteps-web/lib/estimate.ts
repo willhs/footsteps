@@ -129,10 +129,22 @@ function peopleLine(time: number): EstimateLine {
   };
 }
 
-function spreadLine(time: number): EstimateLine | null {
+function spreadLine(time: number, adjusted: boolean): EstimateLine | null {
   if (time < HYDE_MIN) return null;
   const spread = worldSpreadAt(time);
   const world = spread ? agreement(spread.low, spread.high) : 'rough';
+  if (adjusted) {
+    return {
+      id: 'spread',
+      shapes: 'Which cells hold the people',
+      cite: 'HYDE, moved by past climate',
+      source: 'HYDE 3.5, adjusted spread (docs/ops/hyde-climate-spread.md), Beyer et al. 2020 climate',
+      method:
+        'HYDE’s people are moved within continent-scale regions toward where the climate then let people live (the Green Sahara, the dry shelves); each region keeps HYDE’s total.',
+      confidence: 'very rough',
+      why: 'A model on top of HYDE, and HYDE’s split between continents is itself doubtful this early.',
+    };
+  }
   return {
     id: 'spread',
     shapes: 'Which cells hold the people',
@@ -234,8 +246,8 @@ function climateLine(time: number): EstimateLine {
 }
 
 /** Everything the panel says for one place and year, people first. */
-export function estimateLines({ time }: Pick<EstimateInput, 'time'>): EstimateLine[] {
-  return [peopleLine(time), spreadLine(time), betweenLine(time), lifeLine(time), GROUPS_LINE, landLine(time), climateLine(time)].filter(
+export function estimateLines({ time, adjusted = false }: Pick<EstimateInput, 'time'> & { adjusted?: boolean }): EstimateLine[] {
+  return [peopleLine(time), spreadLine(time, adjusted), betweenLine(time), lifeLine(time), GROUPS_LINE, landLine(time), climateLine(time)].filter(
     (l): l is EstimateLine => l !== null,
   );
 }

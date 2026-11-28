@@ -1,0 +1,114 @@
+name: PR preview
+
+# A clickable preview of each pull request that touches the web app, so visual and UX changes can be
+# judged without checking out the branch. The PR's static export goes to Cloudflare Pages as a
+# preview deployment on the branch alias pr-<number>, at https://pr-<number>.footsteps.pages.dev,
+# and deploy/preview/_worker.js fetches the data the build does not carry (grid, terrain, API...)
+# from production on budgie. Production is never touched: only main is Pages' production branch,
+# and footsteps.willhs.me is served by budgie, not Pages. Runbook: docs/ops/previews.md.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'footsteps-web/**'
+      - 'deploy/preview/**'
+      - '.github/workflows/preview.yml'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number to preview'
+        required: true
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+  PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'footsteps' }}
+  # The marker that finds this workflow's comment again, so each push edits it instead of adding one.
+  COMMENT_MARKER: '<!-- footsteps-preview -->'
+
+jobs:
+  preview:
+    name: Build and publish the preview
+    # Fork PRs get no secrets, so they cannot deploy.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || format('refs/pull/{0}/head', inputs.pr) }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install deps
+        working-directory: ./footsteps-web
+        run: pnpm install --frozen-lockfile
+
+      # The same build as production (deploy/budgie/web/Dockerfile): tiles are same-origin /pmtiles.
+      - name: Build (static export)
+        working-directory: ./footsteps-web
+        env:
+          NEXT_PUBLIC_CDN_HOST: ''
+          NEXT_PUBLIC_PMTILES_DIRECT: 'false'
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: pnpm build
+
+      - name: Add the data proxy and version
+        run: |
+          cp deploy/preview/_worker.js footsteps-web/out/_worker.js
+          git rev-parse HEAD > footsteps-web/out/version.txt
+
+      - name: Publish to Cloudflare Pages (preview branch pr-${{ env.PR_NUMBER }})
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy footsteps-web/out
+            --project-name ${{ env.PAGES_PROJECT }}
+            --branch pr-${{ env.PR_NUMBER }}
+            --commit-dirty=true
+
+      - name: Comment the preview link on the PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = Number(process.env.PR_NUMBER);
+            const marker = process.env.COMMENT_MARKER;
+            const url = `https://pr-${issue_number}.${process.env.PAGES_PROJECT}.pages.dev`;
+            const sha = (await exec.getExecOutput('git', ['rev-parse', '--short', 'HEAD'])).stdout.trim();
+
+            const body = [
+              marker,
+              `**Preview:** ${url}`,
+              '',
+              `Built from ${sha}. Data and the API come from production (footsteps.willhs.me).`,
+              'Add flags to the URL as usual, for example `?sky=0`.',
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+            core.summary.addRaw(`Preview: ${url}`).write();

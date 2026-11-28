@@ -40,6 +40,12 @@ describe('estimate panel words', () => {
     expect(between.confidence).toBe('very rough');
   });
 
+  test('the adjusted spread replaces HYDE’s allocation line when it is drawn', () => {
+    const line = estimateLines({ time: -6000, adjusted: true }).find((l) => l.id === 'spread')!;
+    expect(line.cite).toMatch(/climate/);
+    expect(line.confidence).toBe('very rough');
+  });
+
   test('groups are always illustrative', () => {
     for (const t of [-50000, -3000, 1800]) expect(estimateLines({ time: t }).find((l) => l.id === 'groups')!.confidence).toBe('imagined');
   });

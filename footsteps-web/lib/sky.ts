@@ -26,7 +26,7 @@ export type SceneLight = {
 
 /** `?sky=1` turns it on. */
 export function skyParam(search: string): boolean {
-  return new URLSearchParams(search).get('sky') === '1';
+  return new URLSearchParams(search).get('sky') !== '0';
 }
 
 /** Unit vector from a place toward the sun, east-north-up (mean solar position, like the rest of the sun clock). */

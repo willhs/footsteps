@@ -125,8 +125,13 @@ export function strengthOf(h: Pick<Hearth, 'kind' | 'homes'>): number {
 }
 
 /** Radius of a hearth's pool of light, metres: half the households' spacing, so a camp's pools just touch in a ring. A town roof is closer. */
+/** Radius of a camp fire's pool of light, metres: a small family fire lights the few metres round it. Kept well under half the camp's
+ * household spacing (12 m) so each family's fire reads on its own rather than merging into one glow. Imagined. */
+export const CAMP_FIRELIGHT_M = 3.5;
+
 export function poolRadiusOf(h: Pick<Hearth, 'kind'>): number {
   if (h.kind === 'lamp') return 8; // a lamp's glow through a snow-house wall
+  if (h.kind === 'camp') return CAMP_FIRELIGHT_M;
   return h.kind === 'town' ? 12 : 0.5 * HOUSEHOLD_SPACING_M[h.kind];
 }
 

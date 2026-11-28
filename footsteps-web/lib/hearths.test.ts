@@ -120,8 +120,8 @@ describe('plume seeding', () => {
 });
 
 describe('pools of light', () => {
-  it('are about the households\' spacing wide', () => {
-    expect(poolRadiusOf({ kind: 'camp' }) * 2).toBeGreaterThan(HOUSEHOLD_SPACING_M.camp * 0.9);
+  it('are about the households\' spacing wide in a village, and small apart from each other in a camp', () => {
+    expect(poolRadiusOf({ kind: 'camp' }) * 2).toBeLessThan(HOUSEHOLD_SPACING_M.camp * 0.65);
     expect(poolRadiusOf({ kind: 'village' }) * 2).toBeGreaterThan(HOUSEHOLD_SPACING_M.village * 0.9);
     expect(poolOf({ ...hearth(), z: 3 }).position).toEqual([-3.7, 40.4, 3]);
   });

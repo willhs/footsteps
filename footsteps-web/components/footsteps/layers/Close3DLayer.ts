@@ -19,6 +19,7 @@ import { BLOCK_M } from './fields';
 import { groundAt, rememberGround } from '@/lib/groundHeights';
 import { loadDetailManifest, loadDetailPixels, type DetailPixels } from '@/lib/terrainDetail';
 import { coarsenFar, type TileIndex } from '@/lib/demLod';
+import { cellHeightsFor, smoothSnowLine, type CellHeight } from '@/lib/snowLine';
 import {
   CLOSE3D_ZOOM,
   TREE_PX,
@@ -27,6 +28,7 @@ import {
   EXAGGERATION,
   MESH_STEP,
   buildTerrainMesh,
+  meanHeight,
   metersPerPixel,
   plantMeshes,
   plantsForTile,
@@ -80,7 +82,8 @@ type Draped = { key: string; tileKey: string; solid: object | null; ground: obje
 /** A field block (fields.ts BLOCK_M) narrower than this many screen pixels on a tile: the tile is not draped, the haze and the ground's own
  * colour stand in, and panning does not spend frames draping land nobody can make out. */
 const LAND_MIN_PX = 1.5;
-type TileData = { heights: Float32Array; detail: DetailPixels | null };
+/** `cells`: the 0.5° cells' mean heights the snow line reads (lib/snowLine.ts), loaded with the tile. */
+type TileData = { heights: Float32Array; detail: DetailPixels | null; cells?: CellHeight };
 type Standing = { shelter: Shelter; position: [number, number, number] };
 /** `meshProp` is the SimpleMeshLayer `mesh` object, kept so a re-render passes the same object and nothing is uploaded again. */
 type Built = { key: string; mesh: TerrainMesh; meshProp: object; plants: Plant[] };
@@ -88,7 +91,8 @@ type Built = { key: string; mesh: TerrainMesh; meshProp: object; plants: Plant[]
 const MESHES = plantMeshes();
 const GROUND_DETAIL = new GroundDetail();
 const SKY_LIGHT = new SkyLight();
-const SKY_TINT = new SkyTint();
+/** Also given to the flat era backdrop under the close-up (hooks/useTerrainLayers.ts), so the plain beyond the 3D tiles hazes too. */
+export const SKY_TINT = new SkyTint();
 const FIELD_DETAIL = new FieldDetail();
 const SHELTER_MESHES = shelterMeshes();
 /** A dwelling is never drawn smaller than this on screen (pixels across), however far out: at zoom 12 a hut is a few metres in
@@ -153,6 +157,16 @@ class DemTileset extends Tileset2D {
     return coarsenFar(indices, widthPx, maxPx, 2, opts.minZoom ?? 0);
   }
 }
+
+/** The ground with the smooth snow line (lib/snowLine.ts) once the tile's cells are in: without it each tile measured the snow line from
+ * its own mean height, so the snow stopped in a straight line at tile edges and trees grew on glaciers. */
+function withSnowLine(ground: Ground, data: TileData): Ground {
+  return data.cells ? { ...ground, snowLineAt: smoothSnowLine(ground, data.cells, meanHeight(data.heights)) } : ground;
+}
+
+/** A coarse elevation tile's heights for the snow line's cell means (lib/snowLine.ts), from the same bucket as the ground. */
+const coarseHeights = (z: number, x: number, y: number) =>
+  loadHeights(DEM_TILE_URLS[(x + y) % DEM_TILE_URLS.length].replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y))).then((d) => d.heights);
 
 async function loadHeights(url: string, signal?: AbortSignal): Promise<TileData> {
   const r = await fetch(url, { signal });
@@ -362,9 +376,10 @@ export default class Close3DLayer extends CompositeLayer<Props> {
       ...(lit && groundTop > 0 ? { zRange: [0, groundTop * 1.2] as [number, number] } : {}),
       getTileData: async ({ url, signal, index: { x, y, z }, bbox }) => {
         const colour = colourTiles ? loadDetailManifest().then((m) => loadDetailPixels(m, z, x, y)).catch(() => null) : null;
-        const [data, tile] = await Promise.all([loadHeights(url!, signal), colour]);
+        const cells = 'west' in bbox ? cellHeightsFor(bbox as Bbox, coarseHeights).catch(() => undefined) : undefined;
+        const [data, tile, cellsOf] = await Promise.all([loadHeights(url!, signal), colour, cells]);
         if ('west' in bbox) rememberGround(`${z}/${x}/${y}`, bbox as Bbox, data.heights);
-        return { ...data, detail: tile };
+        return { ...data, detail: tile, cells: cellsOf };
       },
       updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearKey, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
       renderSubLayers: (props) => {
@@ -380,7 +395,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
             return null;
           }
           // The colour pyramid's tile over this ground tile, when tiles are on (lib/terrainDetail.ts).
-          const tileGround = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
+          const detailed = data.detail && ground.withDetail ? ground.withDetail(data.detail) : ground;
+          const tileGround = withSnowLine(detailed, data);
           const mesh = buildTerrainMesh(data.heights, bbox, seaLevel, tileGround, MESH_STEP, detail || weather, lake, ice, lit, detail);
           b = {
             key,
@@ -427,7 +443,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           const { default: TreeLayer, treesForTile, clearedMask, TREE_MAPPING } = this.state.treeModule;
           let cached = treeBuilt.get(data);
           if (!cached || cached.key !== key) {
-            cached = { key, trees: treesForTile(data.heights, bbox, [x, y, z], seaLevel, ground, lake), clearingsKey: '', rank: () => 0 };
+            cached = { key, trees: treesForTile(data.heights, bbox, [x, y, z], seaLevel, withSnowLine(ground, data), lake), clearingsKey: '', rank: () => 0 };
             treeBuilt.set(data, cached);
           }
           if (cached.clearingsKey !== clearKey) {

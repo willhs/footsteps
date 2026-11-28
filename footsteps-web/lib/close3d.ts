@@ -218,6 +218,8 @@ export type Ground = {
   precipAt: (lon: number, lat: number) => number | null;
   /** The same ground coloured with a colour-pyramid tile's detail (lib/terrainDetail.ts); absent when tiles are off. */
   withDetail?: (tile: DetailPixels) => Ground;
+  /** Snow line (m) at a point, smooth across tiles and cells (lib/snowLine.ts). Absent: the cell's temperature over the tile's mean height. */
+  snowLineAt?: (lon: number, lat: number) => number;
 };
 
 /** Sun direction for the baked hillshade: from the north-west, 45° up (unit vector). */
@@ -281,7 +283,12 @@ function mixIn(c: Rgb, b: Rgb, t: number): Rgb {
 
 /** 0..1 share of snow at height `h` (m): fully snowy 250 m above the snow line. */
 function snowMix(h: number, lon: number, lat: number, ground: Ground, base: number): number {
-  return clamp01((h - snowLine(ground.tempAt(lon, lat), lat, base)) / 250);
+  return clamp01((h - snowLineOf(lon, lat, ground, base)) / 250);
+}
+
+/** The snow line at a point: the ground's smooth one when it has it, else the cell's temperature over `base`. */
+function snowLineOf(lon: number, lat: number, ground: Ground, base: number): number {
+  return ground.snowLineAt ? ground.snowLineAt(lon, lat) : snowLine(ground.tempAt(lon, lat), lat, base);
 }
 
 /** What the fragment shader paints on a point of ground (`?ground=1`), as the two numbers a vertex
@@ -504,8 +511,10 @@ export function buildTerrainMesh(
       // The level water stands at here: past water's own level at and beside it, else the year's sea.
       const level = nearLake && !Number.isNaN(nearLake[v]) ? nearLake[v] : sea;
       // Slope from neighbours, in metres per metre, on the drawn surface.
-      const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j)) / (2 * dxM);
-      const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1)) / (2 * dyM); // +y is north
+      // A least-squares line through five vertices, not two: the elevation tiles are upsampled from coarser data in steps, and a
+      // two-vertex slope flips from row to row on them, which the ground shader's rock (steep ground) drew as fine hatching.
+      const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j) + 2 * (surfaceAt(i + 2, j) - surfaceAt(i - 2, j))) / (10 * dxM);
+      const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1) + 2 * (surfaceAt(i, j - 2) - surfaceAt(i, j + 2))) / (10 * dyM); // +y is north
       const lon = west + ((east - west) * i) / (n - 1);
       const lat = north - ((north - south) * j) / (n - 1);
       positions[v * 3] = lon - west;
@@ -611,7 +620,7 @@ export function plantsForTile(
     const lat = bbox.north - (bbox.north - bbox.south) * w;
     const veg = VEGETATION[ground.biomeAt(lon, lat)];
     if (!veg || keep > veg.density) continue;
-    if (h > snowLine(ground.tempAt(lon, lat), lat, base) - 300) continue;
+    if (h > snowLineOf(lon, lat, ground, base) - 300) continue;
     const kind: TreeKind = veg.kind === 'mixed' ? (hash2(seed, i + 7919) < 0.5 ? 'conifer' : 'broadleaf') : veg.kind;
     const shade = 0.85 + 0.3 * hash2(i, seed);
     out.push({

@@ -82,7 +82,7 @@ Green Sahara note, all from `lib/biomeNotes.ts`.
 ## [2026-11-28] fix | No city glows before a region's first towns
 
 HYDE crowds city-like numbers into cells long before any city stood there (central Mexico glowed at 3000 BCE). A cell is now
-drawn as a city only from its region's first towns (`lib/firstCities.ts`, 18 regions, 1500 CE elsewhere); before that it is a
+drawn as a city only from its region's first towns (`lib/firstCities.ts`, 20 regions, 1500 CE elsewhere; no city in the settlement catalogue predates its region); before that it is a
 dense farming village, and the hover card's density says village too.
 
 ## [2026-11-28] fix | More islands left empty before their first settlers

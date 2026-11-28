@@ -76,6 +76,7 @@ blend is a picture, the dates are the manifest's.)
 | Islands | Tenochtitlan and Tlatelolco's pixels are carved out so the city keeps its people; causeways, chinampas and the smaller islands are not modelled |
 | Dates | one epoch, 4,000–350 BP (**-2050…1600**): Formative shore villages to the eve of the Desagüe (1607). After 1600 the lakes shrank over three centuries: not modelled, so no scenario |
 | Water | Texcoco saline, Zumpango and Xaltocan brackish, Xochimilco and Chalco fresh: the distance patch counts only lake pixels south of 19.34 N (304 km²); the whole mask keeps groups out |
+| Close-up shore | the 2.5′ mask drew straight diagonal bands in the close-up, and the plane clipped to today’s DEM left Mexico City’s buildings and fill as fragments in the water. The close-up uses `texcoco_shore.webp` instead (manifest `shore`): Terrarium zoom 11 on a 7.5″ grid, smoothed ~0.5 km, flooded from the seed at 2250 m (lowest level reaching all five lakes; 1,158 km²), Tenochtitlan and Tlatelolco carved as discs of 1.6 and 1.0 km, kept within a pixel of the coarse mask. Its water is flat at 2250 m, not clipped to the DEM. Groups still use the coarse mask |
 | Picture | `terrain.years` is empty: the Earth images are not rebaked for a lake of a few globe pixels; the close-up draws it as a plane at 2270 m clipped to the DEM |
 
 ## Every scenario: one manifest each, epochs as the unit

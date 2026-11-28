@@ -137,3 +137,16 @@ test('Dots says the experimental model does not apply there; Grid says it places
 test('with the model not running the note does not claim groups are kept dry', () => {
   expect(pastWaterNote(-6000, 'units', undefined)!.title).toMatch(/not being kept out of the modelled water/);
 });
+
+test('a finer shore decides the close-up water on its own: flat at its level, on its own grid, whatever the ground', () => {
+  const tex = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs).find((e) => e.id === 6)!;
+  expect(tex.shore?.scale).toBe(20);
+  const e: EpochMeta = { ...tex, mask: { ...tex.mask, x0: 700, y0: 50, width: 2, height: 2 }, distance: null, shore: { ...tex.shore!, x0: 14000, y0: 1000, width: 2, height: 1, m: 2250 } };
+  const layers = { epochs: [epochLayersFrom(e, rgba(2, 2, [[255, 255, 255], [255, 255, 255], [255, 255, 255], [255, 255, 255]]), null, rgba(2, 1, [[255, 255, 255], [0, 0, 0]]))] };
+  const fine = (col: number, row: number): [number, number] => [-180 + ((col + 0.5) / (8640 * 20)) * 360, 90 - ((row + 0.5) / (4320 * 20)) * 180];
+  const plane = lakePlaneFor(layers, 1000, 0)!;
+  expect(plane.levelAt(...fine(14000, 1000), 2235)).toBe(2250);
+  expect(plane.levelAt(...fine(14000, 1000), 2290)).toBe(2250); // a building or fill in the lake is water, not a fragment
+  expect(plane.levelAt(...fine(14001, 1000), 2235)).toBeNull(); // dry on the shore grid, though wet on the coarse mask
+  expect(() => epochLayersFrom(e, rgba(2, 2, Array(4).fill([255, 255, 255])), null, rgba(1, 1, [[0, 0, 0]]))).toThrow(/shore/);
+});

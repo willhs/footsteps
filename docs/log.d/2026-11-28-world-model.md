@@ -104,3 +104,10 @@ Tested in `tests/test_food_gate.py`. `public/food/food.json` still uses the old 
 Central Mexico at 1600 listed wheat, barley, sheep and goats before maize, because domesticates were listed in table order.
 `foodHere` and `cropsAround` (`lib/food.ts`) now list them by their first era in the cell, then table order. Where the way of
 life is foraging, the card gives the biome's wild staples even when farmers in the same 5° cell had crops.
+
+## [2026-11-28] fix | The Basin of Mexico's lakes in the close-up: a traced shore, not bands and fragments
+
+Will's review of the preview: the lake round Tenochtitlan was a straight-edged diagonal band with fragments and fields standing in
+it. The 2.5′ mask's edge is straight at close-up scale, and the plane (2270 m) clipped to today's DEM left the city's buildings
+and fill above the water. The close-up now uses a finer shore (`texcoco_shore.webp`, 7.5″): today's ground smoothed ~0.5 km and
+flooded at 2250 m, islands carved as discs, water flat at that level. `LakePlane.levelAt` uses an epoch's shore when it has one.

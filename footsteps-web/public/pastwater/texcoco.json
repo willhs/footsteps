@@ -37,6 +37,21 @@
         "lake_pixels": 79,
         "area_km2": 1598
       },
+      "shore": {
+        "file": "texcoco_shore.webp",
+        "x0": 38788,
+        "y0": 33689,
+        "width": 165,
+        "height": 292,
+        "scale": 20,
+        "m": 2250.0,
+        "grid": "172800 x 86400 world pixels of 7.5\"; x0, y0 = column, row of the patch's north-west pixel",
+        "bytes": 734,
+        "sha256": "93fe4804edcb311d53dfef5a95fa351b4436bd3089c6f203bc7a58dad927c7bb",
+        "red": "255 = lake, 0 = not",
+        "area_km2": 1158,
+        "rule": "close-up only: Terrarium zoom 11, smoothed ~0.5 km, flooded from the seed at 2250 m, islands carved as discs, within a pixel of the mask; flat water at that level, not clipped to the DEM"
+      },
       "distance": {
         "file": "texcoco_water.webp",
         "x0": 967,
@@ -74,7 +89,7 @@
       "lon": -99.137
     }
   ],
-  "digest": "d414e397c63c0a17",
+  "digest": "a8d9c1208629be8b",
   "licence": "derived from AWS Terrarium elevation tiles (public-domain and openly licensed DEMs, attribution per the tiles' notice)",
   "sources": {
     "height": "AWS Terrarium elevation tiles, zoom 6, mean of 3 x 3 samples per 2.5' pixel (as site_terrain.py)",
@@ -85,6 +100,7 @@
   },
   "uncertainty": [
     "The shoreline is a contour of a 2.4 km DEM averaged to 4.6 km, calibrated to area: the shape is the basin floor's, not a mapped shore.",
+    "The close-up's shore is a contour of today's smoothed ground at 2250 m: the city has sunk up to ~10 m since 1900 and the lakebed was filled, so it is a sketch of the shore, not a survey.",
     "The lakes rose and fell with the seasons and the years; one level is held for 3,650 years.",
     "Only Tenochtitlan and Tlatelolco are kept dry; other islands (Xaltocan, Mixquic), the causeways and the chinampas are not modelled.",
     "Which parts were fresh is simplified to a latitude line south of the city.",

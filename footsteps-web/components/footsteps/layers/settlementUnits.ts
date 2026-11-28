@@ -3,7 +3,7 @@ import { UnitKind, KIND_OF_WAY, type Units, type UnitKindValue } from './units';
 import { WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { layoutOfPattern, profileAt, type Layout, type SettlementCatalog } from '@/lib/settlements';
 import { seaLevelAt } from '@/lib/climate';
-import type { SiteRanker } from './siteRanking';
+import { CAUSE_ICE, CAUSE_WATER, type SiteRanker } from './siteRanking';
 import { DISPERSE_POOL, layGroups } from './settlementLayout';
 import { NO_SOCIETY, type DwellingTable } from '@/lib/dwellings';
 import { NO_EPOCHS, type Epochs } from '@/lib/pastWater';
@@ -35,7 +35,8 @@ export function buildSettlementUnits(
   epochs: Epochs = NO_EPOCHS,
 ): Units {
   const seaLevel = seaLevelAt(year);
-  const unresolved = { groups: 0, people: 0 };
+  // By cause too: a cell under both ice and modelled water counts in each, so each note says only what its own layer did.
+  const unresolved = { groups: 0, people: 0, ice: { groups: 0, people: 0 }, water: { groups: 0, people: 0 } };
   const per = new Uint8Array(data.length);
   const kinds = new Uint8Array(data.length);
   const profiles = new Map<string, ReturnType<typeof profileAt>>();
@@ -62,9 +63,16 @@ export function buildSettlementUnits(
     const size = weight ? components.reduce((sum, c) => sum + c.size * c.weight, 0) / weight : Infinity;
     per[i] = Math.min(limits[kind], Math.max(1, Math.round(data.people[i] / size)));
     // A cell modelled past water covers entirely has no dry ground: its people stay in the totals, its groups are not drawn (and counted here).
-    if (epochs.length && sites?.inScenario(data.cellIds[i]) && sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs).unresolved) {
+    const spots = epochs.length && sites?.inScenario(data.cellIds[i]) ? sites.spotsFor(data.cellIds[i], seaLevel, 1, epochs) : null;
+    if (spots?.unresolved) {
       unresolved.groups += per[i];
       unresolved.people += data.people[i];
+      for (const [bit, tally] of [[CAUSE_ICE, unresolved.ice], [CAUSE_WATER, unresolved.water]] as const) {
+        if ((spots.cause ?? CAUSE_WATER) & bit) {
+          tally.groups += per[i];
+          tally.people += data.people[i];
+        }
+      }
       per[i] = 0;
       continue;
     }

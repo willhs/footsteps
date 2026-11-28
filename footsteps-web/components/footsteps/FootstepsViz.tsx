@@ -549,6 +549,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             (Date.now() - yearChangedAt < 1000 && totalPopulation === 0))
         }
         dotCount={featureCount}
+        countLabel={renderMode === 'dots' ? 'Dots drawn' : renderMode === 'grid' ? 'Cells, whole map' : 'Groups, whole map'}
         totalPopulation={renderMode === 'dots' ? totalPopulation : populationAt(time)}
         viewState={viewState}
         close3d={close3d}

@@ -164,7 +164,8 @@ export function iceHoverRow(epoch: IceEpoch, region: IceRegion): { text: string;
 
 /** The note shown with the flag on: the epoch drawn, and what the groups did. */
 /** The status line, or null before 80 ka (no reconstruction) and when no ice is drawn in the mapped regions (on by default, so it says nothing when idle). */
-export function iceNote(year: number, mode: PeopleMode, unresolved: Unresolved | undefined): { label: string; title: string } | null {
+export function iceNote(year: number, mode: PeopleMode, all: Unresolved | undefined): { label: string; title: string } | null {
+  const unresolved = all && (all.ice ?? all); // only the groups the ice kept off, not modelled water's
   const epoch = iceEpochAt(year);
   if (!epoch || !epoch.patches.length) return null;
   const basis = `Dated margins (on unless ?ice=0). ${ICE.source.name} (${ICE.source.citation}; ${ICE.source.licence}). Rule: ${ICE.rule} ${ICE.uncertainty.join(' ')}`;
@@ -175,10 +176,10 @@ export function iceNote(year: number, mode: PeopleMode, unresolved: Unresolved |
   if (mode === 'grid') return { label: head, title: `Grid shows people per cell and places nobody, so cells under the ice keep their people on the map. ${drawn} ${basis}` };
   if (!unresolved) return { label: head, title: `Groups are not being kept off the ice yet: still loading, or the settlement model or ranked sites are off. ${drawn} ${basis}` };
   const tail = unresolved.groups
-    ? ` · ${unresolved.groups.toLocaleString()} groups unplaced (cells all ice or water)`
+    ? ` · ${unresolved.groups.toLocaleString()} groups unplaced (cells under the ice)`
     : ' · groups kept off the ice';
   const placed = unresolved.groups
-    ? `${unresolved.groups.toLocaleString()} group${unresolved.groups === 1 ? '' : 's'} (${Math.round(unresolved.people).toLocaleString()} people) sit in cells that are all ice (or modelled water, with ?pastwater=1): not drawn, still counted in the totals.`
+    ? `${unresolved.groups.toLocaleString()} group${unresolved.groups === 1 ? '' : 's'} (${Math.round(unresolved.people).toLocaleString()} people) sit in cells that are all ice (some also under modelled water): not drawn, still counted in the totals.`
     : 'Every group is placed off the ice.';
   return { label: `${head}${tail}`, title: `${placed} ${drawn} ${basis}` };
 }

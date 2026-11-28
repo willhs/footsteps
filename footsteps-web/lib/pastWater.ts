@@ -185,7 +185,7 @@ export function lakePlaneFor(layers: PastWaterLayers | null, year: number, seaLe
 }
 
 export type PeopleMode = 'units' | 'grid' | 'dots';
-export type Unresolved = { groups: number; people: number };
+export type Unresolved = { groups: number; people: number; ice?: { groups: number; people: number }; water?: { groups: number; people: number } };
 
 const ka = (bp: number) => `${+(bp / 1000).toFixed(1)}`;
 /** When an epoch holds, in words: the scenario's single window, or the stage's own name. */
@@ -197,7 +197,8 @@ const windows = PAST_WATER_SCENARIOS.map((s) => `${s.short} ${s.epochs.map((e) =
 
 /** The note shown with the flag on: what the scenarios say at this date, in the mode being drawn, and what they could not place. */
 /** The status line, or null when no scenario holds at this date (it is on by default, so it says nothing when idle). */
-export function pastWaterNote(year: number, mode: PeopleMode, unresolved: Unresolved | undefined): { label: string; title: string } | null {
+export function pastWaterNote(year: number, mode: PeopleMode, all: Unresolved | undefined): { label: string; title: string } | null {
+  const unresolved = all && (all.water ?? all); // only the groups modelled water kept off, not the ice's
   const ids = pastWaterEpochs(year);
   const active = EPOCHS.filter(({ epoch }) => ids.includes(epoch.id));
   if (!active.length) return null;

@@ -1,3 +1,4 @@
+import { pastWaterNote } from './pastWater';
 import { ICE, iceBounds, iceEpochAt, iceHoverRow, iceIds, iceMaskAt, iceNote, iceOverlayPixels, iceParam, iceShareAt, ICE_EDGE, ICE_FILL, type IceMask } from './iceSheets';
 import { PAST_WATER_SCENARIOS } from './pastWater';
 
@@ -80,4 +81,14 @@ test('the note names the epoch, says what the groups did, and is honest about Do
   expect(iceNote(-20000, 'units', undefined)!.title).toContain('not being kept off the ice yet');
   expect(iceNote(-90000, 'units', undefined)).toBeNull(); // no reconstruction before 80 ka: no note
   expect(iceNote(-20000, 'units', { groups: 0, people: 0 })!.title).toContain('CC BY 4.0');
+});
+
+describe('iceNote and pastWaterNote blame only their own layer', () => {
+  it('counts the ice and the water groups apart', () => {
+    const u = { groups: 10, people: 500, ice: { groups: 7, people: 300 }, water: { groups: 4, people: 250 } };
+    const ice = iceNote(-20000, 'units', u);
+    expect(ice?.label).toContain('7 groups unplaced');
+    const water = pastWaterNote(-20000, 'units', u);
+    expect(water?.label).toContain('4 groups unplaced');
+  });
 });

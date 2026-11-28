@@ -27,6 +27,8 @@ interface RenderMetrics {
 interface Props {
   loading?: boolean;
   dotCount: number;
+  /** What `dotCount` counts: dots in the loaded tiles, or the year's groups (or cells) over the whole map, not just the view. */
+  countLabel?: string;
   totalPopulation: number;
   viewState: { zoom: number; longitude?: number; latitude?: number };
   now: Date;
@@ -64,6 +66,7 @@ function SunTime({ lon, lat, now }: { lon: number; lat?: number; now: Date }) {
 function SupportingText({
   loading = false,
   dotCount,
+  countLabel = 'Dots drawn',
   totalPopulation,
   viewState,
   lodLevel,
@@ -345,7 +348,7 @@ function SupportingText({
           {cacheSize > 0 && <> · {LOD_SUMMARY[lodLevel] ?? `LOD ${lodLevel}`}</>}
         </div>
         <div>
-          Dots drawn{' '}
+          {countLabel}{' '}
           <span className={`metric-value ${dotsFlash ? 'metric-flash' : ''}`}>
             {displayDotCount.toLocaleString()}
           </span>

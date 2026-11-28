@@ -33,7 +33,8 @@ MANCHURIA: Box = (118, 138, 40, 56)
 TIBET: Box = (80, 100, 28, 36)
 SE_ASIA_MAINLAND: Box = (90, 113, 5, 26)
 ISLAND_SEA: Box = (95, 128, -10, 8)  # Sumatra, Java, Borneo, Sulawesi
-TAIWAN_PHILIPPINES: Box = (118, 128, 5, 26)
+TAIWAN: Box = (119, 123, 21.5, 26)
+PHILIPPINES: Box = (116, 128, 5, 21.5)
 NEW_GUINEA: Box = (130, 157, -12, 0)
 # --- Pacific -----------------------------------------------------------------------------
 MELANESIA_W: Box = (140, 175, -25, 0)  # Bismarcks, Solomons, Vanuatu, New Caledonia
@@ -60,6 +61,8 @@ EUROPE_ALL: Box = (-10, 40, 35, 66)
 SAHARA: Box = (-10, 35, 17, 30)  # the green Sahara
 SAHEL_W: Box = (-20, 10, 10, 18)
 SAHEL_E: Box = (22, 40, 5, 18)  # Sudan, Butana
+CENTRAL_SUDAN_NILE: Box = (30, 36, 10, 17)  # Khartoum Neolithic (Kadero, Esh Shaheinab)
+LAKE_CHAD_BASIN: Box = (10, 22, 8, 17)
 NIGER_DELTA_INLAND: Box = (-8, 2, 10, 18)
 ETHIOPIA: Box = (35, 48, 5, 15)
 TURKANA: Box = (34, 42, -4, 6)
@@ -71,6 +74,8 @@ EAST_COAST: Box = (34, 45, -12, 5)  # coast and Kenya highlands
 ZAMBEZI: Box = (10, 45, -18, -4)  # Angola, Zambia, Mozambique
 SOUTH_AFRICA: Box = (18, 45, -35, -18)
 KHOE_CAPE: Box = (15, 28, -35, -18)
+# Bantu-speaking farmers stayed in the summer-rainfall east: never the Kalahari core or the winter-rainfall Cape before 1652.
+SOUTH_AFRICA_FARMING: Box = (25, 41, -34, -18)
 MADAGASCAR: Box = (43, 51, -28, -11)
 AFRICA_ALL: tuple[Box, Box] = ((-20, 34, -35, 37), (34, 52, -35, 12))  # all of Africa, without Sinai-Levant or Arabia
 # --- Americas ----------------------------------------------------------------------------
@@ -79,16 +84,23 @@ OAXACA: Box = (-100, -90, 15, 22)
 MESOAMERICA: Box = (-110, -85, 12, 25)
 SW_US: Box = (-115, -100, 28, 43)
 EASTERN_NA: Box = (-100, -70, 25, 43)  # Eastern Woodlands and the Central Plains edge
+# The Eastern Agricultural Complex and Hopewell maize: east of the Plains, north of the forager Florida peninsula.
+EASTERN_WOODLANDS_FARMING: Box = (-96, -70, 28, 43)
+CENTRAL_PLAINS: Box = (-104, -96, 33, 43)  # Plains Village farmers from ~900 CE
+FLORIDA_PENINSULA: Box = (-83, -79.5, 25, 28)
+# The farming Southwest (Colorado Plateau, Mogollon, Rio Grande, Hohokam), west of the Plains.
+SW_FARMING: Box = (-115, -103, 30, 38.5)
 NE_WOODLANDS: Box = (-85, -60, 43, 50)
 CARIBBEAN: Box = (-85, -60, 10, 25)
 CENTRAL_AMERICA_S: Box = (-92, -75, 5, 14)
 ANDES_N: Box = (-85, -70, -5, 10)
 ANDES_C: Box = (-85, -65, -20, -5)
-ANDES_S: Box = (-80, -60, -35, -18)
+ANDES_S: Box = (-80, -63, -35, -18)  # east edge at the Sierras de Cordoba; the Pampas and the Chaco plain were not Andean farmland
 AMAZON_SW: Box = (-70, -60, -17, -8)
-AMAZON: Box = (-75, -45, -30, 10)
+AMAZON: Box = (-75, -45, -20, 10)  # the basin, not the Chaco or the Pampas
 BRAZIL_E: Box = (-50, -35, -25, -5)
 SOUTH_CONE: Box = (-80, -55, -50, -30)
+CENTRAL_SOUTH_CHILE: Box = (-75, -70.5, -44, -33)  # Mapuche and Chiloe farmers, west of the Andes; the Pampas and Patagonia never farmed
 # colonial arrival fronts (Columbian exchange): coarse, for Old World domesticates reaching the Americas
 LATIN_AMERICA: Box = (-120, -35, -56, 25)
 NA_EAST: Box = (-95, -52, 25, 55)
@@ -101,7 +113,7 @@ SIBERIA_BELT: Box = (65, 138, 45, 62)
 CENTRAL_ASIA_OASES: Box = (60, 80, 36, 45)  # Bactria, Sogdia, Fergana, Tarim edge
 MAGHREB: Box = (-18, 35, 27, 38)
 NORTH_MEXICO: Box = (-120, -85, 20, 30)
-LOWLAND_SOUTH_AMERICA: Box = (-70, -45, -35, 10)
+LOWLAND_SOUTH_AMERICA: Box = (-68, -45, -31, 10)  # south edge short of the Pampas, which were never farmed before Europeans
 CHAD_BASIN: Box = (10, 25, 8, 18)
 ICELAND: Box = (-25, -12, 60, 68)
 STEPPE_BELT_E: Box = (60, 120, 44, 55)  # Kazakh and Mongolian steppe farming edge

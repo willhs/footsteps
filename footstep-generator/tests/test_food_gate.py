@@ -43,3 +43,31 @@ def test_reindeer_make_the_arctic_herding_country_only_once_they_were_kept():
     assert gate.ERAS[gate.first_era(herds, 100, 72)] >= 1700
     # North Greenland: never reindeer herding, nor any other herd animal.
     assert gate.first_era(herds, -45, 76) is None
+
+
+def _era(taxa, lon, lat):
+    i = gate.first_era(taxa, lon, lat)
+    return None if i is None else gate.ERAS[i]
+
+
+def test_second_pass_africa_americas_and_southeast_asia():
+    crops = [t for t in gate.CROPS if t.kind == "crop"]
+    herds = [t for t in gate.ANIMALS if t.id in gate.HERD_IDS]
+    # Lake Chad and the Middle Nile had herds long before the 1st millennium CE.
+    assert _era(herds, 14, 13) <= -1000
+    assert _era(herds, 32.5, 15.6) <= -5000
+    # The Cape and the Kalahari: no farming until Europeans (Bantu farmers stopped east of the Fish River).
+    assert _era(crops, 18.5, -33.9) >= 1600
+    assert _era(crops, 22, -23) >= 1600
+    # The Great Plains: farming arrives with the Central Plains tradition (~900 CE), not the Archaic.
+    assert 800 <= _era(crops, -98, 39) <= 1100
+    # The Pampas and Patagonia: never farmed before Europeans.
+    assert _era(crops, -61, -35) >= 1500
+    assert _era(crops, -68, -45) >= 1500
+    assert _era(herds, -61, -35) >= 1500
+    # NW Argentina's Andean farmers stay.
+    assert _era(crops, -65.5, -23.5) <= -1000
+    # Mainland Southeast Asia: Hoabinhian foragers until ~2500-2000 BCE.
+    assert _era(crops, 105.5, 10) == -2000
+    # Taiwan before the Philippines.
+    assert _era(crops, 121, 23.5) < _era(crops, 121, 16)

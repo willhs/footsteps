@@ -83,3 +83,18 @@ The close-up drew no trees on the Sahel at 3000 BCE: the biome model is too dry 
 ground now reads corrected biomes (`correctedBiome` in `lib/biomeNotes.ts`): savanna on the Sahel until ~4.5 ka (Shanahan et
 al. 2015) and in the southern Green Sahara, grassland in its north, prairie grass on the Plains, steppe-tundra at the ice edge.
 The ground is rebuilt only when the set of corrections in force changes.
+
+## [2026-11-28] fix | Farming and herding dates in Africa, the Americas and Southeast Asia
+
+A probe of the domesticates gate found farming and herding at the wrong times in several regions, from boxes that were too wide
+or claims that were missing. Fixed in `footstep-generator/food/` and `lib/domesticatesGate.json` regenerated:
+- Herds at Lake Chad (~3.8 ka), on the Middle Nile (Khartoum Neolithic, ~7 ka), in the West African Sahel (~4 ka) and at
+  Kintampo (~3.5 ka); goats in the Congo basin (~2 ka). Before this the gate gave none until 500 CE or later.
+- No farming at the Cape or in the Kalahari before Europeans (sorghum and millet stop at the Fish River and the Limpopo).
+- The Great Plains farmed from ~900 CE (Central Plains tradition), not the Archaic; Southwest and Eastern Woodlands boxes
+  narrowed to where maize was grown.
+- No farming or llamas on the Pampas or in Patagonia; Andean farming stops at the Sierras de Cordoba; the Amazon box no longer
+  reaches the Chaco. Potato in south-central Chile only west of the Andes (Mapuche).
+- Mainland Southeast Asia farmed from ~2500-2000 BCE (taro moved from 7 ka to match rice; Higham); rice in the Philippines at
+  ~4.2 ka, after Taiwan (~5 ka).
+Tested in `tests/test_food_gate.py`. `public/food/food.json` still uses the old boxes until it is rebuilt on budgie.

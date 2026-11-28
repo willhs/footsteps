@@ -117,6 +117,7 @@ the sun stands where the local sun clock puts it; the light's colour, haze, sky 
 | Sky | a CSS gradient behind the deck canvas (zenith → horizon colour at the horizon row): it shows wherever nothing is drawn, above the horizon and past the far plane | `lib/sky.ts` `skyBackdrop`, `views/DeckGLView.tsx` `backdrop` |
 | Tilt | 55° is 16.6° short of the horizon (deck.gl's 36.9° field of view), so the flag tilts on from zoom 10 to 74° by zoom 12 (`SKY_PITCH`); the horizon then sits ~7% below the top | `lib/close3d.ts` `pitchForZoom(zoom, sky)` |
 | Camera lift | deck.gl measures the camera from sea level; at 74° and zoom 13 it is ~2.2 km up, inside the Alps' drawn (×1.6) summits. The flag lifts the whole camera (`viewState.position[2]`) to the drawn ground height at the view centre, or more if the ground under the camera needs it, from one zoom-10 Terrarium tile; the elevation `TileLayer` gets the same height as `zRange` so it picks the foreground tiles | `hooks/useGroundLift.ts`, `lib/sky.ts` `cameraLift`, `Close3DLayer` `groundTop` |
+| Things on the ground | fields, trees, shelters (and `?plants=1` marks) take the same light and haze (`SkyTint`): their daylight colours times the light on flat ground now over noon's (`lib/sky.ts` `overlayTint`, 1 by day, moonlit blue at night), then the ground's distance haze. Before 2026-11-28 they stayed noon-bright over a night-dark ground and stood out unhazed at the horizon; the painted ground under grazed land (`land-paint`) takes the ground's own extensions | `layers/skyLight.ts` `SkyTint`, `Close3DLayer.ts` |
 | Water | wherever the mesh's cover layer says open water (sea, `?pastwater=1` lakes; `?ice=1` has no meltwater of its own, so water by the ice is sea or a past-water lake): two drifting noise layers as ripple normals (lattice ≥ 4 px so they do not shimmer), sky reflection by Fresnel, a specular glint toward the sun or moon, a lighter greener band in the shallows next to the shore, and a broken foam line where the layer crosses the shoreline (−0.75), pulsing with the shader clock | `layers/skyLight.ts` |
 | Sea with no bathymetry | Terrarium is exactly 0 m over some coastal seas (the Bay of Naples at zoom 12: SRTM's fill), which the default close-up draws as land. Lit meshes count an exact 0 m patch that reaches the tile edge as sea while the sea level is within 2 m of today's | `lib/close3d.ts` `tileWater(..., zeroIsSea)` |
 
@@ -244,6 +245,14 @@ drapes them per elevation tile, once per tile and patch set under the close-up's
 across, whose corners sit on the highest corner of the cell under them (so no piece dips under the ground) a few metres up; washes (grazed
 grass) are painted into the ground mesh's own vertex colours and drawn as a second copy of the ground, so they follow every fold.
 
+**How a patch looks close in** (2026-11-28, `FieldDetail` in `layers/groundDetail.ts`): each draped piece carries metres along and
+across its patch and to its far sides, and the patch's kind (`fieldsDrape.ts` `DrapedMesh`, `FIELD_KIND`; texCoords and the otherwise
+unused normals, since the shapes are lit flat). The fragment shader draws uneven growth and grain on every patch, crop rows ~2.2 m apart
+and strips 8-14 m wide on fields, weeds on fallow, tussocks on pasture, beds in gardens, a paler worn middle on tracks, and a grassy verge
+round the edge (never under about a pixel). Patterns finer than a few pixels fade out (`gFade`). With `?weather=1` the gusts run through
+crops and pasture and the cloud shadows fall on the fields as on the ground; with `?sky=1` they take the sky's light and haze (`SkyTint`).
+Before, every patch was one flat colour, which read as paper cut-outs from zoom 15 in. All imagined.
+
 **Cost.** Measured 2026-11-24 (production build, headed Chromium on Apple M5 Pro, 1440 × 900, pan and wheel for ~5 s,
 `CLOSE=lat,lon,year [QUERY=fields=1] HEADED=1 node footsteps-web/scripts/measure-view.mjs --serve <dir>`):
 
@@ -323,6 +332,13 @@ Shaded, alpha-tested camera-facing impostors start at zoom 11. `TreeLayer` loads
 
 The roots stand above the highest surrounding Terrarium mesh vertices, like dwellings, so steep coarse meshes cannot bury them. Height is metres, not a pixel minimum. Distance LOD has two parts. Per tile, `treeLodShare` uses the screen pixels a typical 20 m tree spans at the tile's point nearest the camera to draw every tree from 3+ pixels, a random-order prefix below that, and none under one pixel; the ground's biome colour stands in for the canopy there. In the shader, sprites fade out between one and four projected pixels, so the switch never pops. Tiles cache candidates by era and water/ice key. The prefix and the household clearings are applied on the GPU (`TreeLayer`: a per-tree rank, hidden above the share uniform; trees in a clearing get rank 2), so a tile's instance buffers are built once: before 2026-11-24 every camera move or new clearings list rebuilt them, about 3 s of CPU in a 4 s pan at zoom 12. The clearings are compared by content (`clearingsKey`), since the scene hands over a fresh list on most renders. Wind is a small vertex displacement on the shared animation clock (`still=1` freezes it). The note says “trees imagined”. `plants=1` still draws the old marks for comparison.
 
+**From above** (2026-11-28): below a 25° camera tilt (`TOPDOWN_BELOW_PITCH` in `layers/TreeLayer.ts`; the close-up's default bird's-eye view)
+a tree is drawn as its crown seen from overhead, not as the standing sprite, which from straight above lay on the map side-on like a lollipop.
+The crown is a disc a share of the tree's height across (conifer 0.2, broadleaf 0.34, palm 0.3, acacia 0.44, shrub 0.36, dead 0.22 radius),
+coloured from one texel of the sprite's own foliage (the kind is the atlas column), shaped in the fragment shader: soft lobes for broadleaf,
+shrub and acacia, a spikier rim for conifers, a star of fronds for palms, bare branches for dead trees; leaf clumps and light from the
+north-west. Tilted views (`?tilt=1`, `?sky=1`) keep the sprites.
+
 Height references are analogs, not a species map: [RHS Norway spruce](https://www.rhs.org.uk/plants/12899/picea-abies/details) reaches 30 m (chosen conifer 25 m); [RHS oak](https://www.rhs.org.uk/plants/14294/quercus-robur/details) 20–40 m (broadleaf 24 m); [FAO oil palm](https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=972) 18–30 m (palm 22 m); [FAO umbrella thorn](https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=2712) usually 4–15 m (acacia 10 m). Shrub 3 m is a deliberately smaller representative of woody scrub ([RHS hazel](https://www.rhs.org.uk/plants/hazel) is 4–8 m); dead 18 m assumes a broken mature stem. Every size varies by 0.7–1.3; no simulated species identification or seasonal date is claimed.
 
 Verification: from `footsteps-web`, set `FOOTSTEPS_DATA` to a root containing independent `data/tiles`, build, then run `node scripts/measure-view.mjs --trees <workspace-evidence-dir>`. It captures Alps -1000 z13/14/15, Congo 1000 z14, Sahel -3000 z14 and Canada 1800 z14 off/on/old plants, reads actual tree layer instances to check water/ice/household exclusions and records forced-render frame rates. The source records coordinates; no substitute data is fetched. Follow with `pnpm visual` and the flag sweep. Evidence and performance results live outside git in the job workspace.
@@ -346,6 +362,9 @@ the wind blows. The settlement note says so.
 - **Motion on the GPU** (`layers/SmokeLayer.ts`): a puff's only per-instance data is its seed (phase, wobble, size, strength) and the place's wind. The vertex shader turns the
   time uniform (`animClock`, frozen by `?still=1`) into a rise (90 m), a drift (up to 140 m with the wind), a widening and a fade, and builds the camera-facing sprite. No per-frame CPU work;
   the sun is read once every 5 s. The pool is a flat additive disc whose light is `1 - smoothstep(-0.12, 0.02, sun altitude)` at the hearth, flickering from three waves; by day its quad is sent outside the clip volume.
+- **Enlarged puffs keep their real amount of smoke** (2026-11-28): a puff drawn at its minimum on-screen size, larger than its real size, has its
+  alpha cut by the area ratio, so far out a village's hundreds of plumes add up to a faint haze, not the opaque white cushion they made over every
+  village at zoom 12-13 before. Day smoke is a thinner blue-grey, browner near the fire.
 - **Height**: the layers are drawn at z = 0, where the people's footprints are, above all the ground tiles. The brief asked for the ground height, but the close-up ground is raised
   by its height × 1.6 and the camera looks at sea level, so on high ground at close zoom the ground (and `?shelters=1` roofs) sit far up the screen from the people: at Madrid (1,076 m)
   at zoom 15 about 600 px. A hearth on the ground would be off-screen from its own people. (A layer inside a Close3D tile also cannot do it: the next tile's ground paints over it.)
@@ -358,3 +377,33 @@ Check it: `pnpm build && node scripts/smoke-shots.mjs --out <dir>` (real data; e
 
 Measured 2026-11-24, M5 Pro, headless Chrome on Metal, one run each, Madrid village zoom 15 and Rome zoom 14, 1000 CE (4,800 puffs, 1,200 pools at most): flag off 13.6 / 13.0 fps still and 25.6 / 27.2 panning; flag on 13.8 / 13.4 still and 27.2 / 29.3 panning. No measurable cost. Both are far under 45 fps, with the flag off as well: frames
 come at 133 ms steps (the close-up and the settlement scene dominate here, on a machine running other jobs), so the 45 fps aim could not be tested in this run; the cost, not the level, is the result. Repeat on a quiet machine.
+
+## People's footprints on the close-up ground (2026-11-28)
+
+In the close-up the footprints (PeopleLayer) and hearths (smoke) stand on the drawn 3D ground (`drawnGroundZ` in `lib/groundHeights.ts`: height × EXAGGERATION, cached, refreshed when tiles arrive), not at sea level. At sea level a tilted view slid them away from their huts, and the additive prints read as a cream "pancake" beside each village. The prints also shrink further out (`radiusScale` 0.35–1 below zoom 16), and when 3D dwellings are drawn the flat house icons in the people dots (`homes` uniform in MorphScatterplotLayer) are switched off so the village isn't drawn twice.
+
+## Snow line, crevasses and the far plain (2026-11-28)
+
+- **Snow line** (`lib/snowLine.ts`): each 0.5° climate cell's temperature is at the cell's mean height, now taken from one zoom-6 elevation tile (the tile holding the cell's centre). Each cell gets its own snow line (`snowLine`), and a point blends the four cells around it (sea cells drop out). Before, each ground tile used its own mean height, so the snow stopped in straight lines at tile edges (the Alps at zoom 9, 18,000 BCE) and a high tile bared its glaciers. Trees use the same line (`withSnowLine` in Close3DLayer), so none stand on glaciers. Check: Jungfrau cell (7.5–8°E, 46.5–47°N) at 1000 BCE is 5.5 °C over 1,202 m, so the line is near 3,000 m.
+- **Crevasses**: the ice's "net of cracks" (one noise isoline, 420 m scale) read as contour lines or rivers from zoom 11. Now crevasse fields on steeper ice: short slots along the contours, every ~20 m of height, gone before they're under a pixel apart.
+- **Fading by the pattern's own rate**: on a steep face seen head-on the horizontal metres per pixel (`gmpp`) are few while a pattern is packed tight, so fades keyed on `gmpp` let the ice streaks and the rock strata rule far faces like paper. They now fade by `fwidth` of their own coordinate. The slope per vertex is a five-vertex least-squares fit, because the upsampled elevation tiles step and a two-vertex slope flipped row to row.
+- **The plain beyond the 3D tiles**: under the close-up the flat era backdrop shows past the loaded ground. From a camera lifted over the Alps it stood as a dark slab against the hazy horizon. With `?sky=1` it now takes `SkyTint` too (from the close-up module, so it isn't in the first load).
+
+## The ground patterns' coordinate (2026-11-28)
+
+The ground and field detail shaders (`layers/groundDetail.ts`) draw their noise in metres. These used to be `lon x cos(lat) x 111 km` from Greenwich: a sinusoidal projection, which shears by (lon in radians) x sin(lat) away from 0°. At Beringia (168°W, 64°N) a metre north moved 2.6 m "east", so grass, canopy, sand, ice and cloud shadows were drawn as diagonal streaks. The Americas, East Asia and Australia were the same, but Rome and the Alps looked fine. The shaders now measure from `weather.origin` (`patternOrigin`): a whole degree near the view that moves only after the view travels 3° from it. That keeps the shear under ~0.05 and keeps float32 precision. The patterns re-roll once when the origin moves.
+
+## Far water and far clouds (2026-11-28)
+
+- **Glint** (`layers/skyLight.ts`): the ripple lattice is coarsened to stay over ~3 pixels, and far out the drawn ripples kept full steepness and a power-180 highlight. Each pixel then caught or missed a pin-point sparkle, so Lake Mega-Chad at zoom 9 looked like TV static. The ripples now flatten by the coarsening factor, and the lobe widens with it (normalised, so the energy is kept). Far water shows a broad, soft glitter. The water's metre coordinate uses the same nearby origin as the ground patterns.
+- **Cloud shadows** fade out from `gmpp` 20 to 60 (zoom ~10.5 to ~9; deck's 512-pixel tiles make `gmpp` about half the usual metres per pixel). Further out each cloud is a 5-20 pixel blotch: camouflage on white ice, blocky mottle on water.
+
+## Fixed daylight while Day/night is off (2026-11-28)
+
+The close-up's light used to follow the real clock even with Day/night shading off. So a viewer in the NZ evening saw Europe and Beringia at night, with dark ground, dark snow and glowing hearths, and took it for a rendering bug.
+
+With Day/night off, and no `?utc=`, `?warp=` or `?still=1` in the URL, the close-up is now lit by a fixed sun: 10:30 local sun time on midsummer day of the view's hemisphere (`lib/sky.ts` `fixedDaySun`). Hearth firelight is hidden under that light. Turning Day/night on brings back the live sun, along with night and the firelight.
+
+The ground slope fit (`lib/close3d.ts` `fitSlope`) now uses only the vertices inside the tile near its edges. Clamping to the edge vertex read the ground beyond the edge as flat.
+
+Seams that remain between tiles in tilted views come from deck.gl drawing farther tiles at a lower zoom, whose elevation tiles are coarser. The nearer, finer tiles also show the stair-steps of the upsampled elevation data as chevrons on smooth snow.

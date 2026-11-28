@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { drawnGroundZ, groundVersion, subscribeGround } from '@/lib/groundHeights';
 import type { LayersList } from '@deck.gl/core';
 import { blendCities, type AllocatedCity } from '@/lib/settlements';
 import type { DwellingTable } from '@/lib/dwellings';
@@ -66,6 +67,8 @@ export default function useGridLayer({
   households = false,
   routineEpoch = null,
   dwellings = null,
+  homes3d = false,
+  onGround = false,
   fields = false,
   smoke = false,
   setFeatureCount,
@@ -87,6 +90,11 @@ export default function useGridLayer({
   routineEpoch?: number | null;
   /** `?shelters=1`: the dwelling table; the dwellings in view are returned as `shelters` (layers/shelters.ts). Null: none. */
   dwellings?: DwellingTable | null;
+  /** The close-up draws 3D dwellings (`?shelters=1`): the households' flat house icons are left out, so the two are not drawn on top
+   * of each other (the icons, blended additively, made a cream pancake of every village at zoom 12-14). */
+  homes3d?: boolean;
+  /** The close-up 3D ground is drawn: people stand on its drawn height (lib/groundHeights.ts drawnGroundZ), where the dwellings and fields are. */
+  onGround?: boolean;
   /** `?fields=1`: return the groups in view as `inView` for the land round them (layers/fields.ts). */
   fields?: boolean;
   /** `?smoke=1`: the hearths in view are returned as `hearths` (lib/hearths.ts). */
@@ -392,14 +400,24 @@ export default function useGridLayer({
   // Three layers share the people; only their opacity follows the year fraction, so
   // scrubbing changes uniforms and never rebuilds them. A group's people at both
   // years stay put; the ones that leave or arrive fade out or in.
+  const groundVer = useSyncExternalStore(subscribeGround, groundVersion, groundVersion);
   const peopleLayers = useMemo(
     () =>
       people
         ? (['steady', 'leaving', 'entering'] as const).map(
-            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch) }),
+            (part) => {
+              const routine = routineProps(routineEpoch);
+              return new PeopleLayer({
+                id: part === 'steady' ? 'people' : `people-${part}`,
+                data: footprintData(people[part]),
+                ...routine,
+                ...(onGround ? { getPosition: (p: unknown) => { const [lon, lat] = (p as Person).position; return [lon, lat, drawnGroundZ(lon, lat)]; } } : {}),
+                updateTriggers: { ...routine.updateTriggers, getPosition: onGround ? groundVer : 0 },
+              });
+            },
           )
         : [],
-    [people, routineEpoch],
+    [people, routineEpoch, onGround, groundVer],
   );
   const cityLayers = useMemo(() => {
     const cities = (unitsContinuous && morphScene
@@ -422,12 +440,16 @@ export default function useGridLayer({
                 pickable,
                 settle: blend.settle,
                 halo: blend.halo,
+                homes: homes3d ? 0 : 1,
                 visible: units > 0 && blend.people < 1,
               }),
             ]
           : []),
         ...peopleLayers.map((layer, part) =>
           layer.clone({
+            // Prints are drawn in pixels (7.5 px for an adult): full size from zoom 16, smaller further out, so a village's hundreds of
+            // people do not merge into one pale patch at zoom 12-14 (before 2026-11-28 they kept 7.5 px down to zoom 11.5).
+            radiusScale: Math.min(1, Math.max(0.35, 2 ** ((view.zoom - 16) * 0.6))),
             opacity: blend.people * (part === 0 ? 1 : part === 1 ? 1 - morphProgress : morphProgress),
             visible: blend.people > 0 && (part === 0 || (part === 1 ? morphProgress < 1 : morphProgress > 0)),
           }),
@@ -449,6 +471,7 @@ export default function useGridLayer({
               progress: modeChanged ? 1 : eased,
               minPx,
               brightness,
+              homes: homes3d ? 0 : 1,
               pickable: pickable && frame?.opacity === 1,
               visible: !!frame && !superseded && units > 0,
             }
@@ -474,6 +497,7 @@ export default function useGridLayer({
     minPx,
     brightness,
     pickable,
+    homes3d,
   ]);
   // What the view is waiting on: zoomed in, the unit morph for the visible region.
   const unitsWaiting =

@@ -52,7 +52,8 @@ import useGroundLift from './hooks/useGroundLift';
 import { epochHour, routineParam } from '@/lib/routine';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
-import { sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
+import { fixedDaySun, sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
+import { solarClockSet } from '@/lib/solarClock';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
@@ -244,7 +245,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // One light for the view, from its centre (rounded to 0.1°, so panning does not rebuild it every frame).
   const lightLon = Math.round(viewState.longitude * 10) / 10;
   const lightLat = Math.round(viewState.latitude * 10) / 10;
-  const light = useMemo(() => (skyOn && close3d ? sceneLight(lightLon, lightLat, now.getTime()) : null), [skyOn, close3d, lightLon, lightLat, now]);
+  // The close-up follows the sun clock only when Day/night is on (or the URL sets a time); otherwise it is lit by fixed daylight.
+  const liveSun = nightOn || solarClockSet();
+  const light = useMemo(
+    () => (skyOn && close3d ? sceneLight(lightLon, lightLat, liveSun ? now.getTime() : fixedDaySun(lightLon, lightLat)) : null),
+    [skyOn, close3d, lightLon, lightLat, now, liveSun],
+  );
 
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
   // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
@@ -254,7 +260,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const shadedBackground = useMemo(() => {
     const nightSun = nightOn ? sunPosition(now) : null;
     const props = { extensions: [NIGHT], nightSun };
-    return backgroundLayers.map(layer => layer.clone((light && layer.id === 'close3d' ? { ...props, light, groundTop: lift } : props) as typeof props));
+    return backgroundLayers.map((layer) => {
+      if (light && layer.id === 'close3d') return layer.clone({ ...props, light, groundTop: lift } as typeof props);
+      // Keep a layer's own extensions (the flat backdrop's SkyTint under the close-up) beside the night shading, and give it the light.
+      const own = (layer.props.extensions ?? []).filter((e) => e !== NIGHT);
+      return layer.clone({ ...props, extensions: [NIGHT, ...own], ...(light && own.length ? { skyLight: light } : {}) } as typeof props);
+    });
   }, [backgroundLayers, nightOn, now, light, lift]);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
@@ -342,6 +353,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     households: settlements,
     routineEpoch,
     dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
+    homes3d: sheltersOn && settlements && close3d && !!dwellings,
+    onGround: close3d,
     fields: fieldsOn && settlements && close3d,
     smoke: smokeOn && settlements,
     setFeatureCount,
@@ -351,7 +364,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
-  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)) });
+  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)), onGround: close3d, firelight: liveSun });
 
   // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
   // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.

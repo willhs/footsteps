@@ -197,6 +197,8 @@ export type Ground = {
   precipAt: (lon: number, lat: number) => number | null;
   /** The same ground coloured with a colour-pyramid tile's detail (lib/terrainDetail.ts); absent when tiles are off. */
   withDetail?: (tile: DetailPixels) => Ground;
+  /** Snow line (m) at a point, smooth across tiles and cells (lib/snowLine.ts). Absent: the cell's temperature over the tile's mean height. */
+  snowLineAt?: (lon: number, lat: number) => number;
 };
 
 /** Sun direction for the baked hillshade: from the north-west, 45° up (unit vector). */
@@ -260,7 +262,12 @@ function mixIn(c: Rgb, b: Rgb, t: number): Rgb {
 
 /** 0..1 share of snow at height `h` (m): fully snowy 250 m above the snow line. */
 function snowMix(h: number, lon: number, lat: number, ground: Ground, base: number): number {
-  return clamp01((h - snowLine(ground.tempAt(lon, lat), lat, base)) / 250);
+  return clamp01((h - snowLineOf(lon, lat, ground, base)) / 250);
+}
+
+/** The snow line at a point: the ground's smooth one when it has it, else the cell's temperature over `base`. */
+function snowLineOf(lon: number, lat: number, ground: Ground, base: number): number {
+  return ground.snowLineAt ? ground.snowLineAt(lon, lat) : snowLine(ground.tempAt(lon, lat), lat, base);
 }
 
 /** What the fragment shader paints on a point of ground (`?ground=1`), as the two numbers a vertex
@@ -436,6 +443,20 @@ export type TerrainMesh = {
   texCoords?: Float32Array;
 };
 
+/** Least-squares slope (height per grid step) through the vertices within `reach` of index `c` that lie in 0..n-1. */
+export function fitSlope(c: number, n: number, reach: number, at: (k: number) => number): number {
+  const lo = Math.max(0, c - reach);
+  const hi = Math.min(n - 1, c + reach);
+  const mid = (lo + hi) / 2;
+  let num = 0;
+  let den = 0;
+  for (let k = lo; k <= hi; k++) {
+    num += (k - mid) * at(k);
+    den += (k - mid) * (k - mid);
+  }
+  return den > 0 ? num / den : 0;
+}
+
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
  * also carries its Cover for the ground shader, and the coarse per-vertex mottling is left out when `paints` (default: with `cover`) says the shader
@@ -483,8 +504,15 @@ export function buildTerrainMesh(
       // The level water stands at here: past water's own level at and beside it, else the year's sea.
       const level = nearLake && !Number.isNaN(nearLake[v]) ? nearLake[v] : sea;
       // Slope from neighbours, in metres per metre, on the drawn surface.
-      const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j)) / (2 * dxM);
-      const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1)) / (2 * dyM); // +y is north
+      // A least-squares line through five vertices, not two: the elevation tiles are upsampled from coarser data in steps, and a
+      // two-vertex slope flips from row to row on them, which the ground shader's rock (steep ground) drew as fine hatching.
+      // On ground that is under today's sea (an exposed Ice Age shelf), the heights are bathymetry, streaked by ship tracks a vertex or
+      // two wide; a nine-vertex fit there shades the shelf, not the survey lines.
+      // Near a tile edge the fit uses only the vertices inside the tile (one-sided). Clamping to the edge vertex instead read the ground
+      // past the edge as flat, so edge rows were shaded flatter than their neighbours across the edge: a lit line along every tile edge.
+      const reach = h < 0 && !wet ? 4 : 2;
+      const hx = fitSlope(i, n, reach, (x) => surfaceAt(x, j)) / dxM;
+      const hy = -fitSlope(j, n, reach, (y) => surfaceAt(i, y)) / dyM; // +y is north; rows run south
       const lon = west + ((east - west) * i) / (n - 1);
       const lat = north - ((north - south) * j) / (n - 1);
       positions[v * 3] = lon - west;
@@ -590,7 +618,7 @@ export function plantsForTile(
     const lat = bbox.north - (bbox.north - bbox.south) * w;
     const veg = VEGETATION[ground.biomeAt(lon, lat)];
     if (!veg || keep > veg.density) continue;
-    if (h > snowLine(ground.tempAt(lon, lat), lat, base) - 300) continue;
+    if (h > snowLineOf(lon, lat, ground, base) - 300) continue;
     const kind: TreeKind = veg.kind === 'mixed' ? (hash2(seed, i + 7919) < 0.5 ? 'conifer' : 'broadleaf') : veg.kind;
     const shade = 0.85 + 0.3 * hash2(i, seed);
     out.push({

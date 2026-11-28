@@ -293,7 +293,11 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   const span = shown.y1 - shown.y0;
   const f = span > 0 ? Math.min(1, Math.max(0, (clampTime(time) - shown.y0) / span)) : 0;
 
+  // Under the close-up with `?sky=1` the flat backdrop shows beyond the 3D tiles: it hazes into the sky like the ground (the page passes
+  // `skyLight`; without it the extension does nothing).
+  const backdropSky = close3d && close3dModule ? { extensions: [close3dModule.SKY_TINT] } : {};
   const common = {
+    ...backdropSky,
     bounds: [-180, -90, 180, 90] as [number, number, number, number],
     _imageCoordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     pickable: false,

@@ -84,3 +84,8 @@ Green Sahara note, all from `lib/biomeNotes.ts`.
 HYDE crowds city-like numbers into cells long before any city stood there (central Mexico glowed at 3000 BCE). A cell is now
 drawn as a city only from its region's first towns (`lib/firstCities.ts`, 18 regions, 1500 CE elsewhere); before that it is a
 dense farming village, and the hover card's density says village too.
+
+## [2026-11-28] fix | More islands left empty before their first settlers
+
+`lib/firstSettlement.ts` now also covers the Marianas (~1500 BCE), Vanuatu, New Caledonia, Fiji, Tonga and Samoa (Lapita, kept
+from HYDE's -1000), Madeira (1420), Cape Verde (1462), Bermuda (1612), St Helena (1659) and the Seychelles (1770).

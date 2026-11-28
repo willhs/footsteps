@@ -27,6 +27,17 @@ export const FIRST_SETTLEMENTS: readonly FirstSettlement[] = [
   { name: 'Greater Antilles', box: [-85, -60, 17.5, 24], year: -3800, source: 'First settlement ~5.8 ka BP (the arrival table\'s Caribbean central; Napolitano et al. 2019, Sci Adv 5:eaar7806).' },
   { name: 'Bahamas', box: [-79.3, -72, 21, 27.5], year: 700, source: 'Lucayan settlement from ~700 CE (Berman & Gnivecki 1995).' },
   { name: 'Lesser Antilles', box: [-63, -59, 12.8, 17.5], year: -3800, source: 'Archaic settlers from ~5 ka BP at the earliest; held to the Caribbean date so no real occupation is cut.' },
+  { name: 'Mariana Islands', box: [144.5, 146.2, 13, 21], year: -1500, source: 'First settlement ~3,500 years ago, the earliest crossing into Remote Oceania (Carson et al. 2013, J Isl Coast Archaeol 8:17; Carson 2014).' },
+  { name: 'Vanuatu', box: [166, 171, -21, -13], year: -1000, source: 'Lapita settlers ~3,000 years ago (Teouma; Bedford, Spriggs & Regenvanu 2006, Antiquity 80:812).' },
+  { name: 'New Caledonia', box: [163, 169, -23, -19.5], year: -1000, source: 'Lapita settlers ~3,000 years ago (Sand 2010, Lapita calédonien); held to the Vanuatu date.' },
+  { name: 'Fiji (west of 180°)', box: [176.8, 180, -21, -15.5], year: -1000, source: 'Lapita settlement ~2,900-2,800 BP; held at HYDE\'s -1000 so no real occupation is cut (Burley, Weisler & Zhao 2012, PLoS ONE 7:e48769).' },
+  { name: 'Fiji (east of 180°) and Tonga', box: [-180, -173.5, -22.5, -15.5], year: -1000, source: 'Tonga settled 2838±8 BP by U/Th on coral files (Burley, Weisler & Zhao 2012, PLoS ONE 7:e48769); held at HYDE\'s -1000.' },
+  { name: 'Samoa', box: [-173, -168, -15, -13], year: -1000, source: 'Lapita at Mulifanua ~2,800 BP, the only Lapita site in Samoa (Petchey 2001); held at HYDE\'s -1000.' },
+  { name: 'Madeira', box: [-17.4, -16.2, 32.3, 33.2], year: 1420, source: 'Uninhabited until Portuguese settlement from 1420 (Zarco and Teixeira).' },
+  { name: 'Cape Verde', box: [-25.5, -22.5, 14.7, 17.3], year: 1462, source: 'Uninhabited until Portuguese settlement at Ribeira Grande, 1462.' },
+  { name: 'Bermuda', box: [-65, -64.5, 32.2, 32.5], year: 1612, source: 'Uninhabited until the Virginia Company\'s settlers of 1612 (wrecked there in 1609).' },
+  { name: 'St Helena', box: [-6, -5.5, -16.2, -15.8], year: 1659, source: 'Found uninhabited by the Portuguese in 1502; settled by the East India Company in 1659.' },
+  { name: 'Seychelles', box: [55, 56.5, -5, -4], year: 1770, source: 'Uninhabited until French settlers on Ste Anne, 1770.' },
 ];
 
 /** Places people left for a while: the ice-age north of Europe. The pre-HYDE model (prehistory_population.py) thins west

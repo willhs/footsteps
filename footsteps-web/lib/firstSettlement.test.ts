@@ -9,6 +9,13 @@ describe('firstSettlement', () => {
     expect(unsettledAt(-155.5, 19.6, 1200)).toBeNull();
     expect(unsettledAt(47, -19, 0)?.name).toBe('Madagascar and Comoros');
     expect(unsettledAt(-77, 21.5, -5000)?.name).toBe('Greater Antilles');
+    expect(unsettledAt(178, -17.8, -2000)?.name).toMatch(/Fiji/);
+    expect(unsettledAt(178, -17.8, -1000)).toBeNull();
+    expect(unsettledAt(-175.2, -21.1, -2000)?.name).toMatch(/Tonga/);
+    expect(unsettledAt(168.3, -17.7, -3000)?.name).toBe('Vanuatu');
+    expect(unsettledAt(144.8, 13.4, -2000)?.name).toBe('Mariana Islands');
+    expect(unsettledAt(-16.9, 32.65, 1400)?.name).toBe('Madeira');
+    expect(unsettledAt(-16.9, 32.65, 1500)).toBeNull();
   });
 
   it('never touches a mainland coast', () => {
@@ -22,6 +29,10 @@ describe('firstSettlement', () => {
       ['Tierra del Fuego', -68, -54.5],
       ['Ecuador coast', -80.5, -1],
       ['Norway, North Cape', 25.8, 71.1],
+      ['Morocco, Essaouira', -9.77, 31.5],
+      ['Senegal, Dakar', -17.45, 14.7],
+      ['New Guinea, Port Moresby', 147.2, -9.4],
+      ['Solomons, Guadalcanal', 160, -9.5],
     ];
     for (const [name, lon, lat] of mainland) expect([name, unsettledAt(lon, lat, -10000)]).toEqual([name, null]);
   });
@@ -32,7 +43,7 @@ describe('firstSettlement', () => {
       expect(s.box[2]).toBeLessThan(s.box[3]);
       expect(s.source.length).toBeGreaterThan(20);
     }
-    expect(LAST_FIRST_SETTLEMENT).toBe(1764);
+    expect(LAST_FIRST_SETTLEMENT).toBe(1770);
   });
 
   it('leaves Britain and the north European plain empty at the glacial maximum, not before or after', () => {

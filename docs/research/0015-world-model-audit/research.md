@@ -37,6 +37,9 @@ Cause: HYDE allocates each modern country's estimated people over its land at ev
 
 **Fixed**: `footsteps-web/lib/firstSettlement.ts`, a table of tight island boxes with a cited first-settlement year;
 `gridDataFrom` leaves those cells empty before it (Units, Grid and the firelight; Dots is static and unchanged).
+A second pass added islands not counted above, from their settlement dates alone (emptying a box HYDE already leaves empty
+changes nothing): the Marianas (~1500 BCE), Vanuatu, New Caledonia, Fiji, Tonga and Samoa (Lapita, held at HYDE's -1000),
+Madeira (1420), Cape Verde (1462), Bermuda (1612), St Helena (1659) and the Seychelles (1770).
 
 ## 2. Way of life read from land use where nothing was domesticated
 
@@ -107,10 +110,10 @@ Populated cells by class under the old rules (crop ≥ 2% farmer; grazing ≥ 10
 ## 5. Found, not fixed (from the image counts)
 
 - **Missing land**: the Azores and East Polynesia (Tahiti) have no populated cells even in 1900. HYDE's country table or
-  land mask misses them; fixing needs the raw HYDE files.
+  land mask misses them; fixing needs the raw HYDE files. Since filled with rough cited counts (`lib/missingIslands.ts`).
 - **Greenland** is empty in 800 CE (Dorset people lived there until ~1300) and has ~1.3-1.5k people from 1000 to 1700.
 - **Australia** is flat at ~257-264k from 10,000 BCE to 1700 CE. Recent estimates for 1788 run ~0.75-1.2 M (Williams
   2013); HYDE's figure is low and has no change through the Holocene. Not obviously wrong enough to override.
 - **Reindeer** are not in the food table, so Arctic reindeer herders (Sámi, Nenets, Chukchi; large-scale herding from
-  ~1700) read as foragers.
+  ~1700) read as foragers. Since added, dated (`food/animals.py`), and counted in the herding gate.
 - **Fiji-Samoa** has 11k people in 1000 BCE: Lapita reached Fiji ~1000 BCE, so this is about right.

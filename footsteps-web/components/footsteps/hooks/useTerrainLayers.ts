@@ -51,9 +51,20 @@ function iceBitmap(m: IceMask): Promise<ImageBitmap> {
   }
   return p;
 }
-// Once one past-water Earth image is missing (not published on this server), the rest are assumed missing too: one 404 a session, not one a year.
-let pastWaterTerrainMissing = false;
-const terrainUrl = (year: number) => (pastWaterOn() && !pastWaterTerrainMissing && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
+// The past-water Earth images may not be published on this server. The first one asked for answers for all of them, and the
+// rest wait on it: one 404 a session at most, not one a year (several years load at once). A missing one falls back to the
+// ordinary image, so the terrain never goes blank for the flag.
+const plainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
+let pastWaterPublished: Promise<boolean> | null = null;
+function fetchTerrain(year: number): Promise<Response> {
+  if (!pastWaterOn() || !pastWaterTerrainYear(year)) return fetch(plainUrl(year));
+  const url = `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}`;
+  const orPlain = (r: Response) => (r.ok ? r : fetch(plainUrl(year)));
+  if (pastWaterPublished) return pastWaterPublished.then((ok) => (ok ? fetch(url).then(orPlain) : fetch(plainUrl(year))));
+  const first = fetch(url);
+  pastWaterPublished = first.then((r) => r.ok, () => false);
+  return first.then(orPlain);
+}
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
 const TINT = TERRAIN_TINT;
@@ -66,13 +77,7 @@ const loading = new Map<number, Promise<ImageBitmap>>();
 function loadTerrain(year: number): Promise<ImageBitmap> {
   let p = loading.get(year);
   if (!p) {
-    // A past-water image that is not deployed falls back to the ordinary one: the terrain must never go blank for a flag.
-    p = fetch(terrainUrl(year))
-      .then((r) => {
-        if (r.ok || !r.url.includes('/pastwater/')) return r;
-        pastWaterTerrainMissing = true;
-        return fetch(`/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
-      })
+    p = fetchTerrain(year)
       .then((r) => {
         if (!r.ok) throw new Error(`terrain ${year}: HTTP ${r.status}`);
         return r.blob();

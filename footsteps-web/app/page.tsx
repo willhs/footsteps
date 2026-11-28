@@ -25,6 +25,9 @@ if (typeof window !== 'undefined') warmOpeningYears();
 
 export default function Home() {
   const [time, setTime] = useState(DEFAULT_TIME);
+  // The map mounts once the URL's year is read: mounted at DEFAULT_TIME first, a `?year=` link decoded the default years in the
+  // worker too (settlement model and all) and its own years waited behind them.
+  const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState<[number, number] | null>(null);
   // ?bar=old shows the previous two-strip navigator for comparison (remove after one round).
   const [oldBar, setOldBar] = useState(false);
@@ -33,6 +36,7 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const y = Number(params.get('year') ?? NaN);
     if (Number.isFinite(y)) setTime(clampTime(y));
+    setStarted(true);
     setOldBar(params.get('bar') === 'old');
   }, []);
 
@@ -41,7 +45,7 @@ export default function Home() {
     // data-loading: the time bar's loading flag as an attribute, for the visual regression run to wait on (docs/ops/visual-regression.md).
     <main className="relative w-full h-full overflow-hidden bg-black" data-loading={loading ? 'true' : 'false'}>
       <ErrorBoundary>
-        <FootstepsViz time={time} onLoadingChange={setLoading} />
+        {started && <FootstepsViz time={time} onLoadingChange={setLoading} />}
       </ErrorBoundary>
       <Bar time={time} onChange={setTime} loading={loading} />
     </main>

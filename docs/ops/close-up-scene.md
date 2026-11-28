@@ -278,6 +278,17 @@ from the primary checkout; `--scene id,year,lat,lon,zoom` adds one, `--query` ad
   itself is not drawn, flag on or off (`?ground=1` shows no surface there either), so nothing is draped there.
 - Fields are not drawn on the flat map (`?close3d=0`) or on the globe.
 
+### By era and region (2026-11-28)
+
+- **Which crop leads**: `cropsAround` (lib/food.ts) orders a cell's crops by how long they had been grown there (earliest era first),
+  side crops (squash, beans, pulses, soybean, sugarcane) last. In table order Old World crops led wherever they had reached: central
+  Mexico at 1600 farmed wheat and barley before maize.
+- **No pasture without grazing animals**: `herdsAround` says whether any sheep, goat, cattle, horse, donkey, camel, llama or buffalo had
+  reached the 5° cell; where none had (the pre-Columbian Americas outside the Andes, Oceania), the pasture share is fallow instead.
+- **Swidden**: in the tropics, where a root or tree crop (cassava, yam, taro, banana, sweet potato) leads, a village's land is scattered
+  round clearings cut from the forest, a third going back to bush, not 150 m strip blocks (Conklin 1957). Not where rice (paddies) or
+  potato (tropical highlands, a stand-in for elevation the 5° list cannot see) is grown.
+
 ## People and animals (`?figures=1`)
 
 Opt-in until reviewed on production. At the zoom where individual footprints appear, the newest of each person's three prints becomes a small upright silhouette; the two older prints remain its trail. Adults and children differ in size. With `?routine=1`, asleep people lie down, resting people sit, and walkers carry a staff/tool or a load according to their existing `DayPlan`. Without routine, the existing walking/rest rhythm continues. Shapes, poses, equipment and positions are imagined. `footprintData`, person ids, `describePerson`, year-morph opacity, and other-human picking keep their existing contract. No second routine scheduler is introduced.
@@ -345,3 +356,7 @@ Check it: `pnpm build && node scripts/smoke-shots.mjs --out <dir>` (real data; e
 
 Measured 2026-11-24, M5 Pro, headless Chrome on Metal, one run each, Madrid village zoom 15 and Rome zoom 14, 1000 CE (4,800 puffs, 1,200 pools at most): flag off 13.6 / 13.0 fps still and 25.6 / 27.2 panning; flag on 13.8 / 13.4 still and 27.2 / 29.3 panning. No measurable cost. Both are far under 45 fps, with the flag off as well: frames
 come at 133 ms steps (the close-up and the settlement scene dominate here, on a machine running other jobs), so the 45 fps aim could not be tested in this run; the cost, not the level, is the result. Repeat on a quiet machine.
+
+**Oil lamps in the Arctic (2026-11-28).** Foragers' households in the Inuit range where snow houses stood (`SNOW_HOUSES`, from 500 BCE)
+north of 62°N burned seal oil in a soapstone lamp, not wood (Hough 1898): `lampsAt` gives them a small glow at night and no plume.
+

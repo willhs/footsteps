@@ -47,7 +47,24 @@ export type LandContext = {
   season: Season;
   /** Crop ids around a place at the year (lib/food.ts `cropsAround`); empty when unknown. */
   crops: (lon: number, lat: number) => readonly string[];
+  /** Whether grazing animals had reached a place (lib/food.ts `herdsAround`); unset means unknown, and pasture is drawn as before. */
+  herds?: (lon: number, lat: number) => boolean;
 };
+
+/** Staples of shifting (swidden) cultivation: where one of these leads a tropical place's crops, a village's land is scattered
+ * clearings cut from the forest and left to regrow, not blocks of strip fields (Conklin 1957, Hanunóo Agriculture, FAO). */
+export const SWIDDEN_STAPLES = new Set(['cassava', 'yam', 'taro', 'banana', 'sweet_potato']);
+/** Latitude (either side) within which a root-crop staple means swidden. */
+export const SWIDDEN_MAX_LAT = 23.5;
+/** Crops that mean permanent fields even where a root crop leads the 5° list: wet rice (paddies: Java's sawah, Luzon) and, in the
+ * tropics, the potato, which grows only in the highlands (the Andes' terraces and potato fields, not the Amazon's clearings in the same
+ * 5° cell). The 5° crop list cannot see elevation, so this is a stand-in. */
+const PERMANENT_FIELDS = ['rice', 'potato'];
+export function isSwidden(crops: readonly string[], lat: number): boolean {
+  return Math.abs(lat) <= SWIDDEN_MAX_LAT && crops.length > 0 && SWIDDEN_STAPLES.has(crops[0]) && !PERMANENT_FIELDS.some((c) => crops.includes(c));
+}
+/** A swidden clearing's radius, metres (imagined, about 0.3-1 ha). */
+const CLEARING_M: [number, number] = [30, 55];
 
 /** Farmed radius, metres (Chisholm 1962; see the header): no field lies further out. Intensity falls off as 1 - (d / R)². */
 export const FARM_RADIUS_M = 2000;
@@ -205,10 +222,13 @@ function farmland(
 ) {
   if (area <= 0) return;
   const { seed } = site;
+  const crops0 = ctx.crops(site.lon, site.lat);
+  if (isSwidden(crops0, site.lat)) return clearings(out, site, area, inner, outerMax, others, crops0, grow);
+  const pastured = ctx.herds ? ctx.herds(site.lon, site.lat) : true;
   const theta = hash(seed, 1) * Math.PI;
   const [cos, sin] = [Math.cos(theta), Math.sin(theta)];
   const shift = [hash(seed, 2) * BLOCK_M, hash(seed, 3) * BLOCK_M];
-  const crops = ctx.crops(site.lon, site.lat);
+  const crops = crops0;
   const lonPerM = 1 / mPerDegLon(site.lat);
   const latPerM = 1 / M_PER_DEG_LAT;
   const outer = Math.min(outerMax, Math.max(inner + 2 * BLOCK_M, Math.sqrt(inner * inner + area / (Math.PI * FARM_FILL))));
@@ -259,6 +279,7 @@ function farmland(
         const roll = lo16(hs);
         const k = 0.92 + 0.16 * hi16(hs);
         if (roll < FALLOW_SHARE) out.push({ kind: 'fallow', corners, rgb: shade(grow ? LOOKS.fallow.grow : LOOKS.fallow.rest, k), wash: false });
+        else if (roll < FALLOW_SHARE + PASTURE_SHARE && !pastured) out.push({ kind: 'fallow', corners, rgb: shade(grow ? LOOKS.fallow.grow : LOOKS.fallow.rest, k), wash: false });
         else if (roll < FALLOW_SHARE + PASTURE_SHARE) out.push({ kind: 'pasture', corners, rgb: shade(grow ? LOOKS.pasture.grow : LOOKS.pasture.rest, k), wash: false });
         else {
           // The first crops listed are the region's staples: favour them.
@@ -268,6 +289,31 @@ function farmland(
         }
       }
     }
+  }
+}
+
+/** Swidden: about `area` m² of round clearings scattered through the ring from `inner` to `outerMax` (no strips, no pasture). A third of
+ * them are last years' clearings going back to bush (fallow); the rest are planted with the staples. Imagined layout. */
+function clearings(
+  out: LandPatch[], site: Site, area: number, inner: number, outerMax: number, others: readonly [number, number][], crops: readonly string[], grow: boolean,
+) {
+  const mean = ((CLEARING_M[0] + CLEARING_M[1]) / 2) ** 2 * Math.PI;
+  const n = Math.min(80, Math.max(1, Math.round(area / (mean * (1 - FALLOW_SHARE)))));
+  const outer = Math.min(outerMax, Math.max(inner + 300, Math.sqrt(inner * inner + (n * mean * 4) / Math.PI)));
+  let left = n;
+  for (let k = 0; k < n * 3 && left > 0; k++) {
+    const placed = out.length;
+    const r = Math.sqrt(inner * inner + hash(site.seed, k, 81) * (outer * outer - inner * inner));
+    const a = hash(site.seed, k, 82) * Math.PI * 2;
+    const [x, y] = [Math.cos(a) * r, Math.sin(a) * r];
+    if (!ownsPoint(x, y, others)) continue;
+    const radius = CLEARING_M[0] + (CLEARING_M[1] - CLEARING_M[0]) * hash(site.seed, k, 83);
+    const fallow = hash(site.seed, k, 84) < 0.33;
+    const pick = crops[Math.floor(hash(site.seed, k, 85) ** 1.7 * crops.length)];
+    const look = fallow ? LOOKS.fallow : CROP_LOOK[pick] ?? GENERIC;
+    const centre: Site = { ...site, ...lonLat(offsetByMetres(site.lon, site.lat, x, y)), seed: hash32(site.seed, k, 86) };
+    disk(out, centre, fallow ? 'fallow' : 'field', shade(grow ? look.grow : look.rest, 0.92 + 0.16 * hash(site.seed, k, 87)), false, 0, radius, 10, 0.25, 88);
+    if (out.length > placed) left--;
   }
 }
 
@@ -370,14 +416,15 @@ export function landPatches(groups: readonly LandGroup[], towns: readonly LandTo
     const joins = near[i].slice(0, 2).filter((n, rank) => n.d <= (rank === 0 ? NEIGHBOUR_PATH_M : NEIGHBOUR_PATH_M * 0.6) && site.seed < sites[n.index].seed);
     const crops = ctx.crops(site.lon, site.lat);
     const water = g ? g.water : town!.water;
+    const herds = ctx.herds ? ctx.herds(site.lon, site.lat) : true;
     const key = [
       site.seed, site.kind, g ? `${Math.round(g.people)}/${g.crop.toFixed(4)}/${g.grazing.toFixed(3)}/${g.cellShare.toFixed(4)}` : `${Math.round(town!.people)}/${town!.crop.toFixed(4)}/${town!.cellShare.toFixed(4)}`,
-      water ? `${Math.round(water.metres)}/${water.dir?.map((v) => v.toFixed(3)).join(',')}` : '-', ctx.season, crops.join(','),
+      water ? `${Math.round(water.metres)}/${water.dir?.map((v) => v.toFixed(3)).join(',')}` : '-', ctx.season, crops.join(','), herds,
       claimants.map((n) => sites[n.index].seed).join(','), joins.map((n) => sites[n.index].seed).join(','),
     ].join('|');
     let mine = cache.get(key);
     if (!mine) {
-      mine = siteLand(site, g, town, claimants, joins, sites, { ...ctx, crops: () => crops });
+      mine = siteLand(site, g, town, claimants, joins, sites, { ...ctx, crops: () => crops, herds: () => herds });
       cache.set(key, mine);
     }
     for (const p of mine) out.push(p);

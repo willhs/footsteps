@@ -131,3 +131,19 @@ describe('zoom fade', () => {
     expect(mid).toBeLessThan(1);
   });
 });
+
+describe('oil lamps in the Inuit Arctic', () => {
+  const iglulik = { lon: -84, lat: 69.4, kind: UnitKind.Band, people: 30, society: 0 };
+  it('lights treeless Arctic households with a lamp: a glow, no plume', () => {
+    const hearths = hearthsForView([iglulik], [], 1800);
+    expect(hearths.length).toBeGreaterThan(0);
+    expect(hearths.every((h) => h.kind === 'lamp')).toBe(true);
+    expect(puffsOf({ ...hearths[0], z: 0 })).toEqual([]);
+    expect(poolRadiusOf(hearths[0])).toBeGreaterThan(0);
+  });
+  it('keeps wood fires in the forest south of the tree line, before Dorset times, and outside the Inuit range', () => {
+    expect(hearthsForView([{ ...iglulik, lat: 56 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
+    expect(hearthsForView([iglulik], [], -3000).every((h) => h.kind === 'camp')).toBe(true);
+    expect(hearthsForView([{ ...iglulik, lon: 130 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
+  });
+});

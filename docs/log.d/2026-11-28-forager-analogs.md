@@ -4,3 +4,5 @@ Mesolithic Britain no longer draws Inuit snow houses, nor the Natufian Levant Co
 analog is over 1,000 km away take the year's climate-matched mix (bands of about 10-50); new cited dug house types (Natufian,
 PPNA, Jōmon, Mesolithic, Linear Pottery, Yangshao); snow houses only in the Inuit Arctic from 500 BCE. See docs/ops/settlements.md.
 Herding camps: Andean stone houses, European shielings, and black tents / yurts / lavvu by region instead of whichever cloth tent the analog had.
+Fields: the longest-grown crops lead (maize, not wheat, in 1600 Mexico), no pasture where no grazing animal had arrived, swidden
+clearings for tropical root-crop villages. Smoke: Arctic Inuit households glow with oil lamps instead of smoking.

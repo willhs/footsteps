@@ -11,6 +11,7 @@
 // position, size and fade, so a frame costs no CPU work.
 import { UnitKind } from '@/components/footsteps/layers/units';
 import { HOUSEHOLD_SPACING_M } from '@/components/footsteps/layers/households';
+import { snowHousesAt } from './dwellings';
 import { sheltersForGroups, sheltersForTown, type ShelterGroup, type TownInView } from '@/components/footsteps/layers/shelters';
 
 /** Off by default until reviewed on prod: `?smoke=1` draws smoke and, at night, firelight in the close-up. */
@@ -18,7 +19,10 @@ export function smokeParam(search: string): boolean {
   return new URLSearchParams(search).get('smoke') === '1';
 }
 
-export type HearthKind = 'camp' | 'village' | 'town';
+/** `lamp`: a household of the treeless Inuit Arctic, which burned seal or whale oil in a soapstone lamp (the qulliq) for heat, light and
+ * cooking rather than a wood fire: a glow at night, no plume of smoke (Hough 1898, The Lamp of the Eskimo, Report of the US National
+ * Museum for 1896). */
+export type HearthKind = 'camp' | 'village' | 'town' | 'lamp';
 
 /** One household's hearth (one roof, for a town). */
 export type Hearth = {
@@ -74,6 +78,13 @@ export function hearthSeed(lon: number, lat: number): number {
 
 const KIND_OF: Record<number, HearthKind> = { [UnitKind.Village]: 'village', [UnitKind.Glow]: 'town' };
 
+/** Where foragers' households lit oil lamps rather than fires: the Inuit range where snow houses stood (lib/dwellings.ts `SNOW_HOUSES`),
+ * north of about the tree line (62°N there). South of it, in the forest, people burned wood. */
+export const LAMP_MIN_LAT = 62;
+export function lampsAt(lon: number, lat: number, year: number, kind: number): boolean {
+  return kind === UnitKind.Band && lat >= LAMP_MIN_LAT && snowHousesAt({ lon, lat, year, kind });
+}
+
 /** The hearths of the groups and towns in view: one per household, where `sheltersForGroups` / `sheltersForTown` stand a dwelling
  * (they need no dwelling table for the places, so smoke works without `?shelters=1`). The same call as the dwellings, so a roof and its
  * smoke always agree. */
@@ -84,7 +95,7 @@ export function hearthsForView(groups: readonly ShelterGroup[], towns: readonly 
       lon: s.position[0],
       lat: s.position[1],
       seed: hearthSeed(s.position[0], s.position[1]),
-      kind: KIND_OF[s.group.kind] ?? 'camp',
+      kind: lampsAt(s.position[0], s.position[1], year, s.group.kind) ? 'lamp' : KIND_OF[s.group.kind] ?? 'camp',
       homes: s.homes,
     })),
   );
@@ -105,6 +116,7 @@ export function strengthOf(h: Pick<Hearth, 'kind' | 'homes'>): number {
 
 /** Radius of a hearth's pool of light, metres: half the households' spacing, so a camp's pools just touch in a ring. A town roof is closer. */
 export function poolRadiusOf(h: Pick<Hearth, 'kind'>): number {
+  if (h.kind === 'lamp') return 8; // a lamp's glow through a snow-house wall
   return h.kind === 'town' ? 12 : 0.5 * HOUSEHOLD_SPACING_M[h.kind];
 }
 
@@ -133,6 +145,7 @@ export type Puff = {
 /** The plume of one hearth: `PUFFS_PER_HEARTH` puffs spaced evenly through the cycle, the whole set shifted by a per-hearth offset so
  * neighbouring hearths do not breathe together. A function of the hearth's seed and index alone. */
 export function puffsOf(h: StandingHearth): Puff[] {
+  if (h.kind === 'lamp') return [];
   const offset = unit(h.seed, 1);
   const wind = windAt(h.lon, h.lat);
   const strength = strengthOf(h);

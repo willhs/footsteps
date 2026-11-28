@@ -371,6 +371,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     routineEpoch,
     figures,
     dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
+    homes3d: sheltersOn && settlements && close3d && !!dwellings,
+    onGround: close3d,
     fields: fieldsOn && settlements && close3d,
     smoke: smokeOn && settlements,
     setFeatureCount,
@@ -380,7 +382,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
 
   const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
-  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)) });
+  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)), onGround: close3d });
   const animalLayers = useAnimalsLayer({
     enabled: figures && !is3DMode && blend.people > 0 && (renderMode === 'auto' || renderMode === 'units'),
     lon: viewState.longitude, lat: viewState.latitude, time, people: scenePeople,

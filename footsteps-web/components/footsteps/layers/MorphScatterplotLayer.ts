@@ -3,20 +3,23 @@ import { ScatterplotLayer, type ScatterplotLayerProps } from '@deck.gl/layers';
 import vs from './unitMorphVertex';
 import { animSeconds } from '@/lib/still';
 
-type MorphProps = { progress: number; brightness: number; settle: number; halo: number };
+/** `homes`: 0..1, how much of a group's households (and a town's roofs) to draw close in; 0 where the close-up stands 3D dwellings
+ * in their place (`?shelters=1`), which the flat house icons, added on top, turned into a glowing cream pancake. */
+type MorphProps = { progress: number; brightness: number; settle: number; halo: number; homes: number };
 const block = /* glsl */ `uniform morphUniforms {
   float progress;
   float brightness;
   float time;
   float settle;
   float halo;
+  float homes;
 } morph;
 `;
 const morph = {
   name: 'morph',
   vs: block,
   fs: block,
-  uniformTypes: { progress: 'f32', brightness: 'f32', time: 'f32', settle: 'f32', halo: 'f32' },
+  uniformTypes: { progress: 'f32', brightness: 'f32', time: 'f32', settle: 'f32', halo: 'f32', homes: 'f32' },
 } as const;
 
 // Shapes, in a frame where |p| <= 1 is the shape's box; `aa` is about a pixel in that frame.
@@ -75,7 +78,7 @@ const shapesFs = /* glsl */ `
       float edge = 0.8 + 0.2 * hash12(cell * 0.41 + vSeed * 17.0);
       float roof = step(hash12(cell + vSeed * 91.0), 0.9 - 0.4 * rc) * (1.0 - step(edge, rc));
       float aaC = 2.4 / vCellPx;
-      float roofs = roof * boxMask(q, vec2(0.0), vec2(0.6), aaC) * smoothstep(6.0, 12.0, vCorePx);
+      float roofs = roof * boxMask(q, vec2(0.0), vec2(0.6), aaC) * smoothstep(6.0, 12.0, vCorePx) * morph.homes;
       float signW = (1.0 - morph.settle) * (1.0 - smoothstep(5.0, 10.0, vCorePx));
       float sign = townMask(geometry.uv / 0.55, aaUv / 0.55) * signW;
       a = max(max(glow, built), max(roofs * 0.95, sign));
@@ -106,12 +109,12 @@ const shapesFs = /* glsl */ `
       float aaH = aaC / 0.72;
       float hearth = exp(-dot(q, q) * 9.0) * flicker(hash12(cell + vSeed));
       float home = vKind < 0.5 ? hearth : vKind < 1.5 ? houseMask(hq, aaH) : tentMask(hq, aaH);
-      float homes = taken * home;
+      float homes = taken * home * morph.homes;
       float wash = (1.0 - smoothstep(0.75, 1.0, d * vOuterPx / max(vCorePx, 1.0))) * 0.07;
       float rest = max(0.0, 1.0 - vFire - vSign);
       a = vFire * fire + vSign * max(signShape, signGlow) + rest * max(homes, wash);
       white = vFire * hot * 0.55 + vSign * (signLight * 0.8 + (vKind < 0.5 ? exp(-d * d * 30.0) * 0.5 : 0.0))
-        + rest * taken * (vKind < 0.5 ? hearth * 0.4 : vKind < 1.5 ? houseLight(hq, aaH) * 0.7 : 0.0);
+        + rest * taken * morph.homes * (vKind < 0.5 ? hearth * 0.4 : vKind < 1.5 ? houseLight(hq, aaH) * 0.7 : 0.0);
     }
     color.rgb = mix(color.rgb, vec3(1.0, 0.97, 0.9), clamp(white, 0.0, 1.0));
     color.a *= clamp(a, 0.0, 1.0);
@@ -135,6 +138,7 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
     brightness: 1,
     settle: 1,
     halo: 0,
+    homes: 1,
   } as DefaultProps<Props>;
 
   initializeState() {
@@ -170,9 +174,9 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
   }
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
-    const { progress, brightness, settle, halo } = this.props;
+    const { progress, brightness, settle, halo, homes } = this.props;
     this.state.model?.shaderInputs.setProps({
-      morph: { progress, brightness, settle, halo, time: animSeconds(1000) },
+      morph: { progress, brightness, settle, halo, homes, time: animSeconds(1000) },
     });
     super.draw(params);
   }

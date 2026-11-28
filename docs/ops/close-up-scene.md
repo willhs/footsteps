@@ -364,3 +364,7 @@ Check it: `pnpm build && node scripts/smoke-shots.mjs --out <dir>` (real data; e
 
 Measured 2026-11-24, M5 Pro, headless Chrome on Metal, one run each, Madrid village zoom 15 and Rome zoom 14, 1000 CE (4,800 puffs, 1,200 pools at most): flag off 13.6 / 13.0 fps still and 25.6 / 27.2 panning; flag on 13.8 / 13.4 still and 27.2 / 29.3 panning. No measurable cost. Both are far under 45 fps, with the flag off as well: frames
 come at 133 ms steps (the close-up and the settlement scene dominate here, on a machine running other jobs), so the 45 fps aim could not be tested in this run; the cost, not the level, is the result. Repeat on a quiet machine.
+
+## People's footprints on the close-up ground (2026-11-28)
+
+In the close-up the footprints (PeopleLayer) and hearths (smoke) stand on the drawn 3D ground (`drawnGroundZ` in `lib/groundHeights.ts`: height × EXAGGERATION, cached, refreshed when tiles arrive), not at sea level. At sea level a tilted view slid them away from their huts, and the additive prints read as a cream "pancake" beside each village. The prints also shrink further out (`radiusScale` 0.35–1 below zoom 16), and when 3D dwellings are drawn the flat house icons in the people dots (`homes` uniform in MorphScatterplotLayer) are switched off so the village isn't drawn twice.

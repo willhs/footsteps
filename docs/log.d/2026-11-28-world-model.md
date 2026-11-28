@@ -12,3 +12,9 @@ From 10,000 BCE the counter showed HYDE's total as a single figure ("4.6 million
 million, modelled, not measured", as if HYDE were a census. It now adds "estimates range 1–10 million" underneath: the lowest
 and highest published totals for that year from `lib/population_estimates.json` (research 0005; built but not read until
 now), geometric between years. 170–400 million at 1 CE; 1.6–1.8 billion by 1900.
+
+## [2026-11-28] fix | Two language boxes that claimed the wrong places
+
+`arabic-maghreb` (from 670) covered [25, -15, 40, 25], which took in Andalusia, the Peloponnese and southern Italy; it is now
+North Africa plus the Ifriqiya cell (Tunisia and Sicily). `turkic-central-asia` (from 552) took in northern Iran, Afghanistan
+and Tibet and left out Mongolia, where the Khaganate began; it now runs 40-55°N from 50°E to 120°E.

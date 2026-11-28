@@ -178,6 +178,9 @@ class ReliefBitmapLayer extends BitmapLayer<ReliefProps> {
           float a = paint + sa * (1.0 - paint);
           vec3 rgb = (baseLook(c) * paint * (1.0 - sa) + shade * sa) / max(a, 0.001);
           fragColor = vec4(rgb, a * layer.opacity);
+          // This colour replaces the one the extensions filtered (the night shading, NightExtension.ts), so filter it again:
+          // without this the layer stayed in daylight at night.
+          DECKGL_FILTER_COLOR(fragColor, geometry);
         `,
       },
     };

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { gatedLandUse } from '@/lib/domesticatesGate';
-import { inGreenSahara } from '@/lib/greenSahara';
+import { biomeNoteAt } from '@/lib/biomeNotes';
 import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
 import useFood from '../hooks/useFood';
@@ -99,11 +99,12 @@ export default function HoverCard({
       // Read as farming or herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts), as the map does.
       landUse: lookups.landUse ? gatedLandUse(readLandUse(lookups.landUse, point.lon, point.lat), point.lon, point.lat, year) : null,
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
-      greenSahara: inGreenSahara(point.lon, point.lat, time),
     };
+    const climateNote = input.habitat?.surface === 'land' ? biomeNoteAt(point.lon, point.lat, time, input.habitat.biome) : null;
     return {
       rows: hoverCardRows({
         ...input,
+        climateNote,
         languages,
         ice,
         expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,

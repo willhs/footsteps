@@ -71,8 +71,10 @@ farmers before a crop, no herders before a herd animal; a crowded cell with neit
 
 **Not fixed (source data):**
 - Krapp's LGM biome at the ice edge is "deciduous taiga/montane forest" with moose (55.8°N 5.8°E, 20,000 BCE; and Beringia,
-  62°N 170°W). Both were steppe-tundra (mammoth steppe).
-- 40°N 95°W (Kansas/Nebraska) reads "Temperate deciduous forest" at 3000 BCE; it was tallgrass prairie.
+  62°N 170°W). Both were steppe-tundra (mammoth steppe). The card now adds "Steppe-tundra, not forest" under a forest biome
+  north of 45°N (and Beringia) 28,000-13,000 BCE (`lib/biomeNotes.ts`); the lookup itself is unchanged.
+- 40°N 95°W (Kansas/Nebraska) reads "Temperate deciduous forest" at 3000 BCE; it was tallgrass prairie. The card now adds
+  "Grassland, not forest: the prairie" on the Plains 6000 BCE-1880 where the model has trees.
 - HYDE draws a bright, city-like glow in central Mexico at 3000 BCE (Late Archaic).
 - Siberia at 1800 is nearly empty (the Sakha alone were ~200,000), and there are no reindeer or horse herders.
 - The card calls a HYDE cell with no one "measured" ("No one counted · measured"). HYDE's pre-1500 cell values are

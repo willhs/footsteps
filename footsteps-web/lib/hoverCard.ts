@@ -4,7 +4,7 @@
 import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, type LifeKind } from './habitat';
 import { seaLevelLabel } from './climate';
 import { WayOfLife, type WayOfLifeValue } from './waysOfLife';
-import { GREEN_SAHARA_NOTE } from './greenSahara';
+import type { BiomeNote } from './biomeNotes';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
@@ -43,8 +43,8 @@ export type HoverCardInput = {
   region?: { people: number } | null;
   /** `?ice=1` only: the dated ice sheet under the point (lib/iceSheets.ts `iceHoverRow`), or null off the ice. */
   ice?: { text: string; detail: string } | null;
-  /** The point is in the Sahara during the African Humid Period (lib/greenSahara.ts), which the climate model under-states. */
-  greenSahara?: boolean;
+  /** A known bias of the climate or biome model at this point and year (lib/biomeNotes.ts): the Green Sahara, the prairie, the mammoth steppe. */
+  climateNote?: BiomeNote | null;
   /** `?settlements=1` only: the biggest settlement in the ~590 km block (lib/rankSize.ts), or null where the model says nothing. */
   largest?: LargestSettlement | null;
 };
@@ -140,7 +140,7 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
     if (i.ice) rows.push({ id: 'ice', ...i.ice, evidence: 'modelled' });
     const c = climateRow(i.habitat, i.today);
     if (c) rows.push(c);
-    if (i.greenSahara && i.habitat.surface === 'land') rows.push({ id: 'climate-note', ...GREEN_SAHARA_NOTE, evidence: 'modelled' });
+    if (i.climateNote && i.habitat.surface === 'land') rows.push({ id: 'climate-note', ...i.climateNote, evidence: 'modelled' });
   }
   // Open sea with no one in it says nothing about people.
   const emptySea = i.habitat?.surface === 'sea' && (i.people?.count ?? 0) <= 0;

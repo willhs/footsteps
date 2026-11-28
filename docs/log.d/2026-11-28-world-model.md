@@ -71,3 +71,10 @@ them, dated: harnessed reindeer at Ust'-Polui on the lower Ob ~2 ka (Losey et al
 the first millennium CE, Ohthere's tame herd c. 890 CE, and the large tundra herds of the Nenets, Dolgan, Chukchi and Koryak
 from the 17th-18th centuries. They count in the herding gate (`domesticatesGate.json`, regenerated). The hover card's food
 list (`public/food/food.json`, built from data on budgie) shows them once `food/build.py` and `export_web.py` are re-run there.
+
+## [2026-11-28] fix | The hover card corrects the biome model on the prairie and the mammoth steppe
+
+Kansas at 3000 BCE read "Temperate deciduous forest", and the ice edge at 20,000 BCE "Deciduous taiga". The card keeps the
+model's biome and adds a line under it where the record disagrees: "Grassland, not forest: the prairie" (the Plains, 6000
+BCE-1880) and "Steppe-tundra, not forest: the mammoth steppe" (north of 45°N and Beringia, 28,000-13,000 BCE), beside the
+Green Sahara note, all from `lib/biomeNotes.ts`.

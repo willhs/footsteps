@@ -203,6 +203,19 @@ function loadSiteTerrain() {
   return siteTerrain;
 }
 
+let waterDistance: Promise<{ width: number; height: number; planes: Uint8Array[] }> | undefined;
+function loadWaterDistance() {
+  if (!waterDistance) {
+    waterDistance = readChannels('/water/water_distance.webp', 'Water distance', [0]);
+    waterDistance.catch(() => (waterDistance = undefined));
+  }
+  return waterDistance;
+}
+/** Start reading the ranker's images early (decodeYearGrid), while the year's own image decodes; failures surface in loadSiteRanker. */
+function warmSiteImages() {
+  return Promise.all([loadSiteTerrain(), loadWaterDistance().catch(() => null)]);
+}
+
 /** The baked terrain and water-distance images behind group placement (siteRanking.ts). Without them groups keep the old
  * invented positions: a failed fetch never loses the people. One ranker per worker, so its per-cell cache outlives each year. */
 const siteRankers = new Map<string, Promise<SiteRanker | null>>(); // per set of layers (`?pastwater=1`, `?ice=1`), so each keeps its own per-cell cache
@@ -212,7 +225,7 @@ function loadSiteRanker(pastWater: PastWaterLayers | null, ice: IceLayers | null
   if (!ranker) {
     ranker = Promise.all([
       loadSiteTerrain(),
-      readChannels('/water/water_distance.webp', 'Water distance', [0]),
+      loadWaterDistance(),
     ]).then(([t, w]) => {
       if (!t) return null;
       return createSiteRanker({
@@ -346,33 +359,39 @@ function adjustedGridData(year: number, read: Pixels | Error, landUse: Pixels | 
 
 /** `onData` hears the decoded grid as soon as it is in, before the units (which wait on the settlement model's images) are built. */
 export async function decodeYearGrid(year: number, settlements = false, sites = true, pastWater = false, spread = false, ice = false, onData?: (data: GridData) => void): Promise<DecodedYearGrid> {
+  // Every input that does not depend on another starts at once: the one-time images (site terrain, water distance, past water,
+  // ice) were read one after another, about 3 s before a fresh page's first year could even start placing its groups.
+  const modelled = settlements && sites;
   // `?ice=1`: the year's epoch's ice patches (lib/iceSheets.ts); if they fail, groups are placed as without the flag.
-  const iceOn = ice && settlements && sites ? await loadIceAt(year).then(() => true, (error) => { console.warn('[grid] no ice; groups are not kept off it', error); return false; }) : false;
+  const iceRead = ice && modelled ? loadIceAt(year).then(() => true, (error) => { console.warn('[grid] no ice; groups are not kept off it', error); return false; }) : Promise.resolve(false);
   // `?pastwater=1`: every scenario's patches load once; if they fail, groups are placed as without the flag (the screen's note then says nothing is applied).
-  const lake = pastWater && settlements && sites ? await loadPastWater().catch((error) => { console.warn('[grid] no past water; the scenarios are not applied', error); return null; }) : null;
-  // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download. Without the flag the
-  // requests go out exactly as before: population image, land use, then (modelled years) the site terrain.
+  const lakeRead = pastWater && modelled ? loadPastWater().catch((error) => { console.warn('[grid] no past water; the scenarios are not applied', error); return null; }) : Promise.resolve(null);
+  // `?spread=1`: HYDE's image is fetched only if the adjusted one fails, so the flag costs no extra download.
   const adjustedRead = spread && adjustedSpreadYear(year)
     ? readPixels(gridUrl(year, true), `Adjusted grid ${year}`).catch((error: Error) => error)
     : null;
   const hydeRead = adjustedRead ? null : readPixels(gridUrl(year), `Grid ${year}`);
   const landUse = readLandUse(year); // never rejects: a missing file classes by head count
+  const catalogRead = settlements ? loadSettlementCatalog() : null;
+  const habitatRead = settlements && isModelled(year) ? readPixels(habitatUrl(habitatStep(year)), 'Settlement climate') : null;
+  // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
+  const dwellingsRead = settlements ? loadDwellings().catch(() => null) : null;
+  if (modelled) void warmSiteImages();
+  // Unread promises must not report as unhandled while the grid decodes; each is awaited (and its error thrown) below.
+  for (const p of [catalogRead, habitatRead]) p?.catch(() => {});
   const hyde = (pixels: Promise<Pixels>) =>
     Promise.all([pixels, landUse, isModelled(year) ? loadSiteTerrain() : null])
       .then(([px, use, sea]) => gridDataFrom(year, px, use, sea?.terrain ?? null));
   const data = (adjustedRead && adjustedGridData(year, await adjustedRead, await landUse))
     || await hyde(hydeRead ?? readPixels(gridUrl(year), `Grid ${year}`));
   onData?.(data);
-  return prepareYearGrid(
-    year,
-    data,
-    settlements ? {
-      catalog: await loadSettlementCatalog(),
-      habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
-      sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
-      epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
-      // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
-      dwellings: await loadDwellings().catch(() => null),
-    } : undefined,
-  );
+  if (!settlements) return prepareYearGrid(year, data);
+  const [iceOn, lake] = await Promise.all([iceRead, lakeRead]);
+  return prepareYearGrid(year, data, {
+    catalog: await catalogRead!,
+    habitat: habitatRead ? (await habitatRead).data : null,
+    sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
+    epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
+    dwellings: await dwellingsRead,
+  });
 }

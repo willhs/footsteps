@@ -2,9 +2,9 @@ import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { readHabitat } from './habitat';
 
 /** The settlement model is the default Units view; `?settlements=0` turns it off (back to even groups at random spots).
- * `?seasons=1` needs it, so it keeps it on. Read once per page load by the page and the grid worker. */
+ * Read once per page load by the page and the grid worker. */
 export function settlementsFromParams(params: URLSearchParams): boolean {
-  return params.get('settlements') !== '0' || params.get('seasons') === '1';
+  return params.get('settlements') !== '0';
 }
 
 export type SettlementComponent = {
@@ -105,8 +105,26 @@ export function allocateCities(data: GridData, catalog: HistoricalCity[], year: 
   const cities: AllocatedCity[] = [];
   const width = Math.round(360 / data.cellDeg);
   const height = Math.round(180 / data.cellDeg);
-  const index = new Map<number, number>();
-  data.cellIds.forEach((id, i) => index.set(id, i));
+  // Cell id → index. Decoded grids list their cells in id order, so a binary search does without a Map of every cell (a few hundred
+  // thousand entries a year, built even in years whose cities claim a handful of cells); any other order falls back to the Map.
+  const ids = data.cellIds;
+  let sorted = true;
+  for (let i = 1; i < data.length && sorted; i++) sorted = ids[i] > ids[i - 1];
+  const map = sorted ? null : new Map<number, number>();
+  if (map) ids.forEach((id, i) => map.set(id, i));
+  const indexOf = (id: number): number | undefined => {
+    if (map) return map.get(id);
+    let lo = 0;
+    let hi = data.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const v = ids[mid];
+      if (v === id) return mid;
+      if (v < id) lo = mid + 1;
+      else hi = mid - 1;
+    }
+    return undefined;
+  };
   for (const city of [...catalog].sort((a, b) => a.id.localeCompare(b.id))) {
     const requested = cityPopulation(city, year);
     if (!(requested > 0)) continue;
@@ -119,7 +137,7 @@ export function allocateCities(data: GridData, catalog: HistoricalCity[], year: 
     const maxCol = Math.min(minCol + width - 1, Math.floor((city.lon + lonSpan + 180) / data.cellDeg));
     for (let row = minRow; row <= maxRow; row++) {
       for (let col = minCol; col <= maxCol; col++) {
-        const i = index.get(row * width + ((col % width) + width) % width);
+        const i = indexOf(row * width + ((col % width) + width) % width);
         if (i === undefined || people[i] <= 0) continue;
         const distance = distanceKm(city.lon, city.lat, data.positions[i * 2], data.positions[i * 2 + 1]);
         if (distance <= 100) nearby.push({ i, distance });

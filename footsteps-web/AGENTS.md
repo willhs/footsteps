@@ -52,9 +52,6 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (ES modules since task 0014, so they tree-shake; `next.config.js`): a CJS/ESM mix gives two luma.gl shader assemblers and the shaders lose deck.gl's hooks.
   `Close3DLayer` loads on first use (`useLazy`, prefetched after first people): never import it statically. A hidden browser
   pane gets no animation frames, so deck.gl only redraws on input there: force frames when testing headless.
-- Guided tour, `?tour=1` only (`docs/ops/tour.md`): nine stops in `lib/tour.ts` (`TOUR_STOPS`; every number in the wording is computed from `PEOPLE_TOTALS`, `OTHER_HUMANS`, `seaLevelAt`
-  or pinned to `arrivals.yaml` by `lib/tour.test.ts`: never type a number in), driven by `hooks/useTour.ts` through `useGlobeViewState`'s setter and the page's `setTime` (FootstepsViz's `onTimeChange` prop),
-  card `overlays/TourPanel.tsx` at the top of the left column. A press, wheel or key stops a flight. `node scripts/tour-shots.mjs <dir>` steps through every stop on the build and fails on console errors.
 - `pnpm visual` is the screenshot regression: ten fixed scenes (Units, Grid, Dots, close-up 3D, hover card, a selected person) on real data and GPU, compared with `e2e/visual/*.webp`. **Run it after `pnpm build` and before committing any change that can move pixels**; a diff sheet (`visual-out/<scene>.diff.png`) shows what moved, and `pnpm visual --update --scenes <ids>` re-baselines on purpose. `?still=1` stops the time-based animation for it (`lib/still.ts`). Not in CI (no GPU, no data). `docs/ops/visual-regression.md`.
 - URL flags: [docs/ops/flags.md](../docs/ops/flags.md) lists every query parameter the app reads (default, what it does, its ops doc, reviewed or not), pinned by `lib/flags.test.ts` against the source (add a flag to `scripts/flags-lib.mjs` `FLAGS` and that page, or the test fails).
   `node scripts/verify-flags.mjs` loads six scenes with no flags, each flag alone, and every opt-in flag together (174 loads, ~25 min) and fails on console or page errors, failed requests that are not known-optional data, or a blank map. Run it after `pnpm build` when you add a flag or touch layer setup.
@@ -62,7 +59,6 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   a manifest says which tiles exist) recoloured by the two era images on the GPU (`recolour` in `lib/terrainDetail.ts`, GLSL twin
   `RECOLOUR_GLSL`: change one, change the other); `Close3DLayer` loads the covering tile per ground tile for its vertex colours.
   Off until reviewed: `?terrain_tiles=1` turns it on. `node scripts/terrain-detail-shots.mjs out <dir>` takes before/after shots.
-- `?chart=1` adds a small world-population chart under the counter (`components/ui/PopulationChart.tsx`, series and scales in `lib/populationSeries.ts`): log people over the time bar's own time scale, the MODELLED low-high band before 10,000 BCE, HYDE's measured line after (one join point at `HYDE_MIN`, built from `PEOPLE_TOTALS`, the counter's table), the slider year marked; click or drag sets the year. Renders nothing without the flag. `node scripts/verify-chart.mjs <dir>` shoots and drives it.
 - `node scripts/terrain-bench.mjs` is the terrain scoreboard (`--query terrain_tiles=0` compares a flag on one build; time to detail, fps, long tasks, bytes, texel px over fixed camera paths, `--compare old.json new.json`); run it on a quiet machine before and after any terrain change. `docs/ops/terrain-bench.md` has the baseline.
 - `node scripts/first-load.mjs` is the cold first-visit scoreboard (`docs/ops/first-load.md`): JS bytes, first globe and first people (User Timing marks from `lib/firstLoadMarks.ts`), long tasks, desktop and fast 4G; `--base URL` for prod, `--flags` checks each opt-in loads its code and the default visit does not.
   Close-up and opt-in code loads through `lib/lazyModule.ts` (`lazy`/`useLazy`) or `next/dynamic` behind its flag; keep new opt-in features out of the first load the same way. The head preloads the opening year's images (`lib/firstLoadPreload.ts`), and the grid worker answers a year's grid before its units (`loadGridData`), so the firelight never waits on the settlement model.
@@ -147,12 +143,6 @@ Pushing to `main` deploys the app: green CI builds `deploy/budgie/web/Dockerfile
 and Watchtower on budgie pulls it (README "Deployment"). `scripts/deploy-budgie.sh` publishes the data and PMTiles,
 which are not in git. `SKIP_TILES=1` skips PMTiles only.
 `scripts/smoke.sh [base-url]` checks HTML and data signatures, not rendered pixels.
-
-## Opt-in close-up figures and animals
-
-- `?figures=1` changes only the newest footprint slot to an upright imagined person; `footprintData` still repeats each `Person` three times and ids/picking stay unchanged. `PeopleLayer` shares its gait and routine shader between figures and footprints. Other-human people receive the same flag. Keep the TS/GLSL gait contract intact.
-- `layers/AnimalsLayer.ts` animates one instanced silhouette per `lib/animals.ts` `AnimalInstance`, via uniforms only. `hooks/useAnimalsLayer.ts` loads own-cell PHYLACINE presence and the full food-model domestic roster (independent of `?food=1`). Do not substitute the truncated food hover row or invent species when data is absent. Counts, spots and looks are imagined; wild ranges and domestic availability are modelled, with different picking labels.
-- Figures and wildlife stay opt-in pending Will's production review; footprints remain default. See `docs/ops/close-up-scene.md` and `scripts/measure-figures.mjs` for the real-data scene checks.
 
 ## Opt-in hearth smoke and firelight
 

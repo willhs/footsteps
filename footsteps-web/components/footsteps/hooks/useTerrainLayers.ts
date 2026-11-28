@@ -13,7 +13,7 @@ import TerrainReliefLayer, { TERRAIN_DESATURATE, TERRAIN_TINT } from '../layers/
 import { makeGround } from '@/lib/eraGround';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
-import { groundParam, plantsParam, treesParam } from '@/lib/close3d';
+import { groundParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
 import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
 import { iceBounds, iceEpochAt, iceOverlayPixels, iceParam, iceShareAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
@@ -53,7 +53,20 @@ function iceBitmap(m: IceMask): Promise<ImageBitmap> {
   }
   return p;
 }
-const terrainUrl = (year: number) => (pastWaterOn() && pastWaterTerrainYear(year) ? `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`);
+// The past-water Earth images may not be published on this server. The first one asked for answers for all of them, and the
+// rest wait on it: one 404 a session at most, not one a year (several years load at once). A missing one falls back to the
+// ordinary image, so the terrain never goes blank for the flag.
+const plainUrl = (year: number) => `/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`;
+let pastWaterPublished: Promise<boolean> | null = null;
+function fetchTerrain(year: number): Promise<Response> {
+  if (!pastWaterOn() || !pastWaterTerrainYear(year)) return fetch(plainUrl(year));
+  const url = `/terrain/pastwater/earth_${year}.webp?v=${TERRAIN_VERSION}`;
+  const orPlain = (r: Response) => (r.ok ? r : fetch(plainUrl(year)));
+  if (pastWaterPublished) return pastWaterPublished.then((ok) => (ok ? fetch(url).then(orPlain) : fetch(plainUrl(year))));
+  const first = fetch(url);
+  pastWaterPublished = first.then((r) => r.ok, () => false);
+  return first.then(orPlain);
+}
 
 // Dimmed day colours, so people (night lights) stay the brightest thing.
 const TINT = TERRAIN_TINT;
@@ -66,9 +79,7 @@ const loading = new Map<number, Promise<ImageBitmap>>();
 function loadTerrain(year: number): Promise<ImageBitmap> {
   let p = loading.get(year);
   if (!p) {
-    // A `?pastwater=1` image that is not deployed falls back to the ordinary one: the terrain must never go blank for a flag.
-    p = fetch(terrainUrl(year))
-      .then((r) => (r.ok || !terrainUrl(year).includes('/pastwater/') ? r : fetch(`/terrain/earth_${year}.webp?v=${TERRAIN_VERSION}`)))
+    p = fetchTerrain(year)
       .then((r) => {
         if (!r.ok) throw new Error(`terrain ${year}: HTTP ${r.status}`);
         return r.blob();
@@ -331,7 +342,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
     if (!close3dModule) return layers;
     const Close3DLayer = close3dModule.default;
-    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), trees: typeof window !== 'undefined' && treesParam(window.location.search), rivers: typeof window === 'undefined' || riversParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
+    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, trees: typeof window !== 'undefined' && treesParam(window.location.search), rivers: typeof window === 'undefined' || riversParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

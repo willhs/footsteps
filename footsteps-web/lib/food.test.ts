@@ -17,9 +17,10 @@ const data: FoodData = {
 };
 const input = { time: -8000, habitat, today: null, people: null, landUse: null };
 
-test('only food=1 opts in', () => {
-  for (const query of ['', '?food=0', '?food=true']) expect(foodEnabled(query)).toBe(false);
-  expect(foodEnabled('?mode=grid&food=1')).toBe(true);
+test('on unless ?food=0', () => {
+  expect(foodEnabled('')).toBe(true);
+  expect(foodEnabled('?year=-3000&food=1')).toBe(true);
+  expect(foodEnabled('?food=0')).toBe(false);
 });
 
 test('Levant: names, per-item confidence, recalled dates and modelled label', () => {

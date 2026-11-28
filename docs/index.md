@@ -33,6 +33,7 @@ separate series from `tasks/0001-0003`.
 - [`ops/languages.md`](ops/languages.md) — the Glottolog language baseline (about 1500 CE) and the cited expansions table behind `?langs=deep`
 - [`ops/other-humans.md`](ops/other-humans.md) — the other-kinds-of-human layer: how it is drawn, where its numbers come from, how sure they are
 - [`ops/past-water.md`](ops/past-water.md) — the dated past-water scenarios behind `?pastwater=1` (Mega-Chad, European LGM, Mesopotamian coast)
+- [`ops/previews.md`](ops/previews.md) — per-PR preview links on Cloudflare Pages: the workflow, the data proxy to production, setup
 - [`ops/prehistory-population.md`](ops/prehistory-population.md) — the modelled pre-HYDE population (100,000-11,000 BCE): method, sources, choices, limits
 - [`ops/routine.md`](ops/routine.md) — how people at street zoom follow a daily routine, its sources, and the URL flags
 - [`ops/settlements.md`](ops/settlements.md) — the settlement model (the default Units view): cities, settlement mixes, households, farm layouts

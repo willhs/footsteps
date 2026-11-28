@@ -2,12 +2,10 @@ import { ADJUSTED_SPREAD_LABEL, ADJUSTED_SPREAD_YEARS, adjustedGridUrl, adjusted
 import { HYDE_TOTALS } from './time';
 import { TARGET_YEARS } from './constants';
 
-test('the flag is ?spread=1 and nothing else', () => {
-  expect(spreadParam('?spread=1')).toBe(true);
-  expect(spreadParam('?mode=grid&spread=1')).toBe(true);
-  expect(spreadParam('')).toBe(false);
+test('on unless ?spread=0', () => {
+  expect(spreadParam('')).toBe(true);
+  expect(spreadParam('?year=-3000&spread=1')).toBe(true);
   expect(spreadParam('?spread=0')).toBe(false);
-  expect(spreadParam('?spread=true')).toBe(false);
 });
 
 test('covers 10,000 to 4,000 BCE, every one a HYDE year with a world total', () => {
@@ -30,21 +28,21 @@ test('the world total must be HYDE\'s, within rounding', () => {
 
 describe('the note says what is drawn', () => {
   test('adjusted on screen: the label', () => {
-    expect(spreadNote(-8000, 'units', true).label).toBe(ADJUSTED_SPREAD_LABEL);
-    expect(spreadNote(-6000, 'grid', true).label).toBe('Adjusted spread (modelled on HYDE)');
-    expect(spreadNote(-8000, 'units', true).title).toMatch(/world total is HYDE/);
+    expect(spreadNote(-8000, 'units', true)!.label).toBe(ADJUSTED_SPREAD_LABEL);
+    expect(spreadNote(-6000, 'grid', true)!.label).toBe('Adjusted spread (modelled on HYDE)');
+    expect(spreadNote(-8000, 'units', true)!.title).toMatch(/world total is HYDE/);
   });
   test('Dots: not applied', () => {
-    expect(spreadNote(-8000, 'dots', true).label).toBe('Adjusted spread: not applied to Dots');
+    expect(spreadNote(-8000, 'dots', true)!.label).toBe('Adjusted spread: not applied to Dots');
   });
-  test('outside its years: unchanged', () => {
-    expect(spreadNote(-3000, 'units', undefined).label).toMatch(/10,000–4,000 BCE only/);
-    expect(spreadNote(1900, 'grid', undefined).label).not.toMatch(/modelled on HYDE/);
+  test('outside its years: no note (nothing changes there)', () => {
+    expect(spreadNote(-3000, 'units', undefined)).toBeNull();
+    expect(spreadNote(1900, 'grid', undefined)).toBeNull();
   });
   test('the file could not be read: says HYDE is shown, never the label', () => {
-    expect(spreadNote(-8000, 'units', false).label).toBe("Adjusted spread unavailable: showing HYDE's");
+    expect(spreadNote(-8000, 'units', false)!.label).toBe("Adjusted spread unavailable: showing HYDE's");
   });
   test('still loading', () => {
-    expect(spreadNote(-8000, 'units', undefined).label).toMatch(/loading/);
+    expect(spreadNote(-8000, 'units', undefined)!.label).toMatch(/loading/);
   });
 });

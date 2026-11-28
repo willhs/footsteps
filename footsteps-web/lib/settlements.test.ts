@@ -98,15 +98,15 @@ test('Beyer climate chooses a different forager residential scenario, including 
   expect(Array.from(b.mobility!)).toEqual([0]);
   expect(Array.from(sliceUnits(b, 3600, WORLD).mobility!)).toEqual([0]);
   const morph = buildUnitMorph(b, b, true);
-  expect(Array.from(morph.attributes.getMobility.value)).toEqual([0, 0]);
+  expect(Array.from(morph.attributes.getCrowd.value)).toEqual([0, 1]);
 });
 
 describe('settlementsFromParams', () => {
-  it('is on by default and off only with ?settlements=0 (unless seasons need it)', () => {
+  it('is on by default and off only with ?settlements=0', () => {
     expect(settlementsFromParams(new URLSearchParams(''))).toBe(true);
     expect(settlementsFromParams(new URLSearchParams('settlements=1'))).toBe(true);
     expect(settlementsFromParams(new URLSearchParams('settlements=0'))).toBe(false);
-    expect(settlementsFromParams(new URLSearchParams('settlements=0&seasons=1'))).toBe(true);
+    expect(settlementsFromParams(new URLSearchParams('settlements=0&seasons=1'))).toBe(false);
   });
 });
 

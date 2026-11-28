@@ -194,9 +194,8 @@ describe('hover card language line', () => {
 
   test.each([1500, 1900])('is shown at %i, labelled as the recorded baseline', (time) => {
     const row = at(time).find((r) => r.id === 'languages');
-    expect(row?.text).toBe('Languages recorded here (about 1500 CE): Otomanguean 165, Uto-Aztecan 17, Mixe-Zoque 8 and 2 more families');
-    expect(row?.detail).toContain('194 languages · nearest: Diuxi-Tilantongo Mixtec (20 km)');
-    expect(row?.detail).toContain('colonial and later movement not applied');
+    expect(row?.text).toBe('Languages: Otomanguean, Uto-Aztecan and 3 more');
+    expect(row?.detail).toBe('recorded about 1500');
     expect(row?.evidence).toBe('measured');
   });
 
@@ -204,12 +203,12 @@ describe('hover card language line', () => {
     expect(ids(at(time))).not.toContain('languages');
   });
 
-  test('absent while loading or off land; a cell with no point says so and names the nearest', () => {
+  test('absent while loading or off land; a cell with no point says so', () => {
     expect(ids(at(1500, null))).not.toContain('languages');
     const empty = { ...block, n_languages: 0, n_families: 0, families: [], nearest: [block.nearest[0]] };
     const row = at(1500, empty).find((r) => r.id === 'languages');
-    expect(row?.text).toBe('No language recorded in this cell (about 1500 CE)');
-    expect(row?.detail).toContain('nearest: Diuxi-Tilantongo Mixtec (20 km)');
+    expect(row?.text).toBe('No language recorded here');
+    expect(row?.detail).toBe('recorded about 1500');
   });
 });
 

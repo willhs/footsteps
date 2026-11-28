@@ -90,6 +90,17 @@ const SHELTER_LIFT_M = 1;
 const built = new WeakMap<TileData, Built>();
 /** Trees per DEM tile: candidates by era key (in random order, so a prefix is an even subsample) and which stand in the current clearings.
  * `rank` changes identity only when the clearings do, so deck rebuilds that one attribute and nothing else. */
+/** The clearings whose reach (radius plus the largest crown, as clearedMask) touches a tile's box. */
+function clearingsNear(clearings: readonly TreeClearing[], bbox: Bbox): readonly TreeClearing[] {
+  const out: TreeClearing[] = [];
+  for (const c of clearings) {
+    const reach = c.radius + 20;
+    const dx = reach / (111320 * Math.max(0.01, Math.cos((c.position[1] * Math.PI) / 180)));
+    const dy = reach / 110540;
+    if (c.position[0] + dx >= bbox.west && c.position[0] - dx <= bbox.east && c.position[1] + dy >= bbox.south && c.position[1] - dy <= bbox.north) out.push(c);
+  }
+  return out;
+}
 const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearingsKey: string; rank: (t: TreeInstance, info: { index: number }) => number }>();
 const NO_CLEARINGS: readonly TreeClearing[] = [];
 const draped = new WeakMap<TileData, Draped>();
@@ -402,11 +413,15 @@ export default class Close3DLayer extends CompositeLayer<Props> {
             cached = { key, trees: treesForTile(data.heights, bbox, [x, y, z], seaLevel, ground, lake), clearingsKey: '', rank: () => 0 };
             treeBuilt.set(data, cached);
           }
-          if (cached.clearingsKey !== clearKey) {
-            const mask = clearedMask(cached.trees, clearings);
+          // Only the clearings that reach this tile count: panning changes the homes in view (and so the list) all the time, and
+          // every tile used to redo its mask and re-upload its trees' ranks; now only the tiles whose own clearings changed do.
+          const here = clearKey ? clearingsNear(clearings, bbox) : NO_CLEARINGS;
+          const tileClearKey = clearKey && here.length ? this.state.treeModule.clearingsKey(here) : '';
+          if (cached.clearingsKey !== tileClearKey) {
+            const mask = clearedMask(cached.trees, here);
             const n = cached.trees.length;
             cached.rank = (_t, { index }) => (mask[index] ? 2 : index / n);
-            cached.clearingsKey = clearKey;
+            cached.clearingsKey = tileClearKey;
           }
           // The same data array every frame, so deck keeps the instance buffers; distance thinning is a uniform (TreeLayer).
           layers.push(new TreeLayer({

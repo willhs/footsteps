@@ -44,7 +44,7 @@ const HINT = 'Drag to turn · scroll to zoom · double-click to reset';
 type Spec = NonNullable<ReturnType<typeof avatarSpec>>;
 
 /** One WebGL figure on its own canvas, sized by its parent. Reports when it first draws, or fails. */
-function FigureCanvas({ spec, label, onFail }: { spec: Spec; label: string; onFail: () => void }) {
+function FigureCanvas({ spec, label, onFail, detail = false }: { spec: Spec; label: string; onFail: () => void; detail?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   // A fresh canvas per figure: dispose() forces the old WebGL context lost, and a lost canvas cannot draw again, so
   // reusing it made every rebuild (a new spec, e.g. after a zoom) fail and fall back to the drawing.
@@ -59,7 +59,7 @@ function FigureCanvas({ spec, label, onFail }: { spec: Spec; label: string; onFa
     const still = stillOn() || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
     let view: ReturnType<typeof mountAvatar>;
     try {
-      view = mountAvatar(canvas.current, spec, { still });
+      view = mountAvatar(canvas.current, spec, { still, detail });
     } catch (e) {
       console.warn('[avatar] WebGL unavailable, showing the drawing', e);
       failRef.current();
@@ -77,7 +77,7 @@ function FigureCanvas({ spec, label, onFail }: { spec: Spec; label: string; onFa
       live = false;
       view.dispose();
     };
-  }, [spec, canvasKey]);
+  }, [spec, canvasKey, detail]);
 
   return (
     <>
@@ -124,7 +124,7 @@ function LargeFigure({ spec, label, caption, onClose, onFail }: { spec: Spec; la
     >
       <figure className="ov-panel ov-panel-strong relative m-0 p-3" onClick={(e) => e.stopPropagation()}>
         <div className="relative" style={{ height, aspectRatio: `${CARD_W} / ${CARD_H}`, maxWidth: 'calc(100vw - 56px)' }}>
-          <FigureCanvas spec={spec} label={label} onFail={onFail} />
+          <FigureCanvas spec={spec} label={label} onFail={onFail} detail />
           <button ref={close} type="button" aria-label="Close large view" title="Close" onClick={onClose} className="ov-icon-btn absolute right-1 top-1">
             <CloseIcon />
           </button>

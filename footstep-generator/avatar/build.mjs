@@ -11,10 +11,13 @@
 //   piece_<name>_<sex>.glb           one garment piece each (pieces.mjs): fitted shells and hanging lathes on the same skeleton
 //   hair_<style>.glb                 one skinned hair mesh per style (long, buns, parted, buzzed, buzzed_female, beard)
 //   anims.glb                        the skeleton and the clips we keep (idle, talk, walk, sit, crouch, work, hold, dance, push), no mesh
+//   detail_*.webp                    the large view's maps (DETAIL below): skin and hair shading, their normal maps, the eye
 //   manifest.json                    sources, licence, sha256 and bytes of every file, clip names, the vertex-colour encoding
 //
-// Why no textures: the pack's PNGs are 1-4 MB each and would need a KTX2 toolchain; at card size the useful detail fits in
-// vertex colours. COLOR_0 on body and hair = (shade / SHADE_MAX, garment, trim): shade is the texture's brightness relative
+// Why the card has no textures: at card size the useful detail fits in vertex colours, so the card fetches no image. The
+// figure opened large (and zoomed to a face) is 4-6 times taller on screen, where per-vertex shading blurs the face; it
+// fetches the detail maps instead (each body, brows, hair and eye mesh names its maps in its glTF extras, and keeps
+// TEXCOORD_0 for them). Greyscale WebP at these sizes is small (about 0.25 MB a person), so no KTX2 toolchain is needed. COLOR_0 on body and hair = (shade / SHADE_MAX, garment, trim): shade is the texture's brightness relative
 // to its typical skin (or hair) pixel, garment is 1 where the person's garment colour goes (the pack's painted underwear
 // on the body; all of a garment piece), trim marks a piece's hem, cuffs and neck. The body also carries `_COVER`: which
 // fitted pieces cover each vertex, so the viewer can hide skin under them. Eyes keep real RGB. The viewer turns these
@@ -50,6 +53,20 @@ const CLIPS = {
   dance: 'Dance_Loop',
   push: 'Push_Loop',
 };
+/**
+ * The large view's maps. Skin and hair shade maps hold the base colour's brightness against its typical pixel, divided by
+ * SHADE_MAX, as the vertex colours do; normal maps are the pack's OpenGL-convention ("Normals Unity - Godot") maps. Sizes
+ * are each source's own 2048 px for the body (the face is about a sixth of its width) and half that for hair and eyes.
+ */
+const DETAIL = {
+  skinPx: 2048,
+  hairPx: 1024,
+  eyePx: 256,
+  webpQuality: 82,
+};
+/** A base-colour pixel this grey (channel spread under this, in 0-255) is the pack's painted underwear, not skin. */
+const UNDERWEAR_SPREAD = 8;
+
 const HAIR = {
   long: 'Hair_Long',
   buns: 'Hair_Buns',
@@ -169,7 +186,68 @@ async function readGltf(io, file) {
   }
 }
 
-const KEEP = ['POSITION', 'NORMAL', 'JOINTS_0', 'WEIGHTS_0', 'COLOR_0', '_COVER'];
+const KEEP = ['POSITION', 'NORMAL', 'TEXCOORD_0', 'JOINTS_0', 'WEIGHTS_0', 'COLOR_0', '_COVER'];
+
+// ---- detail maps (the large view) ---------------------------------------------------------------------------
+/** Which pack texture each hair file uses (its first material's name says). */
+const hairTexture = (materialName) => (/Hair_2/.test(materialName) ? 'hair_2' : 'hair_1');
+/** Maps named in a mesh node's extras; the viewer reads them as `userData.detail`. */
+const detailFor = {
+  body: (sex) => ({ shade: `detail_skin_${sex}`, normal: `detail_skin_normal_${sex}` }),
+  brows: (sex) => ({ shade: `detail_${sex === 'male' ? 'hair_1' : 'hair_2'}`, normal: `detail_${sex === 'male' ? 'hair_1' : 'hair_2'}_normal` }),
+  hair: (tex) => ({ shade: `detail_${tex}`, normal: `detail_${tex}_normal` }),
+  eyes: () => ({ colour: 'detail_eye' }),
+};
+
+/** A shade map: each pixel's luminance against the median skin (or hair) pixel, over SHADE_MAX, as one grey channel. */
+async function shadeMap(file, size, outFile) {
+  const { data, info } = await sharp(file).resize(size, size, { fit: 'fill' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const n = info.width * info.height;
+  const lums = new Float32Array(n);
+  const underwear = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const r = data[i * 3], g = data[i * 3 + 1], b = data[i * 3 + 2];
+    lums[i] = lum([r / 255, g / 255, b / 255]);
+    underwear[i] = Math.max(r, g, b) - Math.min(r, g, b) < UNDERWEAR_SPREAD ? 1 : 0;
+  }
+  const typical = median(Array.from(lums).filter((_, i) => !underwear[i]));
+  const grey = Buffer.alloc(n);
+  for (let i = 0; i < n; i++) {
+    // Underwear reads as plain skin (shade 1): outfits put cloth there, and bare hips should not show a grey patch.
+    const shade = underwear[i] ? 1 : Math.min(SHADE_MAX, Math.max(0.35, lums[i] / typical));
+    grey[i] = Math.round((shade / SHADE_MAX) * 255);
+  }
+  await sharp(grey, { raw: { width: info.width, height: info.height, channels: 1 } }).webp({ quality: DETAIL.webpQuality }).toFile(outFile);
+}
+
+async function copyMap(file, size, outFile) {
+  await sharp(file).resize(size, size, { fit: 'fill' }).removeAlpha().webp({ quality: DETAIL.webpQuality }).toFile(outFile);
+}
+
+/** Every detail map, written into OUT. Returns the file names. */
+async function bakeDetailMaps(dir) {
+  const tex = path.join(dir, 'Base Characters', 'Textures');
+  const hairTex = path.join(dir, 'Hairstyles', 'Textures');
+  const normals = (folder) => path.join(folder, 'Normals Unity - Godot');
+  const jobs = [
+    [shadeMap, path.join(tex, 'T_Superhero_Male_Ligh.png'), DETAIL.skinPx, 'detail_skin_male'],
+    [shadeMap, path.join(tex, 'T_Superhero_Female_Light_BaseColor.png'), DETAIL.skinPx, 'detail_skin_female'],
+    [copyMap, path.join(normals(tex), 'T_Superhero_Male_Normal.png'), DETAIL.skinPx, 'detail_skin_normal_male'],
+    [copyMap, path.join(normals(tex), 'T_Superhero_Female_Normal.png'), DETAIL.skinPx, 'detail_skin_normal_female'],
+    [shadeMap, path.join(hairTex, 'T_Hair_1_BaseColor.png'), DETAIL.hairPx, 'detail_hair_1'],
+    [shadeMap, path.join(hairTex, 'T_Hair_2_BaseColor.png'), DETAIL.hairPx, 'detail_hair_2'],
+    [copyMap, path.join(normals(hairTex), 'T_Hair_1_Normal.png'), DETAIL.hairPx, 'detail_hair_1_normal'],
+    [copyMap, path.join(normals(hairTex), 'T_Hair_2_Normal.png'), DETAIL.hairPx, 'detail_hair_2_normal'],
+    [copyMap, path.join(tex, 'T_Eye_Brown.png'), DETAIL.eyePx, 'detail_eye'],
+  ];
+  const out = [];
+  for (const [fn, src, size, name] of jobs) {
+    const file = path.join(OUT, `${name}.webp`);
+    await fn(src, size, file);
+    out.push(file);
+  }
+  return out;
+}
 /** Each body's bind-pose data and joint names, for the garment pieces made from it. */
 const bodies = {};
 
@@ -187,6 +265,7 @@ async function bakeBody(io, dir, sex) {
     const part = /Eyes/.test(mat) ? 'eyes' : /Hair/.test(mat) ? 'brows' : 'body';
     node.setName(part);
     mesh.setName(part);
+    node.setExtras({ detail: detailFor[part](sex) });
     for (const prim of mesh.listPrimitives()) {
       prim.getMaterial()?.setName(part);
       const pos = prim.getAttribute('POSITION');
@@ -277,13 +356,14 @@ async function bakeHair(io, dir, name) {
   const folder = path.join(dir, 'Hairstyles', 'Rigged to Head Bone', 'glTF (Godot -Unreal)');
   const doc = await readGltf(io, path.join(folder, `${name}.gltf`));
   const json = JSON.parse(fs.readFileSync(path.join(folder, `${name}.gltf`), 'utf8'));
-  const texName = /Hair_2/.test(json.materials?.[0]?.name ?? '') ? 'T_Hair_2_BaseColor.png' : 'T_Hair_1_BaseColor.png';
+  const texName = hairTexture(json.materials?.[0]?.name ?? '') === 'hair_2' ? 'T_Hair_2_BaseColor.png' : 'T_Hair_1_BaseColor.png';
   const tex = await loadImage(path.join(folder, texName), 256);
   for (const node of doc.getRoot().listNodes()) {
     const mesh = node.getMesh();
     if (!mesh) continue;
     node.setName('hair');
     mesh.setName('hair');
+    node.setExtras({ detail: detailFor.hair(hairTexture(json.materials?.[0]?.name ?? '')) });
     for (const prim of mesh.listPrimitives()) {
       prim.getMaterial()?.setName('hair');
       const uv = prim.getAttribute('TEXCOORD_0');
@@ -395,6 +475,10 @@ for (const c of clips) {
   if (stray.length) throw new Error(`clip ${c.name} targets joints the bodies lack: ${stray.join(', ')}`);
 }
 files.push(await write(io, animDoc, path.join(OUT, 'anims.glb'), { anims: true }));
+for (const file of await bakeDetailMaps(dirs.characters)) {
+  const buf = fs.readFileSync(file);
+  files.push({ file: path.basename(file), bytes: buf.length, sha256: sha256(buf) });
+}
 fs.rmSync(work, { recursive: true, force: true });
 
 const total = files.reduce((a, f) => a + f.bytes, 0);
@@ -407,6 +491,8 @@ const manifest = {
     COLOR_0: `body, brows, hair and garment pieces: (shade / ${SHADE_MAX}, garment 0-1, trim 0-1); eyes: RGB`,
     _COVER: 'body only: bits of the fitted pieces covering the vertex (vest 1, shortsleeve 2, longsleeve 4, trousers 8, hood 16); the viewer hides covered triangles',
     shade_max: SHADE_MAX,
+    TEXCOORD_0: 'body, brows, eyes and hair: the pack UVs, for the large view\'s detail maps',
+    detail: 'large view only: detail_<skin|hair>*.webp = shade / shade_max as grey (underwear = 1); *_normal = OpenGL normal maps; detail_eye = sRGB eye colour. Each mesh node names its maps in extras.detail',
     skeleton: '65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)',
   },
   clips: clips.map(({ name, source, seconds }) => ({ name, source, seconds: Math.round(seconds * 100) / 100 })),

@@ -43,6 +43,7 @@ import { LOOPS, workPose, workWeight } from '@/lib/avatarWork';
 import type { Material } from '@/lib/wardrobe';
 import { STILL_SECONDS } from '@/lib/still';
 import { potOnGround, REF_BONES, toolProps, wornProps, type Placed } from './avatarProps';
+import { applyDetail, clothSurface, enableShadows, loadDetailMaps } from './avatarDetail';
 
 /** Where the build writes the files, and its shade encoding (build.mjs `SHADE_MAX`). */
 const BASE = '/avatar/';
@@ -116,7 +117,7 @@ const facePaint = (x: number, y: number, z: number) => {
 const OCHRE = new Color().setStyle('#a8442a', SRGBColorSpace);
 
 /** Per-vertex colour for one person: skin, garment or trim by the baked masks, times the baked shading. */
-function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | null = null, { grainAmount = 0, face = false } = {}) {
+function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | null = null, { grainAmount = 0, face = false, shadeFromMap = false } = {}) {
   const geo = mesh.geometry.clone();
   mesh.geometry = geo;
   const src = geo.getAttribute('color') as BufferAttribute | undefined;
@@ -124,7 +125,8 @@ function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | nul
   const out = new Float32Array(n * 3);
   const c = new Color();
   for (let i = 0; i < n; i++) {
-    const shade = src ? src.getX(i) * SHADE_MAX : 1;
+    // In the large view a shade map carries the shading per texel instead (avatarDetail.ts).
+    const shade = src && !shadeFromMap ? src.getX(i) * SHADE_MAX : 1;
     const g = garment && src ? src.getY(i) : 0;
     // Cloth is flat: the painted muscle shading fades out under the garment.
     const s = shade + (1 - shade) * g * 0.75;
@@ -142,6 +144,14 @@ function paint(mesh: Mesh, base: Color, garment: Color | null, trim: Color | nul
     out[i * 3 + 2] = c.b * k;
   }
   geo.setAttribute('color', new Float32BufferAttribute(out, 3));
+}
+
+function collectMeshes(root: Object3D): Mesh[] {
+  const out: Mesh[] = [];
+  root.traverse((o) => {
+    if ((o as Mesh).isMesh) out.push(o as Mesh);
+  });
+  return out;
 }
 
 /** Cover bits of the fitted pieces (build.mjs, pieces.mjs `SHELLS`). */
@@ -278,7 +288,11 @@ export type AvatarView = {
  * Draws `spec` into `canvas` until disposed. `still`: one fixed frame (no idle, no glances), redrawn only on input.
  * Orbit controls move the camera round the figure; it never moves by itself. The canvas may be resized: the view follows.
  */
-export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still, stillAt = STILL_SECONDS }: { still: boolean; stillAt?: number }): AvatarView {
+export function mountAvatar(
+  canvas: HTMLCanvasElement,
+  spec: AvatarSpec,
+  { still, stillAt = STILL_SECONDS, detail = false }: { still: boolean; stillAt?: number; detail?: boolean },
+): AvatarView {
   const t0 = performance.now();
   performance.mark(AVATAR_REQUESTED);
   let disposed = false;
@@ -307,6 +321,10 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
   const rim = new DirectionalLight(0xffa860, 3.2);
   rim.position.set(1.6, 1.8, -2.2);
   scene.add(rim);
+  if (detail) {
+    enableShadows(renderer, key, BODY_M * 0.5);
+    scene.add(key.target);
+  }
 
   // Lights keep their place relative to the viewer as the camera circles, so every side is lit like the front.
   const lightOffsets = [
@@ -477,6 +495,15 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
     ]);
     if (disposed) return;
     const [bodyFile, hairFile, animFile, beardFile, pieceFiles] = parts;
+    // The large view's maps (avatarDetail.ts): named in the meshes' extras, fetched once a visit.
+    const maps = detail ? await loadDetailMaps([bodyFile.scene, hairFile.scene, beardFile?.scene].flatMap((s) => (s ? collectMeshes(s) : []))) : new Map();
+    if (disposed) return;
+    /** A mesh's material, with its detail maps in the large view; says whether the shading now comes from a map. */
+    const dress = (m: Mesh, roughness: number) => {
+      const mat = material(roughness);
+      m.material = mat;
+      return detail ? applyDetail(m, mat, maps, SHADE_MAX) : { shadeFromMap: false, colourFromMap: false };
+    };
     const body = cloneSkinned(bodyFile.scene);
     figure.add(body);
     body.traverse((o) => {
@@ -492,15 +519,12 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
       const m = o as Mesh;
       if (!m.isMesh) return;
       if (m.name.startsWith('eyes')) {
-        linearizeEyes(m);
-        m.material = material(0.3);
+        if (!dress(m, 0.3).colourFromMap) linearizeEyes(m);
       } else if (m.name.startsWith('brows')) {
-        paint(m, browColour, null);
-        m.material = material(0.9);
+        paint(m, browColour, null, null, dress(m, 0.9));
       } else {
-        paint(m, skin, garment, trim, { face: spec.paint });
+        paint(m, skin, garment, trim, { face: spec.paint, ...dress(m, 0.72) });
         hideCovered(m, spec.pieces);
-        m.material = material(0.72);
       }
       disposables.push(m.geometry, m.material as MeshStandardMaterial);
     });
@@ -511,8 +535,7 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
     for (const [file, colour] of [[hairFile, hairColour], [beardFile, browColour]] as const) {
       if (!file) continue;
       for (const m of attachToSkeleton(cloneSkinned(file.scene), bones, bodyParent)) {
-        paint(m, colour, null);
-        m.material = material(0.85);
+        paint(m, colour, null, null, dress(m, 0.85));
         disposables.push(m.geometry, m.material as MeshStandardMaterial);
       }
     }
@@ -521,6 +544,7 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
         paint(m, garment, garment, trim, { grainAmount: GRAIN[cloth] });
         const mm = material(ROUGH[cloth]);
         mm.side = DoubleSide;
+        if (detail) clothSurface(mm, cloth);
         m.material = mm;
         disposables.push(m.geometry, mm);
       }
@@ -544,6 +568,11 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
         if (m.isMesh) disposables.push(m.geometry, m.material as MeshStandardMaterial);
       });
     }
+    if (detail)
+      figure.traverse((o) => {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      });
     body.scale.setScalar(spec.height);
     bones.get('Head')?.scale.setScalar(spec.headScale);
 

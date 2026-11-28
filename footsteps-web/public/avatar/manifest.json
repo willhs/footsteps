@@ -32,6 +32,8 @@
     "COLOR_0": "body, brows, hair and garment pieces: (shade / 1.5, garment 0-1, trim 0-1); eyes: RGB",
     "_COVER": "body only: bits of the fitted pieces covering the vertex (vest 1, shortsleeve 2, longsleeve 4, trousers 8, hood 16); the viewer hides covered triangles",
     "shade_max": 1.5,
+    "TEXCOORD_0": "body, brows, eyes and hair: the pack UVs, for the large view's detail maps",
+    "detail": "large view only: detail_<skin|hair>*.webp = shade / shade_max as grey (underwear = 1); *_normal = OpenGL normal maps; detail_eye = sRGB eye colour. Each mesh node names its maps in extras.detail",
     "skeleton": "65 joints, UE mannequin names (root, pelvis, spine_01-03, neck_01, Head, ...)"
   },
   "clips": [
@@ -234,13 +236,13 @@
   "files": [
     {
       "file": "body_male.glb",
-      "bytes": 160888,
-      "sha256": "c782c2f306bd461b321efd105ec5f340fc46bd92f46e11f9c2ce773a2aa3a773"
+      "bytes": 191416,
+      "sha256": "4a3b0c1a9948acd9a980a88b5d87d65bd017d3d7b029d8e37b32d02df01aeabf"
     },
     {
       "file": "body_female.glb",
-      "bytes": 165904,
-      "sha256": "492360d329f46758eae2f632ca492120ea22799f8bb72fd8df1a98d812f1939e"
+      "bytes": 196592,
+      "sha256": "d1b85af6bea7250115117ef1f5286bcf46685127b7432e766c2d712df1b04eff"
     },
     {
       "file": "piece_vest_male.glb",
@@ -374,39 +376,84 @@
     },
     {
       "file": "hair_long.glb",
-      "bytes": 58772,
-      "sha256": "569135de83b85214ec30e112b85d75c81623f7446cf50e11d10143285d39d1aa"
+      "bytes": 68840,
+      "sha256": "1b4cf5148d393a809357124bbc59b8e2272680a04d6700ae32f8911d57c28411"
     },
     {
       "file": "hair_buns.glb",
-      "bytes": 64472,
-      "sha256": "71fa8e3b4081861059c0ec7aa2ecfc1dc9b3b91abe117dfb1b2db605bf675ab7"
+      "bytes": 75740,
+      "sha256": "898ccca62e3d0490ef85f880af8d28895586c06d0bb03b4d7bbdf8eb90a6d10d"
     },
     {
       "file": "hair_parted.glb",
-      "bytes": 30116,
-      "sha256": "50aea8d1ba16478d5c86bdb8ba685d0e3b31af8b8b77fe2c17c25dabcceb7861"
+      "bytes": 32936,
+      "sha256": "4261ad663ce53e612554e5a29808fe8c8fca8d4b5184004174eba81ba3bb274c"
     },
     {
       "file": "hair_buzzed.glb",
-      "bytes": 25644,
-      "sha256": "3b171e387c59854b3477727a52e570f0384178f2e4df6000e2e9086ee0dea275"
+      "bytes": 27532,
+      "sha256": "b5f068d78d0128e1946ccea351ae6aa53cf7ce47eb9e5b5e30cfd495adf06fab"
     },
     {
       "file": "hair_buzzed_female.glb",
-      "bytes": 26244,
-      "sha256": "446df124dfd6963a3aa5db4cd443cbadbe0b7580cffd45f2021f9cc47982b6cb"
+      "bytes": 28132,
+      "sha256": "caef3df0699b13be1dc8f584f50fa6fcf1e4da2f1f0e20ade419bfeb687e1f67"
     },
     {
       "file": "hair_beard.glb",
-      "bytes": 27608,
-      "sha256": "fb35b2280644f1ce8e46fccfdde5e80cd8feadb13e03538b2b84463f22bdce18"
+      "bytes": 29880,
+      "sha256": "5db141f7bcf70549f9e3321708fb16f645f41930f090f8e4449abf41d0e4240c"
     },
     {
       "file": "anims.glb",
       "bytes": 321960,
       "sha256": "682666291487b47d940e6f9b42eb2c21fbae21cb54034337996ccf79ab49aeb8"
+    },
+    {
+      "file": "detail_skin_male.webp",
+      "bytes": 43034,
+      "sha256": "d61f8cba8cbcc42644db6bdafc3a773609bc31cae2f170292e53a6c4d8680ef9"
+    },
+    {
+      "file": "detail_skin_female.webp",
+      "bytes": 41540,
+      "sha256": "c1370b9f0a9e3525ca8442e851833964ad6ade4aaf996b9896795ff7d2a0ce27"
+    },
+    {
+      "file": "detail_skin_normal_male.webp",
+      "bytes": 130962,
+      "sha256": "c56e63b3e07d12867da151eabcf8e61d3eb4612e3feac430384520419e30530e"
+    },
+    {
+      "file": "detail_skin_normal_female.webp",
+      "bytes": 99576,
+      "sha256": "47c58bee34f0e9dcb534e46534dfc0a797d652d8257d13d1508daa30b471eab0"
+    },
+    {
+      "file": "detail_hair_1.webp",
+      "bytes": 21700,
+      "sha256": "bd7c6f0e9cb77f0334874e4fd95ba1619ae050b45681bc5cdfa01c3ac7fb2254"
+    },
+    {
+      "file": "detail_hair_2.webp",
+      "bytes": 35678,
+      "sha256": "02330c8ff92d531553080f7eb4aede2a75aabce62065afd48f3a19cafa1b2101"
+    },
+    {
+      "file": "detail_hair_1_normal.webp",
+      "bytes": 81630,
+      "sha256": "5e8093b6dc2171af4da5799f0e3a955f4e60b9aa8d73d6810abb863fae56ce41"
+    },
+    {
+      "file": "detail_hair_2_normal.webp",
+      "bytes": 107500,
+      "sha256": "e58fd6036b906f78543f37b4a95f6fd53a51f332b57fd35d329863fdd8a2f898"
+    },
+    {
+      "file": "detail_eye.webp",
+      "bytes": 1682,
+      "sha256": "7064346edf5a5d562bd94764ee20bbfc0fd625b56dbab9b398971ed947834ab4"
     }
   ],
-  "total_bytes": 1716884
+  "total_bytes": 2371606
 }

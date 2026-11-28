@@ -192,10 +192,12 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // tilts the close-up further from zoom 11 so the horizon is in frame.
   const [skyOn, setSkyOn] = useState(false);
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
-  // `?tilt=1` (or `?sky=1`): the close-up tilts with zoom; otherwise it stays a bird's-eye view (lib/close3d.ts tiltParam).
+  // `?tilt=1`: the close-up tilts with zoom; otherwise it stays a bird's-eye view (lib/close3d.ts tiltParam). The sky no longer
+  // tilts on its own (Will, 2026-11-28: the tilt made it too hard to zoom in on a group); with both, the sky's steeper tilt and lift apply.
   const [tiltOn, setTiltOn] = useState(false);
   useEffect(() => setTiltOn(tiltParam(window.location.search)), []);
-  const autoTilt = close3dOn && !is3DMode && (tiltOn || skyOn);
+  const autoTilt = close3dOn && !is3DMode && tiltOn;
+  const skyTilt = skyOn && autoTilt;
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
   const closePitch = autoTilt ? pitchForZoom(viewState.zoom, skyOn) : viewState.pitch ?? 0;
   // With the sky the camera looks out to the horizon; draw the ground only as far as the haze leaves it visible (rounded, so
@@ -206,23 +208,23 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // The close-up ground's drawn height (lib/groundHeights.ts, exaggerated as drawn; the sea's surface at 0), for zooming onto what is under the cursor.
   const groundZ = useMemo(() => (tiltForZoom ? (lon: number, lat: number) => { const h = heightAt(lon, lat); return h === null ? null : Math.max(0, h) * EXAGGERATION; } : undefined), [tiltForZoom]);
   // With the sky tilt the camera is low; lift it by the ground under it so it never stands inside a mountain (deck.gl measures it from sea level).
-  const groundLift = useGroundLift(skyOn && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
+  const groundLift = useGroundLift(skyTilt && close3d, viewState.longitude, viewState.latitude, viewState.zoom, closePitch, typeof window === 'undefined' ? 800 : window.innerHeight);
   // A view the map moved keeps the lift it was moved with (views/liftAnchor.ts: re-described on the ground when not animating), so the
   // camera does not jump; a view set any other way (the URL, the tour) starts from `full`. Either way never below the camera's clearance.
   const liftAnchor = useRef<{ longitude: number; latitude: number; zoom: number; lift: number } | null>(null);
   const anchor = liftAnchor.current;
   const anchored = anchor && anchor.longitude === viewState.longitude && anchor.latitude === viewState.latitude && anchor.zoom === viewState.zoom ? anchor.lift : null;
-  const lift = skyOn && close3d ? Math.max(groundLift.min, anchored ?? groundLift.full) : 0;
+  const lift = skyTilt && close3d ? Math.max(groundLift.min, anchored ?? groundLift.full) : 0;
   const liftRef = useRef(0);
   liftRef.current = lift;
   const viewStateRef = useRef(viewState);
   viewStateRef.current = viewState;
   const deckViewState = close3dOn && !is3DMode
-    ? { ...viewState, pitch: closePitch, ...(skyOn && close3d ? { position: [0, 0, lift] as [number, number, number] } : {}) }
+    ? { ...viewState, pitch: closePitch, ...(skyTilt && close3d ? { position: [0, 0, lift] as [number, number, number] } : {}) }
     : viewState;
   /** How long after the map stops moving its lift is re-described on the ground (longer than a scroll's pause between wheel steps). */
   const REANCHOR_AFTER_MS = 900;
-  const liftOnAt = useCallback((zoom: number) => skyOn && close3dOn && !is3DMode && zoom >= CLOSE3D_ZOOM - 0.5, [skyOn, close3dOn, is3DMode]);
+  const liftOnAt = useCallback((zoom: number) => skyTilt && close3dOn && !is3DMode && zoom >= CLOSE3D_ZOOM - 0.5, [skyTilt, close3dOn, is3DMode]);
 
   // A moment after the map stops moving, describe the view again with its target on the ground the centre looks at: the camera stays
   // put (views/liftAnchor.ts). Not while it moves: deck drags in a plane at the lift's height, a new centre or zoom cancels its animations,

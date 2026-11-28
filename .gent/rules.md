@@ -18,14 +18,14 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
-- Close-up 3D: from zoom 8 on the flat map the ground is drawn as a 3D landscape, seen from straight above by default (bird's-eye at every zoom; `?tilt=1` tilts it with zoom, `?sky=1` tilts it too) (`footsteps-web/layers/Close3DLayer.ts`,
+- Close-up 3D: from zoom 8 on the flat map the ground is drawn as a 3D landscape, seen from straight above by default (bird's-eye at every zoom; `?tilt=1` tilts it with zoom; `?sky=1` no longer tilts on its own) (`footsteps-web/layers/Close3DLayer.ts`,
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour with the colour pyramid's detail. Plant marks by Krapp biome
   are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
   Will reviews it (`?ground=1`; the note then says "surface imagined"). Imagined weather in the same shader (cloud shadows by the place's rainfall, wind in the grass) is off too:
   `?weather=1`, `lib/weather.ts`, the note adds "weather imagined". On by default; `?close3d=0` keeps it flat.
   `?sky=1` (off until reviewed; `lib/sky.ts`, `layers/skyLight.ts`): the ground lit by the local sun clock, haze into a CSS sky backdrop, moving water with
-  glint and shore foam; it tilts to 74° from zoom 10-12 and lifts the camera over high ground (`hooks/useGroundLift.ts`).
+  glint and shore foam; with `?tilt=1` too it tilts to 74° from zoom 10-12 and lifts the camera over high ground (`hooks/useGroundLift.ts`).
   Fields, gardens, terraces, corrals, grazed grass and worn paths round each group (`?fields=1`, off until reviewed; `layers/fields.ts` generates,
   `layers/fieldsDrape.ts` drapes per elevation tile, `hooks/useLand.ts` reads 5′ HYDE cropland, water distance and the food table): extent modelled, layout imagined.
   See `docs/ops/close-up-scene.md`.

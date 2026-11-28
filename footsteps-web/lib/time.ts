@@ -112,14 +112,6 @@ export function estimateSpreadLabel(time: number): string | null {
   return populationRangeLabel({ low: spread.low, central, high: spread.high });
 }
 
-/** How far a place's head count could be off, as factors of the shown figure: the spread of world totals for the year (published
- * estimates from HYDE_MIN, the model's low-high before). A floor, not a bound: a cell's count is less certain than the world's. */
-export function uncertaintyFactorsAt(time: number): { low: number; high: number } {
-  const central = populationAt(time);
-  const spread = estimateSpreadAt(time) ?? populationRangeAt(time);
-  return { low: spread.low / central, high: spread.high / central };
-}
-
 /** The central estimate of `populationRangeAt`. */
 export function populationAt(time: number): number {
   return populationRangeAt(time).central;

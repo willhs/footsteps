@@ -221,14 +221,3 @@ describe('Green Sahara note', () => {
     expect(hoverCardRows({ ...base, climateNote: null }).map((r) => r.id)).not.toContain('climate-note');
   });
 });
-
-describe('people row uncertainty', () => {
-  it('gives a range from the year’s spread of world estimates', () => {
-    const rows = hoverCardRows({ time: -3000, habitat: null, today: null, landUse: null, people: { count: 200, evidence: 'measured', cellDeg: 1 / 12, uncertainty: { low: 0.3, high: 1.0 } } });
-    expect(rows[0].detail).toContain('could be 60–200, as world estimates differ');
-  });
-  it('says nothing when the spread is narrow or the count tiny', () => {
-    const narrow = hoverCardRows({ time: 1900, habitat: null, today: null, landUse: null, people: { count: 200, evidence: 'measured', cellDeg: 1 / 12, uncertainty: { low: 0.95, high: 1.05 } } });
-    expect(narrow[0].detail).not.toContain('could be');
-  });
-});

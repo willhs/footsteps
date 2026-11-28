@@ -129,7 +129,23 @@ gets ~5,000-17,000 at 30 ka and ~8,000-41,000 at 16 ka; Bradshaw et al. 2021 (*N
 3.1-6.5 million for Sahul. Nothing here justifies moving the size. The shape is clearer: Williams finds the population "fell by about 60 per cent
 between 21 and 18 ka", and the model rose. **Change:** `sahul` gets `density_multiplier: [[21, 1.0], [18, 0.45], [15, 1.0]]`.
 
-### 5. Smaller points
+### 5. The Americas: a thin presence before the coastal entry (changed: needs a budgie regeneration)
+
+North America and Central America arrived at 16 ka (Cooper's Ferry 16.5-15.3 ka, Monte Verde 14.5 ka), with White Sands (23-21 ka; Bennett et
+al. 2021, Pigati et al. 2023, both checked earlier for `arrivals.yaml`) kept only as the early scenario. The footprints are now dated by seeds,
+pollen and quartz OSL; the best guess is that a few people were south of the ice before the glacial maximum, not that the continent filled then.
+**Change:** `north_america` and `central_america` arrive at 23 ka (early 30 ka, Chiquihuite Cave, contested) with
+`density_multiplier: [[23, 0.05], [17, 0.05], [15, 1.0]]`, so full occupation still comes with the 16-15 ka entry. South America stays at 15 ka.
+The tour's Americas stop now says so.
+
+### 6. Found, not changed: the Philippines are empty before the HYDE blend
+
+The central Philippines (about 5-19.5°N, 116-127°E) fall to the `pacific_remote` catch-all (3.1 ka), so Palawan and the Visayas have no one until
+the 14,000-10,000 BCE blend, although Tabon Cave has *H. sapiens* at ~47 ka (Détroit et al. 2004, not re-read). A `philippines` row (47 ka, the
+southern-route density curve) is the fix, but any new row or box changes the region order the committed anthropology atlas indexes
+(`test_anthropology_deep.py`), so it must land with a full `anthropology/deep.py` rebuild on budgie. Do it in the same rebuild.
+
+### 7. Smaller points
 
 - 1 CE: HYDE has Africa at 6.4% (15 M); McEvedy & Jones and Biraben give ~10%. Within the published spread; left.
 - Before 68,000 BCE everyone is in Africa and the Levant edge; the early exits (Skhul/Qafzeh, Al Wusta) are not drawn as people.
@@ -139,11 +155,11 @@ between 21 and 18 ka", and the model rose. **Change:** `sahul` gets `density_mul
 
 Absolute numbers by continent at 10,000 BCE are not measured anywhere; the correction swaps one model's split (HYDE's modern-country
 allocation) for another's (forager productivity). It is a better guess, not a measurement, and the label for these years in the app is
-still HYDE's. Items 2-4 change `arrivals.yaml`; their effect on the images is predicted, not yet measured (regenerate on budgie, then re-run `continent_shares.py`).
+still HYDE's. Items 2-5 change `arrivals.yaml`; their effect on the images is predicted, not yet measured (regenerate on budgie, then re-run `continent_shares.py`).
 
-## Rebuild on budgie (for sections 2-4)
+## Rebuild on budgie (for sections 2-5)
 
-The section 1 app change needs nothing. Sections 2-4 change `arrivals.yaml`, so the 90 prehistory images must be regenerated; the commands are
+The section 1 app change needs nothing. Sections 2-5 change `arrivals.yaml`, so the 90 prehistory images must be regenerated; the commands are
 in section 2 and cover all three. Whenever population images change, refresh the hand-over table from them and commit it:
 
 ```bash

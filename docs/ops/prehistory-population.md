@@ -182,7 +182,7 @@ Tibet; 0 before 70 ka BP, 40% at 20 ka, at most 45%). Those people could be half
 - Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000).
   The model holds ~14% of the people the Tallavaara fit would put on every ice-free cell once
   everyone has arrived, so the scale step never asks for more than the fit allows.
-- Africa alone until the first exit; mainland Southeast Asia south of 22°N at 70 ka (southern China, 22-28°N, at 42 ka since 2026-11-21); Sahul at 50 ka; the Americas from 16 ka (all central dates).
+- Africa alone until the first exit; mainland Southeast Asia south of 22°N at 70 ka (southern China, 22-28°N, at 42 ka since 2026-11-21); Sahul at 50 ka; the Americas from 16 ka (all central dates; since 2026-11-28 a thin x0.05 scatter in North America from 23 ka, research 0016).
 - At the last glacial maximum northern Europe is empty and the southern refugia (Iberia, Italy, the Balkans) hold people; this comes
   from the cold rule, not from the `refugia` list, which is documentation only.
 - Where it disagrees with HYDE (the pure model at 12,000 BCE, before the blend was lengthened to 14,000 BCE, against HYDE's 10,000 BCE grid):

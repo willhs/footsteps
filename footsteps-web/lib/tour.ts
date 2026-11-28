@@ -38,9 +38,9 @@ export const ARRIVAL_KA = {
   /** Sahul's `alt`: Madjedbebe, the disputed early date. */
   sahul_alt: 65,
   europe_west: 45,
-  north_america: 16,
+  north_america: 23,
   /** North America's `early` bracket. */
-  north_america_early: 23,
+  north_america_early: 30,
   south_america: 15,
 } as const;
 
@@ -119,7 +119,7 @@ export const TOUR_STOPS: readonly TourStop[] = [
     year: -12000,
     evidence: 'modelled',
     text: [
-      `The model brings people into North America ${kaAgo(ARRIVAL_KA.north_america)}, down the unglaciated Pacific coast, and into South America by ${kaAgo(ARRIVAL_KA.south_america)}.`,
+      `The model has a thin scatter of people in North America from ${kaAgo(ARRIVAL_KA.north_america)}, as the White Sands footprints suggest, and people across South America by ${kaAgo(ARRIVAL_KA.south_america)}.`,
       `The sea is ${seaDrop(-12000)} m lower than today, so Beringia still joins Siberia to Alaska; claims as old as ${kaAgo(ARRIVAL_KA.north_america_early)} are the contested early end.`,
     ],
     source: 'arrivals.yaml `north_america`, `south_america`; sea level from climate_series.json',

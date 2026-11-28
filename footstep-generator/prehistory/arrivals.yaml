@@ -303,7 +303,8 @@ regions:
   - id: central_america
     name: Honduras and Nicaragua
     bbox: [-90, 10, -83, 17.5]
-    arrival_ka_bp: {central: 16, early: 23, late: 14.5}
+    arrival_ka_bp: {central: 23, early: 30, late: 14.5}
+    density_multiplier: [[23, 0.05], [17, 0.05], [15, 1.0]]   # research 0016: a thin scatter from White Sands' 23 ka, full with the 16-15 ka coastal entry
     alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
     ramp_ka: 3
     verification: checked
@@ -313,12 +314,13 @@ regions:
   - id: north_america
     name: North America (south of the ice, plus Mexico)
     bbox: [-125, 15, -65, 55]
-    arrival_ka_bp: {central: 16, early: 23, late: 14.5}
+    arrival_ka_bp: {central: 23, early: 30, late: 14.5}
+    density_multiplier: [[23, 0.05], [17, 0.05], [15, 1.0]]   # research 0016: a thin scatter from White Sands' 23 ka, full with the 16-15 ka coastal entry
     alt: {ka_bp: 23, note: "White Sands footprints, New Mexico, dated 23-21 ka by seeds, pollen and OSL (Bennett et al. 2021 Science 373:1528; Pigati et al. 2023 Science 382:73, both confirmed in this pass). Critics dispute the luminescence layer. Chiquihuite Cave, Mexico, ~30 ka (Ardelean et al. 2020 Nature 584:87) is more contested still. Choose 23 ka for the early scenario."}
     ramp_ka: 3
     verification: checked
     source: "Davis et al. 2019 Science 365:891 (doi:10.1126/science.aax9830; Cooper's Ferry, Idaho, starting 16,560-15,280 cal BP, checked 2026-11-19); Pigati et al. 2023 Science 382:73 (White Sands, checked); Bennett et al. 2021 Science 373:1528 (checked)."
-    notes: "Central 16 ka: coastal route to the unglaciated Pacific side. Interior spread after ~14 ka."
+    notes: "Central 23 ka since 2026-11-28 (research 0016): White Sands (23-21 ka, Pigati et al. 2023) is now treated as a real but thin presence (density x0.05) south of the ice; full occupation still comes with the 16-15 ka coastal entry (Cooper's Ferry 16.5-15.3 ka, Monte Verde 14.5 ka). Early 30 ka is Chiquihuite Cave (contested). Interior spread after ~14 ka."
 
   - id: south_america
     name: South America

@@ -4,7 +4,7 @@
 // roofs on a jittered sunflower round the town's spot. Everything is a pure function of the groups, so the same
 // place always draws the same roofs.
 import { MATERIALS, NO_SOCIETY, shelterSpec, townMix, type DwellingTable, type ShapeId, type ShelterSpec } from '@/lib/dwellings';
-import { HOUSEHOLD_SPACING_M, householdsOf, offsetByMetres } from './households';
+import { HOUSEHOLD_SPACING_M, facingOf, hearthOf, householdsOf, offsetByMetres } from './households';
 import { groupSeed, nominalPeople, peopleDrawn } from './people';
 
 export { nominalPeople };
@@ -25,6 +25,9 @@ export type Shelter = {
   homes: number;
   /** The group it belongs to: its kind of unit and head count (a town's people for a town roof). */
   group: { kind: number; people: number };
+  /** Where its household's open hearth burns, outside the door (foragers' and herders' camps; households.ts `hearthOf`). Unset: the fire is
+   * inside (a village house, a town roof). */
+  hearth?: [number, number];
 };
 
 /** A group in view, as the unit morph has it at one endpoint. */
@@ -48,8 +51,6 @@ function hash(a: number, b: number): number {
   return (h >>> 0) / 4294967296;
 }
 
-const ROUND: ReadonlySet<ShapeId> = new Set(['dome', 'cone', 'drum']);
-
 function shelter(
   position: [number, number],
   spec: ShelterSpec,
@@ -60,6 +61,7 @@ function shelter(
   society: number,
   homes: number,
   group: Shelter['group'],
+  facing: number | null = null,
 ): Shelter {
   const shade = 0.9 + 0.2 * hash(seed, index * 5 + 1);
   const [r, g, b] = MATERIALS[spec.material].rgb;
@@ -70,7 +72,8 @@ function shelter(
     shape: spec.shape,
     rgb: [Math.min(255, r * shade), Math.min(255, g * shade), Math.min(255, b * shade)],
     size: [w * s, d * s, h * s],
-    yaw: ROUND.has(spec.shape) ? 0 : yawBase + (hash(seed, index * 5 + 3) - 0.5) * 24,
+    // The meshes' door side is +y: a yaw of θ - 90° turns it to face θ (degrees anticlockwise from east).
+    yaw: facing !== null ? facing - 90 : yawBase + (hash(seed, index * 5 + 3) - 0.5) * 24,
     spec,
     society,
     homes,
@@ -93,16 +96,19 @@ export function sheltersForGroups(groups: readonly ShelterGroup[], year: number,
     const seed = groupSeed(g.lon, g.lat);
     const yawBase = hash(seed, 99) * 180;
     const spacing = g.kind === UnitKind.Village ? HOUSEHOLD_SPACING_M.village : HOUSEHOLD_SPACING_M.camp;
+    const camp = g.kind === UnitKind.Band || g.kind === UnitKind.Camp;
     let covered = 0;
     for (const home of householdsOf(seed, spacing)) {
       if (covered >= drawn) break;
       covered += home.size;
-      out.push(
-        shelter(
-          offsetByMetres(g.lon, g.lat, home.x, home.y), spec, seed, home.index, yawBase,
-          0.8 + 0.07 * home.size, g.society, 1, { kind: g.kind, people: members },
-        ),
+      // A camp's shelters face its middle with the family's hearth in front of the door (households.ts `hearthOf`).
+      const facing = camp ? (facingOf(home, seed) * 180) / Math.PI : null;
+      const one = shelter(
+        offsetByMetres(g.lon, g.lat, home.x, home.y), spec, seed, home.index, yawBase,
+        0.8 + 0.07 * home.size, g.society, 1, { kind: g.kind, people: members }, facing,
       );
+      if (camp) one.hearth = offsetByMetres(g.lon, g.lat, ...hearthOf(home, seed));
+      out.push(one);
     }
   }
   return out;
@@ -210,7 +216,7 @@ function prism(profile: [number, number][]): Vec[][] {
   return tris;
 }
 
-const SEGMENTS = 8;
+const SEGMENTS = 16;
 const ring = (radius: number, z: number, i: number): Vec => {
   const a = (i / SEGMENTS) * Math.PI * 2;
   return [Math.cos(a) * radius, Math.sin(a) * radius, z];

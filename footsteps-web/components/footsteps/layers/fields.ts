@@ -4,7 +4,7 @@
 //   - Chisholm, M. (1962) Rural Settlement and Land Use: most cultivated land lies within about 1 km of the farmstead, little beyond 2-3 km.
 //   - Vita-Finzi, C. & Higgs, E. S. (1970) Proc. Prehist. Soc. 36: 1-37: a 5 km (one hour's walk) catchment for farmers.
 // Everything is a pure function of the groups in view (seeded by `groupSeed`, as households are), so a place always draws the same land.
-import { HOUSEHOLD_SPACING_M, householdsOf, offsetByMetres } from './households';
+import { HEARTH_FROM_HOME_M, HOUSEHOLD_SPACING_M, householdsOf, offsetByMetres } from './households';
 import { groupSeed } from './people';
 import { nominalPeople, townRadius, townRoofs, type TownInView } from './shelters';
 import { UnitKind } from './units';
@@ -85,9 +85,12 @@ export const BLOCK_M = 150;
 const BALK_M = 6;
 export const FALLOW_SHARE = 0.2;
 export const PASTURE_SHARE = 0.1;
-/** Paths to water are drawn when it is at least this far, and at most this long. */
-export const WATER_PATH_MIN_M = 100;
-export const WATER_PATH_MAX_M = 3000;
+/** A forager camp's trodden ground reaches this far beyond its ring of hearths, metres (imagined). */
+const CLEARING_MARGIN_M = 9;
+/** People per household (Hamilton et al. 2007's 4.48; households.ts). */
+const MEAN_HOUSEHOLD = 4.5;
+/** The kinds of place joined by tracks (`siteLand`). */
+const SETTLED: ReadonlySet<number> = new Set([UnitKind.Village, UnitKind.Glow]);
 /** Neighbouring groups closer than this are joined by a path. */
 export const NEIGHBOUR_PATH_M = 4000;
 const GARDEN_M: [number, number] = [18, 13];
@@ -132,7 +135,7 @@ const LOOKS: Record<Exclude<AreaKind, 'field'> | 'path', Look> = {
   garden: { grow: [78, 126, 58], rest: [112, 96, 70] },
   corral: { grow: [112, 92, 70], rest: [112, 92, 70] },
   grazed: { grow: [206, 198, 140], rest: [196, 188, 142] },
-  clearing: { grow: [176, 150, 112], rest: [176, 150, 112] },
+  clearing: { grow: [124, 102, 76], rest: [124, 102, 76] },
   path: { grow: [172, 148, 110], rest: [164, 140, 106] },
 };
 
@@ -461,15 +464,15 @@ function siteLand(
     disk(out, corral, 'corral', LOOKS.corral.grow, false, ring - 5, ring, 14, 0.04, 43);
   } else if (site.kind === UnitKind.Band && g) {
     // Foragers plant nothing: a trodden clearing round the hearths.
-    disk(out, site, 'clearing', LOOKS.clearing.grow, false, 0, 25 + 3 * Math.sqrt(nominalPeople(g.kind, g.people)), 10, 0.2, 51);
+    // As wide as the ring of shelters and the hearths in front of them, and a margin where people come and go (households.ts).
+    const homes = Math.ceil(nominalPeople(g.kind, g.people) / MEAN_HOUSEHOLD);
+    const ring = (HOUSEHOLD_SPACING_M.camp / 1.9) * Math.sqrt(homes) + HOUSEHOLD_SPACING_M.camp * 0.15;
+    disk(out, site, 'clearing', LOOKS.clearing.grow, false, 0, ring + HEARTH_FROM_HOME_M + CLEARING_MARGIN_M, 10, 0.2, 51);
   }
-  // A worn track towards the nearest fresh water.
-  const water = g ? g.water : town!.water;
-  if (water?.dir && water.metres >= WATER_PATH_MIN_M) {
-    const len = Math.min(WATER_PATH_MAX_M, water.metres);
-    track(out, site, [water.dir[0] * len, water.dir[1] * len], 61, grow);
-  }
-  for (const n of joins) track(out, site, n.offset, 70 + (sites[n.index].seed & 0xffff), grow);
+  // Worn tracks only between settled places (villages and towns), which used the same ways for generations. The tracks to the nearest
+  // fresh water and between foragers' or herders' camps were dropped on 2026-11-28: the water direction is a 5′ raster's gradient, not a
+  // stream you can see, and the straight lines read as invented, not as worn ground (Will).
+  if (SETTLED.has(site.kind)) for (const n of joins) if (SETTLED.has(sites[n.index].kind)) track(out, site, n.offset, 70 + (sites[n.index].seed & 0xffff), grow);
   return out;
 }
 

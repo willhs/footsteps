@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import { drawnGroundZ, groundVersion, subscribeGround, wetAt } from '@/lib/groundHeights';
 import { lazy, useLazy } from '@/lib/lazyModule';
-import { smokeOpacity, type Hearth } from '@/lib/hearths';
+import { smokeCloseFade, smokeOpacity, type Hearth } from '@/lib/hearths';
 
 // `?smoke=1` only: the layer's code loads on first use (docs/ops/first-load.md).
 const SMOKE_MODULE = lazy(() => import('../layers/SmokeLayer'));
@@ -22,14 +22,15 @@ export default function useSmokeLayer({ enabled, hearths, zoom, seaLevel, onGrou
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layers, enabled, hearths, seaLevel, ground, onGround]);
   const opacity = Math.round(smokeOpacity(zoom) * 40) / 40;
+  const smokeOpacityNow = Math.round(opacity * smokeCloseFade(zoom) * 40) / 40;
   return useMemo(
     () =>
       layers && props && opacity > 0
         ? [
             new layers.FirelightLayer({ id: 'firelight', ...props.light, opacity }),
-            new layers.SmokeLayer({ id: 'smoke', ...props.smoke, opacity }),
+            new layers.SmokeLayer({ id: 'smoke', ...props.smoke, opacity: smokeOpacityNow }),
           ]
         : [],
-    [layers, props, opacity],
+    [layers, props, opacity, smokeOpacityNow],
   );
 }

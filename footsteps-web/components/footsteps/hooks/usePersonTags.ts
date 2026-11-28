@@ -5,7 +5,7 @@ import { animClock } from '@/lib/gait';
 import { drawnGroundZ, groundVersion, subscribeGround } from '@/lib/groundHeights';
 import { solarNowMs } from '@/lib/solarClock';
 import type { Person } from '../layers/people';
-import { TAG_FONT_PX, TAG_GAP_PX, chooseTags, groundProjector, tagVisibility, type Tag } from '../layers/personTags';
+import { TAG_CORNER_PX, TAG_FONT_PX, TAG_GAP_PX, TAG_PAD_PX, chooseTags, groundProjector, tagVisibility, type Tag } from '../layers/personTags';
 
 type View = { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number; position?: [number, number, number] };
 
@@ -13,6 +13,8 @@ type View = { longitude: number; latitude: number; zoom: number; pitch?: number;
  * this is well under a pixel of lag. Only positions are rewritten; the text is laid out once. */
 const UPDATE_MS = 200;
 // Roles are lowercase words; ages are digits. A fixed set means the glyph atlas is built once.
+/** Dark, a little see-through, so the ground still shows round the words. */
+const TAG_PILL_RGBA: [number, number, number, number] = [22, 16, 10, 190];
 const CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789,- '";
 
 /** Name tags for the people at the closest zoom (see layers/personTags.ts). Empty and idle (no
@@ -91,15 +93,18 @@ export default function usePersonTags({
               getPosition: (t) => [t.position[0], t.position[1], zAt(t.position[0], t.position[1])],
               getText: (t) => t.text,
               getSize: TAG_FONT_PX,
-              getColor: [255, 226, 170, 255],
+              getColor: [255, 236, 200, 255],
               getPixelOffset: [TAG_GAP_PX, 0],
               getTextAnchor: 'start',
               getAlignmentBaseline: 'center',
               characterSet: CHARACTERS,
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 500,
-              outlineWidth: 2,
-              outlineColor: [28, 18, 8, 230],
+              // The overlay's own sans-serif (app/globals.css --ov-font): a small serif broke up at 12 px.
+              fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              fontWeight: 600,
+              background: true,
+              getBackgroundColor: TAG_PILL_RGBA,
+              backgroundPadding: TAG_PAD_PX,
+              backgroundBorderRadius: TAG_CORNER_PX,
               fontSettings: { sdf: true, fontSize: 64, buffer: 8 },
               opacity,
               pickable: false,

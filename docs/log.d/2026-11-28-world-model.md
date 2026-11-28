@@ -50,3 +50,9 @@ The food row (`?food=1`) gave foragers their biome's generic animals, so Ice Age
 "≈ 230 people" now adds "could be 70–230, as world estimates differ": the year's spread of world totals (published estimates
 from 10,000 BCE, the model's low-high before) applied to the cell, a floor on how unsure the figure is. Shown when the spread
 is 20% or more and the count 10 or more (`uncertaintyFactorsAt` in `lib/time.ts`).
+
+## [2026-11-28] fix | People on Tahiti, the Marquesas, Rapa Nui and the Azores
+
+HYDE has no populated cell on these islands in any year, so Tahiti at 1500 said "No one here" while its card listed
+Austronesian languages and taro. `lib/missingIslands.ts` adds a rough, cited count from settlement (Tahiti ~35,000 at contact,
+Rapa Nui ~3,000 in 1722, the Azores 256,000 in 1900) over a few cells each, only where the image is empty.

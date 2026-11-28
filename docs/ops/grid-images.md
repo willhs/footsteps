@@ -107,5 +107,7 @@ region are in research 0015.
 date, so the served images put people on Iceland and the Faroes from 10,000 BCE, on Galápagos (never settled before 1535),
 the Canaries, Madagascar, Hawaii and the Caribbean before their first settlers. `lib/firstSettlement.ts` lists those islands
 with a cited first-settlement year; `gridDataFrom` leaves their cells empty before it. Counts per island and year are in
-`docs/research/0015-world-model-audit/research.md`. Not fixed: the grid has no cells on the Azores or East Polynesia
-(Tahiti) even in 1900, and Greenland is empty in 800 CE though Dorset people lived there.
+`docs/research/0015-world-model-audit/research.md`. The grid has no cells on the Azores or East Polynesia (Tahiti) even in
+1900: `lib/missingIslands.ts` spreads a rough, cited head count over a few 5′ cells of the Society Islands, the Marquesas, Rapa
+Nui and the Azores from their settlement, only where the image has none (modelled; the counts are approximate). Not fixed:
+Greenland is empty in 800 CE though Dorset people lived there.

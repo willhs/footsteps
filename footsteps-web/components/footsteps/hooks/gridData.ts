@@ -3,6 +3,7 @@ import { TARGET_YEARS } from '@/lib/constants';
 import { classifyCell } from '@/lib/waysOfLife';
 import { CROPS, HERDS, domesticatesBits, gateEra } from '@/lib/domesticatesGate';
 import { LAST_FIRST_SETTLEMENT, unsettledAt } from '@/lib/firstSettlement';
+import { MISSING_ISLANDS, islandCells, islandPeopleAt } from '@/lib/missingIslands';
 import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
 import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
@@ -268,6 +269,18 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       if (allSea) seaBlocks++;
     } else {
       levels[i] = sharedLevel(level, parts);
+    }
+  }
+  // Islands HYDE leaves empty though people lived there (Tahiti, the Marquesas, Rapa Nui, the Azores): a rough count spread over
+  // their cells, only where the image has none (lib/missingIslands.ts).
+  if (sw === HYDE_WIDTH && !mask) {
+    for (const island of MISSING_ISLANDS) {
+      const n = islandPeopleAt(island, year);
+      const cells = islandCells(island, sw);
+      if (!(n >= 1) || cells.some((c) => levels[c])) continue;
+      const level = Math.min(LEVELS, Math.max(1, Math.round((Math.log1p(n / cells.length) / LOG_MAX) * LEVELS)));
+      for (const c of cells) levels[c] = level;
+      occupied += cells.length;
     }
   }
   const length = mask ? counts.reduce((a, b) => a + b, 0) : occupied * parts;

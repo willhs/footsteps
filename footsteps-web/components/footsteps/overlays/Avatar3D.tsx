@@ -14,6 +14,7 @@ import { useAnthropology } from '../hooks/useAnthropology';
 import Portrait from './Portrait';
 import { mountAvatar } from './avatarScene';
 import { portraitLooks } from '@/lib/avatar';
+import { Icon } from '@/components/ui/Icon';
 import { avatarCaption, avatarSpec, OTHER_HUMAN_BODY_NOTE } from '@/lib/avatarSpec';
 import { epochHour, localHourAt, planOf, routineParam, stateAt } from '@/lib/routine';
 import { solarNowMs } from '@/lib/solarClock';
@@ -128,7 +129,9 @@ function LargeFigure({ spec, label, caption, onClose, onFail }: { spec: Spec; la
         </div>
         <figcaption className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-[var(--ov-text-3)]">
           <span className="text-[var(--ov-text-2)]">{caption}</span>
-          <span>🖱️ {HINT}</span>
+          <span>
+            <Icon name="drag" /> {HINT}
+          </span>
         </figcaption>
       </figure>
     </div>,

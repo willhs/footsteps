@@ -100,6 +100,7 @@ separate series from `tasks/0001-0003`.
 ## Design
 
 - [`design-system.md`](design-system.md) — practical UI rules that match the design philosophy (last revised 2025-09)
+- [`design/icons.md`](design/icons.md) — the shared icon system: every icon goes through `<Icon name>` (emoji now, line SVGs later), with the concept inventory and proposed style
 - [`design/explorations/index.md`](design/explorations/index.md) — ten design explorations for the constants of human life, with a feasibility verdict each
 - [`philosophy/design-philosophy.md`](philosophy/design-philosophy.md) — Will's design philosophy: the experience wanted and the design system that follows
 - [`philosophy/human-constants.md`](philosophy/human-constants.md) — the constants of human life Footsteps could show, beyond where and how many

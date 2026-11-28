@@ -31,7 +31,7 @@ const EPOCHS: readonly { scenario: ScenarioMeta; epoch: EpochMeta }[] = PAST_WAT
 
 /** `?pastwater=1` turns the scenarios on. Read once per page load by the page and the grid worker. */
 export function pastWaterParam(search: string): boolean {
-  return new URLSearchParams(search).get('pastwater') === '1';
+  return new URLSearchParams(search).get('pastwater') !== '0';
 }
 
 /** No epoch: the scenarios say nothing about this cell at this date. That is "geography unknown", never "dry". */
@@ -185,7 +185,7 @@ export function lakePlaneFor(layers: PastWaterLayers | null, year: number, seaLe
 }
 
 export type PeopleMode = 'units' | 'grid' | 'dots';
-export type Unresolved = { groups: number; people: number };
+export type Unresolved = { groups: number; people: number; ice?: { groups: number; people: number }; water?: { groups: number; people: number } };
 
 const ka = (bp: number) => `${+(bp / 1000).toFixed(1)}`;
 /** When an epoch holds, in words: the scenario's single window, or the stage's own name. */
@@ -196,19 +196,16 @@ function when(scenario: ScenarioMeta, e: EpochMeta): string {
 const windows = PAST_WATER_SCENARIOS.map((s) => `${s.short} ${s.epochs.map((e) => when(s, e)).join(', ')} (app years ${s.epochs.map((e) => `${e.from_year} to ${e.to_year}`).join(', ')})`).join('; ');
 
 /** The note shown with the flag on: what the scenarios say at this date, in the mode being drawn, and what they could not place. */
-export function pastWaterNote(year: number, mode: PeopleMode, unresolved: Unresolved | undefined): { label: string; title: string } {
+/** The status line, or null when no scenario holds at this date (it is on by default, so it says nothing when idle). */
+export function pastWaterNote(year: number, mode: PeopleMode, all: Unresolved | undefined): { label: string; title: string } | null {
+  const unresolved = all && (all.water ?? all); // only the groups modelled water kept off, not the ice's
   const ids = pastWaterEpochs(year);
   const active = EPOCHS.filter(({ epoch }) => ids.includes(epoch.id));
+  if (!active.length) return null;
   const describe = active.map(({ scenario, epoch }) => `${scenario.summary} Now: ${when(scenario, epoch)}; ${epoch.water}. ${scenario.uncertainty[1]}`).join(' ');
-  const basis = `Experimental (?pastwater=1). Scenarios: ${windows}. Outside its window a scenario says nothing: geography unknown, not dry.`;
+  const basis = `Modelled scenarios (on unless ?pastwater=0). Scenarios: ${windows}. Outside its window a scenario says nothing: geography unknown, not dry.`;
   if (mode === 'dots') {
     return { label: 'Past water: not applied to Dots', title: `Dots is a static archive: its positions do not follow the experimental past-water scenarios. ${basis}` };
-  }
-  if (!active.length) {
-    return {
-      label: 'Past water: no scenario at this date (geography unknown, not dry)',
-      title: `No scenario holds at this date, so they say nothing about it: not wet, not dry lakebed. People and ground are drawn as without the flag. ${basis}`,
-    };
   }
   const placed = mode === 'grid'
     ? 'Grid shows people per cell and places nobody, so cells inside modelled water keep their people on the map.'
@@ -219,5 +216,5 @@ export function pastWaterNote(year: number, mode: PeopleMode, unresolved: Unreso
       : 'Every group is placed on dry ground; none is in modelled water.';
   const names = active.map(({ scenario, epoch }) => `${scenario.short}, ${when(scenario, epoch)}`).join(' + ');
   const tail = mode === 'grid' || !unresolved ? '' : unresolved.groups ? `. ${unresolved.groups.toLocaleString()} groups unplaced (all water)` : '. groups kept off the water';
-  return { label: `Past water (experimental): ${names}${tail}`, title: `${placed} ${describe} ${basis}` };
+  return { label: `Past water: ${names}${tail}`, title: `${placed} ${describe} ${basis}` };
 }

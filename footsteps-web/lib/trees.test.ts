@@ -6,8 +6,8 @@ const heights = new Float32Array(256 * 256).fill(100);
 const ground = (biome = 4): Ground => ({ colourAt: () => [80, 100, 60], biomeAt: () => biome, tempAt: () => 18, precipAt: () => 800 });
 const make = (g = ground(), h = heights) => treesForTile(h, bbox, [100, 100, 13], 0, g);
 
-test('flag stays opt in and deterministic trees have real positive sizes and atlas variants', () => {
-  expect(treesParam('')).toBe(false);
+test('flag is on unless ?trees=0, and deterministic trees have real positive sizes and atlas variants', () => {
+  expect(treesParam('')).toBe(true);
   expect(treesParam('?trees=0')).toBe(false);
   expect(treesParam('?trees=1')).toBe(true);
   const trees = make();

@@ -28,7 +28,7 @@ export const WEBP = { quality: 80, effort: 6, smartSubsample: false };
  * Rome is the one place shown in every look, so the looks compare like for like.
  */
 /** The stats panel counts what is drawn: grid, Dots and Units draw their marks a moment after the data arrives, with no loading flag. */
-const DRAWN = 'Dots drawn [1-9]';
+const DRAWN = '(?:Dots drawn|whole map) [1-9]';
 
 export const SCENES = [
   { id: 'globe-1900', label: 'Globe, 1900', year: 1900, waitText: DRAWN },

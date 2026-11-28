@@ -49,7 +49,10 @@ export type SiteLayers = { terrain: SiteTerrain; water: SiteWater; pastWater?: P
  * lake) driest first. The rest are sea or lake and are never used. When nothing is usable, `dry` is 0 and spot 0 is the least
  * wet one (a data conflict the caller can count). `unresolved`: the call named a scenario epoch that put lake over the cell and nothing
  * in it is usable; the caller must not draw a group there (spot 0 is still the least wet one). The arrays are reused by the next call. */
-export type CellSpots = { x: Float64Array; y: Float64Array; dry: number; unresolved?: boolean };
+export type CellSpots = { x: Float64Array; y: Float64Array; dry: number; unresolved?: boolean; cause?: number };
+/** `CellSpots.cause` bits: the kinds of exclusion in force over the cell (an unresolved cell is blamed on each one). */
+export const CAUSE_WATER = 1;
+export const CAUSE_ICE = 2;
 
 export type SiteRanker = {
   /** The cell's first `count` spots at a sea level (metres relative to today, ≤ 0) and the year's active past-water `epochs` (lib/pastWater.ts
@@ -102,9 +105,9 @@ export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers,
   // Past water: per epoch, the 5′ cells it can change (its patches, plus the reach of a cell's spots and window), and the epoch in force for the current call.
   const reach = 3; // cells: a spot's offset, its bilinear pixel and the ranking window are all within 2
   // An exclusion: a past-water epoch or an ice patch. `mask` is read when it goes live (an ice patch's pixels load when its epoch is first needed).
-  type Exclusion = { id: number; mask: () => LakeMask | undefined; water: WaterPatch | null; col0: number; row0: number; col1: number; row1: number };
-  const regionOf = (id: number, boxes: number[][], mask: Exclusion['mask'], waterPatch: WaterPatch | null): Exclusion => ({
-    id, mask, water: waterPatch,
+  type Exclusion = { id: number; kind: number; mask: () => LakeMask | undefined; water: WaterPatch | null; col0: number; row0: number; col1: number; row1: number };
+  const regionOf = (id: number, boxes: number[][], mask: Exclusion['mask'], waterPatch: WaterPatch | null, kind = CAUSE_WATER): Exclusion => ({
+    id, kind, mask, water: waterPatch,
     col0: Math.min(...boxes.map((b) => b[0])) - reach, row0: Math.min(...boxes.map((b) => b[1])) - reach,
     col1: Math.max(...boxes.map((b) => b[2])) + reach, row1: Math.max(...boxes.map((b) => b[3])) + reach,
   });
@@ -115,7 +118,7 @@ export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers,
       if (e.water) boxes.push([Math.floor(e.water.x0 / wScale), Math.floor(e.water.y0 / wScale), Math.ceil((e.water.x0 + e.water.width) / wScale), Math.ceil((e.water.y0 + e.water.height) / wScale)]);
       return regionOf(e.id, boxes, () => e.lake, e.water);
     }),
-    ...(ice?.patches ?? []).map((p) => regionOf(p.id, [pixelBox(p)], () => ice!.masks.get(p.id), null)),
+    ...(ice?.patches ?? []).map((p) => regionOf(p.id, [pixelBox(p)], () => ice!.masks.get(p.id), null, CAUSE_ICE)),
   ];
   const inRegion = (r: Exclusion, row: number, col: number) => row >= r.row0 && row < r.row1 && col >= r.col0 && col < r.col1;
   /** The exclusions in force for the current call (none outside every active one's region, so a cell there is ranked, and cached, exactly as
@@ -125,15 +128,33 @@ export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers,
   let live = NO_EPOCH;
   const liveMasks: LakeMask[] = [];
   let liveWater: WaterPatch | null = null;
+  let liveKinds = 0;
+  // The units builder asks about one cell many times in a row (its spots, then each hamlet house): the last answer is kept.
+  let lastRow = -1;
+  let lastCol = -1;
+  let lastEpochs: Epochs | null = null;
+  // The exclusions a call's `epochs` name, in `regions` order: filtered once per epochs list, not once per cell.
+  let activeFor: Epochs | null = null;
+  let active: Exclusion[] = [];
   const setLive = (row: number, col: number, epochs: Epochs) => {
+    if (row === lastRow && col === lastCol && epochs === lastEpochs) return;
+    lastRow = row;
+    lastCol = col;
+    lastEpochs = epochs;
     live = NO_EPOCH;
+    liveKinds = 0;
     liveMasks.length = 0;
     liveWater = null;
     if (!epochs.length) return;
+    if (epochs !== activeFor) {
+      activeFor = epochs;
+      active = regions.filter((r) => epochs.includes(r.id));
+    }
     let n = 0;
-    for (const r of regions) {
-      if (n < MAX_LIVE && epochs.includes(r.id) && inRegion(r, row, col)) {
+    for (const r of active) {
+      if (n < MAX_LIVE && inRegion(r, row, col)) {
         live = live * 256 + r.id;
+        liveKinds |= r.kind;
         n++;
         const m = r.mask();
         if (m) liveMasks.push(m);
@@ -378,6 +399,7 @@ export function createSiteRanker({ terrain, water, pastWater, ice }: SiteLayers,
       }
       spots.dry = dries[e];
       spots.unresolved = live !== NO_EPOCH && dries[e] === 0;
+      spots.cause = liveKinds;
       return spots;
     },
     isWet(cellId, x, y, seaLevelM, epochs = NO_EPOCHS) {

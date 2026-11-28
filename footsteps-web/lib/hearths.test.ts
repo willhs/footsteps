@@ -14,10 +14,10 @@ const village = { lon: -3.7, lat: 40.4, kind: UnitKind.Village, people: 180, soc
 const hearth = (over: Partial<Hearth> = {}): Hearth => ({ lon: -3.7, lat: 40.4, seed: hearthSeed(-3.7, 40.4), kind: 'village', homes: 1, ...over });
 
 describe('flag', () => {
-  it('is on only for ?smoke=1', () => {
-    expect(smokeParam('?smoke=1&year=1000')).toBe(true);
+  it('is on unless ?smoke=0', () => {
+    expect(smokeParam('')).toBe(true);
+    expect(smokeParam('?year=-3000&smoke=1')).toBe(true);
     expect(smokeParam('?smoke=0')).toBe(false);
-    expect(smokeParam('')).toBe(false);
   });
 });
 

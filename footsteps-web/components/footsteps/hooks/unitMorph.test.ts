@@ -75,3 +75,20 @@ test('the shader can tell every kind of group from its colour', () => {
   expect(Math.min(g(WayOfLife.Farmer) - VILLAGE_GREEN_CUT, VILLAGE_GREEN_CUT - g(WayOfLife.Forager))).toBeGreaterThan(0.02);
   expect(Math.min(g(WayOfLife.Forager) - BAND_GREEN_CUT, BAND_GREEN_CUT - g(WayOfLife.Herder))).toBeGreaterThan(0.02);
 });
+
+test("each mark knows its rank in its cell and how many marks the cell holds (the shader thins crowded cells far out)", () => {
+  const two = buildUnits(
+    new Uint32Array([42, 43]),
+    new Float32Array([10, 20, 10.1, 20]),
+    new Float32Array([120, 60]),
+    0.1,
+    new Uint8Array([classifyCell(120, 0, 0), classifyCell(60, 0, 0)]),
+  );
+  const morph = buildUnitMorph(units(60), two);
+  const crowd = Array.from(morph.attributes.getCrowd.value);
+  const ranks = crowd.filter((_, i) => i % 2 === 0);
+  const counts = crowd.filter((_, i) => i % 2 === 1);
+  // Cell 42 has 4 bands at the far end, cell 43 has 2: ranks restart per cell and every mark carries its cell's count.
+  expect(ranks).toEqual([0, 1, 2, 3, 0, 1]);
+  expect(counts).toEqual([4, 4, 4, 4, 2, 2]);
+});

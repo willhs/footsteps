@@ -14,6 +14,12 @@ export const VILLAGE_GREEN_CUT = (green(WayOfLife.Farmer) + green(WayOfLife.Fora
 export const BAND_GREEN_CUT = (green(WayOfLife.Forager) + green(WayOfLife.Herder)) / 2;
 /** Below this many pixels of footprint a group is drawn as one sign (a fire, tent, house); above it, as its households. */
 export const SIGN_PX = 7;
+/** A 5′ HYDE cell's width in metres at the equator: the unit the crowding below is counted in. */
+const CELL_M = 40_075_016.686 / 360 / 12;
+/** Far out a dense cell holds dozens of groups in a few pixels, each drawn as a sprite of at least `halo` px: the GPU shaded every
+ * pixel dozens of times (17 fps on the Ganges at zoom 5 on an M5 Pro). A cell keeps about one mark per this many square pixels of
+ * its own area; the rest are not drawn and the kept ones are brightened to make up. From about zoom 8 every mark is drawn. */
+export const CROWD_PX2 = 38;
 /** People per household (households.ts, Hamilton et al. 2007). */
 const HOUSEHOLD = 4.5;
 
@@ -26,7 +32,7 @@ in float instanceRadius;
 in float instanceTargetRadius;
 in vec4 instanceFillColors;
 in vec4 instanceTargetFillColors;
-in vec2 instanceMobility;
+in vec2 instanceCrowd; // rank of the mark among its 5′ cell's marks, and their number
 in vec3 instancePickingColors;
 out vec4 vFillColor;
 out vec4 vLineColor;
@@ -101,6 +107,12 @@ void main(void) {
   // Towns are the only marks with red < 0.5; both endpoints share a kind. The rest take the zoom dimming.
   vFillColor.a *= isCity ? 1.0 : morph.brightness;
   vFillColor.a *= layer.opacity;
+  // Crowded cells far out: draw only the first few marks (stable across years: ranks follow the marks' ids) and brighten them.
+  float cellPx = project_size_to_pixel(${f(CELL_M)}, scatterplot.radiusUnits);
+  float keep = max(1.0, floor(cellPx * cellPx / ${f(CROWD_PX2)}));
+  if (!isCity && instanceCrowd.x >= keep) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+  float kept = min(instanceCrowd.y, keep) / max(instanceCrowd.y, 1.0);
+  if (!isCity) vFillColor.a = min(1.0, vFillColor.a * mix(1.0, min(2.0, inversesqrt(kept)), vFire + vSign));
   DECKGL_FILTER_COLOR(vFillColor, geometry);
   vLineColor = vec4(0.0);
 }

@@ -1,11 +1,11 @@
+import { pastWaterNote } from './pastWater';
 import { ICE, iceBounds, iceEpochAt, iceHoverRow, iceIds, iceMaskAt, iceNote, iceOverlayPixels, iceParam, iceShareAt, ICE_EDGE, ICE_FILL, type IceMask } from './iceSheets';
 import { PAST_WATER_SCENARIOS } from './pastWater';
 
-test('the flag is ?ice=1 only', () => {
-  expect(iceParam('?ice=1')).toBe(true);
-  expect(iceParam('')).toBe(false);
+test('on unless ?ice=0', () => {
+  expect(iceParam('')).toBe(true);
+  expect(iceParam('?year=-3000&ice=1')).toBe(true);
   expect(iceParam('?ice=0')).toBe(false);
-  expect(iceParam('?ice=true')).toBe(false);
 });
 
 test('a year shows its nearest 2.5 ka epoch (calendar BP from 1950), with no gaps, and nothing before 80 ka', () => {
@@ -72,13 +72,23 @@ test('the hover line names the source, the epoch and the region\'s basis', () =>
   expect(iceHoverRow(iceEpochAt(-15000)!, 'North_America').text).toBe('Ice sheet (PaleoMIST 1.0, 17.5 ka)');
 });
 
-test('the note names the epoch, says what the groups did, and is honest about Dots, Grid and before 80 ka', () => {
-  expect(iceNote(-20000, 'units', { groups: 0, people: 0 }).label).toBe('Ice sheets (experimental): PaleoMIST 1.0, 22.5 ka · groups kept off the ice');
-  expect(iceNote(-20000, 'units', { groups: 3, people: 40 }).label).toContain('3 groups unplaced');
-  expect(iceNote(-20000, 'units', { groups: 3, people: 40 }).title).toContain('still counted in the totals');
-  expect(iceNote(-20000, 'dots', undefined).label).toContain('not applied to Dots');
-  expect(iceNote(-20000, 'grid', undefined).title).toContain('places nobody');
-  expect(iceNote(-20000, 'units', undefined).title).toContain('not being kept off the ice yet');
-  expect(iceNote(-90000, 'units', undefined).label).toContain('no reconstruction before 80 ka');
-  expect(iceNote(-20000, 'units', { groups: 0, people: 0 }).title).toContain('CC BY 4.0');
+test('the note names the epoch, says what the groups did, and is honest about Dots and Grid; none before 80 ka', () => {
+  expect(iceNote(-20000, 'units', { groups: 0, people: 0 })!.label).toBe('Ice sheets: PaleoMIST 1.0, 22.5 ka · groups kept off the ice');
+  expect(iceNote(-20000, 'units', { groups: 3, people: 40 })!.label).toContain('3 groups unplaced');
+  expect(iceNote(-20000, 'units', { groups: 3, people: 40 })!.title).toContain('still counted in the totals');
+  expect(iceNote(-20000, 'dots', undefined)!.label).toContain('not applied to Dots');
+  expect(iceNote(-20000, 'grid', undefined)!.title).toContain('places nobody');
+  expect(iceNote(-20000, 'units', undefined)!.title).toContain('not being kept off the ice yet');
+  expect(iceNote(-90000, 'units', undefined)).toBeNull(); // no reconstruction before 80 ka: no note
+  expect(iceNote(-20000, 'units', { groups: 0, people: 0 })!.title).toContain('CC BY 4.0');
+});
+
+describe('iceNote and pastWaterNote blame only their own layer', () => {
+  it('counts the ice and the water groups apart', () => {
+    const u = { groups: 10, people: 500, ice: { groups: 7, people: 300 }, water: { groups: 4, people: 250 } };
+    const ice = iceNote(-20000, 'units', u);
+    expect(ice?.label).toContain('7 groups unplaced');
+    const water = pastWaterNote(-20000, 'units', u);
+    expect(water?.label).toContain('4 groups unplaced');
+  });
 });

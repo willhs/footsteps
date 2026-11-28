@@ -78,10 +78,10 @@ describe('sweep variants', () => {
 
   it('gives each variant its own id and builds an address with the scene and the flags', () => {
     expect(new Set(all.map((v) => v.id)).size).toBe(all.length);
-    const url = new URL(loadUrl('http://x/', SCENES[1], all.find((v) => v.id === 'ground')!));
+    const url = new URL(loadUrl('http://x/', SCENES[1], all.find((v) => v.id === 'ground=0')!));
     expect(url.searchParams.get('year')).toBe('-1000');
     expect(url.searchParams.get('zoom')).toBe('9');
-    expect(url.searchParams.get('ground')).toBe('1');
+    expect(url.searchParams.get('ground')).toBe('0');
     expect(url.searchParams.get('still')).toBeNull();
   });
 

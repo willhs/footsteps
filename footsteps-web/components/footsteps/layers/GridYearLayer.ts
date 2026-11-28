@@ -21,7 +21,7 @@ type UploadedPoints = {
     getFillColor: { buffer: GridBuffer; size: 4; type: 'unorm8' };
     getTargetRadius?: { buffer: GridBuffer; size: 1; type: 'float32' };
     getTargetFillColor?: { buffer: GridBuffer; size: 4; type: 'unorm8' };
-    getMobility?: { buffer: GridBuffer; size: 2; type: 'float32' };
+    getCrowd?: { buffer: GridBuffer; size: 2; type: 'float32' };
   };
 };
 type Props = {
@@ -99,8 +99,8 @@ export default class GridYearLayer extends CompositeLayer<Props> {
     const chunks = gridChunks(props.data);
     const source = props.data;
     if (isMorphPoints(source)) {
-      data.attributes.getMobility = {
-        buffer: device.createBuffer({ byteLength: source.attributes.getMobility.value.byteLength }),
+      data.attributes.getCrowd = {
+        buffer: device.createBuffer({ byteLength: source.attributes.getCrowd.value.byteLength }),
         size: 2, type: 'float32',
       };
       data.attributes.getTargetRadius = {
@@ -142,8 +142,8 @@ export default class GridYearLayer extends CompositeLayer<Props> {
           data.attributes.getTargetRadius &&
           data.attributes.getTargetFillColor
         ) {
-          data.attributes.getMobility!.buffer.write(
-            source.attributes.getMobility.value.subarray(pointOffset * 2, (pointOffset + chunk.length) * 2),
+          data.attributes.getCrowd!.buffer.write(
+            source.attributes.getCrowd.value.subarray(pointOffset * 2, (pointOffset + chunk.length) * 2),
             pointOffset * 8,
           );
           data.attributes.getTargetRadius.buffer.write(

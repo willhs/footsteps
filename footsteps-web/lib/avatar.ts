@@ -147,5 +147,5 @@ export function portraitLooks(person: Person, year: number, lat: number, rec: At
 
 /** `?avatar=3d` asks for the 3D figure in the person card (off by default until Will reviews it). */
 export function avatarFromParams(search: string): boolean {
-  return new URLSearchParams(search).get('avatar') === '3d';
+  return new URLSearchParams(search).get('avatar') !== '0';
 }

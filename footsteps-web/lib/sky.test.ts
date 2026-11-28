@@ -8,9 +8,9 @@ const LAT = 25.7;
 const at = (utcHours: number) => Date.UTC(2024, 5, 21) + utcHours * 3_600_000;
 const warmth = (c: number[]) => c[0] - c[2];
 
-test('the flag', () => {
-  expect(skyParam('')).toBe(false);
-  expect(skyParam('?sky=1')).toBe(true);
+test('the flag: on unless ?sky=0', () => {
+  expect(skyParam('')).toBe(true);
+  expect(skyParam('?year=-3000&sky=1')).toBe(true);
   expect(skyParam('?sky=0')).toBe(false);
 });
 

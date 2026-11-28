@@ -13,7 +13,8 @@ export type MorphPoints = PointBuffers & {
   attributes: PointBuffers['attributes'] & {
     getTargetRadius: { value: Float32Array; size: 1 };
     getTargetFillColor: { value: Uint8ClampedArray; size: 4 };
-    getMobility: { value: Float32Array; size: 2 };
+    /** Per mark: its rank among the marks of its 5′ cell, and how many there are (the shader thins crowded cells far out). */
+    getCrowd: { value: Float32Array; size: 2 };
   };
   /** CPU-only endpoint populations; zero means absent at that endpoint. */
   info: { kind: Uint8Array; people: Float32Array; fromPeople: Float32Array; society: Uint16Array };
@@ -85,13 +86,15 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
   const targetRadii = new Float32Array(length);
   const colors = new Uint8ClampedArray(length * 4);
   const targetColors = new Uint8ClampedArray(length * 4);
-  const mobility = new Float32Array(length * 2);
+  const crowd = new Float32Array(length * 2);
   const kinds = new Uint8Array(length);
   const people = new Float32Array(length);
   const fromPeople = new Float32Array(length);
   const society = new Uint16Array(length).fill(NO_SOCIETY);
   a = 0;
   b = 0;
+  let runCell = -1;
+  let runStart = 0;
   for (let i = 0; i < length; i++) {
     const oldId = a < from.length ? from.ids[a] : Infinity;
     const newId = b < to.length ? to.ids[b] : Infinity;
@@ -112,11 +115,18 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
     people[i] = hasNew ? newPeople : 0;
     fromPeople[i] = hasOld ? oldPeople : 0;
     society[i] = (hasNew ? to.society?.[b] : from.society?.[a]) ?? NO_SOCIETY;
-    mobility[i * 2] = hasOld ? (from.mobility?.[a] ?? 1) : (to.mobility?.[b] ?? 1);
-    mobility[i * 2 + 1] = hasNew ? (to.mobility?.[b] ?? 1) : (from.mobility?.[a] ?? 1);
+    // Ids are cell * 32 + slot, sorted, so a cell's marks are consecutive.
+    const cell = Math.floor(Math.min(oldId, newId) / 32);
+    if (cell !== runCell) {
+      for (let k = runStart; k < i; k++) crowd[k * 2 + 1] = i - runStart;
+      runCell = cell;
+      runStart = i;
+    }
+    crowd[i * 2] = i - runStart;
     if (hasOld) a++;
     if (hasNew) b++;
   }
+  for (let k = runStart; k < length; k++) crowd[k * 2 + 1] = length - runStart;
   return {
     length,
     attributes: {
@@ -125,7 +135,7 @@ export function buildUnitMorph(from: Units, to: Units, settlements = false): Mor
       getFillColor: { value: colors, size: 4 },
       getTargetRadius: { value: targetRadii, size: 1 },
       getTargetFillColor: { value: targetColors, size: 4 },
-      getMobility: { value: mobility, size: 2 },
+      getCrowd: { value: crowd, size: 2 },
     },
     info: { kind: kinds, people, fromPeople, society },
   };

@@ -1,0 +1,689 @@
+{
+ "about": "Continental multipliers over the population images, 13,000-4,000 BCE (footstep-generator/holocene_shares.py, docs/research/0016-holocene-hand-over). Modelled: HYDE 3.5's early-Holocene continental split replaced by the pre-HYDE forager model's, fading back to HYDE by 3000 BCE.",
+ "continents": [
+  {
+   "id": "north_america",
+   "boxes": [
+    [
+     -170,
+     50,
+     -50,
+     84
+    ],
+    [
+     -140,
+     13,
+     -50,
+     50
+    ]
+   ]
+  },
+  {
+   "id": "south_america",
+   "boxes": [
+    [
+     -120,
+     -60,
+     -30,
+     13
+    ]
+   ]
+  },
+  {
+   "id": "west_asia",
+   "boxes": [
+    [
+     26,
+     36,
+     45,
+     42
+    ],
+    [
+     34,
+     29,
+     63,
+     42
+    ],
+    [
+     35,
+     25,
+     39,
+     29
+    ],
+    [
+     39,
+     16,
+     60,
+     29
+    ],
+    [
+     43,
+     12,
+     60,
+     16
+    ]
+   ]
+  },
+  {
+   "id": "africa",
+   "boxes": [
+    [
+     -20,
+     -36,
+     52,
+     37
+    ]
+   ]
+  },
+  {
+   "id": "europe",
+   "boxes": [
+    [
+     -25,
+     35,
+     45,
+     72
+    ]
+   ]
+  },
+  {
+   "id": "south_asia",
+   "boxes": [
+    [
+     60,
+     5,
+     92,
+     37
+    ]
+   ]
+  },
+  {
+   "id": "southeast_asia",
+   "boxes": [
+    [
+     92,
+     -11,
+     130,
+     22
+    ]
+   ]
+  },
+  {
+   "id": "east_asia",
+   "boxes": [
+    [
+     92,
+     22,
+     150,
+     55
+    ]
+   ]
+  },
+  {
+   "id": "north_central_asia",
+   "boxes": [
+    [
+     45,
+     37,
+     180,
+     80
+    ]
+   ]
+  },
+  {
+   "id": "sahul",
+   "boxes": [
+    [
+     110,
+     -50,
+     180,
+     -11
+    ]
+   ]
+  }
+ ],
+ "factors": {
+  "-13000": {
+   "north_america": 0.4636,
+   "south_america": 0.0955,
+   "west_asia": 1.0,
+   "africa": 1.29,
+   "europe": 0.9469,
+   "south_asia": 1.1096,
+   "southeast_asia": 1.2742,
+   "east_asia": 1.1439,
+   "north_central_asia": 0.3168,
+   "sahul": 0.842
+  },
+  "-12000": {
+   "north_america": 0.4749,
+   "south_america": 0.6198,
+   "west_asia": 1.0,
+   "africa": 1.7401,
+   "europe": 0.8321,
+   "south_asia": 1.1521,
+   "southeast_asia": 1.6711,
+   "east_asia": 1.2398,
+   "north_central_asia": 0.1618,
+   "sahul": 0.8393
+  },
+  "-11000": {
+   "north_america": 0.4796,
+   "south_america": 0.8037,
+   "west_asia": 1.0,
+   "africa": 2.5936,
+   "europe": 0.7372,
+   "south_asia": 1.0978,
+   "southeast_asia": 2.3433,
+   "east_asia": 1.2848,
+   "north_central_asia": 0.1084,
+   "sahul": 0.6491
+  },
+  "-10000": {
+   "north_america": 0.4081,
+   "south_america": 0.7539,
+   "west_asia": 1.0,
+   "africa": 5.5963,
+   "europe": 0.6773,
+   "south_asia": 1.1352,
+   "southeast_asia": 4.2782,
+   "east_asia": 1.421,
+   "north_central_asia": 0.0834,
+   "sahul": 0.5805
+  },
+  "-9000": {
+   "north_america": 0.5033,
+   "south_america": 0.8093,
+   "west_asia": 1.0,
+   "africa": 4.4218,
+   "europe": 0.7287,
+   "south_asia": 0.8878,
+   "southeast_asia": 3.8033,
+   "east_asia": 1.1147,
+   "north_central_asia": 0.2139,
+   "sahul": 0.7672
+  },
+  "-8000": {
+   "north_america": 0.6,
+   "south_america": 0.8659,
+   "west_asia": 1.0,
+   "africa": 3.4904,
+   "europe": 0.7798,
+   "south_asia": 0.7805,
+   "southeast_asia": 3.3571,
+   "east_asia": 0.934,
+   "north_central_asia": 0.3454,
+   "sahul": 0.9531
+  },
+  "-7000": {
+   "north_america": 0.6985,
+   "south_america": 0.9245,
+   "west_asia": 1.0,
+   "africa": 2.77,
+   "europe": 0.832,
+   "south_asia": 0.7367,
+   "southeast_asia": 2.9406,
+   "east_asia": 0.8485,
+   "north_central_asia": 0.4784,
+   "sahul": 1.1345
+  },
+  "-6000": {
+   "north_america": 0.7956,
+   "south_america": 0.9812,
+   "west_asia": 1.0,
+   "africa": 2.2199,
+   "europe": 0.8713,
+   "south_asia": 0.7472,
+   "southeast_asia": 2.5461,
+   "east_asia": 0.8307,
+   "north_central_asia": 0.6107,
+   "sahul": 1.2993
+  },
+  "-5000": {
+   "north_america": 0.8846,
+   "south_america": 1.0255,
+   "west_asia": 1.0,
+   "africa": 1.777,
+   "europe": 0.9186,
+   "south_asia": 0.7983,
+   "southeast_asia": 2.1361,
+   "east_asia": 0.857,
+   "north_central_asia": 0.7403,
+   "sahul": 1.4119
+  },
+  "-4000": {
+   "north_america": 0.9619,
+   "south_america": 1.0457,
+   "west_asia": 1.0,
+   "africa": 1.3695,
+   "europe": 0.9553,
+   "south_asia": 0.8854,
+   "southeast_asia": 1.6022,
+   "east_asia": 0.9187,
+   "north_central_asia": 0.8727,
+   "sahul": 1.39
+  }
+ },
+ "shares_percent": {
+  "-13000": {
+   "north_america": {
+    "before": 10.3,
+    "after": 4.8
+   },
+   "south_america": {
+    "before": 7.3,
+    "after": 0.7
+   },
+   "west_asia": {
+    "before": 2.8,
+    "after": 2.8
+   },
+   "africa": {
+    "before": 31.9,
+    "after": 41.1
+   },
+   "europe": {
+    "before": 7.1,
+    "after": 6.8
+   },
+   "south_asia": {
+    "before": 8.7,
+    "after": 9.6
+   },
+   "southeast_asia": {
+    "before": 12.9,
+    "after": 16.4
+   },
+   "east_asia": {
+    "before": 11.0,
+    "after": 12.6
+   },
+   "north_central_asia": {
+    "before": 3.0,
+    "after": 0.9
+   },
+   "sahul": {
+    "before": 5.0,
+    "after": 4.2
+   }
+  },
+  "-12000": {
+   "north_america": {
+    "before": 17.2,
+    "after": 8.1
+   },
+   "south_america": {
+    "before": 18.9,
+    "after": 11.7
+   },
+   "west_asia": {
+    "before": 3.8,
+    "after": 3.8
+   },
+   "africa": {
+    "before": 19.0,
+    "after": 33.0
+   },
+   "europe": {
+    "before": 7.0,
+    "after": 5.8
+   },
+   "south_asia": {
+    "before": 6.9,
+    "after": 7.9
+   },
+   "southeast_asia": {
+    "before": 7.9,
+    "after": 13.1
+   },
+   "east_asia": {
+    "before": 8.4,
+    "after": 10.4
+   },
+   "north_central_asia": {
+    "before": 4.8,
+    "after": 0.8
+   },
+   "sahul": {
+    "before": 6.3,
+    "after": 5.3
+   }
+  },
+  "-11000": {
+   "north_america": {
+    "before": 21.9,
+    "after": 10.5
+   },
+   "south_america": {
+    "before": 24.1,
+    "after": 19.4
+   },
+   "west_asia": {
+    "before": 4.9,
+    "after": 4.9
+   },
+   "africa": {
+    "before": 10.9,
+    "after": 28.1
+   },
+   "europe": {
+    "before": 7.4,
+    "after": 5.5
+   },
+   "south_asia": {
+    "before": 6.0,
+    "after": 6.6
+   },
+   "southeast_asia": {
+    "before": 4.8,
+    "after": 11.2
+   },
+   "east_asia": {
+    "before": 7.0,
+    "after": 9.0
+   },
+   "north_central_asia": {
+    "before": 6.6,
+    "after": 0.7
+   },
+   "sahul": {
+    "before": 6.4,
+    "after": 4.2
+   }
+  },
+  "-10000": {
+   "north_america": {
+    "before": 25.5,
+    "after": 10.4
+   },
+   "south_america": {
+    "before": 25.4,
+    "after": 19.1
+   },
+   "west_asia": {
+    "before": 6.1,
+    "after": 6.1
+   },
+   "africa": {
+    "before": 5.0,
+    "after": 27.8
+   },
+   "europe": {
+    "before": 8.0,
+    "after": 5.4
+   },
+   "south_asia": {
+    "before": 5.7,
+    "after": 6.5
+   },
+   "southeast_asia": {
+    "before": 2.6,
+    "after": 11.0
+   },
+   "east_asia": {
+    "before": 6.2,
+    "after": 8.8
+   },
+   "north_central_asia": {
+    "before": 8.5,
+    "after": 0.7
+   },
+   "sahul": {
+    "before": 7.1,
+    "after": 4.1
+   }
+  },
+  "-9000": {
+   "north_america": {
+    "before": 24.4,
+    "after": 12.3
+   },
+   "south_america": {
+    "before": 24.5,
+    "after": 19.8
+   },
+   "west_asia": {
+    "before": 6.4,
+    "after": 6.4
+   },
+   "africa": {
+    "before": 5.6,
+    "after": 24.7
+   },
+   "europe": {
+    "before": 7.8,
+    "after": 5.7
+   },
+   "south_asia": {
+    "before": 7.4,
+    "after": 6.6
+   },
+   "southeast_asia": {
+    "before": 2.6,
+    "after": 9.9
+   },
+   "east_asia": {
+    "before": 7.8,
+    "after": 8.7
+   },
+   "north_central_asia": {
+    "before": 7.9,
+    "after": 1.7
+   },
+   "sahul": {
+    "before": 5.6,
+    "after": 4.3
+   }
+  },
+  "-8000": {
+   "north_america": {
+    "before": 23.0,
+    "after": 13.8
+   },
+   "south_america": {
+    "before": 23.3,
+    "after": 20.2
+   },
+   "west_asia": {
+    "before": 6.7,
+    "after": 6.7
+   },
+   "africa": {
+    "before": 6.2,
+    "after": 21.7
+   },
+   "europe": {
+    "before": 7.7,
+    "after": 6.0
+   },
+   "south_asia": {
+    "before": 9.2,
+    "after": 7.2
+   },
+   "southeast_asia": {
+    "before": 2.6,
+    "after": 8.7
+   },
+   "east_asia": {
+    "before": 9.7,
+    "after": 9.0
+   },
+   "north_central_asia": {
+    "before": 7.2,
+    "after": 2.5
+   },
+   "sahul": {
+    "before": 4.4,
+    "after": 4.2
+   }
+  },
+  "-7000": {
+   "north_america": {
+    "before": 21.2,
+    "after": 14.8
+   },
+   "south_america": {
+    "before": 21.8,
+    "after": 20.1
+   },
+   "west_asia": {
+    "before": 7.0,
+    "after": 7.0
+   },
+   "africa": {
+    "before": 6.8,
+    "after": 19.0
+   },
+   "europe": {
+    "before": 7.5,
+    "after": 6.2
+   },
+   "south_asia": {
+    "before": 11.7,
+    "after": 8.6
+   },
+   "southeast_asia": {
+    "before": 2.5,
+    "after": 7.5
+   },
+   "east_asia": {
+    "before": 11.8,
+    "after": 10.0
+   },
+   "north_central_asia": {
+    "before": 6.4,
+    "after": 3.1
+   },
+   "sahul": {
+    "before": 3.3,
+    "after": 3.8
+   }
+  },
+  "-6000": {
+   "north_america": {
+    "before": 18.8,
+    "after": 14.9
+   },
+   "south_america": {
+    "before": 19.6,
+    "after": 19.2
+   },
+   "west_asia": {
+    "before": 8.1,
+    "after": 8.1
+   },
+   "africa": {
+    "before": 7.3,
+    "after": 16.2
+   },
+   "europe": {
+    "before": 7.4,
+    "after": 6.5
+   },
+   "south_asia": {
+    "before": 14.7,
+    "after": 11.0
+   },
+   "southeast_asia": {
+    "before": 2.4,
+    "after": 6.2
+   },
+   "east_asia": {
+    "before": 13.9,
+    "after": 11.6
+   },
+   "north_central_asia": {
+    "before": 5.5,
+    "after": 3.3
+   },
+   "sahul": {
+    "before": 2.4,
+    "after": 3.1
+   }
+  },
+  "-5000": {
+   "north_america": {
+    "before": 15.9,
+    "after": 14.1
+   },
+   "south_america": {
+    "before": 16.8,
+    "after": 17.3
+   },
+   "west_asia": {
+    "before": 10.5,
+    "after": 10.5
+   },
+   "africa": {
+    "before": 7.5,
+    "after": 13.3
+   },
+   "europe": {
+    "before": 7.0,
+    "after": 6.4
+   },
+   "south_asia": {
+    "before": 18.1,
+    "after": 14.5
+   },
+   "southeast_asia": {
+    "before": 2.2,
+    "after": 4.8
+   },
+   "east_asia": {
+    "before": 15.8,
+    "after": 13.5
+   },
+   "north_central_asia": {
+    "before": 4.5,
+    "after": 3.3
+   },
+   "sahul": {
+    "before": 1.7,
+    "after": 2.4
+   }
+  },
+  "-4000": {
+   "north_america": {
+    "before": 12.9,
+    "after": 12.4
+   },
+   "south_america": {
+    "before": 13.9,
+    "after": 14.6
+   },
+   "west_asia": {
+    "before": 11.6,
+    "after": 11.6
+   },
+   "africa": {
+    "before": 7.8,
+    "after": 10.7
+   },
+   "europe": {
+    "before": 7.1,
+    "after": 6.8
+   },
+   "south_asia": {
+    "before": 22.6,
+    "after": 20.0
+   },
+   "southeast_asia": {
+    "before": 2.1,
+    "after": 3.4
+   },
+   "east_asia": {
+    "before": 17.2,
+    "after": 15.8
+   },
+   "north_central_asia": {
+    "before": 3.5,
+    "after": 3.1
+   },
+   "sahul": {
+    "before": 1.1,
+    "after": 1.5
+   }
+  }
+ }
+}

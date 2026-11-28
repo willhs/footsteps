@@ -191,6 +191,11 @@ Tibet; 0 before 70 ka BP, 40% at 20 ka, at most 45%). Those people could be half
   into the Americas on the map. The total is smooth; the geography is not. Either HYDE or this
   model is wrong about early-Holocene Africa and America, and nothing here settles which.
 
+**Continental shares across the hand-over (2026-11-28).** The app now rescales each continent's total for 13,000-4,000 BCE
+(`lib/holoceneShares.ts`, table built by `footstep-generator/holocene_shares.py`, research 0016), so the disagreement above no longer reaches the map:
+continents follow the pure model's shares through the blend and fade to HYDE's by 3000 BCE; within a continent the blend is unchanged.
+Re-run `holocene_shares.py` whenever these images or HYDE's are regenerated.
+
 ## Known limits and choices
 
 - **Rules not applied as written.** (1) `ramp`'s neighbour-front rule is dropped: at 0.5° a step-by-step front moves

@@ -11,6 +11,7 @@ import { loadPastWater, NO_EPOCHS, pastWaterEpochs, type Epochs, type PastWaterL
 import { iceIds, iceLayers, loadIceAt, type IceLayers } from '@/lib/iceSheets';
 import { landSubcells, type TerrainSea } from './landSubcells';
 import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
+import { shareFactors } from '@/lib/holoceneShares';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -239,6 +240,8 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const land = landUse?.width === w && landUse.height === h ? landUse : null;
   if (landUse && !land) console.warn(`[grid] land use ${year} is ${landUse.width}×${landUse.height}, expected ${w}×${h}`);
   const mask = scale > 1 ? sea : null;
+  // 13,000-4,000 BCE: continental totals set by lib/holoceneShares.ts (one multiplier per source cell), null otherwise.
+  const shares = shareFactors(year, sw, sh);
   const drop = Math.max(0, -seaLevelAt(year));
   // Level of each source cell, then of each of its sub-cells (equal share), or its land sub-cells (mask).
   const levels = new Uint16Array(sw * sh);
@@ -271,6 +274,7 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const cellDeg = 360 / w;
   let index = 0;
   let total = 0;
+  let raw = 0; // people before the continental multipliers
   for (let row = 0; row < h; row++) {
     const blockRow = Math.floor(row / scale);
     const sourceRow = blockRow * sw;
@@ -286,6 +290,8 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       } else {
         population = Math.expm1((value / LEVELS) * LOG_MAX);
       }
+      raw += population;
+      if (shares) population *= shares[block];
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;
@@ -297,6 +303,13 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       total += population;
       index++;
     }
+  }
+  // The multipliers keep the world total for the image they were fitted on (HYDE's or the model's); renormalise so any other
+  // image read for the year (the `?spread=1` one) keeps its own total too.
+  if (shares && total > 0) {
+    const k = raw / total;
+    for (let i = 0; i < index; i++) people[i] *= k;
+    total = raw;
   }
   return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }

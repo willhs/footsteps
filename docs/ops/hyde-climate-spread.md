@@ -39,7 +39,11 @@ Sahul with Wallacea, Doggerland with Europe, Beringia with North America), on th
    weight and extent (`sahara_weight`, `sahara_extent`): NPP is raised toward that of today's rain belt moved
    `SAHARA_SHIFT_DEG` = 8° north, at the humid period's strength. It only ever raises NPP.
 3. **Shift.** `shift = Q·then/Σthen − Q·now/Σnow` per cell, where Q is the region's HYDE total.
-   `new = max(0, hyde + STRENGTH·shift)`, rescaled so the region keeps Q exactly. A cell is moved only by what
+   Where `shift ≥ 0` the cell gains it: `new = hyde + STRENGTH·shift`. Where `shift < 0` the cell loses in proportion
+   to how its share of the capacity fell: `new = hyde·(1 + STRENGTH·(share_then/share_now − 1))`. Then everything is
+   rescaled so the region keeps Q exactly. (Until Nov 2026 losses were subtracted, `max(0, hyde + STRENGTH·shift)`, which
+   emptied whole 0.5° blocks wherever HYDE had fewer people than the capacity model's share, as square holes in central
+   and southern Africa around 5000 BCE.) A cell is moved only by what
    changed in the climate and coast, since HYDE's own pattern (rivers, cities) is in `hyde` and cancels in `then − now`.
 4. **Back to 5′.** A block that lost people loses the same share in every HYDE cell in it. A block that gained
    spreads the gain evenly over its dry 5′ cells at that year's sea level, so new people look like 0.5° tiles.

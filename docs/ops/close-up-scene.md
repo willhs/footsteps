@@ -384,3 +384,13 @@ The ground and field detail shaders (`layers/groundDetail.ts`) draw their noise 
 
 - **Glint** (`layers/skyLight.ts`): the ripple lattice is coarsened to stay over ~3 pixels, and far out the drawn ripples kept full steepness and a power-180 highlight. Each pixel then caught or missed a pin-point sparkle, so Lake Mega-Chad at zoom 9 looked like TV static. The ripples now flatten by the coarsening factor, and the lobe widens with it (normalised, so the energy is kept). Far water shows a broad, soft glitter. The water's metre coordinate uses the same nearby origin as the ground patterns.
 - **Cloud shadows** fade out from `gmpp` 20 to 60 (zoom ~10.5 to ~9; deck's 512-pixel tiles make `gmpp` about half the usual metres per pixel). Further out each cloud is a 5-20 pixel blotch: camouflage on white ice, blocky mottle on water.
+
+## Fixed daylight while Day/night is off (2026-11-28)
+
+The close-up's light used to follow the real clock even with Day/night shading off. So a viewer in the NZ evening saw Europe and Beringia at night, with dark ground, dark snow and glowing hearths, and took it for a rendering bug.
+
+With Day/night off, and no `?utc=`, `?warp=` or `?still=1` in the URL, the close-up is now lit by a fixed sun: 10:30 local sun time on midsummer day of the view's hemisphere (`lib/sky.ts` `fixedDaySun`). Hearth firelight is hidden under that light. Turning Day/night on brings back the live sun, along with night and the firelight.
+
+The ground slope fit (`lib/close3d.ts` `fitSlope`) now uses only the vertices inside the tile near its edges. Clamping to the edge vertex read the ground beyond the edge as flat.
+
+Seams that remain between tiles in tilted views come from deck.gl drawing farther tiles at a lower zoom, whose elevation tiles are coarser. The nearer, finer tiles also show the stair-steps of the upsampled elevation data as chevrons on smooth snow.

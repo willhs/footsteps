@@ -327,11 +327,14 @@ export default function useGridLayer({
 
   // Street-level zoom: the bands and villages in view become individual people.
   const peopleOn = unitsContinuous && blend.people > 0 && !!morphScene;
-  const snap = (v: number) => Math.round(v / 0.02) * 0.02;
-  const bounds = peopleOn ? viewBounds(view, size.width, size.height) : null;
-  const boundsKey = bounds
-    ? [bounds.west, bounds.south, bounds.east, bounds.north].map(snap).join()
-    : '';
+  // The box the people, homes, fields and hearths are built for: the view grown by half its size each way, kept while the view
+  // stays inside it. Snapping the view to 0.02° rebuilt them (a scan of every group of the year and a re-upload of every
+  // footprint) every ~150 px of a pan at street zoom; now only when the view leaves the box, or the box grows far past it.
+  const peopleBox = useRef<Region | null>(null);
+  const viewBox = peopleOn ? viewBounds(view, size.width, size.height) : null;
+  peopleBox.current = viewBox ? stickyBox(peopleBox.current, viewBox) : null; // idempotent: mutate-in-render as regionRef above
+  const bounds = peopleBox.current;
+  const boundsKey = bounds ? [bounds.west, bounds.south, bounds.east, bounds.north].join() : '';
   const people = useMemo(() => {
     if (!peopleOn || !morphScene || !bounds) return null;
     const pad = 0.05;
@@ -494,4 +497,13 @@ export default function useGridLayer({
     inView,
     hearths,
   };
+}
+
+/** `prev` while it still holds `view` and is under ten times its area; else `view` grown by half its width and height each way. */
+export function stickyBox(prev: Region | null, view: Region): Region {
+  const w = view.east - view.west;
+  const h = view.north - view.south;
+  if (prev && view.west >= prev.west && view.east <= prev.east && view.south >= prev.south && view.north <= prev.north
+    && (prev.east - prev.west) * (prev.north - prev.south) <= 10 * w * h) return prev;
+  return { west: view.west - w / 2, east: view.east + w / 2, south: Math.max(-90, view.south - h / 2), north: Math.min(90, view.north + h / 2) };
 }

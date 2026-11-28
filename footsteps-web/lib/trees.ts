@@ -50,19 +50,21 @@ export function clearedMask(trees: readonly TreeInstance[], clearings: readonly 
   const mask = new Uint8Array(trees.length);
   if (!clearings.length) return mask;
   const step = 0.002;
-  const bins = new Map<string, TreeClearing[]>();
+  // Numeric bin keys (a string per tree was most of the cost): bins are 0.002° (~220 m), so a column fits well under 2^20.
+  const bins = new Map<number, TreeClearing[]>();
+  const binKey = (x: number, y: number) => (x + 100_000) * 200_000 + (y + 100_000);
   for (const c of clearings) {
     const reach = c.radius + 20; // Includes the largest possible crown radius.
     const dx = reach / (111320 * Math.max(0.01, Math.cos(c.position[1] * Math.PI / 180)));
     const dy = reach / 110540;
     for (let x = Math.floor((c.position[0] - dx) / step); x <= Math.floor((c.position[0] + dx) / step); x++)
       for (let y = Math.floor((c.position[1] - dy) / step); y <= Math.floor((c.position[1] + dy) / step); y++) {
-        const key = `${x},${y}`;
+        const key = binKey(x, y);
         const list = bins.get(key) ?? []; list.push(c); bins.set(key, list);
       }
   }
   trees.forEach((t, i) => {
-    const near = bins.get(`${Math.floor(t.position[0] / step)},${Math.floor(t.position[1] / step)}`);
+    const near = bins.get(binKey(Math.floor(t.position[0] / step), Math.floor(t.position[1] / step)));
     if (near?.some(c => {
       const dx = (t.position[0] - c.position[0]) * 111320 * Math.cos(c.position[1] * Math.PI / 180);
       const dy = (t.position[1] - c.position[1]) * 110540;

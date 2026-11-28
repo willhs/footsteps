@@ -167,8 +167,8 @@ test('the seed is the spot, not the id (ids change as the view moves)', () => {
   expect(personSeed(person({ gait: 0.7 }))).not.toBe(personSeed(person()));
 });
 
-test('?avatar=3d turns the 3D figure on; anything else leaves the SVG', () => {
-  expect(avatarFromParams('?avatar=3d')).toBe(true);
-  expect(avatarFromParams('?avatar=1')).toBe(false);
-  expect(avatarFromParams('')).toBe(false);
+test('the 3D figure is on unless ?avatar=0', () => {
+  expect(avatarFromParams('')).toBe(true);
+  expect(avatarFromParams('?year=-3000&avatar=1')).toBe(true);
+  expect(avatarFromParams('?avatar=0')).toBe(false);
 });

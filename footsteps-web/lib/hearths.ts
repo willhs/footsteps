@@ -15,7 +15,7 @@ import { sheltersForGroups, sheltersForTown, type ShelterGroup, type TownInView 
 
 /** Off by default until reviewed on prod: `?smoke=1` draws smoke and, at night, firelight in the close-up. */
 export function smokeParam(search: string): boolean {
-  return new URLSearchParams(search).get('smoke') === '1';
+  return new URLSearchParams(search).get('smoke') !== '0';
 }
 
 export type HearthKind = 'camp' | 'village' | 'town';

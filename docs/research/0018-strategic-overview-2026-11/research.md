@@ -162,5 +162,5 @@ Smaller debts:
 - Main moved while this was written (`a4562ff` Australia and research 0017, `914c68e` jest command, `9bd8879` flags).
   Only the points above were updated for it.
 - Quota: the 5-hour window stood at 69% used when I started (7-day 50%), hit its limit partway, and reset at 10:20 UTC;
-  near the end of writing it read 2% (7-day 53%). The window is shared with other jobs, so this job's own share is not
-  visible.
+  near the end of writing it read 2% (7-day 53%), and after the review's extra passes 33% (7-day 56%). The window is
+  shared with other jobs, so this job's own share is not visible.

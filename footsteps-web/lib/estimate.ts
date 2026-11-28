@@ -80,17 +80,17 @@ type Box = { west: number; east: number; south: number; north: number; from: num
 export const HYDE_CAVEATS: readonly Box[] = [
   {
     west: 112, east: 154, south: -44, north: -10, from: -10000, to: 1787,
-    text: 'HYDE holds Australia flat at about 260,000 people until 1700; recent estimates for 1788 are 750,000 to 1.2 million.',
+    text: 'HYDE likely undercounts Australia: ~260k here, 0.75–1.2M by newer estimates for 1788.',
     source: 'research 0015',
   },
   {
     west: 60, east: 180, south: 50, north: 75, from: 1700, to: 1900,
-    text: 'Siberia is undercounted around 1800: HYDE has about 97,000 people in Yakutia against roughly 200,000 Sakha.',
+    text: 'HYDE likely undercounts Siberia: ~97k in Yakutia vs ~200k Sakha.',
     source: 'research 0015',
   },
   {
     west: -73, east: -12, south: 59, north: 84, from: 500, to: 1300,
-    text: 'HYDE leaves Greenland empty, though Late Dorset people lived there until about 1300.',
+    text: 'HYDE leaves Greenland empty; Dorset people lived here.',
     source: 'research 0015',
   },
 ];
@@ -105,7 +105,7 @@ function peopleLine(time: number): EstimateLine {
   if (time < HYDE_MIN) {
     return {
       id: 'people',
-      shapes: 'How many people, and where',
+      shapes: 'People',
       cite: 'Footsteps’ forager model',
       source: 'Footsteps’ own model (research 0002): plant productivity from Beyer et al. 2020 climate, Tallavaara et al. 2018’s forager density fit, a table of first arrivals, scaled to published world totals',
       method: 'Puts a forager population of a published size where plants would feed it best. Nobody has counted these people: no census, no ground truth.',
@@ -117,7 +117,7 @@ function peopleLine(time: number): EstimateLine {
   const conf = spread ? agreement(spread.low, spread.high) : 'rough';
   return {
     id: 'people',
-    shapes: 'How many people, and where',
+    shapes: 'People',
     cite: 'HYDE 3.5',
     source: 'HYDE 3.5 (Klein Goldewijk et al.), the standard reconstruction of historical population and land use',
     method:
@@ -136,8 +136,8 @@ function spreadLine(time: number, adjusted: boolean): EstimateLine | null {
   if (adjusted) {
     return {
       id: 'spread',
-      shapes: 'Which cells hold the people',
-      cite: 'HYDE, moved by past climate',
+      shapes: 'Where in the region',
+      cite: 'HYDE + past climate',
       source: 'HYDE 3.5, adjusted spread (docs/ops/hyde-climate-spread.md), Beyer et al. 2020 climate',
       method:
         'HYDE’s people are moved within continent-scale regions toward where the climate then let people live (the Green Sahara, the dry shelves); each region keeps HYDE’s total.',
@@ -147,7 +147,7 @@ function spreadLine(time: number, adjusted: boolean): EstimateLine | null {
   }
   return {
     id: 'spread',
-    shapes: 'Which cells hold the people',
+    shapes: 'Where in the region',
     cite: 'HYDE 3.5 weights',
     source: 'HYDE 3.5’s allocation weights',
     method:
@@ -168,8 +168,8 @@ function betweenLine(time: number): EstimateLine | null {
   const gap = y1 - y0;
   return {
     id: 'between',
-    shapes: 'This year, between data years',
-    cite: `${calendarLabel(y0)} and ${calendarLabel(y1)} blended`,
+    shapes: 'Between data years',
+    cite: `${calendarLabel(y0)} ↔ ${calendarLabel(y1)}`,
     source: `The people images for ${calendarLabel(y0)} and ${calendarLabel(y1)}`,
     method: 'Blended between the two, assuming steady growth (geometric). Wars, plagues and famines inside the gap do not show.',
     confidence: gap > 500 ? 'very rough' : 'rough',
@@ -181,7 +181,7 @@ function lifeLine(time: number): EstimateLine {
   if (time < HYDE_MIN) {
     return {
       id: 'life',
-      shapes: 'Way of life (forager, farmer, herder, town)',
+      shapes: 'Way of life',
       cite: 'all foragers',
       source: 'None before 10,000 BCE: everyone is drawn as foragers',
       method: 'Farming and herding had not begun anywhere, so all groups are bands.',
@@ -191,7 +191,7 @@ function lifeLine(time: number): EstimateLine {
   }
   return {
     id: 'life',
-    shapes: 'Way of life (forager, farmer, herder, town)',
+    shapes: 'Way of life',
     cite: 'HYDE land use',
     source: 'HYDE 3.5 cropland and grazing per cell, gated by the dates crops and herd animals reached each region',
     method: 'A cell’s share of cropland and grazing picks farmers, herders or foragers; dense cells become towns once a region has its first towns.',
@@ -205,8 +205,8 @@ function lifeLine(time: number): EstimateLine {
 
 const GROUPS_LINE: EstimateLine = {
   id: 'groups',
-  shapes: 'Bands, villages and camps close in',
-  cite: 'ethnographic analogs',
+  shapes: 'Groups close in',
+  cite: 'recorded societies',
   source: 'Group sizes and layouts from ethnographic analogs (D-PLACE: Ethnographic Atlas, Binford), placed on flat land near fresh water',
   method: 'Each cell’s people are split into groups the size recorded societies like them lived in, then set on the best-ranked spots.',
   confidence: 'imagined',
@@ -218,8 +218,8 @@ function landLine(time: number): EstimateLine {
   const deep = Math.abs(level) > 5;
   return {
     id: 'land',
-    shapes: 'Coasts, land cover and ice',
-    cite: 'Spratt & Lisiecki 2025, Krapp 2021',
+    shapes: 'Coasts and land',
+    cite: 'sea level, biomes',
     source: 'Sea level: Spratt & Lisiecki 2025. Biomes: Krapp et al. 2021. Relief: today’s elevation and seabed (Terrain Tiles)',
     method: 'The sea is drawn at the year’s level over today’s relief and seabed; biomes come from a vegetation model driven by past climate.',
     confidence: deep ? 'rough' : 'fair',
@@ -233,7 +233,7 @@ function climateLine(time: number): EstimateLine {
   const bp = 1950 - time;
   return {
     id: 'climate',
-    shapes: 'Temperature and rain (hover card)',
+    shapes: 'Climate',
     cite: 'Beyer et al. 2020',
     source: 'Beyer, Krapp & Manica 2020, a palaeoclimate model downscaled to 0.5°',
     method: bp > 22000 ? 'Model snapshots every 2,000 years, blended between.' : 'Model snapshots every 1,000 years, blended between.',
@@ -261,6 +261,19 @@ export function placeNotes({ time, lon, lat, corrections = [] }: EstimateInput):
 export function explainParam(search: string): boolean {
   return new URLSearchParams(search).get('explain') === '1';
 }
+
+/** One icon per line, so the panel reads at a glance. */
+export const LINE_ICON: Record<EstimateLine['id'], string> = {
+  people: '👥', spread: '🗺️', between: '⏳', life: '🌾', groups: '🏕️', land: '🌊', climate: '🌡️', corrections: '🛠️',
+};
+
+/** What each trust word means, for its tooltip. */
+export const CONFIDENCE_MEANING: Record<Confidence, string> = {
+  fair: 'Sources agree within about a third',
+  rough: 'Sources agree within about three-fold',
+  'very rough': 'Sources differ more, or nobody counted',
+  imagined: 'Drawn to look plausible, not estimated',
+};
 
 export const CONFIDENCE_LABEL: Record<Confidence, string> = {
   fair: 'Fair',

@@ -372,7 +372,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const otherHover = otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
   const shelterInfo = sheltersOn && !otherHover && shelterHover && shelters.length && onMap(shelterHover.x) ? shelterHover : null;
   const cardPoint = hoverCard && !otherHover && !shelterInfo && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
-  const columnBusy = Boolean(cardPoint || otherHover || shelterInfo || tooltipData || explainOpen);
+  const columnBusy = Boolean(cardPoint || otherHover || shelterInfo || tooltipData);
   // The explainer follows the cursor while it is on the map, and keeps the last spot when the cursor leaves for the panel.
   const lastPointRef = useRef<{ lon: number; lat: number } | null>(null);
   if (cardPoint) lastPointRef.current = { lon: cardPoint.lon, lat: cardPoint.lat };
@@ -581,8 +581,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         is3DMode={is3DMode}
         year={Math.round(time)}
         now={now}
-        onExplain={explainOn ? () => setExplainOpen((o) => !o) : undefined}
-        explainOpen={explainOpen}
       />
 
       {/* Bottom-left stack: details panel above the legend, both above the timeline. */}
@@ -673,20 +671,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             }}
           />
         )}
-        {explainOpen && (
-          <EstimatePanel
-            time={time}
-            adjusted={adjusted}
-            place={
-              selectedPlace
-                ? { lon: selectedPlace[0], lat: selectedPlace[1] }
-                : lastPointRef.current ?? { lon: viewState.longitude, lat: viewState.latitude }
-            }
-            placeFrom={selectedPlace ? 'selected' : cardPoint ? 'cursor' : lastPointRef.current ? 'cursor' : 'centre'}
-            onClose={() => setExplainOpen(false)}
-          />
-        )}
-        {cardPoint && !explainOpen && !featured && !(peopleView && selectedPlace) && (
+        {cardPoint && !featured && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 
@@ -801,6 +786,34 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
             </ControlRow>
           )}
         </VizToggles>
+        {/* `?explain=1`: where the numbers come from. Beside the hover card, not instead of it: that says what is here, this says how we know. */}
+        {explainOn && (
+          <div className="mt-2 flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={() => setExplainOpen((o) => !o)}
+              aria-expanded={explainOpen}
+              aria-label="How we estimate this"
+              title="How we estimate this"
+              data-testid="explain-toggle"
+              className={`ov-panel pointer-events-auto flex h-8 w-8 items-center justify-center !rounded-full !p-0 text-[14px] font-semibold ${explainOpen ? 'text-[var(--ov-text)]' : 'text-[var(--ov-text-3)]'} hover:text-[var(--ov-text)]`}
+            >
+              ?
+            </button>
+            {explainOpen && (
+              <EstimatePanel
+                time={time}
+                adjusted={adjusted}
+                place={
+                  selectedPlace
+                    ? { lon: selectedPlace[0], lat: selectedPlace[1] }
+                    : lastPointRef.current ?? { lon: viewState.longitude, lat: viewState.latitude }
+                }
+                onClose={() => setExplainOpen(false)}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -48,9 +48,6 @@ interface Props {
   ice?: { label: string; title: string } | null;
   /** `?spread=1`: whether the climate-adjusted spread is drawn at this date and mode (lib/adjustedSpread.ts `spreadNote`); null when the flag is off. */
   spread?: { label: string; title: string } | null;
-  /** `?explain=1`: opens or closes the "How we estimate this" panel (lib/estimate.ts); undefined hides the link. */
-  onExplain?: () => void;
-  explainOpen?: boolean;
 }
 
 /** Close in, the map runs on today's clock: the time of day where you are looking. */
@@ -80,8 +77,6 @@ function SupportingText({
   pastWater = null,
   ice = null,
   spread = null,
-  onExplain,
-  explainOpen = false,
   now,
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
@@ -303,17 +298,6 @@ function SupportingText({
         </div>
       )}
 
-      {onExplain && (
-        <button
-          type="button"
-          onClick={onExplain}
-          aria-expanded={explainOpen}
-          data-testid="explain-toggle"
-          className="ov-note mt-0.5 block text-left text-[var(--ov-text-3)] underline decoration-dotted underline-offset-2 hover:text-[var(--ov-text)]"
-        >
-          How is this estimated?
-        </button>
-      )}
       {viewState.zoom >= ZOOM.groups && viewState.longitude !== undefined && (
         <SunTime lon={viewState.longitude} lat={viewState.latitude} now={now} />
       )}

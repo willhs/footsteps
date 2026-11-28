@@ -8,10 +8,11 @@ updated: 2026-11-28
 # How we estimate this (`?explain=1`)
 
 A prototype, off by default, for one way of answering "how sure is this?": instead of drawing uncertainty on the map, a
-quiet "How is this estimated?" link under the counter opens a panel in the left column. For the year on the slider and the
-place under the cursor (else the clicked spot, else the map centre) it lists what each part of the map is built from, in
-the order the map is built: people, which cells hold them, the gap between data years, way of life, groups close in, land
-and sea, climate. Each line has its source, the method in a sentence, and one confidence word.
+small **?** button under the map controls (top right) opens a panel beside them. It does not replace the hover card: the card
+says what is here; the panel says how we know, for the year on the slider and the place under the cursor (else the clicked
+spot, else the map centre). One line per part of the map, in the order it is built (people, where in the region, between data
+years, way of life, groups close in, coasts and land, climate): an icon, a short label, the source in a few words and one
+trust word (its meaning on hover). Click a line for the method and why. Known problems at the place show as 📍 lines.
 
 Will has not decided how, or whether, uncertainty is shown (2026-11-28); this is for trying, not a decision. It draws
 nothing on the map.

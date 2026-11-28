@@ -117,13 +117,13 @@ export default function usePresenceLayers({
 
   const layers: LayersList = [];
   if (enabled && far > 0)
-    fireLayers.forEach((l, i) =>
+    fireLayers.forEach((l, i) => {
       // Held from another time while this one builds: dimmed, so it reads as
       // waiting rather than as the answer.
-      layers.push(
-        l.clone({ visibleFraction, opacity: far * (fresh ? 1 : 0.4) * (i === 0 ? 1 - fade : fade), visible: true }),
-      ),
-    );
+      const opacity = far * (fresh ? 1 : 0.4) * (i === 0 ? 1 - fade : fade);
+      // At a data year one of the pair has opacity 0: not drawn at all (it was ~32,000 fire sprites shaded for nothing).
+      layers.push(l.clone({ visibleFraction, opacity, visible: opacity > 0.001 }));
+    });
   const waiting: [number, number] | null = wanted && !fresh ? [y0, y1] : null;
   return { layers, animating: layers.length > 0, waiting };
 }

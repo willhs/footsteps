@@ -178,12 +178,12 @@ function loadCoastline(): Promise<[number, number][][]> {
 
 /** Background layers for terrain mode at continuous `time`. `close3d`: draw the tilted 3D
  * landscape (lib/close3d.ts) in place of the flat relief and coastline. */
-export default function useTerrainLayers(time: number, enabled: boolean, close3d = false): Layer[] {
+export default function useTerrainLayers(time: number, close3d = false): Layer[] {
   const { y0, y1 } = terrainBracket(time);
   const ka = habitatStep(Math.round(clampTime(time)));
   const [habitat, setHabitat] = useState<{ ka: number; rgba: Uint8ClampedArray } | null>(null);
   useEffect(() => {
-    if (!enabled || !close3d) return;
+    if (!close3d) return;
     let live = true;
     loadLookup(habitatUrl(ka))
       .then((rgba) => live && setHabitat({ ka, rgba }))
@@ -191,22 +191,22 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     return () => {
       live = false;
     };
-  }, [enabled, close3d, ka]);
+  }, [close3d, ka]);
   // The past-water patches (~105 KB) are fetched only with the flag and the close-up on; the water exists only in its epochs.
   const [lakeLayers, setLakeLayers] = useState<PastWaterLayers | null>(null);
   useEffect(() => {
-    if (!enabled || !close3d || !pastWaterOn()) return;
+    if (!close3d || !pastWaterOn()) return;
     let live = true;
     loadPastWater().then((layers) => live && setLakeLayers(layers)).catch((error) => console.warn('[terrain] no past water', error));
     return () => {
       live = false;
     };
-  }, [enabled, close3d]);
+  }, [close3d]);
   // The ice of the epoch the year shows: masks and overlay pictures, loaded when the epoch changes.
   const iceBp = iceEpochAt(clampTime(time))?.bp ?? null;
   const [ice, setIce] = useState<{ bp: number; masks: IceMask[]; bitmaps: ImageBitmap[] } | null>(null);
   useEffect(() => {
-    if (!enabled || !iceOn() || iceBp === null) return;
+    if (!iceOn() || iceBp === null) return;
     let live = true;
     loadIceAt(clampTime(time))
       .then((masks) => Promise.all(masks.map(iceBitmap)).then((bitmaps) => live && setIce({ bp: iceBp, masks, bitmaps })))
@@ -215,7 +215,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the ice depends on the epoch, not on every tick of `time`
-  }, [enabled, iceBp]);
+  }, [iceBp]);
   const iceShown = ice && ice.bp === iceBp ? ice : null;
   const iceCover = useMemo(() => (iceShown ? { key: `ice${iceShown.bp}`, shareAt: (lon: number, lat: number) => iceShareAt(iceShown.masks, lon, lat) } : null), [iceShown]);
   const epochs = pastWaterEpochs(clampTime(time)).join(',');
@@ -229,7 +229,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   // The colour pyramid (lib/terrainDetail.ts): only with ?terrain_tiles=1 (off until reviewed). Read after mount (static export).
   const [detail, setDetail] = useState<DetailSource | null>(null);
   useEffect(() => {
-    if (!enabled || !terrainTilesParam(window.location.search)) return;
+    if (!terrainTilesParam(window.location.search)) return;
     let live = true;
     loadDetailSource()
       .then((d) => live && setDetail(d))
@@ -237,10 +237,9 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     return () => {
       live = false;
     };
-  }, [enabled]);
+  }, []);
 
   useEffect(() => {
-    if (!enabled) return;
     let live = true;
     Promise.all([loadTerrain(y0), loadTerrain(y1)])
       .then(() => live && setShown({ y0, y1 }))
@@ -254,13 +253,13 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     return () => {
       live = false;
     };
-  }, [enabled, y0, y1]);
+  }, [y0, y1]);
 
   useEffect(() => {
     // The modern coastline (Natural Earth 110m) is off: its long straight segments read as solid lines close in,
     // and in the Ice Age it sits inland. `?coast=1` draws it.
-    if (enabled && new URLSearchParams(window.location.search).get('coast') === '1') loadCoastline().then(setCoast);
-  }, [enabled]);
+    if (new URLSearchParams(window.location.search).get('coast') === '1') loadCoastline().then(setCoast);
+  }, []);
 
   // Blend weight quantised so the 3D ground is rebuilt at most ~20 times across a terrain step.
   const fq = shown ? Math.round(Math.min(1, Math.max(0, (clampTime(time) - shown.y0) / Math.max(1, shown.y1 - shown.y0))) * 20) / 20 : 0;
@@ -284,9 +283,9 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
   // eslint-disable-next-line react-hooks/exhaustive-deps -- biomeYear matters only through biomeKey
   }, [close3d, shown, habitat, fq, detail, seaQ, biomeKey]);
 
-  const close3dModule = useLazy(CLOSE3D_MODULE, enabled && close3d);
-  const detailModule = useLazy(DETAIL_MODULE, enabled && !!detail && !close3d);
-  if (!enabled || !shown) return [];
+  const close3dModule = useLazy(CLOSE3D_MODULE, close3d);
+  const detailModule = useLazy(DETAIL_MODULE, !!detail && !close3d);
+  if (!shown) return [];
   const lower = bitmaps.get(shown.y0);
   const upper = bitmaps.get(shown.y1);
   if (!lower || !upper) return [];

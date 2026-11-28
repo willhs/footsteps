@@ -79,7 +79,7 @@ export default function usePresenceLayers({
   time: number;
   view: View;
   far: number;
-}): { layers: LayersList; animating: boolean; waiting: [number, number] | null } {
+}): { layers: LayersList; waiting: [number, number] | null } {
   const { y0, y1, f } = bracket(time);
   const [pair, setPair] = useState<{ a: Built; b: Built } | null>(null);
   const wanted = enabled;
@@ -125,5 +125,5 @@ export default function usePresenceLayers({
       layers.push(l.clone({ visibleFraction, opacity, visible: opacity > 0.001 }));
     });
   const waiting: [number, number] | null = wanted && !fresh ? [y0, y1] : null;
-  return { layers, animating: layers.length > 0, waiting };
+  return { layers, waiting };
 }

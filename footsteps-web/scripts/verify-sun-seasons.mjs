@@ -63,7 +63,6 @@ async function capture(name) {
 try {
   for (const scene of [
     { name: 'flat', mode: 'units', zoom: 6, lat: 35, lon: -120 },
-    { name: 'plain', mode: 'units', zoom: 6, lat: 35, lon: -120, plain: true },
     { name: 'daylight', mode: 'grid', zoom: 6, lat: 35, lon: 0, daylight: true },
     { name: 'globe', mode: 'auto', zoom: 2, lat: 35, lon: -120, globe: true },
     { name: 'close3d', mode: 'units', zoom: 9, lat: 35, lon: -120 },
@@ -78,7 +77,6 @@ try {
     await page.getByTestId('year-input').fill(scene.year ?? '0 CE');
     await page.getByTestId('year-input').press('Enter');
     if (scene.globe) await page.getByRole('button', { name: 'Globe view', exact: true }).click();
-    if (scene.plain) await page.getByRole('button', { name: 'Plain', exact: true }).click();
     await page.waitForLoadState('networkidle', { timeout: 90000 });
     // route.fetch runs outside the page's network-idle accounting. Await the
     // actual proxy responses before comparing off/on pixels.

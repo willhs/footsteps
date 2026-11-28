@@ -22,9 +22,6 @@ import {
 } from './peopleView';
 import useYearCrossfade from './useYearCrossfade';
 import useHandover from './useHandover';
-
-/** Zoom levels before the groups start to fade in (ZOOM.unitsIn) at which their data starts building, so it is ready on arrival. */
-export const UNITS_PREFETCH_ZOOMS = 0.8;
 import { bracket } from '@/lib/time';
 import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
@@ -36,6 +33,9 @@ import {
   type MorphGroupInView,
   type Person,
 } from '../layers/people';
+
+/** Zoom levels before the groups start to fade in (ZOOM.unitsIn) at which their data starts building, so it is ready on arrival. */
+export const UNITS_PREFETCH_ZOOMS = 0.8;
 
 const NO_PEOPLE: readonly Person[] = [];
 const NO_SHELTERS: readonly Shelter[] = [];

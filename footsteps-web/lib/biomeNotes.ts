@@ -8,15 +8,17 @@
 // `correctedBiome` gives the close-up 3D ground (its trees and ground cover) the same corrections as Krapp biome codes.
 import { inGreenSahara, GREEN_SAHARA_NOTE, GREEN_SAHARA_FROM, GREEN_SAHARA_TO } from './greenSahara';
 import type { Ground } from './close3d';
+import type { IconName } from './icons';
 
-export type BiomeNote = { text: string; detail: string };
+export type BiomeNote = { icon: IconName; text: string; detail: string };
 
 /** The biome model's tree-covered classes (Krapp et al. 2021 ids 1-11 and the open woodlands 15-17), by name. */
 const FOREST = /forest|taiga|woodland/i;
 
 const PRAIRIE = { west: -104, east: -94, south: 33, north: 49, from: -6000, to: 1880 } as const;
 export const PRAIRIE_NOTE: BiomeNote = {
-  text: '🌾 Prairie, not forest',
+  icon: 'grassland',
+  text: 'Prairie, not forest',
   detail: 'tallgrass and mixed-grass prairie from the mid-Holocene until the plough (1870s–1900s); the biome model puts trees here (Williams, Shuman & Bartlein 2009)',
 };
 
@@ -28,7 +30,8 @@ const STEPPE_BOXES = [
 const STEPPE_FROM = -28000;
 const STEPPE_TO = -13000;
 export const MAMMOTH_STEPPE_NOTE: BiomeNote = {
-  text: '🦣 Mammoth steppe, not forest',
+  icon: 'mammoth-steppe',
+  text: 'Mammoth steppe, not forest',
   detail: 'cold, dry grassland with mammoth, horse, bison and reindeer across the north at the glacial maximum, trees only in sheltered valleys; the biome model puts forest here (Guthrie 1990; Zimov et al. 2012)',
 };
 

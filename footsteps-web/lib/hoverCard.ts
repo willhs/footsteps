@@ -8,11 +8,14 @@ import type { BiomeNote } from './biomeNotes';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
+import type { IconName } from './icons';
 import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
 import { EXPANSIONS_FLOOR_YEAR, expansionLine, type ExpansionRow } from './languageExpansions';
 
 export type CardRow = {
   id: 'habitat' | 'ice' | 'climate' | 'climate-note' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
+  /** An icon before the text (lib/icons.ts), for rows that read better with a picture. */
+  icon?: IconName;
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */

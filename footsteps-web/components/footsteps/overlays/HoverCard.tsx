@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { gatedLandUse } from '@/lib/domesticatesGate';
 import { biomeNoteAt } from '@/lib/biomeNotes';
+import { Icon } from '@/components/ui/Icon';
 import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
 import useFood from '../hooks/useFood';
@@ -137,6 +138,11 @@ export default function HoverCard({
         {rows.map((row) => (
           <li key={row.id}>
             <p className={`text-[13px] leading-snug ${WARM_ROWS.has(row.id) ? 'text-[var(--ov-amber)]' : 'text-[var(--ov-text)]'}`}>
+              {row.icon && (
+                <>
+                  <Icon name={row.icon} />{' '}
+                </>
+              )}
               {row.text}
             </p>
             <p className="text-[11px] leading-snug text-[var(--ov-text-3)]">

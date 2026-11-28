@@ -13,39 +13,41 @@ export function formatPopulation(pop: number): string {
   return `${Math.round(pop).toLocaleString()} people`;
 }
 
+import type { IconName } from './icons';
+
 // Translate population counts into a qualitative scale.
 // Used by overlays and will support future charts.
 export function getPopulationScale(population: number): {
   scale: string;
-  icon: string;
+  icon: IconName;
   significance: string;
 } {
   if (population > 1_000_000) {
     return {
       scale: 'Megacity',
-      icon: '🏙️',
+      icon: 'megacity',
       significance: 'Major urban center',
     };
   }
   if (population > 500_000) {
-    return { scale: 'Metropolis', icon: '🌆', significance: 'Large city' };
+    return { scale: 'Metropolis', icon: 'metropolis', significance: 'Large city' };
   }
   if (population > 100_000) {
-    return { scale: 'City', icon: '🏘️', significance: 'Urban settlement' };
+    return { scale: 'City', icon: 'town', significance: 'Urban settlement' };
   }
   if (population > 50_000) {
-    return { scale: 'Large Town', icon: '🏘️', significance: 'Regional center' };
+    return { scale: 'Large Town', icon: 'town', significance: 'Regional center' };
   }
   if (population > 10_000) {
-    return { scale: 'Town', icon: '🏘️', significance: 'Local hub' };
+    return { scale: 'Town', icon: 'town', significance: 'Local hub' };
   }
   if (population > 2_000) {
-    return { scale: 'Village', icon: '🏠', significance: 'Rural community' };
+    return { scale: 'Village', icon: 'village', significance: 'Rural community' };
   }
   if (population > 500) {
-    return { scale: 'Hamlet', icon: '🏡', significance: 'Small settlement' };
+    return { scale: 'Hamlet', icon: 'hamlet', significance: 'Small settlement' };
   }
-  return { scale: 'Outpost', icon: '⛺', significance: 'Remote presence' };
+  return { scale: 'Outpost', icon: 'tent', significance: 'Remote presence' };
 }
 
 // Describe the level of detail based on zoom level

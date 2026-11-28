@@ -444,6 +444,9 @@ export default function useGridLayer({
     if (!enabled || style !== 'units' || !cities.length) return [];
     return buildCityLayers(cities, units, view.zoom);
   }, [grid, enabled, style, units, view.zoom, unitsContinuous, morphScene, morphProgress]);
+  // The flat households give way to the close-up's 3D dwellings only once those are built (from street zoom, with the people).
+  // Keyed on `homes3d` alone, the groups drew nothing but a faint wash from the close-up's start (zoom 8, CLOSE3D_ZOOM) to street zoom.
+  const homesIn3d = homes3d && shelters.length > 0;
   const layerList = useMemo(() => {
     if (!enabled) return [];
     if (unitsContinuous) {
@@ -458,7 +461,7 @@ export default function useGridLayer({
                 pickable,
                 settle: blend.settle,
                 halo: blend.halo,
-                homes: homes3d ? 0 : 1,
+                homes: homesIn3d ? 0 : 1,
                 visible: units > 0 && blend.people < 1,
               }),
             ]
@@ -489,7 +492,7 @@ export default function useGridLayer({
               progress: modeChanged ? 1 : eased,
               minPx,
               brightness,
-              homes: homes3d ? 0 : 1,
+              homes: homesIn3d ? 0 : 1,
               pickable: pickable && frame?.opacity === 1,
               visible: !!frame && !superseded && units > 0,
             }
@@ -515,7 +518,7 @@ export default function useGridLayer({
     minPx,
     brightness,
     pickable,
-    homes3d,
+    homesIn3d,
   ]);
   // What the view is waiting on: zoomed in, the unit morph for the visible region.
   const unitsWaiting =

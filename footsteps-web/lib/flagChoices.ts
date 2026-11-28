@@ -19,7 +19,7 @@ export type MenuFlag = {
 export const FLAG_CHOICES_KEY = 'footsteps.flags.v1';
 
 export const MENU_FLAGS: readonly MenuFlag[] = [
-  { name: 'sky', on: '1', group: 'Close-up', label: 'Sky and sunlight', hint: 'Light from the local sun clock, haze into a sky at the horizon, moving water; with Tilt, a steeper tilt' },
+  { name: 'sky', on: '1', group: 'Close-up', label: 'Sky and sunlight', hint: 'Light from the local sun clock, haze into a sky at the horizon, moving water; tilts the close-up' },
   { name: 'tilt', on: '1', group: 'Close-up', label: 'Tilt as you zoom', hint: 'The close-up tilts into a landscape as you zoom in, instead of staying a bird’s-eye view' },
   { name: 'trees', on: '1', group: 'Close-up', label: 'Trees', hint: 'Trees by biome, with clearings round homes (imagined)' },
   { name: 'fields', on: '1', group: 'Close-up', label: 'Fields and paths', hint: 'Fields, gardens, terraces, corrals and worn paths round each group (extent modelled, layout imagined)' },

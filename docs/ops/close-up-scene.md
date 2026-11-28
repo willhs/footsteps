@@ -9,9 +9,9 @@ purpose: "How the close-up 3D ground is drawn, what ?ground=1 (biome surface det
 From zoom 8 on the flat map the ground is drawn as a 3D landscape (`footsteps-web/components/footsteps/layers/Close3DLayer.ts`,
 `lib/close3d.ts`). On by default; `?close3d=0` keeps the map flat. Since 2026-11-24 it is seen from straight above at every zoom (a
 right-drag still tilts it by hand): the tilt that grew with zoom made zooming onto a group hard (Will). `?tilt=1` brings that tilt back
-(`pitchForZoom`, 55° from zoom 8), `?sky=1` alone no longer tilts (Will, 2026-11-28: it made zooming onto a group too hard); with `?tilt=1` as well, the sky's steeper tilt and camera lift apply.
+(`pitchForZoom`, 55° from zoom 8), and `?sky=1` tilts as before, since its sky needs the horizon in frame.
 
-Zooming on the tilted map (`?tilt=1`; `components/footsteps/views/tiltController.ts`): the zoom sets the tilt itself, holds the point where the cursor
+Zooming on the tilted map (`?tilt=1` or `?sky=1`; `components/footsteps/views/tiltController.ts`): the zoom sets the tilt itself, holds the point where the cursor
 meets the 3D ground (the loaded relief, `lib/groundHeights.ts` `heightAt`; sea level put the spot well beyond the group pointed at), and
 zooming in glides that point halfway to the middle of the screen per zoom level, so a group aimed at near the horizon comes in front of
 you instead of staying edge-on. One scroll (wheel events with the cursor still) keeps the same point; zooming out holds the cursor's point.

@@ -4,13 +4,16 @@
 // Confidence is a word, never a number or a visual: it is how well the sources agree, not a statistical interval.
 import estimates from './population_estimates.json';
 import series from '../public/climate_series.json';
+import { unsettledAt } from './firstSettlement';
+import { FIRST_CITIES, citiesBy } from './firstCities';
+import { MISSING_ISLANDS, islandPeopleAt } from './missingIslands';
 import { HYDE_MIN, dataStatus, calendarLabel, populationRangeAt, populationRangeLabel, populationLabel } from './time';
 
 /** How far to trust a line: sources agree closely / roughly / differ several-fold / nobody measured it. */
 export type Confidence = 'fair' | 'rough' | 'very rough' | 'imagined';
 
 export type EstimateLine = {
-  id: 'people' | 'between' | 'spread' | 'life' | 'groups' | 'land' | 'climate' | 'corrections';
+  id: 'people' | 'continents' | 'between' | 'spread' | 'life' | 'groups' | 'land' | 'climate' | 'corrections';
   /** What on the map this line explains. */
   shapes: string;
   /** The source in a few words, shown before the line is opened. */
@@ -245,15 +248,53 @@ function climateLine(time: number): EstimateLine {
   };
 }
 
+/** 13,000-3000 BCE: each continent's total re-weighted from HYDE's to the forager model's share (lib/holoceneShares.ts, research 0016). */
+function continentsLine(time: number): EstimateLine | null {
+  if (time < -13000 || time > -3000) return null;
+  return {
+    id: 'continents',
+    shapes: 'Continent totals',
+    cite: 'forager model, fading to HYDE',
+    source: 'lib/holoceneShares.ts (research 0016): the pre-HYDE forager model’s continental shares',
+    method:
+      'HYDE’s early split between continents is a shrunken modern map, so each continent’s total is set to the forager model’s share, fading back to HYDE’s by 3000 BCE. West Asia is kept as HYDE has it.',
+    confidence: 'very rough',
+    why: 'Two models handing over; no count of people by continent exists for these years.',
+  };
+}
+
+/** Corrections Footsteps makes to HYDE and the model at this place and year (PR 155's tables), one short line each. */
+export function correctionsAt(lon: number, lat: number, time: number): PlaceCaveat[] {
+  const out: PlaceCaveat[] = [];
+  const empty = unsettledAt(lon, lat, time);
+  if (empty) {
+    out.push(
+      'year' in empty
+        ? { text: `No one here yet: first settlers by ${calendarLabel(empty.year)}.`, source: empty.source }
+        : { text: `Left empty: ${empty.name.toLowerCase()}.`, source: empty.source },
+    );
+  }
+  if (time >= HYDE_MIN && !citiesBy(lon, lat, time)) {
+    const region = FIRST_CITIES.find(({ box: [w, e, s, n] }) => lon >= w && lon <= e && lat >= s && lat <= n);
+    if (region) out.push({ text: `No towns yet: first towns here ${calendarLabel(region.year)}.`, source: region.source });
+  }
+  for (const island of MISSING_ISLANDS) {
+    const near = island.centres.some(([x, y]) => Math.hypot(x - lon, y - lat) <= island.radiusDeg * 3);
+    const people = near ? islandPeopleAt(island, time) : 0;
+    if (people > 0) out.push({ text: `Added: HYDE has no one on ${island.name}; ~${Math.round(people).toLocaleString('en-US')} from the literature.`, source: island.source });
+  }
+  return out;
+}
+
 /** Everything the panel says for one place and year, people first. */
 export function estimateLines({ time, adjusted = false }: Pick<EstimateInput, 'time'> & { adjusted?: boolean }): EstimateLine[] {
-  return [peopleLine(time), spreadLine(time, adjusted), betweenLine(time), lifeLine(time), GROUPS_LINE, landLine(time), climateLine(time)].filter(
+  return [peopleLine(time), continentsLine(time), spreadLine(time, adjusted), betweenLine(time), lifeLine(time), GROUPS_LINE, landLine(time), climateLine(time)].filter(
     (l): l is EstimateLine => l !== null,
   );
 }
 
 /** Notes about this place at this year: corrections Footsteps makes, then known problems with the data. */
-export function placeNotes({ time, lon, lat, corrections = [] }: EstimateInput): PlaceCaveat[] {
+export function placeNotes({ time, lon, lat, corrections = correctionsAt(lon, lat, time) }: EstimateInput): PlaceCaveat[] {
   return [...corrections, ...caveatsAt(lon, lat, time)];
 }
 
@@ -264,7 +305,7 @@ export function explainParam(search: string): boolean {
 
 /** One icon per line, so the panel reads at a glance. */
 export const LINE_ICON: Record<EstimateLine['id'], string> = {
-  people: '👥', spread: '🗺️', between: '⏳', life: '🌾', groups: '🏕️', land: '🌊', climate: '🌡️', corrections: '🛠️',
+  people: '👥', continents: '🌍', spread: '🗺️', between: '⏳', life: '🌾', groups: '🏕️', land: '🌊', climate: '🌡️', corrections: '🛠️',
 };
 
 /** What each trust word means, for its tooltip. */

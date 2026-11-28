@@ -31,9 +31,7 @@ nothing on the map.
 | Land and sea | Spratt & Lisiecki 2025 (with its 1σ), Krapp 2021, Terrain Tiles | rough while the sea is over 5 m from today's, fair after |
 | Climate | Beyer, Krapp & Manica 2020 | rough |
 
-"Here, at this time" lists known problems with HYDE at the place (`HYDE_CAVEATS`: Australia before 1788, Siberia 1700–1900,
-Greenland 500–1300, from research 0015) and, once wired, the corrections PR 155's tables make there (`EstimateInput.corrections`;
-`unsettledAt`, `citiesBy`, `biomeNoteAt` and friends are pure `(lon, lat, year)` lookups, so each can add a `PlaceCaveat`).
+📍 lines list, for the place and year, the corrections Footsteps makes (`correctionsAt`: islands before first settlers and ice-age abandonments from `firstSettlement.ts`, "no towns yet" from `firstCities.ts`, islands HYDE misses from `missingIslands.ts`), then known HYDE problems (`HYDE_CAVEATS`, research 0015). 13,000–3000 BCE adds a 🌍 "Continent totals" line for the Holocene re-weighting (`holoceneShares.ts`, research 0016).
 
 ## Adding a line or a caveat
 

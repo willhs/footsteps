@@ -1,4 +1,4 @@
-import { agreement, caveatsAt, estimateLines, explainParam, placeNotes, seaLevelWithSigma, worldSpreadAt } from './estimate';
+import { agreement, correctionsAt, caveatsAt, estimateLines, explainParam, placeNotes, seaLevelWithSigma, worldSpreadAt } from './estimate';
 
 describe('estimate panel words', () => {
   test('confidence follows how far published world totals differ', () => {
@@ -69,6 +69,20 @@ describe('estimate panel words', () => {
     const notes = placeNotes({ time: 1500, lon: 134, lat: -25, corrections: [{ text: 'A fix', source: 'PR 155' }] });
     expect(notes.map((n) => n.text)[0]).toBe('A fix');
     expect(notes).toHaveLength(2);
+  });
+
+  test('the Holocene continent line shows 13,000-3000 BCE only', () => {
+    expect(estimateLines({ time: -8000 }).find((l) => l.id === 'continents')!.confidence).toBe('very rough');
+    expect(estimateLines({ time: -2000 }).some((l) => l.id === 'continents')).toBe(false);
+    expect(estimateLines({ time: -20000 }).some((l) => l.id === 'continents')).toBe(false);
+  });
+
+  test('PR 155 corrections show at their place and time', () => {
+    expect(correctionsAt(-19, 65, 500)[0].text).toMatch(/first settlers/); // Iceland
+    expect(correctionsAt(-19, 65, 1500)).toHaveLength(0);
+    expect(correctionsAt(-1.5, 52.5, -20000)[0].text).toMatch(/^Left empty/); // England at the LGM
+    expect(correctionsAt(-109.35, -27.12, 1600)[0].text).toMatch(/Rapa Nui/);
+    expect(correctionsAt(2, 48, 1500)).toHaveLength(0);
   });
 
   test('flag', () => {

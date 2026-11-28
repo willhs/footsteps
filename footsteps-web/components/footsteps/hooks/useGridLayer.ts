@@ -4,6 +4,8 @@ import type { LayersList } from '@deck.gl/core';
 import { blendCities, type AllocatedCity } from '@/lib/settlements';
 import type { DwellingTable } from '@/lib/dwellings';
 import { hearthsForView, type Hearth } from '@/lib/hearths';
+import { siteByWater } from '@/lib/campSiting';
+import { loadRivers, type Rivers } from '@/lib/rivers';
 import { sheltersForGroups, sheltersForTown, type Shelter, type ShelterGroup, type TownInView } from '../layers/shelters';
 import { UnitKind } from '../layers/units';
 import { cityLayers as buildCityLayers } from '../layers/cityLayers';
@@ -25,6 +27,7 @@ import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
 import {
   PeopleLayer,
+  figureBlend,
   footprintData,
   peopleForMorph,
   routineProps,
@@ -339,6 +342,18 @@ export default function useGridLayer({
   // stays inside it. Snapping the view to 0.02° rebuilt them (a scan of every group of the year and a re-upload of every
   // footprint) every ~150 px of a pan at street zoom; now only when the view leaves the box, or the box grows far past it.
   const peopleBox = useRef<Region | null>(null);
+  // Close in, camps and villages near a mapped river stand on its bank (lib/campSiting.ts): the rivers load with the close-up anyway.
+  const [rivers, setRivers] = useState<Rivers | null>(null);
+  useEffect(() => {
+    if (!peopleOn || rivers) return;
+    let live = true;
+    loadRivers().then((r) => live && setRivers(r)).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [peopleOn, rivers]);
+  const sited = (lon: number, lat: number, kind: number): [number, number] =>
+    kind === UnitKind.Glow ? [lon, lat] : siteByWater(rivers, lon, lat);
   const viewBox = peopleOn ? viewBounds(view, size.width, size.height) : null;
   peopleBox.current = viewBox ? stickyBox(peopleBox.current, viewBox) : null; // idempotent: mutate-in-render as regionRef above
   const bounds = peopleBox.current;
@@ -354,11 +369,14 @@ export default function useGridLayer({
       const lon = pos[i * 2];
       const lat = pos[i * 2 + 1];
       if (lon < west - pad || lon > east + pad || lat < south - pad || lat > north + pad) continue;
-      if (from[i] > 0 || to[i] > 0) groups.push({ lon, lat, kind: kind[i], from: from[i], to: to[i] });
+      if (from[i] > 0 || to[i] > 0) {
+        const [x, y] = sited(lon, lat, kind[i]);
+        groups.push({ lon: x, lat: y, kind: kind[i], from: from[i], to: to[i] });
+      }
     }
     return peopleForMorph(groups, morphScene.y1, households ? 'households' : 'hearths');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peopleOn, morphScene, boundsKey, households]);
+  }, [peopleOn, morphScene, boundsKey, households, rivers]);
   const nearerPart = morphProgress < 0.5 ? 'leaving' : 'entering';
   const scenePeople = useMemo(() => people ? [...people.steady, ...people[nearerPart]] : NO_PEOPLE, [people, nearerPart]);
   // The groups and towns in view at the nearer data year, for the dwellings (`?shelters=1`), the land round them (`?fields=1`) and hearths
@@ -380,13 +398,16 @@ export default function useGridLayer({
       const count = nearTo ? to[i] : from[i];
       if (count <= 0 || !within(lon, lat)) continue;
       if (kind[i] === UnitKind.Glow) towns.push({ lon, lat, people: count, society: society[i] });
-      else groups.push({ lon, lat, kind: kind[i], people: count, society: society[i] });
+      else {
+        const [x, y] = sited(lon, lat, kind[i]);
+        groups.push({ lon: x, lat: y, kind: kind[i], people: count, society: society[i] });
+      }
     }
     for (const city of nearTo ? morphScene.citiesTo : morphScene.citiesFrom)
       if (city.people > 0 && within(city.position[0], city.position[1])) towns.push({ lon: city.position[0], lat: city.position[1], people: city.people });
     return { year, groups, towns };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dwellings, fields, smoke, peopleOn, morphScene, boundsKey, nearTo]);
+  }, [dwellings, fields, smoke, peopleOn, morphScene, boundsKey, nearTo, rivers]);
   const shelters = useMemo(
     () => (dwellings && inView
       ? [...sheltersForGroups(inView.groups, inView.year, dwellings), ...inView.towns.flatMap((town) => sheltersForTown(town, inView.year, dwellings))]
@@ -450,6 +471,8 @@ export default function useGridLayer({
             // Prints are drawn in pixels (7.5 px for an adult): full size from zoom 16, smaller further out, so a village's hundreds of
             // people do not merge into one pale patch at zoom 12-14 (before 2026-11-28 they kept 7.5 px down to zoom 11.5).
             radiusScale: Math.min(1, Math.max(0.35, 2 ** ((view.zoom - 16) * 0.6))),
+            // Close in the newest print becomes the person seen from above, with a shadow (people.ts FIGURE_ZOOM).
+            topdown: figureBlend(view.zoom),
             opacity: blend.people * (part === 0 ? 1 : part === 1 ? 1 - morphProgress : morphProgress),
             visible: blend.people > 0 && (part === 0 || (part === 1 ? morphProgress < 1 : morphProgress > 0)),
           }),

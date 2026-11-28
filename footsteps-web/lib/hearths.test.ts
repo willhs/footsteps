@@ -5,6 +5,9 @@ import { groupSeed } from '@/components/footsteps/layers/people';
 import { HOUSEHOLD_SPACING_M, householdsOf } from '@/components/footsteps/layers/households';
 import { sheltersForGroups } from '@/components/footsteps/layers/shelters';
 import {
+  SMOKE_CLOSE_SHARE,
+  SMOKE_CLOSE_ZOOM,
+  smokeCloseFade,
   MAX_HEARTHS, MAX_STRENGTH, PUFFS_PER_HEARTH, SMOKE_ZOOM, capHearths, hearthsForView, hearthSeed, poolOf, poolRadiusOf, puffsOf, smokeOpacity,
   smokeParam, strengthOf, windAt, type Hearth,
 } from './hearths';
@@ -22,10 +25,13 @@ describe('flag', () => {
 });
 
 describe('hearths of the groups in view', () => {
-  it('stand at the households of a group, the same places its dwellings do, with no dwelling table', () => {
+  it('stand at the households of a group, before the doors of its dwellings in a camp (under the roof in a village), with no dwelling table', () => {
     const hearths = hearthsForView([band], [], 1900);
     const dwellings = sheltersForGroups([band], 1900, null);
-    expect(hearths.map((h) => [h.lon, h.lat])).toEqual(dwellings.map((d) => d.position));
+    expect(dwellings.every((d) => d.hearth)).toBe(true);
+    expect(hearths.map((h) => [h.lon, h.lat])).toEqual(dwellings.map((d) => d.hearth));
+    const homes = sheltersForGroups([village], 1000, null);
+    expect(hearthsForView([village], [], 1000).map((h) => [h.lon, h.lat])).toEqual(homes.map((d) => d.position));
     const sizes: number[] = [];
     for (const home of householdsOf(groupSeed(band.lon, band.lat), HOUSEHOLD_SPACING_M.camp)) {
       sizes.push(home.size);
@@ -145,5 +151,14 @@ describe('oil lamps in the Inuit Arctic', () => {
     expect(hearthsForView([{ ...iglulik, lat: 56 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
     expect(hearthsForView([iglulik], [], -3000).every((h) => h.kind === 'camp')).toBe(true);
     expect(hearthsForView([{ ...iglulik, lon: 130 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
+  });
+});
+
+describe('smoke close in', () => {
+  it('thins to a wisp at camp zoom; the far-out plumes are untouched', () => {
+    expect(smokeCloseFade(14)).toBe(1);
+    expect(smokeCloseFade(SMOKE_CLOSE_ZOOM.full + 1)).toBeCloseTo(SMOKE_CLOSE_SHARE, 6);
+    expect(smokeCloseFade((SMOKE_CLOSE_ZOOM.from + SMOKE_CLOSE_ZOOM.full) / 2)).toBeLessThan(1);
+    expect(smokeCloseFade((SMOKE_CLOSE_ZOOM.from + SMOKE_CLOSE_ZOOM.full) / 2)).toBeGreaterThan(SMOKE_CLOSE_SHARE);
   });
 });

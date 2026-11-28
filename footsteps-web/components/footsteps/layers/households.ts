@@ -21,8 +21,10 @@ export const HOUSEHOLD_SIZES: readonly (readonly [number, number])[] = [
 /** Where a household stands, in metres east and north of the group's spot. */
 export type Household = { index: number; size: number; x: number; y: number };
 
-/** Metres between neighbouring households (imagined): shelters of a camp are close, a village's houses a little apart. */
-export const HOUSEHOLD_SPACING_M = { camp: 40, village: 60 } as const;
+/** Metres between neighbouring households: a village's houses a little apart (imagined); a camp's shelters close together, a few metres
+ * between neighbours round a shared open middle, as in !Kung camps (Yellen 1977, Archaeological Approaches to the Present) and Binford's
+ * Nunamiut camps (1983). Before 2026-11-28 a camp's shelters were 40 m apart, a spread village rather than a camp. */
+export const HOUSEHOLD_SPACING_M = { camp: 12, village: 60 } as const;
 /** How far from its household centre a member stands, metres. */
 export const HOUSEHOLD_RADIUS_M = 4;
 
@@ -73,4 +75,25 @@ export function offsetByMetres(lon: number, lat: number, x: number, y: number): 
   const mPerDegLat = 111_320;
   const mPerDegLon = mPerDegLat * Math.max(0.2, Math.cos((lat * Math.PI) / 180));
   return [lon + x / mPerDegLon, lat + y / mPerDegLat];
+}
+
+/** In a camp (a forager band or a herders' camp) each family's shelter faces the camp's middle and the family's hearth burns a few steps
+ * out in front of the door, where the family sits, cooks and works: a ring of hearths round a shared open space (Yellen 1977; Binford
+ * 1983, In Pursuit of the Past, hearth-centred site plans). Metres from a household's middle (its shelter) to its hearth. */
+export const HEARTH_FROM_HOME_M = 4.6;
+/** How far from their hearth a camp household's people sit or stand, metres. */
+export const ROUND_THE_HEARTH_M = 2.6;
+/** A household this close to the group's spot has no middle to face: it faces a seeded direction. */
+const FACES_MIDDLE_FROM_M = 3;
+
+/** The direction a camp household's shelter door faces (radians anticlockwise from east): towards the camp's middle. */
+export function facingOf(home: Household, seed: number): number {
+  if (Math.hypot(home.x, home.y) >= FACES_MIDDLE_FROM_M) return Math.atan2(-home.y, -home.x);
+  return rng(seed + home.index * 104729 + 7)() * Math.PI * 2;
+}
+
+/** Where a camp household's hearth is, metres east and north of the group's spot. */
+export function hearthOf(home: Household, seed: number): [number, number] {
+  const a = facingOf(home, seed);
+  return [home.x + Math.cos(a) * HEARTH_FROM_HOME_M, home.y + Math.sin(a) * HEARTH_FROM_HOME_M];
 }

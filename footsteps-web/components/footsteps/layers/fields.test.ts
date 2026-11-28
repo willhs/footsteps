@@ -12,7 +12,6 @@ import {
   isSwidden,
   landPatches,
   patchArea,
-  WATER_PATH_MAX_M,
   waterHere,
   type AreaPatch,
   type LandContext,
@@ -115,16 +114,11 @@ test('a town has gardens among its roofs and a ring of fields beyond them', () =
   expect(nearestField).toBeGreaterThan(inner * 0.95);
 });
 
-test('a path leads towards fresh water, no longer than the cap', () => {
+test('no invented track to water, and none between camps', () => {
   const g = village(30, 10, 0, { water: { metres: 50_000, dir: [0, 1] } });
-  const path = landPatches([g], [], ctx).filter((p) => p.kind === 'path');
-  expect(path.length).toBeGreaterThan(3);
-  const ends = path.flatMap((p) => (p.kind === 'path' ? p.line : []));
-  const far = ends.reduce((a, e) => (metres(e, [g.lon, g.lat]) > metres(a, [g.lon, g.lat]) ? e : a));
-  expect(far[1]).toBeGreaterThan(g.lat); // north, the way the water lies
-  expect(metres(far, [g.lon, g.lat])).toBeLessThan(WATER_PATH_MAX_M * 1.05);
-  // Water in the cell (under the minimum) draws no track.
-  expect(landPatches([village(30, 10, 0, { water: { metres: 20, dir: [0, 1] } })], [], ctx).some((p) => p.kind === 'path')).toBe(false);
+  expect(landPatches([g], [], ctx).some((p) => p.kind === 'path')).toBe(false);
+  const bands = [village(30, 10, 0, { kind: UnitKind.Band, people: 25 }), village(30.02, 10, 0, { kind: UnitKind.Band, people: 25 })];
+  expect(landPatches(bands, [], ctx).some((p) => p.kind === 'path')).toBe(false);
 });
 
 test('neighbours within a few km are joined by one track', () => {

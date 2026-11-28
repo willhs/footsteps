@@ -232,7 +232,7 @@ says what is modelled and what is invented. Needs the settlement model and the c
 | Towns and cities | gardens among the roofs, then a ring of fields beyond the last roof from the town's cell cropland | imagined |
 | Herding camps | grazed, paler grass out to 200 m + 600 m × the cell's grazing share, painted into the ground's colours; a corral ring by the camp | imagined |
 | Foragers | nothing planted: a trodden clearing round the hearths | imagined |
-| Paths | a worn track towards the nearest fresh water (`water_distance.webp`, downhill in distance, 100 m-3 km), and to the nearest one or two neighbours within 4 km | imagined |
+| Paths | a worn track between villages and towns, to the nearest one or two within 4 km. Camps get none (the invented track to water was dropped 2026-11-28: it read as a symbol, not a place) | imagined |
 
 Two neighbouring villages split the land between them (each strip belongs to the nearer village), so their fields never lie on top of each
 other. Nothing is draped where the ground is sea, past water (`?pastwater=1`) or ice (`?ice=1`).
@@ -421,3 +421,14 @@ The close-up was then lit by a fixed sun while Day/night was off. Later the same
 The ground slope fit (`lib/close3d.ts` `fitSlope`) now uses only the vertices inside the tile near its edges. Clamping to the edge vertex read the ground beyond the edge as flat.
 
 Seams that remain between tiles in tilted views come from deck.gl drawing farther tiles at a lower zoom, whose elevation tiles are coarser. The nearer, finer tiles also show the stair-steps of the upsampled elevation data as chevrons on smooth snow.
+
+## The camp up close (2026-11-28)
+
+The next step from symbols to a scene at zoom 15-19. Everything here is imagined presentation over the modelled group; only the sun's direction and the mapped rivers are computed.
+
+- **Siting** (`lib/campSiting.ts`): a camp or village with a Natural Earth river within `RIVER_REACH_M` (1.5 km) moves to that river's bank, on the side it was on, `BANK_STANDOFF_M` (70 m) back from the edge. Hunter-gatherer camps sit within a few hundred metres of drinking water, on drier ground above it (Binford 2001; Kelly 2013). Streams too small for a 1:10M map are unknown, so most camps keep the ranked spot (`siteRanking.ts`). Applied in `useGridLayer` to people and dwellings alike, not to the far glow.
+- **Layout** (`households.ts`): camp households 12 m apart (was 40; Yellen 1977, Binford 1983), each hut's door turned to the camp middle (`facingOf`), its hearth `HEARTH_FROM_HOME_M` in front (`hearthOf`). People stand round their hearth, villagers round their house. The trodden clearing (`fields.ts`, kind 5) fits the ring, with a ragged grassy rim (`groundDetail.ts`).
+- **Shelters** (`campLook.ts`, `ShelterLook` extension): procedural surface by material (thatch, hide panels, bark strips, mottle, blocks, rows), weathering, a door on the facing side, a smoke hole on cones, sun Lambert shading. Mesh segments 8 → 16. Fixed: the yaw went into roll (`[0,0,yaw]`), which tipped gabled houses over; now `[0, yaw, 0]`.
+- **Hearths** (`hearthMeshes`): ash disc, a ring of nine stones, four logs pushed in star-fashion with charred ends, unlit embers, a woodpile; drawn from zoom 16. Smoke thins to 25 % over zoom 15-17 (`smokeCloseFade`) so the plume doesn't hide the camp; firelight unchanged.
+- **Sun shadows** (`lib/sunShadow.ts`): one sun for the view from the time-of-day dial; shadows fade in from the horizon to 8 degrees and are capped at 3x height. Trees (`TreeLayer`, top-down), shelters (`GroundShadowLayer`, from zoom 13) and people cast them. Tree shadows are faint over dark forest floor.
+- **People** (`people.ts`): from zoom 16.8 to 17.8 (`FIGURE_ZOOM`) the newest print becomes a top-down figure: head, shoulders, arms, clothes colour, lying/sitting/standing pose, with its own shadow. Footprints stay below that.

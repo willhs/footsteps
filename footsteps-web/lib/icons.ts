@@ -38,7 +38,38 @@ export const ICON_GLYPHS = {
   corrections: '🛠️',
   place: '📍',
 
+  // A person on the card: role, kind of human, what they do now (components/footsteps/layers/people.ts)
+  forager: '🧺',
+  gatherer: '🧺',
+  hunter: '🏹',
+  toolmaker: '🪨',
+  'fire-keeper': '🔥',
+  band: '🔥',
+  fisher: '🎣',
+  herder: '🐐',
+  shepherd: '🐑',
+  milker: '🥛',
+  weaver: '🧵',
+  tanner: '🦌',
+  farmer: '🌾',
+  potter: '🏺',
+  builder: '🪵',
+  'young-child': '🍼',
+  child: '🧒',
+  elder: '🧓',
+  person: '🧑',
+  'other-human': '🦴',
+  now: '🕒',
+
+  // Footwear (lib/footwear.ts)
+  barefoot: '👣',
+  wraps: '🥾',
+  sandals: '🩴',
+  shoes: '👞',
+
   // Controls and messages
+  click: '👆',
+  info: 'ⓘ',
   drag: '🖱️',
   close: '✕',
   warning: '⚠️',

@@ -1,4 +1,4 @@
-import { cameraDistanceM, cameraLift, horizonRow, overlayTint, sceneLight, skyBackdrop, skyParam, sunVector } from './sky';
+import { cameraDistanceM, cameraLift, fixedDaySun, horizonRow, overlayTint, sceneLight, skyBackdrop, skyParam, sunVector } from './sky';
 import { CLOSE3D_PITCH, SKY_PITCH } from './close3d';
 import { sunPosition } from './sunTime';
 
@@ -89,4 +89,13 @@ test('things on the ground keep their daylight colour by day and dim and cool at
   for (const v of n) expect(v).toBeLessThan(0.35);
   expect(n[2]).toBeGreaterThan(n[0]); // moonlight is blue
   for (const v of overlayTint({ sun: [0, 0, 1], direct: [5, 5, 5], ambient: [1, 1, 1] })) expect(v).toBe(1);
+});
+
+test('the fixed daylight is mid-morning with a high sun, at any longitude and on either hemisphere', () => {
+  for (const [lon, lat] of [[8, 46.6], [-168, 65], [15, 13.5], [150, -35]]) {
+    const light = sceneLight(lon, lat, fixedDaySun(lon, lat));
+    const altitude = (Math.asin(light.sun[2]) * 180) / Math.PI;
+    expect(altitude).toBeGreaterThan(35);
+    expect(light.sun[0]).toBeGreaterThan(0); // morning: the sun is in the east (east-north-up)
+  }
 });

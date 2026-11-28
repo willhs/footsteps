@@ -443,6 +443,20 @@ export type TerrainMesh = {
   texCoords?: Float32Array;
 };
 
+/** Least-squares slope (height per grid step) through the vertices within `reach` of index `c` that lie in 0..n-1. */
+export function fitSlope(c: number, n: number, reach: number, at: (k: number) => number): number {
+  const lo = Math.max(0, c - reach);
+  const hi = Math.min(n - 1, c + reach);
+  const mid = (lo + hi) / 2;
+  let num = 0;
+  let den = 0;
+  for (let k = lo; k <= hi; k++) {
+    num += (k - mid) * at(k);
+    den += (k - mid) * (k - mid);
+  }
+  return den > 0 ? num / den : 0;
+}
+
 /** Ground mesh for one 256 × 256 Terrarium tile, `step` pixels between vertices. Open water
  * (openWater) is flat at the sea level; heights are exaggerated by EXAGGERATION. With `cover`, each vertex
  * also carries its Cover for the ground shader, and the coarse per-vertex mottling is left out when `paints` (default: with `cover`) says the shader
@@ -494,16 +508,11 @@ export function buildTerrainMesh(
       // two-vertex slope flips from row to row on them, which the ground shader's rock (steep ground) drew as fine hatching.
       // On ground that is under today's sea (an exposed Ice Age shelf), the heights are bathymetry, streaked by ship tracks a vertex or
       // two wide; a nine-vertex fit there shades the shelf, not the survey lines.
+      // Near a tile edge the fit uses only the vertices inside the tile (one-sided). Clamping to the edge vertex instead read the ground
+      // past the edge as flat, so edge rows were shaded flatter than their neighbours across the edge: a lit line along every tile edge.
       const reach = h < 0 && !wet ? 4 : 2;
-      let gx = 0;
-      let gy = 0;
-      for (let k = 1; k <= reach; k++) {
-        gx += k * (surfaceAt(i + k, j) - surfaceAt(i - k, j));
-        gy += k * (surfaceAt(i, j - k) - surfaceAt(i, j + k));
-      }
-      const norm = (reach * (reach + 1) * (2 * reach + 1)) / 3; // 2 Σ k²
-      const hx = gx / (norm * dxM);
-      const hy = gy / (norm * dyM); // +y is north
+      const hx = fitSlope(i, n, reach, (x) => surfaceAt(x, j)) / dxM;
+      const hy = -fitSlope(j, n, reach, (y) => surfaceAt(i, y)) / dyM; // +y is north; rows run south
       const lon = west + ((east - west) * i) / (n - 1);
       const lat = north - ((north - south) * j) / (n - 1);
       positions[v * 3] = lon - west;

@@ -78,9 +78,20 @@ function lookAt(alt: number): Omit<Key, 'alt'> {
 /** Altitude (degrees) the imagined moon stands at when the sun is down. */
 const MOON_ALTITUDE = 35;
 
-/** The light over (lon, lat) at a sun-clock time (ms since the epoch). */
-export function sceneLight(lon: number, lat: number, ms: number): SceneLight {
-  const sunVec = sunVector(lon, lat, sunPosition(new Date(ms)));
+/** Local sun time (hours) of the fixed daylight the close-up uses while Day/night shading is off: mid-morning, so slopes still show. */
+export const FIXED_DAY_HOUR = 10.5;
+/** Sun declination (degrees) of that fixed daylight, on the view's own hemisphere: midsummer, so even polar views get a high sun. */
+const FIXED_DAY_DECLINATION = 23.44;
+
+/** The sun of the fixed daylight over a longitude and latitude: FIXED_DAY_HOUR local sun time on a midsummer day. Without it the
+ * close-up followed the real clock even with Day/night off, so evening viewers saw every place at night (dark ground, dark snow). */
+export function fixedDaySun(lon: number, lat: number): SunPosition {
+  return { longitude: lon - (FIXED_DAY_HOUR - 12) * 15, declination: Math.sign(lat) * FIXED_DAY_DECLINATION };
+}
+
+/** The light over (lon, lat) at a sun-clock time (ms since the epoch), or under a given sun. */
+export function sceneLight(lon: number, lat: number, when: number | SunPosition): SceneLight {
+  const sunVec = sunVector(lon, lat, typeof when === 'number' ? sunPosition(new Date(when)) : when);
   const alt = (Math.asin(Math.max(-1, Math.min(1, sunVec[2]))) * 180) / Math.PI;
   const look = lookAt(alt);
   // Day: the sun itself. Night: a moon opposite the sun's bearing, MOON_ALTITUDE up. Between, the light swaps where both are weak

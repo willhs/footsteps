@@ -37,6 +37,9 @@ export function configureSolarClock(search: string): void {
 /** Whether the URL bent the clock so it moves (the page then redraws the sun time every second). A still clock does not move. */
 export const solarClockBent = () => bend !== null && bend.warp !== 0;
 
+/** Whether the URL set the clock at all (`?utc=`, `?warp=` or `?still=1`): an explicit time the close-up's light then follows. */
+export const solarClockSet = () => bend !== null;
+
 /** The clock now, in milliseconds since the epoch. */
 export function solarNowMs(): number {
   if (!bend) return Date.now();

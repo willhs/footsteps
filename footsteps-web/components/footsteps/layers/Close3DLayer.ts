@@ -3,7 +3,7 @@
 import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
-import GroundDetail, { type WeatherRef } from './groundDetail';
+import GroundDetail, { FieldDetail, type WeatherRef } from './groundDetail';
 import { weatherFor } from '@/lib/weather';
 import SkyLight, { SkyTint } from './skyLight';
 import type { SceneLight } from '@/lib/sky';
@@ -89,6 +89,7 @@ const MESHES = plantMeshes();
 const GROUND_DETAIL = new GroundDetail();
 const SKY_LIGHT = new SkyLight();
 const SKY_TINT = new SkyTint();
+const FIELD_DETAIL = new FieldDetail();
 const SHELTER_MESHES = shelterMeshes();
 /** A dwelling is never drawn smaller than this on screen (pixels across), however far out: at zoom 12 a hut is a few metres in
  * ~15 m pixels, so it is enlarged to stay readable. Closer in it is its real size. */
@@ -109,6 +110,7 @@ const meshProp = (m: DrapedMesh | null) =>
       positions: { value: m.positions, size: 3 },
       normals: { value: m.normals, size: 3 },
       colors: { value: m.colors, size: 3 },
+      texCoords: { value: m.texCoords, size: 2 },
     },
     indices: { value: m.indices, size: 1 },
   };
@@ -280,7 +282,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         parameters: { depthWriteEnabled: false, depthCompare: 'less-equal' },
       })] : []),
       ...(d.solid ? [part('land', d.solid, {
-        extensions: light ? [SKY_TINT] : [],
+        extensions: [FIELD_DETAIL, ...(light ? [SKY_TINT] : [])],
+        weatherRef: weather ? this.state.weatherRef : null,
         ...(light ? { skyLight: light } : {}),
         parameters: { depthWriteEnabled: true, depthCompare: 'less-equal', depthBias: -2, depthBiasSlopeScale: -2 },
       })] : []),

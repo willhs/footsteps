@@ -245,6 +245,14 @@ drapes them per elevation tile, once per tile and patch set under the close-up's
 across, whose corners sit on the highest corner of the cell under them (so no piece dips under the ground) a few metres up; washes (grazed
 grass) are painted into the ground mesh's own vertex colours and drawn as a second copy of the ground, so they follow every fold.
 
+**How a patch looks close in** (2026-11-28, `FieldDetail` in `layers/groundDetail.ts`): each draped piece carries metres along and
+across its patch and to its far sides, and the patch's kind (`fieldsDrape.ts` `DrapedMesh`, `FIELD_KIND`; texCoords and the otherwise
+unused normals, since the shapes are lit flat). The fragment shader draws uneven growth and grain on every patch, crop rows ~2.2 m apart
+and strips 8-14 m wide on fields, weeds on fallow, tussocks on pasture, beds in gardens, a paler worn middle on tracks, and a grassy verge
+round the edge (never under about a pixel). Patterns finer than a few pixels fade out (`gFade`). With `?weather=1` the gusts run through
+crops and pasture and the cloud shadows fall on the fields as on the ground; with `?sky=1` they take the sky's light and haze (`SkyTint`).
+Before, every patch was one flat colour, which read as paper cut-outs from zoom 15 in. All imagined.
+
 **Cost.** Measured 2026-11-24 (production build, headed Chromium on Apple M5 Pro, 1440 × 900, pan and wheel for ~5 s,
 `CLOSE=lat,lon,year [QUERY=fields=1] HEADED=1 node footsteps-web/scripts/measure-view.mjs --serve <dir>`):
 

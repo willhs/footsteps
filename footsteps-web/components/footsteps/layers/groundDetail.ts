@@ -41,9 +41,7 @@ const VS_DECL = `out vec4 vGround;`;
 // up part (steepness) and the drawn height (strata).
 const VS_MAIN_END = `vGround = vec4(instancePositions.xy + positions.xy, normals.z, positions.z);`;
 
-const FS_DECL = `
-in vec4 vGround;
-
+const NOISE_GLSL = `
 float gHash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
@@ -79,6 +77,9 @@ float gFade(float lam, float mpp) {
   return 1.0 - smoothstep(0.14, 0.4, mpp / lam);
 }
 `;
+
+const FS_DECL = `in vec4 vGround;
+${NOISE_GLSL}`;
 
 const FS_FILTER_COLOR = `
   vec2 gm = vec2(vGround.x * cos(radians(vGround.y)), vGround.y) * 111320.0;
@@ -227,6 +228,102 @@ export default class GroundDetail extends LayerExtension {
         'vs:#main-end': VS_MAIN_END,
         'fs:#decl': FS_DECL,
         'fs:DECKGL_FILTER_COLOR': FS_FILTER_COLOR + FS_WEATHER,
+      },
+    };
+  }
+}
+
+// --- Fields, gardens, pasture and tracks (`?fields=1`, fieldsDrape.ts) -------------------------------------------------------------
+// The draped shapes carry metres along and across each patch (texCoords), metres to its far sides and a kind code (normals; the shapes
+// are lit flat, so the normal is free): FIELD_KIND in fieldsDrape.ts. Before 2026-11-28 every patch was one flat colour, so close in
+// they read as paper cut-outs. Imagined like the layout: rows, strips and verges are a look, not data.
+
+const FIELD_VS_DECL = `out vec4 vField; out vec2 vFieldUv; out float vFieldKind; out vec2 vFieldPos;`;
+const FIELD_VS_MAIN_END = `vFieldUv = texCoords; vField = vec4(normals.xy, 0.0, 0.0); vFieldKind = normals.z; vFieldPos = instancePositions.xy + positions.xy;`;
+
+const FIELD_FS_DECL = `in vec4 vField; in vec2 vFieldUv; in float vFieldKind; in vec2 vFieldPos;
+${NOISE_GLSL}`;
+
+const FIELD_FS_FILTER_COLOR = `
+  {
+    vec2 fm = vec2(vFieldPos.x * cos(radians(vFieldPos.y)), vFieldPos.y) * 111320.0;
+    float fmpp = max(max(fwidth(fm.x), fwidth(fm.y)) * 0.5, 0.01);
+    float kind = floor(vFieldKind + 0.001);
+    float seed = fract(vFieldKind + 0.001);
+    float u = vFieldUv.x;
+    float v = vFieldUv.y;
+    float edge = min(min(u, vField.x), min(v, vField.y));
+    vec3 c = color.rgb;
+    // Uneven growth and soil over the whole patch, and a fine grain.
+    float mott = gFbm(fm + seed * 517.0, 16.0, fmpp) - 0.5;
+    c *= 1.0 + 0.24 * mott + 0.1 * (gFbm(fm + 300.0, 2.5, fmpp) - 0.5);
+    if (kind < 0.5) {
+      // Crop: rows along the patch, a little more than 2 m apart, and strips worked a little differently, 8-14 m wide.
+      float rows = sin(6.2832 * v / 2.2 + 0.6 * sin(u / 23.0 + seed * 6.0));
+      c *= 1.0 + 0.13 * rows * gFade(2.2, fmpp);
+      float stripW = 8.0 + 6.0 * seed;
+      float strip = gHash(vec2(floor(v / stripW), seed * 91.0)) - 0.5;
+      c *= 1.0 + 0.16 * strip * gFade(stripW, fmpp);
+    } else if (kind < 1.5) {
+      // Fallow: weeds coming back in patches.
+      float weeds = smoothstep(0.48, 0.7, gFbm(fm + 900.0, 7.0, fmpp));
+      c = mix(c, c * vec3(0.82, 1.12, 0.72), 0.65 * weeds);
+    } else if (kind < 2.5) {
+      // Pasture: darker tussocks and paler bitten-down grass.
+      float tuft = smoothstep(0.58, 0.74, gFbm(fm + 1300.0, 3.0, fmpp));
+      c *= 1.0 - 0.28 * tuft;
+    } else if (kind < 3.5) {
+      // Garden: beds about 2.5 m apart with paths between.
+      float bed = smoothstep(0.18, 0.28, fract(v / 2.5)) * (1.0 - smoothstep(0.82, 0.92, fract(v / 2.5)));
+      c *= mix(1.0, mix(0.8, 1.08, bed), gFade(2.5, fmpp));
+    } else if (kind > 5.5) {
+      // Track: worn paler down the middle, darker ruts and grass at the sides.
+      float side = min(v, vField.y) / max(v + vField.y, 0.01);
+      c *= mix(0.86, 1.1, smoothstep(0.0, 0.5, side));
+    }
+    // A grassy verge round fields, fallow, pasture and gardens, never under about a pixel, so the patch meets the ground softly.
+    if (kind < 3.5) {
+      float verge = 1.0 - smoothstep(0.0, max(1.8, 0.9 * fmpp), edge);
+      c = mix(c, vec3(0.36, 0.42, 0.22) * (0.9 + 0.4 * mott), 0.55 * verge);
+    }
+    // With ?weather=1: gusts run through standing crops and grass, and the clouds' shadows fall on the fields as on the ground.
+    if (weather.on > 0.5) {
+      if (kind < 2.5) {
+        float gust = gFbm(fm - weather.gust, 90.0, fmpp);
+        float ripple = sin(6.2832 * (dot(fm - weather.gust, weather.wind) / 13.0) + 4.0 * gust);
+        c *= 1.0 + (kind < 0.5 ? 0.8 : 0.6) * (0.5 * (gust - 0.5) + 0.12 * smoothstep(0.42, 0.7, gust) * ripple * gFade(13.0, fmpp));
+      }
+      float thr = 0.71 - 0.58 * weather.cover;
+      float cloud = smoothstep(thr, thr + 0.16, gFbm(fm - weather.cloud + 8000.0, 1100.0, fmpp));
+      c = mix(c, c * vec3(0.9, 0.95, 1.04), 0.6 * cloud) * (1.0 - 0.3 * cloud);
+    }
+    color.rgb = clamp(c, 0.0, 1.0);
+  }
+`;
+
+/** Add to the draped fields' SimpleMeshLayer (Close3DLayer `landLayers`): rows, strips, weeds, tussocks, beds, worn tracks and verges,
+ * plus the weather's gusts and cloud shadows when `weatherRef` is given. Reads fieldsDrape.ts DrapedMesh texCoords and normals. */
+export class FieldDetail extends LayerExtension {
+  static extensionName = 'FieldDetail';
+  static defaultProps = { weatherRef: { type: 'object', value: null, compare: false } };
+
+  draw(this: { props: Record<string, unknown>; state: { model?: { shaderInputs: { setProps: (p: object) => void } } } }) {
+    const { weatherRef } = this.props as { weatherRef: WeatherRef | null };
+    const target = weatherRef?.current ?? null;
+    if (target) advanceWeather(clock, target, animSeconds(1e9), stillOn());
+    this.state.model?.shaderInputs.setProps({
+      weather: { on: target ? 1 : 0, biome: 0, cover: clock.cover, wind: target?.wind ?? [1, 0], cloud: clock.cloud, gust: clock.gust },
+    });
+  }
+
+  getShaders() {
+    return {
+      modules: [WEATHER_MODULE],
+      inject: {
+        'vs:#decl': FIELD_VS_DECL,
+        'vs:#main-end': FIELD_VS_MAIN_END,
+        'fs:#decl': FIELD_FS_DECL,
+        'fs:DECKGL_FILTER_COLOR': FIELD_FS_FILTER_COLOR,
       },
     };
   }

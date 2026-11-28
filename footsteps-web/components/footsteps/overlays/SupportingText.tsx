@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { estimateSpreadLabel, evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
+import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
@@ -294,15 +294,6 @@ function SupportingText({
           title="A model, not data: low to high world total from the literature. Where people sit follows plant productivity, climate and when people arrived."
         >
           modelled, not measured
-        </div>
-      )}
-      {!modelled && estimateSpreadLabel(year) && (
-        <div
-          className="ov-note mt-0.5"
-          data-testid="estimate-spread"
-          title="HYDE 3.5's total, which places the people on the map. Published world totals for this year (McEvedy & Jones, Biraben, Thomlinson, Kremer, earlier HYDE versions and others) range this widely: the spread across estimates, not a confidence interval."
-        >
-          estimates range {estimateSpreadLabel(year)}
         </div>
       )}
 

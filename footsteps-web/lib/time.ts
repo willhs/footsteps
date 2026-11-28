@@ -4,7 +4,6 @@
 // From 10,000 BCE the people are HYDE's (measured); before that they are the
 // MODEL in footstep-generator/prehistory_population.py, and say so.
 import prehistory from '../public/prehistory_totals.json';
-import estimates from './population_estimates.json';
 import { PEOPLE_YEARS, TARGET_YEARS, TERRAIN_YEARS } from './constants';
 
 /** Reference "now" for years-ago labels. */
@@ -89,29 +88,6 @@ export function populationRangeAt(time: number): PopulationRange {
   return { low: mix(a.low, b.low), central: mix(a.central, b.central), high: mix(a.high, b.high) };
 }
 
-/** Published world totals (docs/research/0005-world-population-estimates: McEvedy & Jones, Biraben, Thomlinson, Kremer,
- * HYDE 3.2/3.3...), lowest and highest at each HYDE year: the spread ACROSS estimates, not a confidence interval. HYDE's own
- * total sits inside it. From HYDE_MIN only (before, the model's range is the counter itself); geometric between years. */
-const SPREAD = new Map<number, { low: number; high: number }>(estimates.years.map((e) => [e.year, { low: e.low, high: e.high }]));
-export function estimateSpreadAt(time: number): { low: number; high: number } | null {
-  if (time < HYDE_MIN) return null;
-  const { y0, y1, f } = bracketIn(TARGET_YEARS, time);
-  const a = SPREAD.get(y0);
-  const b = SPREAD.get(y1);
-  if (!a || !b) return null;
-  const mix = (p: number, q: number) => p * Math.pow(q / p, f);
-  const central = populationAt(time);
-  return { low: Math.min(central, mix(a.low, b.low)), high: Math.max(central, mix(a.high, b.high)) };
-}
-
-/** "published estimates 1–10 million": the counter's note under HYDE's figure, so a single number never reads as a census. */
-export function estimateSpreadLabel(time: number): string | null {
-  const spread = estimateSpreadAt(time);
-  if (!spread) return null;
-  const central = populationAt(time);
-  return populationRangeLabel({ low: spread.low, central, high: spread.high });
-}
-
 /** The central estimate of `populationRangeAt`. */
 export function populationAt(time: number): number {
   return populationRangeAt(time).central;
@@ -148,7 +124,7 @@ const sig = (n: number) => String(Number(n.toPrecision(2)));
 /** "2.1–8.3 million" for a modelled range; `populationLabel` of the single figure when there is no range (HYDE). */
 export function populationRangeLabel({ low, central, high }: PopulationRange): string {
   if (high - low < high * 1e-6) return populationLabel(central); // measured: no range
-  const [unit, div] = high >= 1e9 ? ['billion', 1e9] : high >= 1e6 ? ['million', 1e6] : ['thousand', 1e3];
+  const [unit, div] = high >= 1e6 ? ['million', 1e6] : ['thousand', 1e3];
   const lo = sig(low / div);
   const hi = sig(high / div);
   return lo === hi ? `${hi} ${unit}` : `${lo}–${hi} ${unit}`;

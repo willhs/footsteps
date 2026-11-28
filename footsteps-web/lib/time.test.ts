@@ -11,8 +11,6 @@ import {
   populationAt,
   populationRangeAt,
   populationRangeLabel,
-  estimateSpreadAt,
-  estimateSpreadLabel,
   terrainBracket,
 } from './time';
 
@@ -87,27 +85,4 @@ describe('continuous time', () => {
     expect(terrainBracket(1850)).toEqual({ y0: 1800, y1: 1900, f: 0.5 });
     expect(terrainBracket(1900)).toMatchObject({ y0: 1800, y1: 1900, f: 1 });
   });
-});
-
-describe('estimateSpreadAt', () => {
-  it('has no spread before HYDE, where the model range is the counter', () => {
-    expect(estimateSpreadAt(-11000)).toBeNull();
-  });
-  it('brackets HYDE and is wide in the deep past, narrow by 1900', () => {
-    for (const y of TARGET_YEARS) {
-      const s = estimateSpreadAt(y)!;
-      expect(s.low).toBeLessThanOrEqual(populationAt(y));
-      expect(s.high).toBeGreaterThanOrEqual(populationAt(y));
-    }
-    const early = estimateSpreadAt(-10000)!;
-    const late = estimateSpreadAt(1900)!;
-    expect(early.high / early.low).toBeGreaterThan(5);
-    expect(late.high / late.low).toBeLessThan(1.3);
-    expect(estimateSpreadLabel(-10000)).toBe('1–10 million');
-  });
-});
-
-it('labels a billion-scale spread in billions', () => {
-  expect(estimateSpreadLabel(1900)).toBe('1.6–1.8 billion');
-  expect(estimateSpreadLabel(0)).toBe('170–400 million');
 });

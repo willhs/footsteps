@@ -3,7 +3,8 @@ jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
 import { UnitKind } from './units';
 import { peopleForGroups, type Person } from './people';
 import { epochHour, planDay } from '@/lib/routine';
-import { MAX_TAGS, MIN_TAG_SCALE, TAG_ZOOM, chooseTags, tagText, tagVisibility, type Project } from './personTags';
+import { MAX_TAGS, MIN_TAG_SCALE, TAG_ZOOM, chooseTags, groundProjector, tagText, tagVisibility, type Project } from './personTags';
+import { WebMercatorViewport } from '@deck.gl/core';
 
 const village = { lon: 31.131, lat: 30.8885, kind: UnitKind.Village, people: 150 };
 const people = peopleForGroups([village], 1500);
@@ -127,5 +128,25 @@ describe('tags with the daily routine', () => {
 
   it('are unchanged without a routine', () => {
     expect(choose().map((t) => t.person.id)).toEqual(choose({ routine: undefined }).map((t) => t.person.id));
+  });
+});
+
+describe('tags on the close-up\'s raised ground', () => {
+  // Bird's-eye at zoom 17.4 over ground drawn 600 m up (a highland village, relief exaggerated), as Will saw it.
+  const viewport = new WebMercatorViewport({ longitude: 39.04, latitude: 12.03, zoom: 17.4, pitch: 0, bearing: 0, width: 1200, height: 800 });
+  const raised = () => 600;
+  const someone: [number, number] = [39.0415, 12.0305];
+  it('puts a tag where its person is drawn, standing on the raised ground', () => {
+    const [px, py] = viewport.project([someone[0], someone[1], 600]);
+    const tag = groundProjector(viewport, [39.04, 12.03], raised)(someone);
+    expect(Math.hypot(tag.x - px, tag.y - py)).toBeLessThan(0.5);
+    // At z = 0 the same person's tag sat well off toward the centre: the bug.
+    const flat = groundProjector(viewport, [39.04, 12.03], () => 0)(someone);
+    expect(Math.hypot(flat.x - px, flat.y - py)).toBeGreaterThan(20);
+  });
+  it('keeps tags full size zoomed in, so they are not dropped as unreadable', () => {
+    const tag = groundProjector(viewport, [39.04, 12.03], raised)(someone);
+    expect(tag.scale).toBeGreaterThan(MIN_TAG_SCALE);
+    expect(tag.scale).toBeCloseTo(1, 1);
   });
 });

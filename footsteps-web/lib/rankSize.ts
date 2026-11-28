@@ -16,7 +16,7 @@
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { WayOfLife } from './waysOfLife';
 import { blockOf, forEachCellInBlock } from './regionalGroup';
-import { cityPopulation, layoutOfPattern, profileAt, type Layout, type SettlementCatalog, type SettlementProfile } from './settlements';
+import { cityNameAt, cityPopulation, layoutOfPattern, profileAt, type Layout, type SettlementCatalog, type SettlementProfile } from './settlements';
 
 /** Assumed rank-size exponents by settlement layout. Imagined: see the top of the file. */
 export const RANK_SIZE_EXPONENT: Record<Layout, number> = { dispersed: 0.6, hamlet: 0.7, nucleated: 0.8 };
@@ -109,7 +109,7 @@ export function largestSettlementAt(
   for (const c of catalog.cities) {
     if (Math.abs(c.lat - clat) > NEARBY_CITY_KM / KM_PER_DEG) continue;
     const people = cityPopulation(c, year);
-    if (people > (near?.people ?? 0) && kmBetween(clon, clat, c.lon, c.lat) <= NEARBY_CITY_KM) near = { name: c.name, people };
+    if (people > (near?.people ?? 0) && kmBetween(clon, clat, c.lon, c.lat) <= NEARBY_CITY_KM) near = { name: cityNameAt(c.name, year), people };
   }
   if (near && near.people <= TOWN_CEILING) near = null; // a town the size of the ceiling or smaller adds nothing to it
   const cap = near ? near.people : TOWN_CEILING;
@@ -120,7 +120,7 @@ export function largestSettlementAt(
   for (const c of catalog.cities) {
     if (c.lon < block.west || c.lon >= block.east || c.lat < block.south || c.lat >= block.north) continue;
     const people = cityPopulation(c, year);
-    if (people > (city?.people ?? 0)) city = { name: c.name, people };
+    if (people > (city?.people ?? 0)) city = { name: cityNameAt(c.name, year), people };
   }
   const named = city !== null && city.people >= model;
   return {

@@ -2,7 +2,7 @@
 // and the hearths' smoke and firelight (`?smoke=1`, lib/hearths.ts) are drawn above all the tiles (a tile's ground is drawn after the tiles before
 // it, so a layer inside one tile would be painted over by the next), but still keep off water. Close3DLayer calls `rememberGround` for each Terrarium
 // tile it loads; `wetAt` reads them back. Where no tile is loaded yet a place is not called wet.
-import { MESH_STEP, type Bbox } from './close3d';
+import { EXAGGERATION, MESH_STEP, type Bbox } from './close3d';
 
 /** How many cells the ground mesh has across a 256-pixel tile (MESH_STEP pixels apart). */
 const MESH_CELLS = 256 / MESH_STEP;
@@ -66,4 +66,26 @@ export function heightAt(lon: number, lat: number): number | null {
 export function wetAt(lon: number, lat: number, seaLevel: number): boolean {
   const h = heightAt(lon, lat);
   return h !== null && h <= seaLevel;
+}
+
+/** Drawn heights by place (~10 m), for the current set of loaded tiles; emptied when a tile is added. */
+const drawnCache = new Map<number, number>();
+let drawnFor = -1;
+
+/** Where something standing on the close-up ground is drawn (deck.gl z, metres): the ground's height × the close-up's relief factor, never
+ * below the sea's surface (z = 0), 0 where no tile is loaded. People, their footprints, hearth smoke and firelight use it so they stand where
+ * the dwellings and fields are (before 2026-11-28 they stayed at z = 0, and in a tilted view a village's people sat off to one side of its
+ * huts as a pale patch). Cached per ~10 m, so thousands of people cost one tile search each per tile load. */
+export function drawnGroundZ(lon: number, lat: number): number {
+  if (drawnFor !== version) {
+    drawnCache.clear();
+    drawnFor = version;
+  }
+  const key = Math.round((lon + 180) * 1e4) * 4e6 + Math.round((lat + 90) * 1e4);
+  let z = drawnCache.get(key);
+  if (z === undefined) {
+    z = Math.max(0, heightAt(lon, lat) ?? 0) * EXAGGERATION;
+    drawnCache.set(key, z);
+  }
+  return z;
 }

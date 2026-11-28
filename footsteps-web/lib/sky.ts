@@ -78,9 +78,20 @@ function lookAt(alt: number): Omit<Key, 'alt'> {
 /** Altitude (degrees) the imagined moon stands at when the sun is down. */
 const MOON_ALTITUDE = 35;
 
-/** The light over (lon, lat) at a sun-clock time (ms since the epoch). */
-export function sceneLight(lon: number, lat: number, ms: number): SceneLight {
-  const sunVec = sunVector(lon, lat, sunPosition(new Date(ms)));
+/** Local sun time (hours) of the fixed daylight the close-up uses while Day/night shading is off: mid-morning, so slopes still show. */
+export const FIXED_DAY_HOUR = 10.5;
+/** Sun declination (degrees) of that fixed daylight, on the view's own hemisphere: midsummer, so even polar views get a high sun. */
+const FIXED_DAY_DECLINATION = 23.44;
+
+/** The sun of the fixed daylight over a longitude and latitude: FIXED_DAY_HOUR local sun time on a midsummer day. Without it the
+ * close-up followed the real clock even with Day/night off, so evening viewers saw every place at night (dark ground, dark snow). */
+export function fixedDaySun(lon: number, lat: number): SunPosition {
+  return { longitude: lon - (FIXED_DAY_HOUR - 12) * 15, declination: Math.sign(lat) * FIXED_DAY_DECLINATION };
+}
+
+/** The light over (lon, lat) at a sun-clock time (ms since the epoch), or under a given sun. */
+export function sceneLight(lon: number, lat: number, when: number | SunPosition): SceneLight {
+  const sunVec = sunVector(lon, lat, typeof when === 'number' ? sunPosition(new Date(when)) : when);
   const alt = (Math.asin(Math.max(-1, Math.min(1, sunVec[2]))) * 180) / Math.PI;
   const look = lookAt(alt);
   // Day: the sun itself. Night: a moon opposite the sun's bearing, MOON_ALTITUDE up. Between, the light swaps where both are weak
@@ -99,6 +110,20 @@ export function sceneLight(lon: number, lat: number, ms: number): SceneLight {
     sun,
     ...look,
   };
+}
+
+/** Light on noon ground, per channel, by the ground shader's rule (skyLight.ts: 0.7 ambient + 0.8 direct × sun height), sun 60° up. */
+const NOON_LIGHT: Rgb01 = (() => {
+  const look = lookAt(60);
+  const up = Math.sin((60 * Math.PI) / 180);
+  return [0, 1, 2].map((i) => 0.7 * look.ambient[i] + 0.8 * look.direct[i] * up) as Rgb01;
+})();
+
+/** What to multiply the colour of things standing on the ground by (fields, trees, shelters), whose colours are drawn for daylight:
+ * the light on flat ground now over the light at noon, so they dim and cool at dusk and night with the ground under them (1 by day). */
+export function overlayTint(light: Pick<SceneLight, 'sun' | 'direct' | 'ambient'>): Rgb01 {
+  const up = Math.max(light.sun[2], 0);
+  return [0, 1, 2].map((i) => Math.min(1, (0.7 * light.ambient[i] + 0.8 * light.direct[i] * up) / NOON_LIGHT[i])) as Rgb01;
 }
 
 /** deck.gl's default field of view for a map view (altitude 1.5), in degrees. */

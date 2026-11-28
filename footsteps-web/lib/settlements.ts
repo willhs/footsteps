@@ -1,5 +1,6 @@
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { readHabitat } from './habitat';
+import { WayOfLife } from './waysOfLife';
 
 /** The settlement model is the default Units view; `?settlements=0` turns it off (back to even groups at random spots).
  * Read once per page load by the page and the grid worker. */
@@ -15,7 +16,8 @@ export type SettlementComponent = {
   mode: 'mobile' | 'aggregation' | 'settled';
   society: string;
 };
-export type SettlementProfile = { components: SettlementComponent[]; storage: null };
+/** `km` (regional profiles only): how far the nearest of its analogs lives from the 5° cell's centre. */
+export type SettlementProfile = { components: SettlementComponent[]; storage: null; km?: number };
 export type HistoricalCity = {
   id: string;
   name: string;
@@ -85,6 +87,19 @@ function distanceKm(lon: number, lat: number, x: number, y: number) {
   return 12742 * Math.asin(Math.sqrt(Math.min(1, a)));
 }
 
+/** Names the catalog (Reba et al. 2016) files under a later city: Cahokia's 1000 CE figure sits under "St. Louis", Tenochtitlan's
+ * under "Mexico City". Before `until`, the place is labelled with the name it had then. */
+const EARLIER_NAMES: Record<string, { until: number; name: string }[]> = {
+  'St. Louis': [{ until: 1700, name: 'Cahokia' }],
+  'Mexico City': [{ until: 1521, name: 'Tenochtitlan' }],
+  Istanbul: [{ until: 330, name: 'Byzantium' }, { until: 1453, name: 'Constantinople' }],
+};
+
+/** A catalog city's name in a year: the earlier name where the catalog files it under a later one. */
+export function cityNameAt(name: string, year: number): string {
+  return EARLIER_NAMES[name]?.find((n) => year < n.until)?.name ?? name;
+}
+
 /** Whole-year ledger, before viewport slicing. Cities spend nearest cells first;
  * stable city ID order settles overlapping claims. Original grid stays untouched. */
 export function allocateCities(data: GridData, catalog: HistoricalCity[], year: number) {
@@ -139,9 +154,39 @@ export function allocateCities(data: GridData, catalog: HistoricalCity[], year: 
       allocated += before - people[i];
       if (allocated >= requested) break;
     }
-    cities.push({ id: city.id, name: city.name, position: [city.lon, city.lat], requested, people: allocated });
+    cities.push({ id: city.id, name: cityNameAt(city.name, year), position: [city.lon, city.lat], requested, people: allocated });
   }
   return { residual: { ...data, people }, cities };
+}
+
+/** Holocene foragers whose region's own forager analogs all live farther than this take a climate-matched profile instead.
+ * The regional mixes are ranked by distance and way of life only, so where no foragers were recorded nearby they reach far:
+ * Mesolithic Britain and France were drawn from Greenland Inuit (snow houses) and 19th-century Latvian fishing villages, the
+ * Natufian Levant and the Green Sahara from Congo forest Mbuti, Jōmon Japan from St Lawrence Island Yupik. The climate mix
+ * (Binford's hunter-gatherers matched on the year's temperature and rainfall, as before 10,000 BCE) is the better guess there.
+ * Near analogs keep the region (Arctic Inuit, Australia, the Kalahari, the Northwest Coast, California). A modelling choice. */
+export const FAR_FORAGER_KM = 1000;
+
+function climateProfile(catalog: SettlementCatalog, lon: number, lat: number, habitat: Uint8ClampedArray): SettlementProfile {
+  const cell = readHabitat(habitat, lon, lat);
+  // Explicit unknown profile; do not invent a climate match where data is absent.
+  if (cell.tempC === null || cell.precipMm === null) return { components: [], storage: null };
+  const temp = Math.max(-20, Math.min(35, Math.round(cell.tempC / 5) * 5));
+  const rain = Math.max(0, Math.min(3000, Math.round(cell.precipMm / 250) * 250));
+  return catalog.climate[`${temp},${rain}`];
+}
+
+/** Whether a Holocene forager cell takes the climate mix (its region's forager analogs are far away). Needs no habitat. */
+export function foragerUsesClimate(catalog: SettlementCatalog, lon: number, lat: number, way: number, year: number): boolean {
+  if (year < -10000) return true;
+  if (way !== WayOfLife.Forager) return false;
+  return (regionalProfile(catalog, lon, lat, way).km ?? 0) > FAR_FORAGER_KM;
+}
+
+function regionalProfile(catalog: SettlementCatalog, lon: number, lat: number, way: number): SettlementProfile {
+  const row = Math.min(35, Math.max(0, Math.floor((90 - lat) / 5)));
+  const col = Math.min(71, Math.max(0, Math.floor((lon + 180) / 5)));
+  return catalog.regions[`${row},${col}`][way];
 }
 
 export function profileAt(
@@ -150,16 +195,14 @@ export function profileAt(
 ): SettlementProfile {
   if (year < -10000) {
     if (!habitat) throw new Error('Settlement model requires prehistory habitat');
-    const cell = readHabitat(habitat, lon, lat);
-    // Explicit unknown profile; do not invent a climate match where data is absent.
-    if (cell.tempC === null || cell.precipMm === null) return { components: [], storage: null };
-    const temp = Math.max(-20, Math.min(35, Math.round(cell.tempC / 5) * 5));
-    const rain = Math.max(0, Math.min(3000, Math.round(cell.precipMm / 250) * 250));
-    return catalog.climate[`${temp},${rain}`];
+    return climateProfile(catalog, lon, lat, habitat);
   }
-  const row = Math.min(35, Math.max(0, Math.floor((90 - lat) / 5)));
-  const col = Math.min(71, Math.max(0, Math.floor((lon + 180) / 5)));
-  return catalog.regions[`${row},${col}`][way];
+  // Without the year's habitat (rank-size, or a failed fetch) a far forager keeps its regional mix.
+  if (habitat && foragerUsesClimate(catalog, lon, lat, way, year)) {
+    const climate = climateProfile(catalog, lon, lat, habitat);
+    if (climate.components.length) return climate;
+  }
+  return regionalProfile(catalog, lon, lat, way);
 }
 
 let catalogRequest: Promise<SettlementCatalog> | undefined;

@@ -1,5 +1,5 @@
 import type { GridData } from '../hooks/useGridLayer';
-import { SETTLED_MIN_CELL, URBAN_MIN_CELL, type WayOfLifeValue } from '@/lib/waysOfLife';
+import { SETTLED_MIN_CELL, URBAN_MIN_CELL, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { evidenceAt, type Evidence } from '@/lib/time';
 import { ADJUSTED_SPREAD_LABEL } from '@/lib/adjustedSpread';
 
@@ -86,8 +86,8 @@ export function groundingFacts(grid: GridData, year: number, lon: number, lat: n
     longitude: -180 + (col + 0.5) * cellDeg,
     latitude: 90 - (row + 0.5) * cellDeg,
     people, neighbourhoodPeople, way,
-    // Thresholds are per ~10 km cell: compare a block's share of one.
-    densityClass: perCell < SETTLED_MIN_CELL ? 'band' : perCell >= URBAN_MIN_CELL ? 'glow' : 'village',
+    // Thresholds are per ~10 km cell: compare a block's share of one. A glow only where the map draws a city (lib/firstCities.ts).
+    densityClass: perCell < SETTLED_MIN_CELL ? 'band' : perCell >= URBAN_MIN_CELL && way === WayOfLife.Urban ? 'glow' : 'village',
     evidence, cellDeg,
     ...(grid.adjusted ? { adjusted: true as const } : {}),
     confidence: grid.adjusted

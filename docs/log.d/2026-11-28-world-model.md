@@ -23,5 +23,5 @@ and Tibet and left out Mongolia, where the Khaganate began; it now runs 40-55°N
 
 The modelled bands ran up to the ice in Denmark, north Germany and Britain at 20,000 BCE; `ABANDONMENTS` in
 `lib/firstSettlement.ts` empties them for the dated gaps. A cell of 40,000+ is a town only once a crop had arrived. The hover
-card's way of life reads land use through the domesticates gate too. On Saharan land 9550-3550 BCE the card says the climate
-model is too dry (the Green Sahara); the terrain itself still shows desert. Research 0015 section 3.
+card's way of life reads land use through the domesticates gate too. On Saharan land 9000-3500 BCE the card says the climate
+model is too dry (the Green Sahara), as the terrain images' overlay already paints it. Research 0015 section 3.

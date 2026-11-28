@@ -57,11 +57,12 @@ farmers before a crop, no herders before a herd animal; a crowded cell with neit
 - **Towns at 10,000 BCE.** HYDE crowds over 40,000 people into cells on the Levant coast before any crop; a town now needs a
   crop to have arrived.
 - **The hover card's way of life** read HYDE land use ungated; it now reads it through the same gate as the map.
-- **Green Sahara.** At 6000 BCE the map and the card say desert, 74 mm of rain (20°N 10°E). The African Humid Period made it
-  grassland and savanna with lakes; Beyer/Krapp's HadCM3 climate under-states it. The card now says "Wetter than shown: the
-  Green Sahara" on Saharan land 9550-3550 BCE (`lib/greenSahara.ts`). The terrain image and the habitat tiles are unchanged:
-  correcting them needs `terrain_image.py`/`habitat_lookup.py` rerun with a Green Sahara biome patch (and `water_distance.py
-  --extra-water` for its lakes and rivers), which needs the data on budgie.
+- **Green Sahara.** At 6000 BCE the card said desert, 74 mm of rain (20°N 10°E), and the live map looked beige at zoom 3. The
+  African Humid Period made it grassland and savanna with lakes; Beyer/Krapp's HadCM3 climate under-states it. The terrain
+  images already paint a literature overlay for it (`terrain_image.py` `green_sahara`, also used by `hyde_climate_spread.py`),
+  but the habitat lookup the card reads does not. The card now says "Wetter than shown: the Green Sahara" on Saharan land
+  9550-3550 BCE (`lib/greenSahara.ts`). Still to check: why the map looked beige at zoom 3 (the 500 m detail pyramid's
+  recolouring, or terrain images on budgie older than the overlay).
 
 **Not fixed (source data):**
 - Krapp's LGM biome at the ice edge is "deciduous taiga/montane forest" with moose (55.8°N 5.8°E, 20,000 BCE; and Beringia,

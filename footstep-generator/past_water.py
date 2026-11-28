@@ -90,15 +90,15 @@ def epoch_at(year: float) -> int:
 
 # --- the lake ---------------------------------------------------------------------------------------------------------
 
-def window_pixels() -> tuple[int, int, int, int]:
-    """FILL_WINDOW as (row0, row1, col0, col1) on the 2.5' world grid."""
-    south, north, west, east = FILL_WINDOW
+def window_pixels(window: tuple[float, float, float, float] | None = None) -> tuple[int, int, int, int]:
+    """A (south, north, west, east) box, FILL_WINDOW by default, as (row0, row1, col0, col1) on the 2.5' world grid."""
+    south, north, west, east = window or FILL_WINDOW
     return int((90 - north) / PIXEL_DEG), int((90 - south) / PIXEL_DEG), int((west + 180) / PIXEL_DEG), int((east + 180) / PIXEL_DEG)
 
 
-def fetch_window_tiles(folder: Path = TERRARIUM) -> None:
-    """Only the zoom-6 Terrarium tiles the fill window needs (about 20), into `folder`. Idempotent."""
-    south, north, west, east = FILL_WINDOW
+def fetch_window_tiles(folder: Path = TERRARIUM, window: tuple[float, float, float, float] | None = None) -> None:
+    """Only the zoom-6 Terrarium tiles the fill window (FILL_WINDOW by default) needs, into `folder`. Idempotent."""
+    south, north, west, east = window or FILL_WINDOW
     xs = range(int((west + 180) / 360 * st.TILES), int((east + 180) / 360 * st.TILES) + 1)
     top, bottom = st.mercator_row(np.array([north, south]))
     ys = range(int(top / 256), int(bottom / 256) + 1)
@@ -108,10 +108,10 @@ def fetch_window_tiles(folder: Path = TERRARIUM) -> None:
             st._get_tile((x, y, folder))
 
 
-def window_elevation(folder: Path = TERRARIUM) -> np.ndarray:
+def window_elevation(folder: Path = TERRARIUM, window: tuple[float, float, float, float] | None = None) -> np.ndarray:
     """Terrarium metres on the 2.5' grid inside FILL_WINDOW: the mean of SAMPLES x SAMPLES zoom-6 pixels per output pixel, the
-    same resampling as `site_terrain.resample`. Shape is (rows, cols) of `window_pixels()`."""
-    r0, r1, c0, c1 = window_pixels()
+    same resampling as `site_terrain.resample`. Shape is (rows, cols) of `window_pixels(window)`."""
+    r0, r1, c0, c1 = window_pixels(window)
     s = (np.arange(SAMPLES) + 0.5) / SAMPLES
     col_f = ((np.arange(c0, c1)[:, None] + s[None, :]) / NX).ravel() * st.MOSAIC
     cols = np.minimum(col_f.astype(np.int64), st.MOSAIC - 1)
@@ -222,7 +222,7 @@ def load_lake(out: Path = OUT) -> tuple[Patch, np.ndarray, dict]:
 # world grid, an optional freshwater-distance patch on the HYDE 5' grid, and the rule for the level its water stands at.
 
 SCHEMA_VERSION = 2
-SCENARIOS = ("mega_chad", "lgm_europe", "mesopotamia")
+SCENARIOS = ("mega_chad", "lgm_europe", "mesopotamia", "texcoco")
 LEVEL_OFFSET = 32768  # a "pixel" level mask carries metres as green * 256 + blue - LEVEL_OFFSET (whole metres)
 
 

@@ -64,6 +64,11 @@ farmers before a crop, no herders before a herd animal; a crowded cell with neit
   9550-3550 BCE (`lib/greenSahara.ts`). Still to check: why the map looked beige at zoom 3 (the 500 m detail pyramid's
   recolouring, or terrain images on budgie older than the overlay).
 
+- **Lake Texcoco.** At 1400 the Valley of Mexico's towns stood on the bed of Lake Texcoco: past water had no lakes there, and
+  the static water is today's. A new past-water scenario (`past_water_texcoco.py`, docs/ops/past-water.md) floods the basin's
+  five lakes 2050 BCE-1600 CE on the smoothed DEM, at a level calibrated to their ~1,600 km², keeps Tenochtitlan's island dry and
+  counts only the fresh southern lakes as drinking water.
+
 **Not fixed (source data):**
 - Krapp's LGM biome at the ice edge is "deciduous taiga/montane forest" with moose (55.8°N 5.8°E, 20,000 BCE; and Beringia,
   62°N 170°W). Both were steppe-tundra (mammoth steppe).

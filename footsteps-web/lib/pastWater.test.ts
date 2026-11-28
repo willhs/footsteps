@@ -10,19 +10,20 @@ test('the flag is ?pastwater=1 only', () => {
 });
 
 test('three scenarios; every epoch window is calendar BP from 1950 and every id is unique', () => {
-  expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia']);
+  expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia', 'texcoco']);
   const epochs = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs);
   for (const e of epochs) expect([e.from_year, e.to_year]).toEqual([1950 - e.from_bp, 1950 - e.to_bp]);
   expect(new Set(epochs.map((e) => e.id)).size).toBe(epochs.length);
   expect(scenario('mega_chad').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-9550, -3050]]);
   expect(scenario('lgm_europe').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-24550, -17050]]);
   expect(scenario('mesopotamia').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-6050, -4551], [-4550, -3550], [-2550, -1550]]);
+  expect(scenario('texcoco').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-2050, 1600]]);
 });
 
 test.each([
   [-26000, []], [-24550, [2]], [-20000, [2]], [-17050, [2]], [-17049, []], [-12000, []], [-9551, []], [-9550, [1]],
   [-6000, [1, 3]], [-4551, [1, 3]], [-4550, [1, 4]], [-4000, [1, 4]], [-3550, [1, 4]], [-3549, [1]], [-3050, [1]], [-3049, []],
-  [-2000, [5]], [-1549, []], [0, []], [1900, []],
+  [-2051, [5]], [-2050, [5, 6]], [-2000, [5, 6]], [-1549, [6]], [0, [6]], [1600, [6]], [1601, []], [1900, []],
 ])('active epochs at %i: %j (the same table as past_water.active_epochs)', (year, ids) => {
   expect(pastWaterEpochs(year)).toEqual(ids);
 });
@@ -104,7 +105,7 @@ test('the water exists only in its epochs, at each epoch\'s own level', () => {
 });
 
 test('outside every window the note says no scenario: geography unknown, not dry', () => {
-  for (const year of [-26000, -12000, -2700, 0]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one
+  for (const year of [-26000, -12000, -2700, 1700]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one; 1700: after the Basin of Mexico's
     expect(pastWaterEpochs(year)).toEqual([]);
     const note = pastWaterNote(year, 'units', undefined);
     expect(note.label).toMatch(/no scenario/);

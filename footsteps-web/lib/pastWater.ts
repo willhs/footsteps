@@ -1,15 +1,17 @@
 // Dated past water (`?pastwater=1`, off by default until Will has reviewed it on prod): scenarios shared by every consumer, so the Earth
-// picture, the groups' wet exclusion, the freshwater distance and the close-up water cannot disagree. Three scenarios, each a manifest
-// in public/pastwater/ baked by footstep-generator (past_water.py, past_water_lgm.py, past_water_mesopotamia.py):
+// picture, the groups' wet exclusion, the freshwater distance and the close-up water cannot disagree. Four scenarios, each a manifest
+// in public/pastwater/ baked by footstep-generator (past_water.py, past_water_lgm.py, past_water_mesopotamia.py, past_water_texcoco.py):
 //   Mega-Chad          modelled highstand lake, 11.5–5 ka BP
 //   European LGM       published lake and river vectors (CRC806), one snapshot 26.5–19 ka BP
 //   Mesopotamian coast three stages traced from Giosan & Goodman 2025 Fig 6, interpreted
+//   Basin of Mexico    modelled lakes (Texcoco and the four others) 4 ka BP–1600 CE, before the colonial drainage
 // The EPOCH is the unit: an id unique across scenarios, a mask patch, an optional freshwater-distance patch and a water level rule. A year
 // has a set of active epochs; epochs that hold at the same time never reach the same cell (tested), so a cell sees at most one.
 // See docs/ops/past-water.md.
 import megaChadJson from '../public/pastwater/mega_chad.json';
 import lgmEuropeJson from '../public/pastwater/lgm_europe.json';
 import mesopotamiaJson from '../public/pastwater/mesopotamia.json';
+import texcocoJson from '../public/pastwater/texcoco.json';
 
 /** A rectangle of a grid: column and row of its north-west pixel in the full grid, and its size. */
 export type Patch = { x0: number; y0: number; width: number; height: number };
@@ -26,7 +28,7 @@ export type ScenarioMeta = {
 };
 
 /** Every scenario's manifest, in the order the notes list them. */
-export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson] as unknown as ScenarioMeta[];
+export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson, texcocoJson] as unknown as ScenarioMeta[];
 const EPOCHS: readonly { scenario: ScenarioMeta; epoch: EpochMeta }[] = PAST_WATER_SCENARIOS.flatMap((scenario) => scenario.epochs.map((epoch) => ({ scenario, epoch })));
 
 /** `?pastwater=1` turns the scenarios on. Read once per page load by the page and the grid worker. */

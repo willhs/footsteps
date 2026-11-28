@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import past_water as pw
 import past_water_lgm as lgm
 import past_water_mesopotamia as meso
+import past_water_texcoco as tex
 import water_distance as wd
 
 STATIC = wd.OUT / "water_distance.webp"
@@ -45,7 +46,7 @@ def test_each_manifest_states_datum_dates_licence_uncertainty_and_what_outside_m
     for e in m["epochs"]:
         assert e["from_year"] == 1950 - e["from_bp"] and e["to_year"] == 1950 - e["to_bp"] and e["from_year"] < e["to_year"]
         assert e["level"]["kind"] in ("plane", "pixel", "sea") and e["paint"] in ("lake", "sea") and e["water"]
-    if name != "mega_chad":
+    if name not in ("mega_chad", "texcoco"):  # DEM-derived, no figure or vectors to license
         assert "CC" in m["licence"]
 
 
@@ -78,7 +79,8 @@ def test_epochs_that_hold_at_the_same_time_never_reach_the_same_cell():
 @pytest.mark.parametrize("year,ids", [
     (-26000, []), (-24550, [2]), (-20000, [2]), (-17050, [2]), (-17049, []), (-12000, []),
     (-6051, [1]), (-6050, [1, 3]), (-6000, [1, 3]), (-4551, [1, 3]), (-4550, [1, 4]), (-4000, [1, 4]), (-3550, [1, 4]),
-    (-3549, [1]), (-3050, [1]), (-3049, []), (-2551, []), (-2550, [5]), (-2000, [5]), (-1550, [5]), (-1549, []), (0, []), (1900, []),
+    (-3549, [1]), (-3050, [1]), (-3049, []), (-2551, []), (-2550, [5]), (-2051, [5]), (-2050, [5, 6]), (-1550, [5, 6]), (-1549, [6]),
+    (0, [6]), (1600, [6]), (1601, []), (1900, []),
 ])
 def test_active_epochs_by_year(year, ids):
     assert [e["id"] for _, e in pw.active_epochs(year)] == ids
@@ -193,3 +195,31 @@ def test_outlines_and_arrows_are_filled_from_their_neighbours():
     assert meso.fill_unknown(c)[1, 1] == 1
     c = np.zeros((3, 3), np.int8); c[1, 1] = -1
     assert meso.fill_unknown(c)[1, 1] == 0
+
+
+# --- Basin of Mexico ---------------------------------------------------------------------------------------------------------
+
+TEXCOCO_BED = (19.45, -99.0)  # the middle of Lake Texcoco (Nezahualcoyotl's airport and the dry lakebed today)
+CHALCO = (19.26, -98.95)
+TENOCHTITLAN = (19.4326, -99.1332)
+TOLUCA = (19.29, -99.66)  # the next valley west: its own basin, never joined to the Basin of Mexico's lakes
+
+
+def test_texcoco_lakes_fill_the_basin_floor_and_spare_the_island_city():
+    e = epoch(tex.NAME, 6)
+    assert (e["from_year"], e["to_year"]) == (-2050, 1600) and e["paint"] == "lake" and e["level"]["kind"] == "plane"
+    assert wet_at(e, *TEXCOCO_BED) and wet_at(e, *CHALCO)
+    assert not wet_at(e, *TENOCHTITLAN)
+    assert not wet_at(e, *TOLUCA)
+    assert tex.AREA_RANGE[0] <= pw.load_manifest(tex.NAME)["area_km2"] <= tex.AREA_RANGE[1]
+
+
+def test_texcoco_fresh_water_comes_only_from_the_southern_lakes():
+    e = epoch(tex.NAME, 6)
+    dpatch, codes = pw.load_distance(e)
+    base = pw.read_gray(STATIC)
+    sub = base[dpatch.y0:dpatch.y0 + dpatch.height, dpatch.x0:dpatch.x0 + dpatch.width]
+    assert (codes <= sub).all() and int((codes != sub).sum()) == e["distance"]["cells_changed"]
+    cell = lambda lat, lon: (int((90 - lat) / wd.CELL_DEG) - dpatch.y0, int((lon + 180) / wd.CELL_DEG) - dpatch.x0)
+    assert codes[cell(*CHALCO)] == 0  # Chalco: a fresh lake cell
+    assert codes[cell(*TEXCOCO_BED)] > 0  # Texcoco's salt water is not fresh water

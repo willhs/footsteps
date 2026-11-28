@@ -56,3 +56,10 @@ is 20% or more and the count 10 or more (`uncertaintyFactorsAt` in `lib/time.ts`
 HYDE has no populated cell on these islands in any year, so Tahiti at 1500 said "No one here" while its card listed
 Austronesian languages and taro. `lib/missingIslands.ts` adds a rough, cited count from settlement (Tahiti ~35,000 at contact,
 Rapa Nui ~3,000 in 1722, the Azores 256,000 in 1900) over a few cells each, only where the image is empty.
+
+## [2026-11-28] add | The lakes of the Basin of Mexico, before the colonial drainage
+
+Past water had no Lake Texcoco, so at 1400 the Valley of Mexico's towns stood on its bed. `past_water_texcoco.py` floods the
+basin floor from Texcoco on the same smoothed DEM as Mega-Chad, at a level calibrated to the lakes' area (1,598 km²), from
+2050 BCE to 1600 CE; Tenochtitlan's island is kept dry, and only the fresh southern lakes (Xochimilco, Chalco) count as
+fresh water. See docs/ops/past-water.md.

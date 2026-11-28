@@ -1,10 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { gatedLandUse } from '@/lib/domesticatesGate';
+import { biomeNoteAt } from '@/lib/biomeNotes';
 import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
 import useFood from '../hooks/useFood';
 import { foodHere } from '@/lib/food';
+import { WayOfLife } from '@/lib/waysOfLife';
 import useFauna from '../hooks/useFauna';
 import useLanguages from '../hooks/useLanguages';
 import useLanguageExpansions from '../hooks/useLanguageExpansions';
@@ -13,7 +16,7 @@ import useGroundIndex from '../hooks/useGroundIndex';
 import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
 import { readHabitat, readLandUse } from '@/lib/habitat';
-import { notableAnimals } from '@/lib/fauna';
+import { gameAnimals, notableAnimals } from '@/lib/fauna';
 import { formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
 import { groundImageUrl, groundView, type GroundView } from '@/lib/groundScene';
 import { HYDE_MIN } from '@/lib/time';
@@ -93,17 +96,20 @@ export default function HoverCard({
       time,
       habitat: lookups.step ? readHabitat(lookups.step, point.lon, point.lat) : null,
       today: lookups.today ? readHabitat(lookups.today, point.lon, point.lat) : null,
-      people: facts && { count: facts.people, evidence: facts.evidence, cellDeg: facts.cellDeg, adjusted: facts.adjusted === true },
-      landUse: lookups.landUse ? readLandUse(lookups.landUse, point.lon, point.lat) : null,
+      people: facts && { count: facts.people, evidence: facts.evidence, cellDeg: facts.cellDeg, adjusted: facts.adjusted === true, way: facts.way },
+      // Read as farming or herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts), as the map does.
+      landUse: lookups.landUse ? gatedLandUse(readLandUse(lookups.landUse, point.lon, point.lat), point.lon, point.lat, year) : null,
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,
     };
+    const climateNote = input.habitat?.surface === 'land' ? biomeNoteAt(point.lon, point.lat, time, input.habitat.biome) : null;
     return {
       rows: hoverCardRows({
         ...input,
+        climateNote,
         languages,
         ice,
         expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,
-        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null,
+        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat, fauna ? gameAnimals(fauna.species, fauna.ids) : null, facts?.way === WayOfLife.Forager) : null,
       }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:

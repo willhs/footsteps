@@ -1,4 +1,9 @@
 import { decodeYearGrid, gridDataFrom, gridUrl } from './gridData';
+let mockEverythingDomesticated = false;
+jest.mock('../../../lib/domesticatesGate', () => {
+  const actual = jest.requireActual('../../../lib/domesticatesGate');
+  return { ...actual, domesticatesBits: (lon: number, lat: number, era: number) => (mockEverythingDomesticated ? 3 : actual.domesticatesBits(lon, lat, era)) };
+});
 import { UnitKind } from '../layers/units';
 import { WayOfLife } from '@/lib/waysOfLife';
 
@@ -92,6 +97,15 @@ function mockImages(images: Record<string, Uint8ClampedArray | 'missing'>, width
 }
 
 describe('way of life from HYDE land use', () => {
+  // These four cells sit at 0°N on 135°W, 45°W, 45°E, 135°E: open sea and the Amazon mouth. Let every domesticate be there, so
+  // the test is about reading land use; the gate itself is tested in lib/domesticatesGate.test.ts.
+  beforeAll(() => {
+    mockEverythingDomesticated = true;
+  });
+  afterAll(() => {
+    mockEverythingDomesticated = false;
+  });
+
   const level = (q: number) => [q >> 8, q & 255, 0, 255];
   // Three cells of ~100 people and one of ~2,000 (too crowded for foraging).
   const people = [level(306), level(306), level(306), level(505)].flat();

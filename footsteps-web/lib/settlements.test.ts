@@ -1,4 +1,4 @@
-import { allocateCities, blendCities, cityPopulation, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
+import { allocateCities, cityNameAt, blendCities, cityPopulation, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { prepareYearGrid } from '@/components/footsteps/hooks/gridData';
 import { buildSettlementUnits } from '@/components/footsteps/layers/settlementUnits';
@@ -107,5 +107,17 @@ describe('settlementsFromParams', () => {
     expect(settlementsFromParams(new URLSearchParams('settlements=1'))).toBe(true);
     expect(settlementsFromParams(new URLSearchParams('settlements=0'))).toBe(false);
     expect(settlementsFromParams(new URLSearchParams('settlements=0&seasons=1'))).toBe(false);
+  });
+});
+
+describe('cityNameAt', () => {
+  it('uses the name a place had at the time', () => {
+    expect(cityNameAt('St. Louis', 1000)).toBe('Cahokia');
+    expect(cityNameAt('St. Louis', 1850)).toBe('St. Louis');
+    expect(cityNameAt('Mexico City', 1500)).toBe('Tenochtitlan');
+    expect(cityNameAt('Istanbul', 100)).toBe('Byzantium');
+    expect(cityNameAt('Istanbul', 1000)).toBe('Constantinople');
+    expect(cityNameAt('Istanbul', 1500)).toBe('Istanbul');
+    expect(cityNameAt('Rome', -500)).toBe('Rome');
   });
 });

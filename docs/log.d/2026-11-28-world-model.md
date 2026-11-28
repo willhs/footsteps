@@ -44,3 +44,9 @@ camps, median ~350 people; the steppe's herders are 13-44 per cell). Light grazi
 The food row (`?food=1`) gave foragers their biome's generic animals, so Ice Age Honshu, Doggerland and NE Siberia all ate
 "moose, caribou". Where the fauna layer has large prey for the place and time, those are the animal staples now
 (`gameAnimals` in `lib/fauna.ts`).
+
+## [2026-11-28] update | The hover card gives a place's head count as a range
+
+"≈ 230 people" now adds "could be 70–230, as world estimates differ": the year's spread of world totals (published estimates
+from 10,000 BCE, the model's low-high before) applied to the cell, a floor on how unsure the figure is. Shown when the spread
+is 20% or more and the count 10 or more (`uncertaintyFactorsAt` in `lib/time.ts`).

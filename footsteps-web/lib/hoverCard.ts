@@ -34,7 +34,9 @@ export type HoverCardInput = {
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
   /** `way`: the cell's way of life as the map draws it (lib/waysOfLife.ts `classifyCell`), so the card and the marks agree. */
-  people: { count: number; evidence: Evidence; cellDeg: number; adjusted?: boolean; way?: WayOfLifeValue | null } | null;
+  people: { count: number; evidence: Evidence; cellDeg: number; adjusted?: boolean; way?: WayOfLifeValue | null;
+    /** Factors on the count from `uncertaintyFactorsAt` (lib/time.ts); absent, no range is shown. */
+    uncertainty?: { low: number; high: number } } | null;
   /** HYDE land use for the same cell, only for HYDE years. */
   landUse: LandUse | null;
   /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
@@ -113,7 +115,12 @@ function peopleRow(p: NonNullable<HoverCardInput['people']>): CardRow {
     return { id: 'people', text: p.evidence === 'modelled' ? 'No one modelled' : 'No one counted', detail: where, evidence: p.evidence };
   }
   const text = p.count < 1 ? 'Under 1 person' : `≈ ${p.count < 10 ? Math.round(p.count) : twoFigures(p.count)} people`;
-  return { id: 'people', text, detail: where, evidence: p.evidence };
+  // How little we know: the world total's own spread for the year, applied to this cell (vision: make it felt, not hidden).
+  const f = p.uncertainty;
+  const range = f && p.count >= 10 && f.high / f.low >= 1.2
+    ? ` · could be ${twoFigures(Math.max(1, p.count * f.low))}–${twoFigures(p.count * f.high)}, as world estimates differ`
+    : '';
+  return { id: 'people', text, detail: where + range, evidence: p.evidence };
 }
 
 /** HYDE's way of life, only where it counted people living here. Null before HYDE and where no one lives. */

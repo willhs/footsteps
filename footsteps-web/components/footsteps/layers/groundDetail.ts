@@ -22,24 +22,43 @@ export type WeatherRef = { current: Weather | null };
 /** One clock per page: every tile's draw advances it to the frame's time, so the patterns agree across tile edges. */
 const clock: WeatherClock = newWeatherClock();
 
-const WEATHER_MODULE = {
-  name: 'weather',
-  fs: /* glsl */ `uniform weatherUniforms {
+const WEATHER_BLOCK = /* glsl */ `uniform weatherUniforms {
   float on;
   float biome;
   float cover;
   vec2 wind;
   vec2 cloud;
   vec2 gust;
+  vec2 origin;
 } weather;
-`,
-  uniformTypes: { on: 'f32', biome: 'f32', cover: 'f32', wind: 'vec2<f32>', cloud: 'vec2<f32>', gust: 'vec2<f32>' },
+`;
+const WEATHER_MODULE = {
+  name: 'weather',
+  vs: WEATHER_BLOCK,
+  fs: WEATHER_BLOCK,
+  uniformTypes: { on: 'f32', biome: 'f32', cover: 'f32', wind: 'vec2<f32>', cloud: 'vec2<f32>', gust: 'vec2<f32>', origin: 'vec2<f32>' },
 } as const;
 
+/** The patterns' origin (lon, lat degrees), near the view. The shaders measure metres east as (lon - origin) x cos(lat): measured from
+ * Greenwich instead, a metre north moved "east" by (lon in radians) x sin(lat), so far from 0° (the Americas, Asia, Beringia) every
+ * pattern was sheared into diagonal streaks, and float32 degrees lost a metre. It moves only after the view travels ANCHOR_STEP
+ * degrees from it (the patterns re-roll once then), so panning about a place never shifts them. */
+const ANCHOR_STEP = 3;
+let anchor: [number, number] | null = null;
+export function patternOrigin(lon: number, lat: number): [number, number] {
+  if (!anchor || Math.abs(lon - anchor[0]) > ANCHOR_STEP || Math.abs(lat - anchor[1]) > ANCHOR_STEP) anchor = [Math.round(lon), Math.round(lat)];
+  return anchor;
+}
+type Drawn = { props: Record<string, unknown>; context?: { viewport?: object }; state: { model?: { shaderInputs: { setProps: (p: object) => void } } } };
+const originOf = (layer: Drawn) => {
+  const v = layer.context?.viewport as { longitude?: number; latitude?: number } | undefined;
+  return patternOrigin(v?.longitude ?? 0, v?.latitude ?? 0);
+};
+
 const VS_DECL = `out vec4 vGround;`;
-// Ground position in degrees (tile corner + offset: float32 is good to ~1 m, finer than any pattern), the mesh normal's
-// up part (steepness) and the drawn height (strata).
-const VS_MAIN_END = `vGround = vec4(instancePositions.xy + positions.xy, normals.z, positions.z);`;
+// Ground position in degrees from the pattern origin (patternOrigin; the corner's difference is exact, so it keeps the offset's
+// precision), the mesh normal's up part (steepness) and the drawn height (strata).
+const VS_MAIN_END = `vGround = vec4((instancePositions.xy - weather.origin) + positions.xy, normals.z, positions.z);`;
 
 const NOISE_GLSL = `
 float gHash(vec2 p) {
@@ -82,7 +101,7 @@ const FS_DECL = `in vec4 vGround;
 ${NOISE_GLSL}`;
 
 const FS_FILTER_COLOR = `
-  vec2 gm = vec2(vGround.x * cos(radians(vGround.y)), vGround.y) * 111320.0;
+  vec2 gm = vec2(vGround.x * cos(radians(weather.origin.y + vGround.y)), vGround.y) * 111320.0;
   float gmpp = max(max(fwidth(gm.x), fwidth(gm.y)) * 0.5, 0.01);
   float gHeightRate = fwidth(vGround.w);
   float gLayer = geometry.uv.y;
@@ -218,7 +237,7 @@ export default class GroundDetail extends LayerExtension {
     weatherRef: { type: 'object', value: null, compare: false },
   };
 
-  draw(this: { props: Record<string, unknown>; state: { model?: { shaderInputs: { setProps: (p: object) => void } } } }) {
+  draw(this: Drawn) {
     const { groundBiome, weatherRef } = this.props as { groundBiome: boolean; weatherRef: WeatherRef | null };
     const target = weatherRef?.current ?? null;
     if (target) advanceWeather(clock, target, animSeconds(1e9), stillOn());
@@ -230,6 +249,7 @@ export default class GroundDetail extends LayerExtension {
         wind: target?.wind ?? [1, 0],
         cloud: clock.cloud,
         gust: clock.gust,
+        origin: originOf(this),
       },
     });
   }
@@ -253,14 +273,14 @@ export default class GroundDetail extends LayerExtension {
 // they read as paper cut-outs. Imagined like the layout: rows, strips and verges are a look, not data.
 
 const FIELD_VS_DECL = `out vec4 vField; out vec2 vFieldUv; out float vFieldKind; out vec2 vFieldPos;`;
-const FIELD_VS_MAIN_END = `vFieldUv = texCoords; vField = vec4(normals.xy, 0.0, 0.0); vFieldKind = normals.z; vFieldPos = instancePositions.xy + positions.xy;`;
+const FIELD_VS_MAIN_END = `vFieldUv = texCoords; vField = vec4(normals.xy, 0.0, 0.0); vFieldKind = normals.z; vFieldPos = (instancePositions.xy - weather.origin) + positions.xy;`;
 
 const FIELD_FS_DECL = `in vec4 vField; in vec2 vFieldUv; in float vFieldKind; in vec2 vFieldPos;
 ${NOISE_GLSL}`;
 
 const FIELD_FS_FILTER_COLOR = `
   {
-    vec2 fm = vec2(vFieldPos.x * cos(radians(vFieldPos.y)), vFieldPos.y) * 111320.0;
+    vec2 fm = vec2(vFieldPos.x * cos(radians(weather.origin.y + vFieldPos.y)), vFieldPos.y) * 111320.0;
     float fmpp = max(max(fwidth(fm.x), fwidth(fm.y)) * 0.5, 0.01);
     float kind = floor(vFieldKind + 0.001);
     float seed = fract(vFieldKind + 0.001);
@@ -321,12 +341,12 @@ export class FieldDetail extends LayerExtension {
   static extensionName = 'FieldDetail';
   static defaultProps = { weatherRef: { type: 'object', value: null, compare: false } };
 
-  draw(this: { props: Record<string, unknown>; state: { model?: { shaderInputs: { setProps: (p: object) => void } } } }) {
+  draw(this: Drawn) {
     const { weatherRef } = this.props as { weatherRef: WeatherRef | null };
     const target = weatherRef?.current ?? null;
     if (target) advanceWeather(clock, target, animSeconds(1e9), stillOn());
     this.state.model?.shaderInputs.setProps({
-      weather: { on: target ? 1 : 0, biome: 0, cover: clock.cover, wind: target?.wind ?? [1, 0], cloud: clock.cloud, gust: clock.gust },
+      weather: { on: target ? 1 : 0, biome: 0, cover: clock.cover, wind: target?.wind ?? [1, 0], cloud: clock.cloud, gust: clock.gust, origin: originOf(this) },
     });
   }
 

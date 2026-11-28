@@ -513,8 +513,18 @@ export function buildTerrainMesh(
       // Slope from neighbours, in metres per metre, on the drawn surface.
       // A least-squares line through five vertices, not two: the elevation tiles are upsampled from coarser data in steps, and a
       // two-vertex slope flips from row to row on them, which the ground shader's rock (steep ground) drew as fine hatching.
-      const hx = (surfaceAt(i + 1, j) - surfaceAt(i - 1, j) + 2 * (surfaceAt(i + 2, j) - surfaceAt(i - 2, j))) / (10 * dxM);
-      const hy = (surfaceAt(i, j - 1) - surfaceAt(i, j + 1) + 2 * (surfaceAt(i, j - 2) - surfaceAt(i, j + 2))) / (10 * dyM); // +y is north
+      // On ground that is under today's sea (an exposed Ice Age shelf), the heights are bathymetry, streaked by ship tracks a vertex or
+      // two wide; a nine-vertex fit there shades the shelf, not the survey lines.
+      const reach = h < 0 && !wet ? 4 : 2;
+      let gx = 0;
+      let gy = 0;
+      for (let k = 1; k <= reach; k++) {
+        gx += k * (surfaceAt(i + k, j) - surfaceAt(i - k, j));
+        gy += k * (surfaceAt(i, j - k) - surfaceAt(i, j + k));
+      }
+      const norm = (reach * (reach + 1) * (2 * reach + 1)) / 3; // 2 Σ k²
+      const hx = gx / (norm * dxM);
+      const hy = gy / (norm * dyM); // +y is north
       const lon = west + ((east - west) * i) / (n - 1);
       const lat = north - ((north - south) * j) / (n - 1);
       positions[v * 3] = lon - west;

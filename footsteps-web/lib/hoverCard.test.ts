@@ -211,3 +211,12 @@ describe('hover card language line', () => {
     expect(row?.detail).toBe('recorded about 1500');
   });
 });
+
+describe('Green Sahara note', () => {
+  it('adds a too-dry note on Saharan land during the African Humid Period only', () => {
+    const habitat = { surface: 'land', biome: 'Desert', tempC: 25, precipMm: 74 } as never;
+    const base = { time: -6000, habitat, today: null, people: null, landUse: null };
+    expect(hoverCardRows({ ...base, climateNote: { text: 'Wetter than shown', detail: 'd' } }).map((r) => r.id)).toContain('climate-note');
+    expect(hoverCardRows({ ...base, climateNote: null }).map((r) => r.id)).not.toContain('climate-note');
+  });
+});

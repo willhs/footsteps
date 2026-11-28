@@ -22,15 +22,46 @@ export const SETTLED_MIN_CELL = 600;
 /** A cell this full is a town or city: drawn as one glow, not as groups. */
 export const URBAN_MIN_CELL = 40_000;
 
+/** Above this many people in one ~10 km cell (~1.8 per km²) a herding cell is mixed farming, not pastoralists: herders live
+ * at well under 2 per km² (Mongolia ~1, East African pastoralists 1-2). On the served images the steppe's grazing cells hold a
+ * median of 13 (Mongolia) to 44 (Sahel) people, Germany's and France's at 1000 CE 350-400 (research 0015). */
+export const PASTORAL_MAX_CELL = 150;
+/** Grazing share from which a lightly used cell counts as herding rather than foraging. */
+export const LIGHT_GRAZING_SHARE = 0.02;
+/** Cropland share from which a lightly used cell counts as farming rather than foraging (~0.4 km² of ~85). */
+export const LIGHT_CROP_SHARE = 0.005;
+
 /** Class a populated cell. Order matters: a city is a city whatever grows round
  * it, crops outrank pasture (HYDE grazes the farmland too), and a dense cell
  * with no herding is settled rather than foraging. `crop` and `grazing` are
- * shares of the cell, 0–1. */
-export function classifyCell(people: number, crop: number, grazing: number): WayOfLifeValue {
-  if (people >= URBAN_MIN_CELL) return WayOfLife.Urban;
-  if (crop >= FARMER_CROP_SHARE) return WayOfLife.Farmer;
-  if (grazing >= HERDER_GRAZING_SHARE) return WayOfLife.Herder;
-  return people >= SETTLED_MIN_CELL ? WayOfLife.Farmer : WayOfLife.Forager;
+ * shares of the cell, 0–1.
+ *
+ * `canFarm` / `canHerd`: whether any crop / herd animal had reached the place by
+ * then (lib/domesticatesGate.ts). HYDE allocates land use from population by
+ * per-capita rules, so it puts cropland and pasture where nothing domesticated had
+ * arrived (cropland in the Americas at 10,000 BCE); there its land use is not read
+ * as farming or herding, and a dense cell stays foragers (the Calusa, the Northwest
+ * Coast, Jōmon villages were dense foragers).
+ *
+ * `canCity`: whether towns had begun in the region by then (lib/firstCities.ts).
+ *
+ * Grazing is herding only where people are as sparse as pastoralists; a crowded
+ * grazing cell where crops are known is mixed farming (medieval Germany's pastures
+ * read as herder camps before). A little land use is still farming or herding:
+ * foragers are drawn only where HYDE records none worth the name. */
+export function classifyCell(people: number, crop: number, grazing: number, canFarm = true, canHerd = true, canCity = true): WayOfLifeValue {
+  // A town needs farmed food: HYDE crowds 40,000 into a cell on the Levant coast at 10,000 BCE, before any crop. And towns had
+  // to have begun in the region (lib/firstCities.ts): before that a crowded cell is a dense farming village.
+  if (people >= URBAN_MIN_CELL && canFarm && canCity) return WayOfLife.Urban;
+  const c = canFarm ? crop : 0;
+  const g = canHerd ? grazing : 0;
+  const herdOrMixed = canFarm && people >= PASTORAL_MAX_CELL ? WayOfLife.Farmer : WayOfLife.Herder;
+  if (c >= FARMER_CROP_SHARE) return WayOfLife.Farmer;
+  if (g >= HERDER_GRAZING_SHARE) return herdOrMixed;
+  if (people >= SETTLED_MIN_CELL) return canFarm ? WayOfLife.Farmer : g > 0 ? WayOfLife.Herder : WayOfLife.Forager;
+  if (g >= LIGHT_GRAZING_SHARE) return herdOrMixed;
+  if (c >= LIGHT_CROP_SHARE) return WayOfLife.Farmer;
+  return WayOfLife.Forager;
 }
 
 type Look = {

@@ -182,7 +182,7 @@ Tibet; 0 before 70 ka BP, 40% at 20 ka, at most 45%). Those people could be half
 - Central totals: 0.20 M (100,000 BCE), 0.51 M (70,000), 1.67 M (40,000), 3.85 M (20,000), 4.58 M (11,000).
   The model holds ~14% of the people the Tallavaara fit would put on every ice-free cell once
   everyone has arrived, so the scale step never asks for more than the fit allows.
-- Africa alone until the first exit; mainland Southeast Asia south of 22°N at 70 ka (southern China, 22-28°N, at 42 ka since 2026-11-21); Sahul at 50 ka; the Americas from 16 ka (all central dates).
+- Africa alone until the first exit; mainland Southeast Asia south of 22°N at 70 ka (southern China, 22-28°N, at 42 ka since 2026-11-21); Sahul at 50 ka; the Americas from 16 ka (all central dates; since 2026-11-28 a thin x0.05 scatter in North America from 23 ka, research 0016).
 - At the last glacial maximum northern Europe is empty and the southern refugia (Iberia, Italy, the Balkans) hold people; this comes
   from the cold rule, not from the `refugia` list, which is documentation only.
 - Where it disagrees with HYDE (the pure model at 12,000 BCE, before the blend was lengthened to 14,000 BCE, against HYDE's 10,000 BCE grid):
@@ -190,6 +190,11 @@ Tibet; 0 before 70 ka BP, 40% at 20 ka, at most 45%). Those people could be half
   northern Asia 0.4% vs 4%. Across the hand-over people therefore fade out of Africa and
   into the Americas on the map. The total is smooth; the geography is not. Either HYDE or this
   model is wrong about early-Holocene Africa and America, and nothing here settles which.
+
+**Continental shares across the hand-over (2026-11-28).** The app now rescales each continent's total for 13,000-4,000 BCE
+(`lib/holoceneShares.ts`, table built by `footstep-generator/holocene_shares.py`, research 0016), so the disagreement above no longer reaches the map:
+continents follow the pure model's shares through the blend and fade to HYDE's by 3000 BCE; within a continent the blend is unchanged.
+Re-run `holocene_shares.py` whenever these images or HYDE's are regenerated.
 
 ## Known limits and choices
 

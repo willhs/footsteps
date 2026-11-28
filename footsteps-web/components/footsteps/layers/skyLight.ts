@@ -13,6 +13,8 @@ import { LayerExtension, type Layer } from '@deck.gl/core';
 import { animSeconds } from '@/lib/still';
 import type { SceneLight } from '@/lib/sky';
 import { farMultiplier } from '@/lib/close3d';
+import { patternOrigin } from './groundDetail';
+import { overlayTint } from '@/lib/sky';
 
 type SkyProps = { skyLight: SceneLight | null };
 
@@ -32,7 +34,24 @@ const sky = {
     float farFade;
     float mPerUnit;
     float enabled;
-  } sky;`,
+    vec3 tint;
+    vec2 origin;
+  } sky;
+
+// Through sea-level air the haze reaches 63% at HAZE_M; the air thins with height over HAZE_SCALE_M (drawn metres).
+const float HAZE_M = 45000.0;
+const float HAZE_SCALE_M = 8000.0;
+
+// Share of the horizon colour at a point: eye = from the point to the camera and z = the point's height (common space),
+// w = its clip-space w. Full before the far plane, where the sky backdrop shows.
+float skyHaze(vec3 eye, float z, float w) {
+  float distM = length(eye) * sky.mPerUnit;
+  float zPoint = max(z * sky.mPerUnit, 0.0);
+  float zEye = max((z + eye.z) * sky.mPerUnit, 0.0);
+  float rise = zEye - zPoint;
+  float density = abs(rise) < 1.0 ? exp(-zPoint / HAZE_SCALE_M) : HAZE_SCALE_M * (exp(-zPoint / HAZE_SCALE_M) - exp(-zEye / HAZE_SCALE_M)) / rise;
+  return max(1.0 - exp(-distM * density / HAZE_M), sky.farFade * smoothstep(0.55, 0.97, w / sky.farW));
+}`,
   uniformTypes: {
     sun: 'vec3<f32>',
     direct: 'vec3<f32>',
@@ -44,6 +63,8 @@ const sky = {
     farFade: 'f32',
     mPerUnit: 'f32',
     enabled: 'f32',
+    tint: 'vec3<f32>',
+    origin: 'vec2<f32>',
   },
 } as const;
 
@@ -59,10 +80,6 @@ in vec2 vSkyPos;
 in vec3 vSkyEye;
 in float vSkyW;
 in float vSkyZ;
-
-// Through sea-level air the haze reaches 63% at HAZE_M; the air thins with height over HAZE_SCALE_M (drawn metres).
-const float HAZE_M = 45000.0;
-const float HAZE_SCALE_M = 8000.0;
 
 float sHash(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -94,9 +111,9 @@ vec2 sRipple(vec2 m, float mpp, float t) {
 const FS_FILTER_COLOR = `
   if (sky.enabled > 0.5) {
     vec3 eye = vSkyEye;
-    float distM = length(eye) * sky.mPerUnit;
     vec3 view = normalize(eye);
-    vec2 m = vec2(vSkyPos.x * cos(radians(vSkyPos.y)), vSkyPos.y) * 111320.0;
+    // Metres from a nearby origin (groundDetail.ts patternOrigin): measured from Greenwich, the ripples sheared into streaks far from 0°.
+    vec2 m = vec2((vSkyPos.x - sky.origin.x) * cos(radians(vSkyPos.y)), vSkyPos.y - sky.origin.y) * 111320.0;
     float mpp = max(max(fwidth(m.x), fwidth(m.y)) * 0.5, 0.01);
     vec3 n = normalize(vSkyNormal);
     vec3 albedo = color.rgb;
@@ -110,7 +127,11 @@ const FS_FILTER_COLOR = `
     float water = smoothstep(-0.7 + wobble, -0.8 + wobble, wLayer);
     if (water > 0.001) {
       float t = sky.time;
-      vec3 wn = normalize(vec3(-0.3 * sRipple(m, mpp, t), 1.0));
+      // How much the ripple lattice was coarsened to stay over ~3 pixels: the real ripples are that much finer than drawn, so far out
+      // the drawn ones are flatter and the glint spreads into a broad, dimmer glitter (energy kept) instead of pin-point sparkles,
+      // which read as static over a big lake.
+      float rough = max(1.0, 4.0 * mpp / 9.0);
+      vec3 wn = normalize(vec3(-0.3 * sRipple(m, mpp, t) / rough, 1.0));
       float offshore = clamp((-0.75 - wLayer) / 0.25, 0.0, 1.0); // 0 at the shore, 1 a vertex out
       // A lighter, greener band in the shallows.
       vec3 base = mix(albedo * vec3(1.3, 1.45, 1.25) + vec3(0.04, 0.07, 0.05), albedo, smoothstep(0.0, 0.9, offshore));
@@ -121,7 +142,8 @@ const FS_FILTER_COLOR = `
       wc = mix(wc, sky.horizon * 0.95, fresnel);
       // The sun's (or moon's) glint off the ripples.
       vec3 h = normalize(view + sky.sun);
-      float spec = pow(max(dot(wn, h), 0.0), 180.0) * 3.0 + pow(max(dot(wn, h), 0.0), 24.0) * 0.12;
+      float sharp = max(10.0, 180.0 / rough);
+      float spec = pow(max(dot(wn, h), 0.0), sharp) * 3.0 * (sharp + 8.0) / 188.0 + pow(max(dot(wn, h), 0.0), min(24.0, sharp)) * 0.12;
       wc += sky.direct * spec * sky.glint * step(0.0, sky.sun.z + 0.02);
       // Foam at the shore: broken, slowly pulsing.
       float fs = max(6.0, 3.0 * mpp);
@@ -131,11 +153,7 @@ const FS_FILTER_COLOR = `
       c = mix(c, wc, water);
     }
     // Distance haze in the horizon's colour; full before the far plane, where the sky backdrop shows.
-    float zPoint = max(vSkyZ * sky.mPerUnit, 0.0);
-    float zEye = max((vSkyZ + eye.z) * sky.mPerUnit, 0.0);
-    float rise = zEye - zPoint;
-    float density = abs(rise) < 1.0 ? exp(-zPoint / HAZE_SCALE_M) : HAZE_SCALE_M * (exp(-zPoint / HAZE_SCALE_M) - exp(-zEye / HAZE_SCALE_M)) / rise;
-    float haze = max(1.0 - exp(-distM * density / HAZE_M), sky.farFade * smoothstep(0.55, 0.97, vSkyW / sky.farW));
+    float haze = skyHaze(eye, vSkyZ, vSkyW);
     color.rgb = mix(c, sky.horizon, haze);
   }
 `;
@@ -163,32 +181,71 @@ export default class SkyLight extends LayerExtension {
   }
 
   draw(this: Layer<SkyProps>) {
-    const light = this.props.skyLight;
-    const viewport = this.context.viewport as unknown as { projectionMatrix: number[]; distanceScales: { unitsPerMeter: number[] }; pitch?: number };
-    // The far clipping plane's depth, in the units of gl_Position.w, from the perspective matrix (m14 = 2fn / (n − f), m10 = (f + n) / (n − f)).
-    const p = viewport.projectionMatrix;
-    const farW = p[14] / (p[10] + 1);
-    // The far plane cuts the ground before the top of the screen only once the sky tilt draws less than deck.gl would (lib/close3d.ts
-    // farMultiplier); flatter, the ground runs to the screen's edge and needs no fade into the sky.
-    const m = farMultiplier(viewport.pitch ?? 0);
-    const farFade = Math.min(1, Math.max(0, (1.01 - m) / 0.11));
-    for (const model of this.getModels()) {
-      model.shaderInputs.setProps({
-        sky: light
-          ? {
-            sun: light.sun,
-            direct: light.direct,
-            ambient: light.ambient,
-            horizon: light.horizon,
-            glint: light.glint,
-            time: animSeconds(CLOCK_WRAP_S),
-            farW,
-            farFade,
-            mPerUnit: 1 / viewport.distanceScales.unitsPerMeter[2],
-            enabled: 1,
-          }
-          : { sun: [0, 0, 1], direct: [0, 0, 0], ambient: [1, 1, 1], horizon: [0, 0, 0], glint: 0, time: 0, farW: 1, farFade: 0, mPerUnit: 1, enabled: 0 },
-      });
-    }
+    setSkyUniforms(this);
+  }
+}
+
+/** The sky uniforms for a layer's models, from its `skyLight` prop and the viewport. */
+function setSkyUniforms(layer: Layer<SkyProps>) {
+  const light = layer.props.skyLight;
+  const viewport = layer.context.viewport as unknown as { projectionMatrix: number[]; distanceScales: { unitsPerMeter: number[] }; pitch?: number; longitude?: number; latitude?: number };
+  // The far clipping plane's depth, in the units of gl_Position.w, from the perspective matrix (m14 = 2fn / (n − f), m10 = (f + n) / (n − f)).
+  const p = viewport.projectionMatrix;
+  const farW = p[14] / (p[10] + 1);
+  // The far plane cuts the ground before the top of the screen only once the sky tilt draws less than deck.gl would (lib/close3d.ts
+  // farMultiplier); flatter, the ground runs to the screen's edge and needs no fade into the sky.
+  const m = farMultiplier(viewport.pitch ?? 0);
+  const farFade = Math.min(1, Math.max(0, (1.01 - m) / 0.11));
+  for (const model of layer.getModels()) {
+    model.shaderInputs.setProps({
+      sky: light
+        ? {
+          sun: light.sun,
+          direct: light.direct,
+          ambient: light.ambient,
+          horizon: light.horizon,
+          glint: light.glint,
+          time: animSeconds(CLOCK_WRAP_S),
+          farW,
+          farFade,
+          mPerUnit: 1 / viewport.distanceScales.unitsPerMeter[2],
+          enabled: 1,
+          tint: overlayTint(light),
+          origin: patternOrigin(viewport.longitude ?? 0, viewport.latitude ?? 0),
+        }
+        : { sun: [0, 0, 1], direct: [0, 0, 0], ambient: [1, 1, 1], horizon: [0, 0, 0], glint: 0, time: 0, farW: 1, farFade: 0, mPerUnit: 1, enabled: 0, tint: [1, 1, 1], origin: [0, 0] },
+    });
+  }
+}
+
+const TINT_VS_DECL = `out vec3 vTintEye; out float vTintW; out float vTintZ;`;
+const TINT_VS_GL_POSITION = `vTintEye = project.cameraPosition - geometry.position.xyz; vTintW = position.w; vTintZ = geometry.position.z;`;
+const TINT_FS_DECL = `in vec3 vTintEye; in float vTintW; in float vTintZ;`;
+const TINT_FS_FILTER_COLOR = `
+  if (sky.enabled > 0.5) color.rgb = mix(color.rgb * sky.tint, sky.horizon, skyHaze(vTintEye, vTintZ, vTintW));
+`;
+
+/** For things that stand on the close-up ground with `?sky=1` (fields, trees, shelters): their daylight colours dim and cool with the
+ * ground's light at dusk and night (lib/sky.ts overlayTint), and fade into the same distance haze, so they never glow over a dark or
+ * hazed ground. Takes the same `skyLight` prop as SkyLight. A layer that replaces its own `inject` must keep the extension's
+ * (TreeLayer does). */
+export class SkyTint extends LayerExtension {
+  static extensionName = 'SkyTint';
+  static defaultProps = { skyLight: { type: 'object', value: null, compare: true } };
+
+  getShaders() {
+    return {
+      modules: [sky],
+      inject: {
+        'vs:#decl': TINT_VS_DECL,
+        'vs:DECKGL_FILTER_GL_POSITION': TINT_VS_GL_POSITION,
+        'fs:#decl': TINT_FS_DECL,
+        'fs:DECKGL_FILTER_COLOR': TINT_FS_FILTER_COLOR,
+      },
+    };
+  }
+
+  draw(this: Layer<SkyProps>) {
+    setSkyUniforms(this);
   }
 }

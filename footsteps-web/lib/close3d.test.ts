@@ -1,5 +1,6 @@
 import {
   farMultiplier,
+  fitSlope,
   SKY_FAR_DISTANCES,
   CLOSE3D_PITCH,
   COVER_WATER,
@@ -337,4 +338,9 @@ describe('farMultiplier', () => {
     expect(farMultiplier(74) * furthest).toBeCloseTo(SKY_FAR_DISTANCES, 2);
     expect(farMultiplier(74)).toBeLessThan(farMultiplier(70));
   });
+});
+
+test('the slope fit reads an even incline the same at a tile edge as inside the tile', () => {
+  const plane = (k: number) => 5 + 3 * k;
+  for (const c of [0, 1, 2, 10, 63, 64]) expect(fitSlope(c, 65, 2, plane)).toBeCloseTo(3, 9);
 });

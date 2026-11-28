@@ -9,19 +9,20 @@ test('on unless ?pastwater=0', () => {
 });
 
 test('three scenarios; every epoch window is calendar BP from 1950 and every id is unique', () => {
-  expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia']);
+  expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia', 'texcoco']);
   const epochs = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs);
   for (const e of epochs) expect([e.from_year, e.to_year]).toEqual([1950 - e.from_bp, 1950 - e.to_bp]);
   expect(new Set(epochs.map((e) => e.id)).size).toBe(epochs.length);
   expect(scenario('mega_chad').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-9550, -3050]]);
   expect(scenario('lgm_europe').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-24550, -17050]]);
   expect(scenario('mesopotamia').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-6050, -4551], [-4550, -3550], [-2550, -1550]]);
+  expect(scenario('texcoco').epochs.map((e) => [e.from_year, e.to_year])).toEqual([[-2050, 1600]]);
 });
 
 test.each([
   [-26000, []], [-24550, [2]], [-20000, [2]], [-17050, [2]], [-17049, []], [-12000, []], [-9551, []], [-9550, [1]],
   [-6000, [1, 3]], [-4551, [1, 3]], [-4550, [1, 4]], [-4000, [1, 4]], [-3550, [1, 4]], [-3549, [1]], [-3050, [1]], [-3049, []],
-  [-2000, [5]], [-1549, []], [0, []], [1900, []],
+  [-2051, [5]], [-2050, [5, 6]], [-2000, [5, 6]], [-1549, [6]], [0, [6]], [1600, [6]], [1601, []], [1900, []],
 ])('active epochs at %i: %j (the same table as past_water.active_epochs)', (year, ids) => {
   expect(pastWaterEpochs(year)).toEqual(ids);
 });
@@ -103,7 +104,7 @@ test('the water exists only in its epochs, at each epoch\'s own level', () => {
 });
 
 test('outside every window there is no note (the scenarios say nothing there)', () => {
-  for (const year of [-26000, -12000, -2700, 0]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one
+  for (const year of [-26000, -12000, -2700, 1700]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one; 1700: after the Basin of Mexico's
     expect(pastWaterEpochs(year)).toEqual([]);
     expect(pastWaterNote(year, 'units', undefined)).toBeNull();
     expect(pastWaterNote(year, 'dots', undefined)).toBeNull();
@@ -135,4 +136,17 @@ test('Dots says the experimental model does not apply there; Grid says it places
 
 test('with the model not running the note does not claim groups are kept dry', () => {
   expect(pastWaterNote(-6000, 'units', undefined)!.title).toMatch(/not being kept out of the modelled water/);
+});
+
+test('a finer shore decides the close-up water on its own: flat at its level, on its own grid, whatever the ground', () => {
+  const tex = PAST_WATER_SCENARIOS.flatMap((s) => s.epochs).find((e) => e.id === 6)!;
+  expect(tex.shore?.scale).toBe(20);
+  const e: EpochMeta = { ...tex, mask: { ...tex.mask, x0: 700, y0: 50, width: 2, height: 2 }, distance: null, shore: { ...tex.shore!, x0: 14000, y0: 1000, width: 2, height: 1, m: 2250 } };
+  const layers = { epochs: [epochLayersFrom(e, rgba(2, 2, [[255, 255, 255], [255, 255, 255], [255, 255, 255], [255, 255, 255]]), null, rgba(2, 1, [[255, 255, 255], [0, 0, 0]]))] };
+  const fine = (col: number, row: number): [number, number] => [-180 + ((col + 0.5) / (8640 * 20)) * 360, 90 - ((row + 0.5) / (4320 * 20)) * 180];
+  const plane = lakePlaneFor(layers, 1000, 0)!;
+  expect(plane.levelAt(...fine(14000, 1000), 2235)).toBe(2250);
+  expect(plane.levelAt(...fine(14000, 1000), 2290)).toBe(2250); // a building or fill in the lake is water, not a fragment
+  expect(plane.levelAt(...fine(14001, 1000), 2235)).toBeNull(); // dry on the shore grid, though wet on the coarse mask
+  expect(() => epochLayersFrom(e, rgba(2, 2, Array(4).fill([255, 255, 255])), null, rgba(1, 1, [[0, 0, 0]]))).toThrow(/shore/);
 });

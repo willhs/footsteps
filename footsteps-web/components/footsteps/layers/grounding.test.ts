@@ -7,7 +7,7 @@ function grid(entries: [number, number][]): GridData {
     length: entries.length, cellDeg: 1, total: entries.reduce((s, e) => s + e[1], 0),
     cellIds: Uint32Array.from(entries.map(e => e[0])),
     people: Float32Array.from(entries.map(e => e[1])), positions: new Float32Array(entries.length * 2),
-    ways: new Uint8Array(entries.length),
+    ways: Uint8Array.from(entries.map((e) => (e[1] >= 40000 ? 3 : 1))), // as the map would class them, towns allowed
   };
 }
 
@@ -20,6 +20,12 @@ test('reads head counts, not unit sizes, and includes all nine cells', () => {
 
 test.each([[599, 'band'], [600, 'village'], [39999, 'village'], [40000, 'glow']])('classifies %s at the units thresholds', (people, densityClass) => {
   expect(groundingFacts(grid([[90 * 360 + 180, Number(people)]]), 1900, 0, 0)?.densityClass).toBe(densityClass);
+});
+
+test('a crowded cell the map draws as a village (before towns began there) is not called a glow', () => {
+  const data = grid([[90 * 360 + 180, 50000]]);
+  data.ways[0] = 1;
+  expect(groundingFacts(data, -3000, 0, 0)?.densityClass).toBe('village');
 });
 
 test('wraps at the dateline, clips poles, and accepts empty cells', () => {

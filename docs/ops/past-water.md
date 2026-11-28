@@ -66,6 +66,19 @@ blend is a picture, the dates are the manifest's.)
 | Stages | a "~8000 BP" on the panel, "7,000 years ago" in the caption: 8,000–6,501 BP (**-6050…-4551**, both readings); b ~6 ka: 6,500–5,500 BP (**-4550…-3550**), the bay open past Ur and Lagash, over Basra; c ~4 ka: 4,500–3,500 BP (**-2550…-1550**), a closed remnant bay. Areas 51,432 / 51,270 / 15,779 km² (including the Gulf inside the region). 5,500–4,501 BP is between stages: no scenario |
 | Water | **sea, not fresh**: it keeps groups out and gives no freshwater distance (no distance patch). Its level is the year's sea level; the close-up flattens the later delta sediment under it to the sea |
 
+## Basin of Mexico lakes (`past_water_texcoco.py`)
+
+| | |
+|---|---|
+| Why | without it the Basin of Mexico is dry land (Natural Earth is today's water), so at 1400 the Valley's towns stand on Lake Texcoco's bed |
+| Lake | the same flood as Mega-Chad: 2.5′ pixels joined through pixels at or below the level to a seed in Lake Texcoco (19.45 N, 99.0 W), inside 18.8–20.6 N, 99.8–98.2 W, Terrarium zoom 6 averaged 3 × 3 |
+| Level | **2270 m, calibrated, not surveyed**: the lakes stood at ~2236–2240 m, but the smoothed relief lifts the narrow floor and at 2240 m the fill is a few pixels. 2270 m is the lowest level reaching all five lakes (Zumpango, Xaltocan, Texcoco, Xochimilco, Chalco): 1,598 km², inside the ~1,000–2,000 km² usually given at contact (asserted) |
+| Islands | Tenochtitlan and Tlatelolco's pixels are carved out so the city keeps its people; causeways, chinampas and the smaller islands are not modelled |
+| Dates | one epoch, 4,000–350 BP (**-2050…1600**): Formative shore villages to the eve of the Desagüe (1607). After 1600 the lakes shrank over three centuries: not modelled, so no scenario |
+| Water | Texcoco saline, Zumpango and Xaltocan brackish, Xochimilco and Chalco fresh: the distance patch counts only lake pixels south of 19.34 N (304 km²); the whole mask keeps groups out |
+| Close-up shore | the 2.5′ mask drew straight diagonal bands in the close-up, and the plane clipped to today’s DEM left Mexico City’s buildings and fill as fragments in the water. The close-up uses `texcoco_shore.webp` instead (manifest `shore`): Terrarium zoom 11 on a 7.5″ grid, smoothed ~0.5 km, flooded from the seed at 2250 m (lowest level reaching all five lakes; 1,158 km²), Tenochtitlan and Tlatelolco carved as discs of 1.6 and 1.0 km, kept within a pixel of the coarse mask. Its water is flat at 2250 m, not clipped to the DEM. Groups still use the coarse mask |
+| Picture | `terrain.years` is empty: the Earth images are not rebaked for a lake of a few globe pixels; the close-up draws it as a plane at 2270 m clipped to the DEM |
+
 ## Every scenario: one manifest each, epochs as the unit
 
 Each script writes to `footsteps-web/public/pastwater/` (committed, **113 KB** in all):
@@ -115,6 +128,7 @@ TERRARIUM_DIR=$PWD/data/terrarium poetry run pytest footstep-generator/tests/tes
 poetry run python footstep-generator/past_water.py --tiles data/terrarium
 poetry run python footstep-generator/past_water_lgm.py
 poetry run python footstep-generator/past_water_mesopotamia.py
+poetry run python footstep-generator/past_water_texcoco.py --tiles data/terrarium
 poetry run python footstep-generator/terrain_image.py --pastwater
 # Real-data placement: counts and positions, then the check that does not use the ranker (exit 1 if a flag-on group is in modelled water)
 FOOTSTEPS_PASTWATER_REAL=1 FOOTSTEPS_DATA=$PWD/data/tiles FOOTSTEPS_PASTWATER_OUT=/abs/out pnpm --dir footsteps-web exec jest --runInBand pastWater.real

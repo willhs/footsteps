@@ -4,6 +4,17 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-28] feature | Time-of-day dial replaces the Day/night switch
+
+Will asked for a day/night dial the viewer turns, defaulting to day, with people following basic schedules as it turns. A round
+dial in the map controls (`components/ui/TimeOfDayDial.tsx`) picks the local sun hour at the view's centre in quarter hours
+(drag, click, arrow keys; ☀️ 🌅 🌇 🌙 from where the sun really is). `lib/timeOfDay.ts` turns it into a sun-clock instant on a
+late-spring day of the view's hemisphere, and `setSolarClockAt` (`lib/solarClock.ts`) stops the clock there and tells listeners,
+so the close-up light, the globe's night shading, the hearths' firelight, the people's routine and the person card all update
+live. The Day/night switch and the close-up's fixed daylight are gone: the dial's default (10:30) is that daylight. `?hour=` opens
+at an hour. Checked in the browser on a Nile 1500 CE village: at 10:30 people are out among the fields, at 22:30 they lie asleep
+by the glowing hearths and the card says "asleep in the village".
+
 ## [2026-11-24] fix | Close-up shader failed with ?sky=1 plus ?ground=1 or ?weather=1; featured card shows the 3D figure
 
 On prod, `?sky=1` with `?ground=1` or `?weather=1` broke the close-up ground: "Fragment shader is not compiled". A link-time

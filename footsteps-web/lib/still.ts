@@ -1,8 +1,8 @@
 // `?still=1` stops every time-based animation, so a screenshot of the same scene has the same pixels each run
 // (the visual regression run, docs/ops/visual-regression.md). It freezes three things:
 //   - the shader clock (fire flicker, morph shimmer, walking feet, animal sway): `animSeconds` is a fixed instant;
-//   - the sun clock (Day/night shading, the stats panel's sun time, the routine): `solarClock.ts` pins it to
-//     one fixed date, at `?utc=` hours (default noon) so a scene does not change with the day it is shot;
+//   - the sun clock (night shading, the stats panel's sun time, the routine): with `?utc=`, `solarClock.ts` pins it to
+//     one fixed date at those hours; without, the time-of-day dial's default (lib/timeOfDay.ts) is a fixed instant too;
 //   - nothing else: data, layout and the picked scene are exactly what a visitor sees.
 // Off unless the URL says `?still=1`; no visitor link has it.
 

@@ -11,9 +11,8 @@ const SMOKE_MODULE = lazy(() => import('../layers/SmokeLayer'));
  * after the ground tiles (a tile layer inside one tile would be painted over by the next tile's ground). The close-up ground is raised above sea level by its height
  * and the camera looks at sea level, so a hearth standing on that ground would be hundreds of pixels from its people on high ground at close zoom. Hearths over
  * water (the close-up's loaded tiles say so, lib/groundHeights.ts) are left out. The motion is on the GPU: the data is built when the hearths in view
- * (or the loaded ground) change, and a zoom changes only the opacity. `firelight`: false while the scene is lit by fixed daylight (Day/night off),
- * so hearths do not glow under a noon sky. */
-export default function useSmokeLayer({ enabled, hearths, zoom, seaLevel, onGround = false, firelight = true }: { enabled: boolean; hearths: readonly Hearth[]; zoom: number; seaLevel: number; onGround?: boolean; firelight?: boolean }) {
+ * (or the loaded ground) change, and a zoom changes only the opacity. Firelight shows only where the sun clock (the time-of-day dial) has the sun down. */
+export default function useSmokeLayer({ enabled, hearths, zoom, seaLevel, onGround = false }: { enabled: boolean; hearths: readonly Hearth[]; zoom: number; seaLevel: number; onGround?: boolean }) {
   const layers = useLazy(SMOKE_MODULE, enabled);
   const ground = useSyncExternalStore(subscribeGround, groundVersion, groundVersion);
   const props = useMemo(() => {
@@ -27,10 +26,10 @@ export default function useSmokeLayer({ enabled, hearths, zoom, seaLevel, onGrou
     () =>
       layers && props && opacity > 0
         ? [
-            ...(firelight ? [new layers.FirelightLayer({ id: 'firelight', ...props.light, opacity })] : []),
+            new layers.FirelightLayer({ id: 'firelight', ...props.light, opacity }),
             new layers.SmokeLayer({ id: 'smoke', ...props.smoke, opacity }),
           ]
         : [],
-    [layers, props, opacity, firelight],
+    [layers, props, opacity],
   );
 }

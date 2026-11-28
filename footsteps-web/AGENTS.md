@@ -105,7 +105,8 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   at the destination). **`stateAt`/`routineGaitAt` (TS) and the `gait` GLSL are one piece of maths: change both** (`lib/gait.test.ts`, `lib/routine.test.ts` pin values).
   Name tags follow people along their trips (`chooseTags` `routine`), the person card adds "Now: gathering, about 2 km from camp. Imagined: …" (`describePerson(p, ms)`).
   Pattern modelled from time-use studies (hours in `lib/routine.ts` must equal `time_use.yaml`; a test reads `time_use.json`), this person's day imagined; sources and what is assumed are in docs/ops/routine.md.
-  `?utc=6.5` starts the sun clock at 06:30 UTC and `?warp=60` speeds it up (`lib/solarClock.ts`; also moves the stats panel's sun time and the Day/night shading), for checking day and night.
+  The time-of-day dial in the map controls (`components/ui/TimeOfDayDial.tsx`, `lib/timeOfDay.ts`) replaced the Day/night switch: it sets the sun clock to its local hour at the view's centre (default 10:30; `?hour=22` opens at 10 pm), and the light, night shading, firelight and routine follow.
+  `?utc=6.5` starts the sun clock at 06:30 UTC and `?warp=60` speeds it up (`lib/solarClock.ts`; also moves the stats panel's sun time and the night shading) until the dial is turned, for checking day and night.
   Our own and other kinds of human both use it; totals, ids and positions per group are untouched. A unit whose cell holds fewer than 15 people is still one whole group: at street zoom it is drawn as a typical group of its kind (band 30, camp 60, village 300; `nominalPeople` in `layers/people.ts`), members and dwellings alike, so it does not vanish when its fire hands over (fixed 2026-11-24).
 - `components/ui/TimeBar.tsx`: time navigation, one fixed log-of-years-ago track. Its scale, key steps,
   typed-year parsing and speed-based fine drag live in `lib/timeScale.ts` (tested); the readout above it is

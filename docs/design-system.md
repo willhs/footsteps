@@ -1,7 +1,7 @@
 ---
 id: design-system
 type: reference
-purpose: "Practical UI rules for building screens that match the design philosophy (data-driven minimalism, time-first); last revised 2025-09, so check against the app before relying on it"
+purpose: "Practical UI rules for building screens that match the design philosophy (data-driven minimalism, time-first); last revised 2025-09, text and icon rules added 2026-11-28, so check against the app before relying on it"
 ---
 
 # Footsteps of Time: Design System (Practical Guide)
@@ -14,7 +14,9 @@ See also: docs/philosophy/design-philosophy.md
 
 ## Principles (build by these)
 
-- **Data-driven minimalism**: Every pixel serves historical communication (Tufte's "data ink"). Remove decoration that doesn't explain human presence.
+- **Data ink in every data viz**: Wherever data is shown (counter, legends, panels, charts), every mark communicates data (Tufte). Remove decoration that doesn't explain human presence.
+- **Realism up close**: The map looks like the real place as you zoom in; people can stay symbols far out. No invented overlays without a source.
+- **Short text, icons for imagery**: A word or two plus an icon; sources, methods and caveats behind ⓘ.
 - **Time-first**: Dragging should feel like controlling time itself; the slider is the hero interaction.
 - **Anti-duck principle**: Interface becomes invisible; users see humanity spreading, not UI elements.
 - **Immediate impact**: First 3 seconds should convey the scale of human expansion across deep time.
@@ -129,6 +131,16 @@ Implementation aligns with existing styles in `globals.css` (`.time-slider-conta
 
 ---
 
+## Text and Icons
+
+- Labels: a word or two plus an icon, not a sentence.
+- Sources, methods and caveats go behind ⓘ, not inline.
+- Icons: always `<Icon name>` / `iconGlyph(name)` with a name in `ICON_GLYPHS` (`footsteps-web/lib/icons.ts`); no raw emoji in UI code (a guard test fails on it). See `docs/design/icons.md`.
+- Uncertainty: no ranges or caveats in the default view; the opt-in "How we estimate this" panel (`?explain=1`) explains it.
+- Culture and language: for now, only where a cited source supports it.
+
+---
+
 ## Interaction Rules
 
 - Time-first: Scrubbing is instant; precompute/cache where possible.
@@ -185,6 +197,7 @@ Don’t
 - Animate properties that cause layout (width/height/top/left).
 - Obscure the slider or move it behind other UI.
 - Introduce new colors or sizes ad hoc.
+- Add symbolic overlays or invented elements with no source behind them.
 
 ---
 

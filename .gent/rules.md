@@ -174,6 +174,15 @@ choices for Will to judge puts that link (with a starting view) and a short "Wha
 Keep WebP encoding/decoding constants (`LEVELS`, `MAX_PEOPLE`) in sync. Units positions within cells are
 invented, stable representations, not measured settlement locations.
 
+## Ways of working
+
+- **Code style:** no magic numbers (named constants, each with its source), clear names, generous spacing.
+- **Feature flags** are a short staging step toward a full, default-on feature, not a permanent opt-in (`docs/ops/flags.md`).
+- **Merging:** clear bug and data fixes merge once CI is green. Design and UX PRs wait for Will, with the preview link and a
+  "What to judge" note (see Verification).
+- **Direction:** realism up close, short text with icons, no uncertainty drawn by default, and the open questions are in
+  `docs/philosophy/vision.md`.
+
 ## Documentation and configuration
 
 `AGENTS.md` links to this file (`.gent/rules.md`); edit this source and retain a

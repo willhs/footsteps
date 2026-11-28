@@ -126,6 +126,69 @@ export const ARCHAEOLOGICAL_TYPES: readonly ArchaeologicalType[] = [
     material: 'bone',
   },
   {
+    id: 'natufian',
+    text: 'round, half-sunken houses with stone footings and brush roofs, as dug at Ain Mallaha (Eynan, Israel) and other Natufian hamlets',
+    source: 'Bar-Yosef 1998, Evol Anthropol 6:159; Valla 1995',
+    // The Natufian of the southern and northern Levant, about 12,500-9,500 BCE; foragers who began to stay put.
+    box: { west: 33.5, east: 40, south: 29, north: 37.5 },
+    years: [-12500, -9600],
+    kinds: [UnitKind.Band, UnitKind.Village],
+    shape: 'drum',
+    material: 'thatch',
+  },
+  {
+    id: 'ppna-round',
+    text: 'round houses of mud brick and stone, as dug at Jericho and other Pre-Pottery Neolithic A villages',
+    source: 'Kuijt & Goring-Morris 2002, J World Prehist 16:361',
+    box: { west: 33.5, east: 45, south: 29, north: 38.5 },
+    years: [-9600, -8600],
+    kinds: [UnitKind.Band, UnitKind.Village],
+    shape: 'drum',
+    material: 'mud',
+  },
+  {
+    id: 'jomon-pit',
+    text: 'pit houses with thatched roofs down to the ground, as dug at Sannai-Maruyama (Aomori) and many Jōmon sites',
+    source: 'Habu 2004, Ancient Jomon of Japan',
+    // Japan from the Ryukyus' north to Hokkaido, until rice farming spread (Yayoi, from about 900 BCE in Kyushu).
+    box: { west: 129.5, east: 146, south: 30, north: 46 },
+    years: [-14000, -400],
+    kinds: [UnitKind.Band, UnitKind.Village],
+    shape: 'cone',
+    material: 'thatch',
+  },
+  {
+    id: 'mesolithic-hut',
+    text: 'small round huts of poles covered with reeds, bark or hides, as dug at Mount Sandel (Ireland), Howick (England) and Star Carr',
+    source: 'Woodman 1985; Waddington 2007; Conneller et al. 2012, Antiquity 86:1004',
+    // Mesolithic Europe west of the Russian Plain, after the ice age and before (or beside) the first farmers.
+    box: { west: -11, east: 30, south: 36, north: 71 },
+    years: [-9600, -3500],
+    kinds: [UnitKind.Band],
+    shape: 'dome',
+    material: 'thatch',
+  },
+  {
+    id: 'lbk-longhouse',
+    text: 'timber longhouses with thatched gable roofs, 20-40 m long, as dug at Bylany (Czechia), Elsloo (Netherlands) and across the Linear Pottery world',
+    source: 'Bickle & Whittle 2013, The First Farmers of Central Europe',
+    box: { west: 3, east: 26, south: 46, north: 54 },
+    years: [-5500, -4800],
+    kinds: [UnitKind.Village],
+    shape: 'gable',
+    material: 'thatch',
+  },
+  {
+    id: 'yangshao',
+    text: 'round and square half-sunken houses with thatched conical roofs, as dug at Banpo (Xi\'an) and other Yangshao villages',
+    source: 'Liu 2004, The Chinese Neolithic',
+    box: { west: 104, east: 116, south: 32, north: 38 },
+    years: [-5000, -3000],
+    kinds: [UnitKind.Village],
+    shape: 'cone',
+    material: 'thatch',
+  },
+  {
     id: 'mudbrick-neolithic',
     text: 'rectangular mud-brick houses packed together with flat roofs, as dug at Çatalhöyük (Turkey, 7100–5950 BCE)',
     source: 'Hodder 2006',
@@ -152,6 +215,16 @@ export function archaeologyAt(place: Place): ArchaeologicalType | null {
         place.lat <= t.box.north,
     ) ?? null
   );
+}
+
+/** Where and when a snow house can stand. Living in snow houses through the winter was an Inuit way, in Arctic Canada and
+ * Greenland; snow knives suggest the Dorset built them from about 500 BCE (Maxwell 1985, Prehistory of the Eastern Arctic).
+ * Climate-matched analogs give Inuit to any cold place, so elsewhere (Ice Age Europe, Siberia, Alaska) the analog's snow
+ * house is drawn as a hide tent, the commonest cold-country dwelling of the analogs. */
+export const SNOW_HOUSES = { box: { west: -141, east: -10, south: 55, north: 84 }, from: -500 } as const;
+export function snowHousesAt(place: Place): boolean {
+  const { box, from } = SNOW_HOUSES;
+  return place.year >= from && place.lon >= box.west && place.lon <= box.east && place.lat >= box.south && place.lat <= box.north;
 }
 
 /** EA081 wall and EA083 roof codes to what covers the dwelling seen from above. */
@@ -188,6 +261,7 @@ export function shelterSpec(codes: DwellingCodes | null, place: Place): ShelterS
   const roundPlan = plan === 2 || plan === 3 || plan === 4;
   const boxPlan = plan === 5 || plan === 6;
   const solid = walls !== null && SOLID_WALLS.has(walls);
+  if (roof === 10 && !snowHousesAt(place)) return { how: 'analog', shape: 'cone', material: 'hides' };
   let shape: ShapeId;
   if (roof === 10) shape = 'dome'; // snow or ice: an igloo
   else if (plan === 1) shape = 'lean'; // semicircular: a windbreak

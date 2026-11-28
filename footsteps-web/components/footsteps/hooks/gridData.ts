@@ -340,7 +340,11 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
     data,
     settlements ? {
       catalog: await loadSettlementCatalog(),
-      habitat: isModelled(year) ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data : null,
+      // Deep time needs it; in HYDE years far-from-analog foragers read it (lib/settlements.ts FAR_FORAGER_KM), and a failed fetch
+      // there only keeps their regional mix.
+      habitat: isModelled(year)
+        ? (await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate')).data
+        : await readPixels(habitatUrl(habitatStep(year)), 'Settlement climate').then((px) => px.data, () => null),
       sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
       epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
       // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.

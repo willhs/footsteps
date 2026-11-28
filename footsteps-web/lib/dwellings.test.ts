@@ -49,7 +49,13 @@ describe('dwelling type from an analog society (Ethnographic Atlas house codes)'
   });
   it('draws a circular hide tent of foragers as a cone, and an igloo (snow roof) as a dome', () => {
     expect(type(codes(2, 5, 5), UnitKind.Band)).toEqual(['analog', 'cone', 'hides']);
-    expect(type(codes(2, 11, 10), UnitKind.Band)).toEqual(['analog', 'dome', 'snow']);
+    expect(shelterSpec(codes(2, 11, 10), at(UnitKind.Band, 1800, -95, 68))).toMatchObject({ how: 'analog', shape: 'dome', material: 'snow' });
+  });
+  it('keeps snow houses to the Inuit Arctic from Dorset times, and draws an analog\'s snow house elsewhere as a hide tent', () => {
+    expect(shelterSpec(codes(3, 11, 10), at(UnitKind.Band, 1500, -85, 69))).toMatchObject({ shape: 'dome', material: 'snow' }); // Iglulik
+    expect(shelterSpec(codes(3, 11, 10), at(UnitKind.Band, -3000, 130, 68))).toMatchObject({ shape: 'cone', material: 'hides' }); // Yakutia
+    expect(shelterSpec(codes(3, 11, 10), at(UnitKind.Band, -20000, 2, 47))).toMatchObject({ shape: 'cone', material: 'hides' }); // Ice Age France
+    expect(shelterSpec(codes(3, 11, 10), at(UnitKind.Band, -2000, -85, 69))).toMatchObject({ shape: 'cone', material: 'hides' }); // before Dorset
   });
   it('draws a semicircular plan as a windbreak', () => {
     expect(type(codes(1, 11, 8), UnitKind.Band)[1]).toBe('lean');
@@ -90,6 +96,23 @@ describe('dwelling types known from digs', () => {
   it('uses packed flat-roofed mud-brick houses for farmers near Çatalhöyük in 7000 BCE', () => {
     const s = shelterSpec(codes(2, 3, 8), at(UnitKind.Village, -7000, 32.83, 37.67));
     expect(s).toMatchObject({ how: 'archaeology', shape: 'block', material: 'mud' });
+  });
+  it('uses the dug house of the place and time for Natufian, Jōmon, Mesolithic, Linear Pottery and Yangshao groups', () => {
+    const cases: [number, number, number, number, string][] = [
+      [UnitKind.Band, -11000, 35.58, 33.1, 'natufian'], // Ain Mallaha
+      [UnitKind.Village, -9000, 35.44, 31.87, 'ppna-round'], // Jericho
+      [UnitKind.Village, -3000, 140.7, 40.8, 'jomon-pit'], // Sannai-Maruyama
+      [UnitKind.Band, -8800, -0.4, 54.2, 'mesolithic-hut'], // Star Carr
+      [UnitKind.Village, -5200, 15.3, 49.95, 'lbk-longhouse'], // Bylany
+      [UnitKind.Village, -4500, 109.05, 34.27, 'yangshao'], // Banpo
+    ];
+    for (const [kind, year, lon, lat, id] of cases) {
+      const s = shelterSpec(codes(1, 10, 10), at(kind, year, lon, lat));
+      expect(s.how === 'archaeology' && s.type.id).toBe(id);
+    }
+  });
+  it('never draws a snow house for Mesolithic Britain, whatever the analog says', () => {
+    expect(shelterSpec(codes(2, 11, 10), at(UnitKind.Band, -7000, -1.5, 53)).material).not.toBe('snow');
   });
   it('keeps every type to a sensible box and dated range, with a source', () => {
     for (const t of ARCHAEOLOGICAL_TYPES) {

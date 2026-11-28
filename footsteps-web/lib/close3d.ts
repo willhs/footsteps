@@ -155,14 +155,6 @@ export const VEGETATION: Record<number, Veg> = {
   25: { kind: 'shrub', density: 0.04, rgb: [110, 106, 84] },
 };
 
-/** Drawn size of one plant mark, in screen pixels: [width, height]. */
-export const TREE_PX: Record<TreeKind, [number, number]> = {
-  conifer: [5, 13],
-  broadleaf: [9, 9],
-  acacia: [12, 5],
-  shrub: [5, 4],
-};
-
 /** Stable 0..1 hash of two integers. */
 export function hash2(a: number, b: number): number {
   let h = Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263);
@@ -609,46 +601,4 @@ export function plantsForTile(
     });
   }
   return out;
-}
-
-/** A unit cone (base radius 0.5 at z 0, apex at z 1) and a unit blob (sphere of radius 0.5
- * centred at z 0.5): plant marks scaled per kind. */
-export function plantMeshes() {
-  const seg = 8;
-  // Cone: side triangles with outward normals.
-  const cp: number[] = [];
-  const cn: number[] = [];
-  for (let i = 0; i < seg; i++) {
-    const a0 = (i / seg) * Math.PI * 2;
-    const a1 = ((i + 1) / seg) * Math.PI * 2;
-    const am = (a0 + a1) / 2;
-    const nz = 0.45;
-    cp.push(Math.cos(a0) * 0.5, Math.sin(a0) * 0.5, 0, Math.cos(a1) * 0.5, Math.sin(a1) * 0.5, 0, 0, 0, 1);
-    for (let k = 0; k < 3; k++) cn.push(Math.cos(am) * 0.9, Math.sin(am) * 0.9, nz);
-  }
-  // Blob: a low-poly UV sphere.
-  const bp: number[] = [];
-  const bn: number[] = [];
-  const rings = 5;
-  const pt = (r: number, s: number): [number, number, number] => {
-    const th = (r / rings) * Math.PI;
-    const ph = (s / seg) * Math.PI * 2;
-    return [Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)];
-  };
-  for (let r = 0; r < rings; r++) {
-    for (let s = 0; s < seg; s++) {
-      const q = [pt(r, s), pt(r + 1, s), pt(r + 1, s + 1), pt(r, s), pt(r + 1, s + 1), pt(r, s + 1)];
-      for (const [x, y, z] of q) {
-        bp.push(x * 0.5, y * 0.5, z * 0.5 + 0.5);
-        bn.push(x, y, z);
-      }
-    }
-  }
-  const mesh = (p: number[], n: number[]) => ({
-    attributes: {
-      positions: { value: new Float32Array(p), size: 3 },
-      normals: { value: new Float32Array(n), size: 3 },
-    },
-  });
-  return { cone: mesh(cp, cn), blob: mesh(bp, bn) };
 }

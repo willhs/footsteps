@@ -2,6 +2,7 @@ import { REGION_TOTALS, inRegion, mergedScales, regionScales, regionTotalAt, reg
 import { gridDataFrom } from '@/components/footsteps/hooks/gridData';
 
 const australia = REGION_TOTALS.find((r) => r.id === 'australia')!;
+const congo = REGION_TOTALS.find((r) => r.id === 'congo_rainforest')!;
 
 // grid_image.py's encoding, as in holoceneShares.test.ts.
 const MAX_PEOPLE = 5_000_000;
@@ -30,6 +31,33 @@ test('HYDE as it is before 400 CE and from 1800, the contact figure 1500-1788, a
   expect(regionTotalAt(australia, 1700, 400_000)).toBe(australia.targetPeople);
   expect(australia.targetPeople).toBeGreaterThanOrEqual(770_000); // inside Williams 2013's contact range
   expect(australia.targetPeople).toBeLessThanOrEqual(1_100_000);
+});
+
+test('the Congo rainforest falls 400-600 CE, stays low to 1000 and is HYDE again by 1400', () => {
+  expect(inRegion(congo, 11.5, 0.4)).toBe(true); // Libreville
+  expect(inRegion(congo, 15.3, -4.3)).toBe(true); // Kinshasa
+  expect(inRegion(congo, 18.3, 0.05)).toBe(true); // Mbandaka, the inner basin
+  expect(inRegion(congo, 8.7, 3.5)).toBe(false); // Bioko
+  expect(inRegion(congo, 27.5, -8.5)).toBe(false); // the Upemba woodland, Katanga
+  expect(inRegion(congo, 29.4, -1.9)).toBe(false); // Rwanda, the Great Lakes
+  expect(regionWeightAt(congo, 300)).toBe(0);
+  expect(regionWeightAt(congo, 500)).toBeCloseTo(0.5);
+  expect(regionWeightAt(congo, 800)).toBe(1);
+  expect(regionWeightAt(congo, 1200)).toBeCloseTo(0.5);
+  expect(regionWeightAt(congo, 1400)).toBe(0);
+  // The low is about a quarter of HYDE's 400 CE people (Seidensticker et al. 2021 Fig. 2A), well under HYDE's ~2 million at 800.
+  expect(congo.targetPeople).toBeGreaterThan(150_000);
+  expect(congo.targetPeople).toBeLessThan(250_000);
+  expect(regionTotalAt(congo, 800, 1_860_000)).toBe(congo.targetPeople);
+});
+
+test('regions do not overlap', () => {
+  for (const a of REGION_TOTALS)
+    for (const b of REGION_TOTALS) {
+      if (a === b) continue;
+      for (const [w1, s1, e1, n1] of a.boxes)
+        for (const [w2, s2, e2, n2] of b.boxes) expect(w1 < e2 && w2 < e1 && s1 < n2 && s2 < n1).toBe(false);
+    }
 });
 
 /** A HYDE-sized image with `people` in each listed [lon, lat] cell. */

@@ -72,6 +72,7 @@ separate series from `tasks/0001-0003`.
 - [`research/interpolation/gpu-interpolation-guide.md`](research/interpolation/gpu-interpolation-guide.md) — a guide to GPU interpolation of population between years (not built)
 - [`research/revitalisation/state-of-the-project.md`](research/revitalisation/state-of-the-project.md) — superseded: the original outage investigation and revitalisation plan
 - [`research/0018-strategic-overview-2026-11/research.md`](research/0018-strategic-overview-2026-11/research.md) — ranked memo (2026-11-28): what Footsteps is now, five next directions with a first task each, three debts, what to stop
+- [`research/0019-farming-fronts-and-the-congo/research.md`](research/0019-farming-fronts-and-the-congo/research.md) — South America, Pacific, Europe farming front and Bantu checks against OpenAlex-found papers; New Zealand from 1300, Congo rainforest collapse 400-1000 CE
 
 ## Tasks: spec (`task.md`) and plan (`plan.md`) per piece of work
 

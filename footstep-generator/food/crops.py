@@ -20,8 +20,6 @@ from food.model import Basis, Taxon, claim
 
 D, H, F = Basis.DATED, Basis.HISTORIC, Basis.FRONT
 EUR = "Neolithic spread: Pinhasi et al. 2005 PLoS Biol 3:e410 doi:10.1371/journal.pbio.0030410 (0.6-1.3 km/yr), Zeder 2008 PNAS 105:11597 doi:10.1073/pnas.0801317105; regional date recalled"
-EUR_WHY = ("standard Neolithic chronology (LBK ~5500 BCE, Britain ~4000 BCE, Funnel Beaker ~3900 BCE) recalled; Pinhasi 2005's abstract gives the "
-           "spread rate and no site dates, Zeder 2008's gives no regional dates")
 ZEDER11 = "Zeder 2011 Curr Anthropol 52:S221 doi:10.1086/659307; Fuller, Willcox & Allaby 2012 J Exp Bot 63:617 doi:10.1093/jxb/err307"
 ARRANZ = "Arranz-Otaegui et al. 2016 PNAS 113:14001 doi:10.1073/pnas.1612797113"
 
@@ -30,13 +28,13 @@ def _neolithic_europe(crop: str) -> tuple:
     """The Near Eastern package's Neolithic fronts across Europe, shared by wheat, barley and pulses."""
     return (
         claim(9.5, R.ANATOLIA_C, F, f"{crop}: central Anatolia (Catalhoyuk ~9.4 ka); recalled"),
-        claim(8.5, R.GREECE_BALKANS, F, f"{crop}: Thessaly/Greece ~9-8.5 ka; {EUR}"),
-        claim(7.8, R.W_MEDITERRANEAN, F, f"{crop}: Italy, S France, Iberia 7.9-7.5 ka (Impressed/Cardial Ware); {EUR}"),
-        claim(7.5, R.CENTRAL_EUROPE, D, f"{crop}: LBK from ~5500 BCE (7.5 ka) from Hungary to the Rhine; {EUR}", unverified=EUR_WHY),
+        claim(8.5, R.GREECE_BALKANS, D, f"{crop}: Greece ~8.5 ka: AMS dates on domestic seeds at Franchthi Cave put cereal cultivation 'during the first half of the seventh millennium BC' (Perles, Quiles & Valladas 2013 Antiquity 87:1001 doi:10.1017/s0003598x00049826, abstract); {EUR}", checked=True),
+        claim(7.5, R.W_MEDITERRANEAN, D, f"{crop}: Italy, S France, Iberia ~5500-5400 BC (7.5 ka): short-lived samples put the Neolithic package 'around 5400 calendar B.C.' from central Italy to Portugal (Zilhao 2001 PNAS 98:14180 doi:10.1073/pnas.241522898, abstract), Iberia 'ca. 5500 Cal BC' (Martins et al. 2015 J Mediterr Archaeol 28:105 doi:10.1558/jmea.v28i1.27503, abstract). The table had 7.8 ka; both fall in the same gate era. Southern Italy's earlier Impressed Ware dates were not checked", checked=True),
+        claim(7.5, R.CENTRAL_EUROPE, D, f"{crop}: LBK 'from about 5500 cal BC to soon after 5000 cal BC' (Whittle & Bickle 2013, The First Farmers of Central Europe, Proc Brit Acad 198, introduction abstract, openalex W1582383990, no DOI); {EUR}", checked=True),
         claim(7.0, R.ATLANTIC_FRANCE, F, f"{crop}: Atlantic France/Low Countries ~5000 BCE; {EUR}"),
         claim(7.0, R.UKRAINE, F, f"{crop}: Cucuteni-Trypillia and Bug-Dniester farmers ~7-6.5 ka; recalled"),
-        claim(6.0, R.BRITAIN_IRELAND, D, f"{crop}: Britain and Ireland ~4000 BCE (6.0 ka); {EUR}", unverified=EUR_WHY),
-        claim(5.9, R.S_SCANDINAVIA, D, f"{crop}: Funnel Beaker (TRB) in Denmark and S Sweden ~3900 BCE (5.9 ka); {EUR}", unverified=EUR_WHY),
+        claim(6.0, R.BRITAIN_IRELAND, D, f"{crop}: 'the cultivation of cereals arrived there in about 4000 cal BC' (Stevens & Fuller 2012 Antiquity 86:707 doi:10.1017/s0003598x00047864, abstract); Ireland is held to Britain's date, no Irish paper read; {EUR}", checked=True),
+        claim(5.9, R.S_SCANDINAVIA, D, f"{crop}: first farmers of S Scandinavia, Early Neolithic I Funnel Beaker 3950-3500 cal BC (Gron & Rowley-Conwy 2017 Holocene 27:98 doi:10.1177/0959683616652705, abstract; Gron & Sorensen 2018 Antiquity 92:958 doi:10.15184/aqy.2018.71, c. 4000-3500 cal BC); {EUR}", checked=True),
         claim(4.8, R.BALTIC_E, F, f"{crop}: eastern Baltic, Corded Ware ~4.8 ka; recalled"),
         claim(4.0, R.N_FENNOSCANDIA, F, f"{crop}: northern Fennoscandia, barley only in practice ~4 ka; recalled, low confidence"),
     )

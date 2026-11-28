@@ -301,7 +301,7 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       occupied += cells.length;
     }
   }
-  // Regions whose HYDE total is moved toward a published figure (lib/regionTotals.ts: Australia 400-1788 CE). HYDE images only,
+  // Regions whose HYDE total is moved toward a published figure (lib/regionTotals.ts: Australia 400-1788 CE, the Congo rainforest 400-1400 CE). HYDE images only,
   // whose cells are the output's cells one to one, so the walk below meets them in ascending order.
   const regions = sw === HYDE_WIDTH && scale === 1
     ? mergedScales(regionScales(year, sw, sh, (cell) => (levels[cell] ? Math.expm1((levels[cell] / LEVELS) * LOG_MAX) : 0)))

@@ -7,6 +7,8 @@ describe('firstSettlement', () => {
     expect(unsettledAt(-90.5, -0.7, 1500)?.name).toBe('Galápagos');
     expect(unsettledAt(-155.5, 19.6, 1000)?.name).toBe('Hawaii');
     expect(unsettledAt(-155.5, 19.6, 1200)).toBeNull();
+    expect(unsettledAt(174.8, -41.3, 1200)?.name).toBe('New Zealand'); // HYDE has people here at 1200; the rats say ~1280
+    expect(unsettledAt(174.8, -41.3, 1300)).toBeNull();
     expect(unsettledAt(47, -19, 0)?.name).toBe('Madagascar and Comoros');
     expect(unsettledAt(-77, 21.5, -5000)?.name).toBe('Greater Antilles');
     expect(unsettledAt(178, -17.8, -2000)?.name).toMatch(/Fiji/);

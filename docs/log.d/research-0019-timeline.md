@@ -1,0 +1,3 @@
+## [2026-11-28] update | Timeline checks: New Zealand from 1300, the Congo forest's collapse, cited farming fronts
+
+Research 0019 checked four timeline points against papers found through OpenAlex. South America (Monte Verde, Prates 2020) and the Lapita and East Polynesia dates already matched. New Zealand is now empty before 1300 (Pacific rat dates ~1280 CE; HYDE had people at 1200). The Congo rainforest moves toward a quarter of HYDE's 400 CE people from 400 to 1000 CE and back to HYDE by 1400 (Seidensticker et al. 2021, read in full), in `lib/regionTotals.ts`, where HYDE grew it threefold. The Neolithic front dates in `food/crops.py` now cite an abstract each; the gate is unchanged. See [research 0019](../research/0019-farming-fronts-and-the-congo/research.md).

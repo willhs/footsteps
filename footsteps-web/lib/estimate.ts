@@ -287,7 +287,7 @@ export function correctionsAt(lon: number, lat: number, time: number): PlaceCave
   }
   for (const region of REGION_TOTALS) {
     if (inRegion(region, lon, lat) && regionWeightAt(region, time) > 0) {
-      out.push({ text: `Raised: HYDE has ${region.name} flat; moved toward ~${Math.round(region.targetPeople / 1000).toLocaleString('en-US')},000 by contact.`, source: region.source });
+      out.push({ text: region.note, source: region.source });
     }
   }
   return out;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 
 const PIN_KEY = 'footsteps.settlementNote.pinned';
 
@@ -67,7 +68,7 @@ export function SettlementNote({ season, shelters = false, smoke = false }: { se
             data-testid="settlement-note-close"
             className="ov-note text-[var(--ov-text-3)] hover:text-[var(--ov-text)]"
           >
-            ✕
+            <Icon name="close" />
           </button>
         </span>
       </div>

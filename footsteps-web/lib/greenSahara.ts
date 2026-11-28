@@ -5,6 +5,8 @@
 // rain. The terrain images paint an overlay for it (footstep-generator/terrain_image.py `green_sahara`; same years and
 // reach); the habitat lookup has none, so the card says the model is too dry here.
 
+import type { IconName } from './icons';
+
 const BOX = { west: -17, east: 35, south: 15, north: 31 } as const;
 /** Calendar years (negative = BCE): the middle of terrain_image.py's ease-in and ease-out (`sahara_weight`). */
 export const GREEN_SAHARA_FROM = -9000;
@@ -14,7 +16,8 @@ export function inGreenSahara(lon: number, lat: number, time: number): boolean {
   return time >= GREEN_SAHARA_FROM && time < GREEN_SAHARA_TO && lon >= BOX.west && lon <= BOX.east && lat >= BOX.south && lat <= BOX.north;
 }
 
-export const GREEN_SAHARA_NOTE = {
-  text: '🌿 Green Sahara: wetter than shown',
+export const GREEN_SAHARA_NOTE: { icon: IconName; text: string; detail: string } = {
+  icon: 'green-sahara',
+  text: 'Green Sahara: wetter than shown',
   detail: 'grassland, savanna and lakes ~11,500–5,500 years ago; the climate model here is too dry (Tierney et al. 2017)',
 };

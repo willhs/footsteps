@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Icon } from '@/components/ui/Icon';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -30,7 +31,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <div className="w-full h-full flex items-center justify-center bg-gray-900">
           <div className="bg-black/90 backdrop-blur-sm rounded-lg p-8 text-white text-center max-w-md">
-            <div className="text-4xl mb-4">⚠️</div>
+            <Icon name="warning" className="mb-4 block text-4xl" />
             <div className="text-xl font-bold mb-2">Rendering Error</div>
             <div className="text-gray-400 mb-4">
               The visualization encountered an error. This usually happens with large datasets.

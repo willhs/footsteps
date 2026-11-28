@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { DIAL_PAGE_HOURS, DIAL_STEP_HOURS, SKY_PHASE_ICON, formatHour, snapHour, wrapHour, type SkyPhase } from '@/lib/timeOfDay';
 
 /** The dial's size, CSS pixels. */
@@ -101,7 +102,7 @@ export default function TimeOfDayDial({ hour, phase, onChange }: { hour: number;
         className="pointer-events-none absolute left-1/2 top-1/2 text-[13px] leading-none"
         style={{ transform: `translate(-50%, -50%) translate(${handleX}px, ${handleY}px)` }}
       >
-        {SKY_PHASE_ICON[phase]}
+        <Icon name={SKY_PHASE_ICON[phase]} />
       </span>
     </div>
   );

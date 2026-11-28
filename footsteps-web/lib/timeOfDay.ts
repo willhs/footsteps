@@ -9,6 +9,7 @@
 // shown there). Who sleeps and who walks out at that hour is the routine's model.
 
 import { solarAltitude, sunPosition } from './sunTime';
+import type { IconName } from './icons';
 
 const HOUR_MS = 3_600_000;
 const HOURS_PER_DAY = 24;
@@ -77,4 +78,4 @@ export function skyPhase(ms: number, lon: number, lat: number): SkyPhase {
 /** Local sun hour (0 to 24) at a longitude at a sun-clock instant. */
 const localSunHour = (ms: number, lon: number) => wrapHour(ms / HOUR_MS + lon / DEGREES_PER_HOUR);
 
-export const SKY_PHASE_ICON: Record<SkyPhase, string> = { night: '🌙', dawn: '🌅', day: '☀️', dusk: '🌇' };
+export const SKY_PHASE_ICON: Record<SkyPhase, IconName> = { night: 'night', dawn: 'dawn', day: 'day', dusk: 'dusk' };

@@ -8,6 +8,7 @@ import { unsettledAt } from './firstSettlement';
 import { FIRST_CITIES, citiesBy } from './firstCities';
 import { MISSING_ISLANDS, islandPeopleAt } from './missingIslands';
 import { HYDE_MIN, dataStatus, calendarLabel, populationRangeAt, populationRangeLabel, populationLabel } from './time';
+import type { IconName } from './icons';
 
 /** How far to trust a line: sources agree closely / roughly / differ several-fold / nobody measured it. */
 export type Confidence = 'fair' | 'rough' | 'very rough' | 'imagined';
@@ -304,8 +305,16 @@ export function explainParam(search: string): boolean {
 }
 
 /** One icon per line, so the panel reads at a glance. */
-export const LINE_ICON: Record<EstimateLine['id'], string> = {
-  people: '👥', continents: '🌍', spread: '🗺️', between: '⏳', life: '🌾', groups: '🏕️', land: '🌊', climate: '🌡️', corrections: '🛠️',
+export const LINE_ICON: Record<EstimateLine['id'], IconName> = {
+  people: 'people',
+  continents: 'continents',
+  spread: 'spread',
+  between: 'between',
+  life: 'way-of-life',
+  groups: 'groups',
+  land: 'land',
+  climate: 'climate',
+  corrections: 'corrections',
 };
 
 /** What each trust word means, for its tooltip. */

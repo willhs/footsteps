@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { iconGlyph } from '@/lib/icons';
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === '1';
 
 export interface RenderMetrics {
@@ -34,7 +35,7 @@ export default function useRenderMetrics(dotCount: number, zoom: number) {
       // Only log noticeable frame drops
       if (DEBUG && renderTime > 16) {
         console.log(
-          `⚡ Render: ${renderTime.toFixed(1)}ms with ${dotCount} dots at zoom ${zoom.toFixed(
+          `${iconGlyph('performance')} Render: ${renderTime.toFixed(1)}ms with ${dotCount} dots at zoom ${zoom.toFixed(
             2
           )}`
         );

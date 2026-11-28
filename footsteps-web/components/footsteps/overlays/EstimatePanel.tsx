@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { CONFIDENCE_LABEL, CONFIDENCE_MEANING, LINE_ICON, estimateLines, placeNotes, type PlaceCaveat } from '@/lib/estimate';
 import { calendarLabel } from '@/lib/time';
 import { formatPlace } from '@/lib/hoverCard';
@@ -51,7 +52,7 @@ export default function EstimatePanel({
           <li key={l.id} data-testid={`estimate-${l.id}`}>
             <details>
               <summary className="flex cursor-pointer list-none items-baseline gap-1.5 rounded-sm py-0.5 text-[12px] leading-snug text-[var(--ov-text)] hover:bg-white/5 [&::-webkit-details-marker]:hidden">
-                <span aria-hidden className="w-4 shrink-0 text-center">{LINE_ICON[l.id]}</span>
+                <Icon name={LINE_ICON[l.id]} className="w-4 shrink-0 text-center" />
                 <span className="min-w-0 flex-1 truncate">
                   {l.shapes} <span className="text-[11px] text-[var(--ov-text-4)]">{l.cite}</span>
                 </span>
@@ -71,7 +72,7 @@ export default function EstimatePanel({
         <ul className="mt-1.5 space-y-0.5 border-t border-[var(--ov-divider)] pt-1.5" data-testid="estimate-notes">
           {notes.map((n) => (
             <li key={n.text} className="flex gap-1.5 text-[11px] leading-snug text-[var(--ov-text-3)]" title={n.source}>
-              <span aria-hidden className="w-4 shrink-0 text-center">📍</span>
+              <Icon name="place" className="w-4 shrink-0 text-center" />
               <span>{n.text}</span>
             </li>
           ))}

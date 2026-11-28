@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
+import { Icon } from '@/components/ui/Icon';
 import { ZOOM } from '../hooks/peopleView';
 import { close3dNote, groundParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
@@ -58,7 +59,7 @@ function SunTime({ lon, lat, now }: { lon: number; lat?: number; now: Date }) {
       data-testid="sun-time"
       title="Local sun time right now at the centre of the map (a sundial's reading, within ~15 minutes). Close in, people move in real time."
     >
-      ☀ {sunTimeLabel(lon, now, lat)}, local sun time
+      <Icon name="sun-clock" /> {sunTimeLabel(lon, now, lat)}, local sun time
     </div>
   );
 }

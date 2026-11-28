@@ -29,6 +29,7 @@ opt-in looks and says so on screen.
 
 | Flag | Default | What it does | Ops doc | Reviewed |
 |---|---|---|---|---|
+| `?explain=1` | off | "How is this estimated?" link under the counter: a panel naming the sources, methods and a confidence word for the place and year | [estimate-panel.md](estimate-panel.md) | no |
 | `?coast=1` | off | Draws the modern coastline (Natural Earth 110m) over the terrain image | [terrain-images.md](terrain-images.md) | n/a (debug overlay) |
 
 ## Off switches (on until `=0`)

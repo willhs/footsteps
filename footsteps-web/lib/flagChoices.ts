@@ -36,6 +36,7 @@ export const MENU_FLAGS: readonly MenuFlag[] = [
   { name: 'terrain_tiles', on: '0', defaultOn: true, group: 'Data', label: 'Sharper terrain', hint: 'The 500 m photo pyramid, recoloured per year, at zoom 3-8' },
   { name: 'food', on: '0', defaultOn: true, group: 'Extras', label: 'Food in hover card', hint: 'Crops, animals and forager staples around the cursor (modelled)' },
   { name: 'langs', on: '0', defaultOn: true, group: 'Extras', label: 'Spreading languages', hint: '“Languages spreading here” in the hover card (from 3050 BCE)' },
+  { name: 'explain', on: '1', group: 'Extras', label: 'How we estimate this', hint: 'A quiet link under the counter: which sources and methods drive the map here and now, and how far to trust them' },
 ];
 
 /** Whether a feature is on for these URL parameters. */

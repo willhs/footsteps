@@ -5,7 +5,7 @@ import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time'
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
 import { ZOOM } from '../hooks/peopleView';
-import { close3dNote, groundParam, plantsParam, treesParam } from '@/lib/close3d';
+import { close3dNote, groundParam, treesParam } from '@/lib/close3d';
 import { weatherParam } from '@/lib/weather';
 import { skyParam } from '@/lib/sky';
 import { fieldsParam } from '../layers/fields';
@@ -78,7 +78,6 @@ function SupportingText({
   // Additional props intentionally omitted to avoid unused var warnings
 }: Props) {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const [plantsOn, setPlantsOn] = useState(false);
   const [groundOn, setGroundOn] = useState(false);
   const [weatherOn, setWeatherOn] = useState(false);
   const [fieldsOn, setFieldsOn] = useState(false);
@@ -95,7 +94,6 @@ function SupportingText({
       root.style.removeProperty('--ov-stats-h');
     };
   }, []);
-  useEffect(() => setPlantsOn(plantsParam(window.location.search)), []);
   const [treesOn, setTreesOn] = useState(false);
   useEffect(() => setTreesOn(treesParam(window.location.search)), []);
   useEffect(() => setGroundOn(groundParam(window.location.search)), []);
@@ -104,7 +102,7 @@ function SupportingText({
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
   useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
 
-  const note = close3dNote(plantsOn, groundOn, weatherOn, treesOn, skyOn, fieldsOn);
+  const note = close3dNote(false, groundOn, weatherOn, treesOn, skyOn, fieldsOn);
 
   // Keep showing the last committed value until the new one is ready.
   const [displayPopulation, setDisplayPopulation] = useState<number>(

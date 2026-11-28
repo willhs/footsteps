@@ -21,13 +21,11 @@ import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, tiltParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
 import { heightAt } from '@/lib/groundHeights';
 import { reanchor } from './views/liftAnchor';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
 import { smokeParam } from '@/lib/hearths';
-import useAnimalsLayer from '@/components/footsteps/hooks/useAnimalsLayer';
-import { describeAnimal, type AnimalInstance } from '@/lib/animals';
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import usePersonTags from '@/components/footsteps/hooks/usePersonTags';
@@ -40,15 +38,12 @@ import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
-import { tourParam } from '@/lib/tourParam';
-import dynamic from 'next/dynamic';
 import WaySign from './overlays/WaySign';
 import FeaturedPerson from './overlays/FeaturedPerson';
 import { personKey, pickFeatured, samePerson } from '@/lib/featuredPerson';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
 import { regionTintLayer } from './layers/regionTint';
-import useEvidenceLayer from './hooks/useEvidenceLayer';
 import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLayer';
 import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
@@ -73,9 +68,6 @@ import { shelterHoverOf, type ShelterHover } from './layers/shelters';
 import { treesParam } from '@/lib/close3d';
 import ShelterTooltip from './overlays/ShelterTooltip';
 
-// Opt-in code, loaded only when its flag is on (docs/ops/first-load.md).
-const TourGuide = dynamic(() => import('./TourGuide'), { ssr: false });
-const EvidenceTooltip = dynamic(() => import('./overlays/EvidenceTooltip'), { ssr: false });
 
 const NIGHT = new NightExtension();
 
@@ -96,10 +88,6 @@ function renderModeFromUrl(): PeopleMode {
 function hoverParam(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') !== '0';
 }
-// ?evidence=1 draws dated archaeological sites as cool marks (experiment). Off by default.
-function evidenceParam(): boolean {
-  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('evidence') === '1';
-}
 const NOTES_KEY = 'footsteps.legendNotes';
 const LEGEND: WayOfLifeValue[] = [WayOfLife.Forager, WayOfLife.Farmer, WayOfLife.Herder, WayOfLife.Urban];
 // The model has no land use: everyone before HYDE is drawn as a forager.
@@ -116,13 +104,11 @@ interface FootstepsVizProps {
   time: number;
   /** Reports the data years still loading for the current view (null = ready). */
   onLoadingChange?: (loading: [number, number] | null) => void;
-  /** Sets the slider year; the `?tour=1` guided tour (lib/tour.ts) moves it. Without it there is no tour. */
-  onTimeChange?: (time: number) => void;
 }
 
 const DEFAULT_COLOURSCHEME = 'cyan';
 
-function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsVizProps) {
+function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Views that can only show whole data years use the nearest one; the glow
   // mixes the two data years either side of `time`.
   const year = nearestDataYear(time);
@@ -142,14 +128,12 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const [debugModes, setDebugModes] = useState(false);
   const [hoverCard, setHoverCard] = useState(true);
   const [settlements, setSettlements] = useState(true);
-  const [seasonsEnabled, setSeasonsEnabled] = useState(false);
-  const [season, setSeason] = useState<Season>('off');
+  // The seasonal scenario control was removed (2026-11-28); groups stay where the year-round model puts them.
+  const season: Season = 'off';
   const [nightOn, setNightOn] = useState(false);
   const now = useSolarClock();
   // The daily routine (lib/routine.ts), ?routine=1: people sleep, stay at the hearth, play or go on trips by the sun clock.
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
-  const [figures, setFigures] = useState(false);
-  useEffect(() => setFigures(new URLSearchParams(window.location.search).get('figures') === '1'), []);
   // `?pastwater=1`: the dated past-water scenarios (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
   const [pastWaterOn, setPastWaterOn] = useState(false);
   useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
@@ -164,7 +148,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setSeasonsEnabled(params.get('seasons') === '1');
     setSettlements(settlementsFromParams(params));
     setRenderMode(renderModeFromUrl());
     setDebugModes(modeParam() !== null);
@@ -174,10 +157,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
 
   const { viewState, onViewStateChange, isZooming, isPanning } =
     useGlobeViewState();
-  // `?tour=1`: the guided tour flies the camera and sets the year through the same setters (docs/ops/tour.md).
-  // Its code loads only with the flag.
-  const [tourOn, setTourOn] = useState(false);
-  useEffect(() => setTourOn(tourParam(window.location.search)), []);
 
   const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -192,10 +171,9 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // tilts the close-up further from zoom 11 so the horizon is in frame.
   const [skyOn, setSkyOn] = useState(false);
   useEffect(() => setSkyOn(skyParam(window.location.search)), []);
-  // `?tilt=1` (or `?sky=1`): the close-up tilts with zoom; otherwise it stays a bird's-eye view (lib/close3d.ts tiltParam).
-  const [tiltOn, setTiltOn] = useState(false);
-  useEffect(() => setTiltOn(tiltParam(window.location.search)), []);
-  const autoTilt = close3dOn && !is3DMode && (tiltOn || skyOn);
+  // The close-up never tilts by itself as you zoom (removed 2026-11-28: a tilt that changes with zoom made it hard to zoom onto a
+  // group). A right-drag still tilts by hand, and the sky shows once the horizon is in frame.
+  const autoTilt = false;
   const close3d = close3dOn && !is3DMode && viewState.zoom >= CLOSE3D_ZOOM - 0.5;
   const closePitch = autoTilt ? pitchForZoom(viewState.zoom, skyOn) : viewState.pitch ?? 0;
   // With the sky the camera looks out to the horizon; draw the ground only as far as the haze leaves it visible (rounded, so
@@ -315,9 +293,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   });
 
   // Read after mount so the server-rendered HTML (no query string) matches the first client render.
-  const [evidenceOn, setEvidenceOn] = useState(false);
-  useEffect(() => setEvidenceOn(evidenceParam()), []);
-  const evidence = useEvidenceLayer({ enabled: evidenceOn, time, zoom: viewState.zoom });
   // Other kinds of human (Neanderthals, Denisovans, ...): on by default; ?humans=0 or the Features menu turns it off.
   const [otherHumansOn, setOtherHumansOn] = useState(true);
   useEffect(() => setOtherHumansOn(new URLSearchParams(window.location.search).get('humans') !== '0'), []);
@@ -329,7 +304,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     view: viewState,
     size: typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight },
     routineEpoch,
-    figures,
   });
 
   // Close-up dwellings (`?shelters=1`, off by default until reviewed): type modelled from analogs, place imagined (lib/dwellings.ts).
@@ -353,12 +327,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
-  const [selectedAnimal, setSelectedAnimal] = useState<AnimalInstance | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  useEffect(() => setSelectedAnimal(null), [time, figures, renderMode]);
   const screenSize =
     typeof window === 'undefined' ? undefined : { width: window.innerWidth, height: window.innerHeight };
-  const { layers: gridLayers, grid, unresolved, blend, loading, people, scenePeople, shelters, inView, hearths } = useGridLayer({
+  const { layers: gridLayers, grid, unresolved, blend, loading, people, shelters, inView, hearths } = useGridLayer({
     year,
     time,
     enabled: renderMode !== 'dots',
@@ -369,7 +341,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
     season,
     households: settlements,
     routineEpoch,
-    figures,
     dwellings: ((sheltersOn && settlements) || treesOn) && close3d ? dwellings : null,
     fields: fieldsOn && settlements && close3d,
     smoke: smokeOn && settlements,
@@ -381,11 +352,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
   const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)) });
-  const animalLayers = useAnimalsLayer({
-    enabled: figures && !is3DMode && blend.people > 0 && (renderMode === 'auto' || renderMode === 'units'),
-    lon: viewState.longitude, lat: viewState.latitude, time, people: scenePeople,
-    opacity: blend.people,
-  });
 
   // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
   // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.
@@ -396,11 +362,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const columnRight = columnRef.current?.getBoundingClientRect().right ?? 0;
   const onMap = (x: number) => x > columnRight + 8;
   // One thing at a time in the column: a hovered site, band or evidence mark beats the place card under it.
-  const evidenceHover = evidenceOn && evidence.hover && onMap(evidence.hover.x) ? evidence.hover : null;
-  const otherHover = !evidenceHover && otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
-  const shelterInfo = sheltersOn && !evidenceHover && !otherHover && shelterHover && shelters.length && onMap(shelterHover.x) ? shelterHover : null;
-  const cardPoint = hoverCard && !evidenceHover && !otherHover && !shelterInfo && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
-  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || shelterInfo || tooltipData);
+  const otherHover = otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
+  const shelterInfo = sheltersOn && !otherHover && shelterHover && shelters.length && onMap(shelterHover.x) ? shelterHover : null;
+  const cardPoint = hoverCard && !otherHover && !shelterInfo && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
+  const columnBusy = Boolean(cardPoint || otherHover || shelterInfo || tooltipData);
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
@@ -531,8 +496,7 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const layers: LayersList = [
     ...sceneBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...smokeLayers, ...animalLayers, ...presenceLayers, ...tagLayers]),
-    ...evidence.layers,
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...smokeLayers, ...presenceLayers, ...tagLayers]),
     ...otherHumans.above,
   ] as LayersList;
   // First-load marks (lib/firstLoadMarks.ts): the frame after the Earth, then the year's people, are handed to deck.gl.
@@ -565,14 +529,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         // continuously only while either is on screen.
         animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating || otherHumans.shown)}
         onClick={(info) => {
-          const animal = info.layer?.id === 'animals' ? info.object as AnimalInstance | undefined : undefined;
-          setSelectedAnimal(animal ?? null);
-          if (animal) {
-            setSelectedPlace(null);
-            setSelectedPerson(null);
-            setSelectedGroup(null);
-            return;
-          }
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
           const person = info.layer?.id?.startsWith('people') ? (info.object as Person | undefined) : undefined;
@@ -628,17 +584,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
           top: 'calc(var(--ov-top) + var(--ov-stats-h, 150px) + 8px)',
         }}
       >
-        {tourOn && <TourGuide viewState={viewState} onViewStateChange={onViewStateChange} setTime={onTimeChange} />}
-        {figures && peopleView && blend.people > 0 && (
-          <p className="ov-panel ov-body px-3 py-2">People’s positions and look imagined · animals’ ranges modelled, individuals imagined</p>
-        )}
-        {selectedAnimal && figures && peopleView && (
-          <div className="ov-panel pointer-events-auto px-3.5 py-3" aria-label="Animal details">
-            <button className="float-right" aria-label="Close animal details" onClick={() => setSelectedAnimal(null)}>×</button>
-            <p className="ov-body">{describeAnimal(selectedAnimal).title}</p>
-            <p className="ov-body text-[var(--ov-text-3)]">{describeAnimal(selectedAnimal).detail}</p>
-          </div>
-        )}
         {peopleView && selectedPlace && (
           <GroundingPanel
             facts={grid ? groundingFacts(grid, year, ...selectedPlace) : null}
@@ -701,10 +646,9 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         )}
         {/* Hover card, docked here rather than following the cursor; the details panel takes its place while open. */}
         {tooltipData && <PopulationTooltip data={tooltipData} onClose={() => setTooltipData(null)} />}
-        {evidenceHover && <EvidenceTooltip hover={evidenceHover} doc={evidence.doc} dnaDoc={evidence.dnaDoc} />}
         {otherHover && <OtherHumansTooltip hover={otherHover} />}
         {shelterInfo && <ShelterTooltip hover={shelterInfo} table={dwellings} />}
-        {featured && !selectedAnimal && (
+        {featured && (
           <FeaturedPerson
             person={featured}
             year={Math.round(time)}
@@ -716,12 +660,12 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
             }}
           />
         )}
-        {cardPoint && !featured && !selectedAnimal && !(peopleView && selectedPlace) && (
+        {cardPoint && !featured && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 
         {/* Legend: hidden while the details panel or the hover card is up, which need the height. */}
-        {peopleView && !selectedAnimal && !selectedPlace && !columnBusy && !featured ? (
+        {peopleView && !selectedPlace && !columnBusy && !featured ? (
           <div className="ov-panel shrink-0 px-3.5 py-3">
             <ul className="ov-body flex flex-wrap gap-x-4 gap-y-1">
               {(modelled ? MODELLED_LEGEND : LEGEND).map((way) => (
@@ -772,13 +716,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
                 is illustrative.
               </p>
             )}
-            {notesOpen && evidenceOn && (
-              <p className="ov-note mt-1.5">
-                <span style={{ color: '#78a0ff' }}>●</span> Dated sites (radiocarbon, p3k14c).
-                <span style={{ color: '#50ebd7' }}> ◆</span> Ancient-DNA individuals (AADR). Measured evidence; dates and locations have uncertainty.
-                Counts reflect excavations and sampling, not population.
-              </p>
-            )}
             {otherHumans.shown && (
               <p className="ov-note mt-1">
                 <span style={{ color: `rgb(${OTHER_HUMANS_RGB.join(',')})` }}>●</span> Other kinds of human
@@ -822,17 +759,6 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
               year: String(Math.round(time)),
             })}
           />
-          {seasonsEnabled && peopleView && (
-            <ControlRow label="Season · modelled">
-              <div className="ov-seg" role="group" aria-label="Seasonal scenario">
-                {(['off', 'june', 'december'] as const).map(value => (
-                  <ToggleButton key={value} pressed={season === value} onClick={() => setSeason(value)} label={`Season ${value}`}>
-                    {{ off: 'Off', june: 'Jun', december: 'Dec' }[value]}
-                  </ToggleButton>
-                ))}
-              </div>
-            </ControlRow>
-          )}
           {/* Debug only (?mode=): compare the zoom-chosen view with fixed ones */}
           {debugModes && (
             <ControlRow label="Mode (debug)">

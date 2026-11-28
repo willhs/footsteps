@@ -15,41 +15,42 @@ describe('flag choices', () => {
   });
 
   it('reads on and off from the URL, including features on by default', () => {
-    expect(flagOn(sky, '')).toBe(false);
-    expect(flagOn(sky, '?sky=1')).toBe(true);
+    expect(flagOn(sky, '')).toBe(true);
+    expect(flagOn(sky, '?sky=0')).toBe(false);
     expect(flagOn(humans, '')).toBe(true);
     expect(flagOn(humans, '?humans=0')).toBe(false);
-    expect(withFlag(new URL('https://x/?a=1'), sky, true).search).toBe('?a=1&sky=1');
-    expect(withFlag(new URL('https://x/?sky=1'), sky, false).search).toBe('');
+    expect(withFlag(new URL('https://x/?a=1'), sky, false).search).toBe('?a=1&sky=0');
+    expect(withFlag(new URL('https://x/?sky=0'), sky, true).search).toBe('');
     expect(withFlag(new URL('https://x/'), humans, false).search).toBe('?humans=0');
   });
 
   it('remembers only choices that differ from the default', () => {
     const s = memory();
-    rememberChoice(s, sky, true);
-    rememberChoice(s, humans, false);
-    expect(readChoices(s)).toEqual({ sky: true, humans: false });
     rememberChoice(s, sky, false);
+    rememberChoice(s, humans, false);
+    expect(readChoices(s)).toEqual({ sky: false, humans: false });
+    rememberChoice(s, sky, true);
     rememberChoice(s, humans, true);
     expect(readChoices(s)).toEqual({});
     expect(readChoices({ getItem: () => 'not json' })).toEqual({});
   });
 
   it('writes remembered choices into the URL, the URL winning', () => {
-    window.localStorage.setItem(FLAG_CHOICES_KEY, JSON.stringify({ sky: true, trees: true, humans: false }));
-    window.history.replaceState(null, '', '/?trees=0&year=-1000');
+    window.localStorage.setItem(FLAG_CHOICES_KEY, JSON.stringify({ sky: false, trees: false, humans: false, plants: true }));
+    window.history.replaceState(null, '', '/?trees=1&year=-1000');
     applyFlagChoices(MENU_FLAGS.map((f) => [f.name, f.on, Boolean(f.defaultOn)]), FLAG_CHOICES_KEY);
     const p = new URLSearchParams(window.location.search);
-    expect(p.get('sky')).toBe('1');
-    expect(p.get('trees')).toBe('0'); // already in the URL
+    expect(p.get('sky')).toBe('0');
+    expect(p.get('trees')).toBe('1'); // already in the URL
+    expect(p.get('plants')).toBe(null); // a removed feature's old choice is ignored
     expect(p.get('humans')).toBe('0');
     expect(p.get('year')).toBe('-1000');
   });
 
   it('the inlined script runs on its own', () => {
-    window.localStorage.setItem(FLAG_CHOICES_KEY, JSON.stringify({ ice: true }));
+    window.localStorage.setItem(FLAG_CHOICES_KEY, JSON.stringify({ ice: false }));
     window.history.replaceState(null, '', '/');
     new Function(flagChoicesScript())();
-    expect(new URLSearchParams(window.location.search).get('ice')).toBe('1');
+    expect(new URLSearchParams(window.location.search).get('ice')).toBe('0');
   });
 });

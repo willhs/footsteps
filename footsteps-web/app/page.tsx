@@ -16,7 +16,7 @@ const TimeNavigator = dynamic(() => import('@/components/ui/TimeNavigator'), { s
 // the far-out firelight draws from exactly these (usePresenceLayers), and the requests join the head's preloads.
 function warmOpeningYears() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('mode') === 'dots' || params.get('tour') === '1') return;
+  if (params.get('mode') === 'dots') return;
   const asked = Number(params.get('year') ?? NaN);
   const { y0, y1 } = bracket(Number.isFinite(asked) ? clampTime(asked) : DEFAULT_TIME);
   for (const year of new Set([y0, y1])) loadGridData(year).catch(() => {}); // the hooks report failures when they ask again
@@ -41,7 +41,7 @@ export default function Home() {
     // data-loading: the time bar's loading flag as an attribute, for the visual regression run to wait on (docs/ops/visual-regression.md).
     <main className="relative w-full h-full overflow-hidden bg-black" data-loading={loading ? 'true' : 'false'}>
       <ErrorBoundary>
-        <FootstepsViz time={time} onLoadingChange={setLoading} onTimeChange={setTime} />
+        <FootstepsViz time={time} onLoadingChange={setLoading} />
       </ErrorBoundary>
       <Bar time={time} onChange={setTime} loading={loading} />
     </main>

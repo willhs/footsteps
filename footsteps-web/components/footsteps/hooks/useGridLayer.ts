@@ -65,7 +65,6 @@ export default function useGridLayer({
   season = 'off',
   households = false,
   routineEpoch = null,
-  figures = false,
   dwellings = null,
   fields = false,
   smoke = false,
@@ -86,7 +85,6 @@ export default function useGridLayer({
   households?: boolean;
   /** The daily routine's plan hour (lib/routine.ts `epochHour`), or null for the old always-the-same gait (`?routine=1`). */
   routineEpoch?: number | null;
-  figures?: boolean;
   /** `?shelters=1`: the dwelling table; the dwellings in view are returned as `shelters` (layers/shelters.ts). Null: none. */
   dwellings?: DwellingTable | null;
   /** `?fields=1`: return the groups in view as `inView` for the land round them (layers/fields.ts). */
@@ -395,10 +393,10 @@ export default function useGridLayer({
     () =>
       people
         ? (['steady', 'leaving', 'entering'] as const).map(
-            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch), figures }),
+            (part) => new PeopleLayer({ id: part === 'steady' ? 'people' : `people-${part}`, data: footprintData(people[part]), ...routineProps(routineEpoch) }),
           )
         : [],
-    [people, routineEpoch, figures],
+    [people, routineEpoch],
   );
   const cityLayers = useMemo(() => {
     const cities = (unitsContinuous && morphScene

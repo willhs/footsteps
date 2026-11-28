@@ -11,11 +11,6 @@ import {
   populationRangeAt,
   populationRangeLabel,
 } from '@/lib/time';
-import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
-
-// `?chart=1` only: its code loads with the flag (docs/ops/first-load.md).
-const PopulationChart = dynamic(() => import('./PopulationChart'), { ssr: false });
 
 interface Props {
   time: number;
@@ -24,19 +19,15 @@ interface Props {
   note: Moment | null;
   /** Replaces the plain calendar label (the time bar makes it editable). */
   calendar?: ReactNode;
-  /** Sets the year from the population chart (`?chart=1`); without it the chart is not drawn. */
-  onChange?: (time: number) => void;
 }
 
 /** The line above the time bar: years ago, calendar year and people; sea level only when it differs from today; a quiet
  * note when the people are modelled or between data years, and a small dot while data loads (the bar's needle also
  * turns dashed). Everything else is on hover. */
-export default function TimeReadout({ time, loading, note, calendar, onChange }: Props) {
+export default function TimeReadout({ time, loading, note, calendar }: Props) {
   const modelled = evidenceAt(Math.round(time)) === 'modelled'; // as the calendar label rounds
   const status = dataStatus(time);
   const sea = Math.round(seaLevelAt(time));
-  const [chartOn, setChartOn] = useState(false);
-  useEffect(() => setChartOn(new URLSearchParams(window.location.search).get('chart') === '1'), []);
   return (
     <>
       <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
@@ -80,7 +71,6 @@ export default function TimeReadout({ time, loading, note, calendar, onChange }:
           </span>
         )}
       </div>
-      {onChange && chartOn && <PopulationChart time={time} onChange={onChange} />}
       {note ? (
         <p className="mb-1.5 text-[12px] leading-snug text-[var(--ov-text-2)]" data-testid="moment-note">
           <span className="font-semibold text-[var(--ov-amber)]">

@@ -103,9 +103,9 @@ describe('sampleDetail', () => {
 });
 
 describe('terrainTilesParam', () => {
-  it('is off unless ?terrain_tiles=1', () => {
-    expect(terrainTilesParam('')).toBe(false);
-    expect(terrainTilesParam('?terrain_tiles=1')).toBe(true);
+  it('is on unless ?terrain_tiles=0', () => {
+    expect(terrainTilesParam('')).toBe(true);
+    expect(terrainTilesParam('?year=-3000&terrain_tiles=1')).toBe(true);
     expect(terrainTilesParam('?terrain_tiles=0')).toBe(false);
   });
 });

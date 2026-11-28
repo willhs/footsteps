@@ -36,7 +36,7 @@ export default function FeaturesMenu({
   }, []);
 
   const isOn = (f: MenuFlag) => (f.live && live[f.name] ? live[f.name].on : Boolean(chosen[f.name]));
-  const onCount = MENU_FLAGS.filter((f) => !f.defaultOn && isOn(f)).length;
+  const onCount = MENU_FLAGS.filter((f) => isOn(f)).length;
   const pending = useMemo(() => MENU_FLAGS.some((f) => !f.live && chosen[f.name] !== loaded[f.name]), [chosen, loaded]);
 
   const toggle = (f: MenuFlag) => {

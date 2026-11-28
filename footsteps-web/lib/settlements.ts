@@ -2,9 +2,9 @@ import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { readHabitat } from './habitat';
 
 /** The settlement model is the default Units view; `?settlements=0` turns it off (back to even groups at random spots).
- * `?seasons=1` needs it, so it keeps it on. Read once per page load by the page and the grid worker. */
+ * Read once per page load by the page and the grid worker. */
 export function settlementsFromParams(params: URLSearchParams): boolean {
-  return params.get('settlements') !== '0' || params.get('seasons') === '1';
+  return params.get('settlements') !== '0';
 }
 
 export type SettlementComponent = {

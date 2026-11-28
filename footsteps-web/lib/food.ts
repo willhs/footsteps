@@ -10,7 +10,7 @@ export type FoodData = {
   biomes: Record<string, { plants: string[]; animals: string[]; plant_weight: string }>;
 };
 
-export const foodEnabled = (search: string) => new URLSearchParams(search).get('food') === '1';
+export const foodEnabled = (search: string) => new URLSearchParams(search).get('food') !== '0';
 
 /** Ids of the crops around a place (its 5° cell) by a HYDE-era time, staples (the table's order) first; empty before HYDE or with none.
  * The close-up fields (`?fields=1`) colour their plots by these. */

@@ -20,20 +20,14 @@ export const MESH_STEP = 2;
  * neighbour at another zoom (far tiles are coarser, Close3DLayer's DemTileset) leaves no crack to see through. */
 const SKIRT_SHARE = 0.01;
 
-/** Plant marks (cones and blobs per biome) are off: they read as toys, not trees. `?plants=1` draws them again. */
-export function plantsParam(search: string): boolean {
-  return new URLSearchParams(search).get('plants') === '1';
-}
-
-/** Shaded tree impostors are opt-in until reviewed. */
+/** Shaded tree impostors: on unless `?trees=0`. */
 export function treesParam(search: string): boolean {
-  return new URLSearchParams(search).get('trees') === '1';
+  return new URLSearchParams(search).get('trees') !== '0';
 }
 
-/** Biome surface detail in the ground shader (grass, closed canopy, sand ripples, cracked ice, reeds, rock):
- * off until Will has looked at it on prod. `?ground=1` turns it on. */
+/** Biome surface detail in the ground shader (grass, closed canopy, sand ripples, cracked ice, reeds, rock): on unless `?ground=0`. */
 export function groundParam(search: string): boolean {
-  return new URLSearchParams(search).get('ground') === '1';
+  return new URLSearchParams(search).get('ground') !== '0';
 }
 
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
@@ -83,13 +77,6 @@ export function close3dNote(plants: boolean, ground: boolean, weather = false, t
 /** On unless the URL says ?close3d=0. */
 export function close3dParam(search: string): boolean {
   return new URLSearchParams(search).get('close3d') !== '0';
-}
-
-/** `?tilt=1`: the close-up tilts with zoom (`pitchForZoom`), as it did by default until 2026-11-24. Off by default: the map stays a bird's-eye
- * view at every zoom, because a tilt that changes as you zoom made it hard to zoom onto a group (the 3D relief is still drawn, and a
- * right-drag still tilts by hand). `?sky=1` tilts anyway: its sky needs the horizon in frame. */
-export function tiltParam(search: string): boolean {
-  return new URLSearchParams(search).get('tilt') === '1';
 }
 
 /** Tilt reached with `?sky=1` (lib/sky.ts) by SKY_FULL_ZOOM: steep enough that the horizon, and the sky above it, are in frame

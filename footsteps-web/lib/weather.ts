@@ -9,7 +9,7 @@
 
 /** `?weather=1` turns the weather on; off until Will has looked at it on prod. */
 export function weatherParam(search: string): boolean {
-  return new URLSearchParams(search).get('weather') === '1';
+  return new URLSearchParams(search).get('weather') !== '0';
 }
 
 export type Weather = {

@@ -19,7 +19,7 @@ export const ICE: IceManifest = manifestJson as unknown as IceManifest;
 
 /** `?ice=1` turns the ice layer on. Read once per page load by the page and the grid worker. */
 export function iceParam(search: string): boolean {
-  return new URLSearchParams(search).get('ice') === '1';
+  return new URLSearchParams(search).get('ice') !== '0';
 }
 
 /** The epoch a calendar year shows, or null before the oldest window (no reconstruction). The 0 ka window runs past the present. */
@@ -163,14 +163,13 @@ export function iceHoverRow(epoch: IceEpoch, region: IceRegion): { text: string;
 }
 
 /** The note shown with the flag on: the epoch drawn, and what the groups did. */
-export function iceNote(year: number, mode: PeopleMode, unresolved: Unresolved | undefined): { label: string; title: string } {
+/** The status line, or null before 80 ka (no reconstruction) and when no ice is drawn in the mapped regions (on by default, so it says nothing when idle). */
+export function iceNote(year: number, mode: PeopleMode, unresolved: Unresolved | undefined): { label: string; title: string } | null {
   const epoch = iceEpochAt(year);
-  const basis = `Experimental (?ice=1). ${ICE.source.name} (${ICE.source.citation}; ${ICE.source.licence}). Rule: ${ICE.rule} ${ICE.uncertainty.join(' ')}`;
-  if (!epoch) {
-    return { label: 'Ice sheets: no reconstruction before 80 ka (unknown, not ice-free)', title: `${ICE.outside}. ${basis}` };
-  }
+  if (!epoch || !epoch.patches.length) return null;
+  const basis = `Dated margins (on unless ?ice=0). ${ICE.source.name} (${ICE.source.citation}; ${ICE.source.licence}). Rule: ${ICE.rule} ${ICE.uncertainty.join(' ')}`;
   const area = epoch.patches.reduce((s, p) => s + p.area_km2, 0);
-  const head = `Ice sheets (experimental): ${ICE.source.name}, ${epoch.ka} ka`;
+  const head = `Ice sheets: ${ICE.source.name}, ${epoch.ka} ka`;
   const drawn = `Drawn: ${epoch.patches.map((p) => `${REGION_NAME[p.region]} ${(p.area_km2 / 1e6).toFixed(2)} million km²`).join(', ') || 'no ice in these regions'} (${(area / 1e6).toFixed(1)} million km²).`;
   if (mode === 'dots') return { label: `${head} · not applied to Dots`, title: `Dots is a static archive: its positions do not follow the ice. ${drawn} ${basis}` };
   if (mode === 'grid') return { label: head, title: `Grid shows people per cell and places nobody, so cells under the ice keep their people on the map. ${drawn} ${basis}` };

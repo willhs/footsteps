@@ -43,7 +43,7 @@ Confidence words: **checked** = I ran a command or read the file; **inferred** =
 | "The Steady board is now empty" | False. Ten open tasks, counting this one, when first listed. Five in the week lane wait only on a "Will looks on prod" tick. See section 4. |
 | "Many URL flags never promoted to default" | Out of date. Will reviewed them on 28 Nov: 15 kept and on by default, 7 removed (`docs/ops/flags.md`). Only `?explain=1` and `?rivers=0` are unreviewed. |
 | "Flag parsing scattered" | True when read (27 files under `lib/`, `components/` and `app/` used `URLSearchParams`). Fixed on main during this job by `9bd8879`: one file now (checked: `git grep`). |
-| "Stale visual baselines" | True (inferred). Baselines last changed 24 Nov; `72546d4` changed 101 files and no baseline. I did not run `pnpm visual`. |
+| "Stale visual baselines" | True (checked in review: `pnpm visual` at `a4562ff`, all 10 scenes differ, 2-56% of pixels). The four diffs opened show intended new looks (time dial, Features button, rivers, fields, 3D person). Baselines last changed 24 Nov. |
 | "Broken AGENTS.md test ladder" | True (checked). `AGENTS.md` has a "Verification" list by file type but no ladder by phase, which is what Manager's prompts ask jobs to read. |
 
 ## 2. Five next directions, ranked
@@ -73,7 +73,9 @@ Why this order:
 - **2 before 3** only because it is small and unblocks sharing. It must not be a tour: Will removed the tour on 28 Nov and
   no reason is written down (looked in `docs/log.md`, `docs/ops/flags.md`, commit `72546d4`; not found). The About page
   also closes a real gap: many sources are CC BY and the app credits them only in scattered legend notes and hover lines
-  (checked: no credits page under `footsteps-web/app`).
+  (checked: no credits page under `footsteps-web/app`). It should also quiet the top-left card: today it stacks status
+  notes about places not on screen (the Basin of Mexico lakes while looking at Rome; "1,221 groups unplaced (cells under
+  the ice)" on the 1900 world view), seen in the review's screenshots.
 - **3 is the direction that matters most to Will over months.** Food, animals, habitat, ages, shelters and routine are
   built. Ritual, conflict and trade were put on hold as one "evidence layer" that was to share a design with the dated-site
   map marks (`docs/design/explorations/index.md`), and those marks were removed on 28 Nov. So the plan for them needs
@@ -92,7 +94,7 @@ Greenland at 800 CE). The audit items are worth doing as small fixes but are not
 ## 3. Top three risks or debts
 
 1. **Nothing checks that what is live is right.** `pnpm visual` and the flag sweep need a GPU and data, so CI runs
-   neither (`docs/ops/visual-regression.md`). They ran when jobs remembered, and the baselines are now stale (inferred).
+   neither (`docs/ops/visual-regression.md`). They ran when jobs remembered, and all ten baselines are now stale (checked).
    The last full sweep (22 Nov) ran three features on their fallback path because their data was missing. One real break
    already got through: `?sky=1` with `?ground=1` failed to compile on prod and the sweep missed it, because its close-up
    scene sat at zoom 10 (log, 24 Nov). Both are now default. Data is published by hand: `food.json`, the adjusted spread
@@ -150,8 +152,9 @@ Smaller debts:
 
 ## What I did not do
 
-- Did not run the app, `pnpm visual`, the flag sweep or any test suite. Claims about speed and stale baselines come from
-  dates and docs. Direction 1 is the task that checks them.
+- Did not run the flag sweep, a speed measurement or any test suite, and did not use the app by hand. Speed claims come
+  from dates and docs; direction 1 is the task that checks them. Review did run `pnpm visual` (a local build and the
+  primary checkout's data, so some differences may be data).
 - Did not read every file. Two of the first three reading agents died on the 5-hour quota, so the draft's code facts came
   from `grep`, `wc` and `git log`. Review added two source-reading passes (web, rendering, pipeline, API, deploy) and
   corrected several errors in the draft (`decisions.tsv`). Still unread or only partly read: some close-up layers (trees,

@@ -1,5 +1,6 @@
 import type { Person } from '../layers/people';
-import { describePerson } from '../layers/people';
+import { personCard } from '../layers/people';
+import { FactList } from './CardFacts';
 import { useState } from 'react';
 import Portrait from './Portrait';
 import { AVATAR_3D } from './avatarLazy';
@@ -19,7 +20,7 @@ export default function FeaturedPerson({
   routineMs?: number;
   onOpen: () => void;
 }) {
-  const { title, detail } = describePerson(person, routineMs);
+  const { title, facts } = personCard(person, routineMs);
   // `?avatar=3d`: the 3D figure, as in the person panel (docs/ops/avatar.md); the drawing shows until its code is in.
   const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
   const Avatar = useLazy(AVATAR_3D, avatar3d)?.default;
@@ -47,8 +48,8 @@ export default function FeaturedPerson({
           )}
           <div className="min-w-0">
             <p className="ov-title text-[var(--ov-warm)]">{title}</p>
-            <p className="ov-body mt-1 text-[var(--ov-text)]">{detail}</p>
-            <p className="ov-note mt-2 text-[var(--ov-text-3)]">Click for their day · or click anyone on the map</p>
+            <FactList facts={facts} className="mt-1.5" />
+            <p className="ov-note mt-2 text-[var(--ov-text-3)]">👆 Click for their day</p>
           </div>
         </div>
       </div>

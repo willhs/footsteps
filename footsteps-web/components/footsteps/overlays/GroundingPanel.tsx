@@ -3,9 +3,10 @@ import EvidenceNearby from './EvidenceNearby';
 import PersonDay, { type DayRequest } from './PersonDay';
 import Portrait from './Portrait';
 import { AVATAR_3D } from './avatarLazy';
-import type { Person } from '../layers/people';
+import { FIGURE_NOTE, type CardFact, type Person, type PersonCard } from '../layers/people';
+import { FactList, useInfoNotes } from './CardFacts';
 import { CloseIcon } from '@/components/ui/icons';
-import { cssRgb, LOOKS } from '@/lib/waysOfLife';
+import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { avatarFromParams } from '@/lib/avatar';
 import { useLazy } from '@/lib/lazyModule';
 import { useState } from 'react';
@@ -26,7 +27,7 @@ export default function GroundingPanel({
   /** The clicked mark, at close zoom: what it stands for, not where it really was. */
   group?: { label: string; people: number; placed: boolean } | null;
   /** A clicked individual (street-level zoom): imagined from the head count. */
-  person?: { title: string; detail: string } | null;
+  person?: PersonCard | null;
   /** Facts for 'Imagine their day' (present when a person is selected). */
   day?: DayRequest | null;
   /** The selected person, for their illustrated portrait. */
@@ -39,6 +40,15 @@ export default function GroundingPanel({
   // `?avatar=3d`: the 3D figure instead of the drawing (docs/ops/avatar.md). The drawing shows until its code is in.
   const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
   const Avatar = useLazy(AVATAR_3D, avatar3d && !!portrait)?.default;
+  const personInfo = useInfoNotes('How this person is imagined');
+  const cellInfo = useInfoNotes('How these counts are estimated');
+  const personNotes = person
+    ? [
+        `Head count: ${modelled ? 'modelled' : 'a HYDE estimate'}. Age, role and place in camp are drawn from a modelled age structure for their way of life.`,
+        ...person.notes,
+        FIGURE_NOTE,
+      ]
+    : [];
   return (
     <section
       aria-label="What we know here"
@@ -57,14 +67,14 @@ export default function GroundingPanel({
             <div className="flex gap-3.5">
               {portrait && (Avatar ? <Avatar {...portrait} /> : <Portrait {...portrait} />)}
               <div className="min-w-0 pt-0.5">
-                <p className="ov-title text-[var(--ov-warm)]">{person.title}</p>
-                <p className="ov-body mt-1 text-[var(--ov-text)]">{person.detail}</p>
+                <div className="flex items-start justify-between gap-1">
+                  <p className="ov-title text-[var(--ov-warm)]">{person.title}</p>
+                  {personInfo.button}
+                </div>
+                <FactList facts={person.facts} className="mt-1.5" />
               </div>
             </div>
-            <p className="ov-note">
-              Imagined: the head count is {modelled ? 'modelled' : 'a HYDE estimate'}; this person&apos;s age, role and place in
-              camp are drawn from a modelled age structure for their way of life.
-            </p>
+            {personInfo.panel(personNotes)}
             {day && <PersonDay request={day} modelled={modelled} />}
           </div>
         )}
@@ -79,31 +89,18 @@ export default function GroundingPanel({
 
         {facts ? (
           <div className={person || group ? 'border-t border-[var(--ov-divider)] pt-3' : ''}>
-            <h3 className="ov-eyebrow mb-1">{modelled ? 'This ~55 km block, modelled' : 'This ~10 km cell'}</h3>
-            <p className="ov-note mb-2 tabular-nums">
-              {facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · centre{' '}
-              {facts.latitude.toFixed(3)}°, {facts.longitude.toFixed(3)}°
-            </p>
-            <dl className="ov-kv ov-body">
-              <dt>{modelled ? 'People in block' : 'People in cell'}</dt>
-              <dd>≈ {count(facts.people)}</dd>
-              <dt>3×3 neighbourhood</dt>
-              <dd>≈ {count(facts.neighbourhoodPeople)}</dd>
-              <dt>Way of life</dt>
-              <dd>
-                {facts.way === null ? (
-                  'No one recorded'
-                ) : (
-                  <span style={{ color: cssRgb(facts.way) }}>{LOOKS[facts.way].name}</span>
-                )}
-              </dd>
-            </dl>
-            <p className="ov-body mt-3">{facts.confidence}</p>
-            <p className="ov-note mt-2">
-              {modelled
-                ? 'Counts are the model\'s, not observations. Zero means the model puts no one here, not confirmed absence. The model has no land use, so everyone is drawn as a forager. Band placements are illustrative.'
-                : 'Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Way of life is read from HYDE cropland and grazing in the cell, not recorded for any one group. Group placements are illustrative.'}
-            </p>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <h3 className="ov-eyebrow">{modelled ? 'This ~55 km block' : 'This ~10 km cell'}</h3>
+              {cellInfo.button}
+            </div>
+            <FactList facts={cellFacts(facts, modelled, count)} />
+            {cellInfo.panel([
+              `${facts.year < 1 ? `${Math.abs(facts.year)} BCE` : `${facts.year} CE`} · centre ${facts.latitude.toFixed(3)}°, ${facts.longitude.toFixed(3)}°.`,
+              facts.confidence,
+              modelled
+                ? "Counts are the model's, not observations. Zero means the model puts no one here, not confirmed absence. The model has no land use, so everyone is drawn as a forager. Band placements are illustrative."
+                : 'Counts are decoded HYDE estimates. Zero means no population recorded in this image, not confirmed absence. Way of life is read from HYDE cropland and grazing in the cell, not recorded for any one group. Group placements are illustrative.',
+            ])}
           </div>
         ) : (
           <p className="ov-body">Population image for this year is not loaded yet.</p>
@@ -113,4 +110,23 @@ export default function GroundingPanel({
       </div>
     </section>
   );
+}
+
+/** An icon per way of life, for the cell's facts. */
+const WAY_ICON: Record<WayOfLifeValue, string> = {
+  [WayOfLife.Forager]: '🔥',
+  [WayOfLife.Farmer]: '🌾',
+  [WayOfLife.Herder]: '🐐',
+  [WayOfLife.Urban]: '🏙️',
+};
+
+/** The cell's counts as icon rows; the caveats sit behind the ⓘ. */
+function cellFacts(facts: GroundingFacts, modelled: boolean, count: (n: number) => string): CardFact[] {
+  return [
+    { icon: '👥', text: `≈ ${count(facts.people)} ${modelled ? 'in this block' : 'in this cell'}`, label: 'People here' },
+    { icon: '🗺️', text: `≈ ${count(facts.neighbourhoodPeople)} around (3×3)`, label: 'Neighbourhood' },
+    facts.way === null
+      ? { icon: '·', text: 'No one recorded', label: 'Way of life' }
+      : { icon: WAY_ICON[facts.way], text: LOOKS[facts.way].name, label: 'Way of life' },
+  ];
 }

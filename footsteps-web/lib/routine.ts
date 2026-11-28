@@ -357,10 +357,17 @@ export function describeState(p: RoutineSubject, state: State, localHour: number
   }
 }
 
-/** The one sentence the card adds: now, and what is measured and what is not. */
-export function routineLine(p: RoutineSubject, ms: number): string {
+/** What the person is doing now, in words ("mending tack in the camp"). */
+export function routineNow(p: RoutineSubject, ms: number): string {
   const epoch = epochHour(ms);
   const hour = localHourAt(ms, p.position[0]);
-  const words = describeState(p, stateAt(planOf(p, epoch), hour), hour);
-  return `Now: ${words}. Imagined: the pattern is modelled from time-use studies of small-scale societies, this person's day is not known.`;
+  return describeState(p, stateAt(planOf(p, epoch), hour), hour);
+}
+
+/** What is measured and what is not, behind the card's ⓘ. */
+export const ROUTINE_NOTE = "Now: the pattern is modelled from time-use studies of small-scale societies; this person's day is not known.";
+
+/** The one sentence the card adds: now, and what is measured and what is not. */
+export function routineLine(p: RoutineSubject, ms: number): string {
+  return `Now: ${routineNow(p, ms)}. Imagined: the pattern is modelled from time-use studies of small-scale societies, this person's day is not known.`;
 }

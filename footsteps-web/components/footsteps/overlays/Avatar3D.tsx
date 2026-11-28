@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Person } from '../layers/people';
+import { FIGURE_NOTE, type Person } from '../layers/people';
 import { useAnthropology } from '../hooks/useAnthropology';
 import Portrait from './Portrait';
 import { mountAvatar } from './avatarScene';
@@ -157,7 +157,7 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
   const label = `3D illustration of a ${person.role}, about ${person.age}. ${HINT}.`;
   const fail = () => setFailed(true);
   return (
-    <figure className="m-0 shrink-0" data-testid="avatar-3d">
+    <figure className="m-0 shrink-0" data-testid="avatar-3d" title={spec.otherHuman ? `${FIGURE_NOTE} ${OTHER_HUMAN_BODY_NOTE}` : FIGURE_NOTE}>
       <div className="group relative" style={{ width: CARD_W, height: CARD_H }}>
         <FigureCanvas spec={spec} label={label} onFail={fail} />
         <button
@@ -174,9 +174,7 @@ export default function Avatar3D({ person, year, lat }: { person: Person; year: 
         </button>
       </div>
       <figcaption className="mt-1.5 text-[11px] leading-snug text-[var(--ov-text-3)]" style={{ width: CARD_W }}>
-        <span className="block text-[var(--ov-text-2)]">{avatarCaption(spec)}</span>
-        Imagined illustration, not a likeness
-        {spec.otherHuman && <span className="mt-1 block">{OTHER_HUMAN_BODY_NOTE}</span>}
+        {avatarCaption(spec)}
       </figcaption>
       {large && <LargeFigure spec={spec} label={label} caption={avatarCaption(spec)} onClose={closeLarge} onFail={fail} />}
     </figure>

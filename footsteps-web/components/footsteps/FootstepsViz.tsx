@@ -18,7 +18,7 @@ import TooltipOverlay, { useTooltipData, useTooltipOverlay } from '@/components/
 import PopulationTooltip from './overlays/PopulationTooltip';
 import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
-import { describePerson, type Person } from '@/components/footsteps/layers/people';
+import { personCard, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
 import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
@@ -641,7 +641,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 placed: selectedGroup.kind !== UnitKind.Glow,
               }
             }
-            person={selectedPerson ? describePerson(selectedPerson, routineOn ? now.getTime() : undefined) : null}
+            person={selectedPerson ? personCard(selectedPerson, routineOn ? now.getTime() : undefined) : null}
             portrait={
               selectedPerson
                 ? { person: selectedPerson, year: Math.round(time), lat: selectedPerson.position[1] }

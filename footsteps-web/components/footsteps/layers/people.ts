@@ -10,7 +10,7 @@ import { LOOKS } from '@/lib/waysOfLife';
 import { AGE_LABEL, AGE_STRUCTURE_NAME, ageDraws, ageStructureFor, sampleLivingAge, type AgeStructureId } from '@/lib/demography';
 import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
-import { WALK_MS, planAttributes, planOf, routineLine } from '@/lib/routine';
+import { ROUTINE_NOTE, WALK_MS, planAttributes, planOf, routineLine, routineNow } from '@/lib/routine';
 import { solarNowMs } from '@/lib/solarClock';
 import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
 import { OTHER_HUMANS, type OtherHuman } from '@/lib/otherHumans';
@@ -268,6 +268,71 @@ export function describePerson(p: Person, routineMs?: number) {
     title: `${who}, ${ageWords}`,
     detail: `${p.role[0].toUpperCase()}${p.role.slice(1)} in a ${group} of about ${Math.round(p.groupPeople).toLocaleString()} people. Footprints: ${FOOTWEAR[p.footwear] ?? 'barefoot'} (imagined from era and climate).${ageNote}${now}`,
   };
+}
+
+/** One short fact on the person card: an icon and a word or two. */
+export type CardFact = { icon: string; text: string; label: string };
+
+/** The card's picture-first summary: a title, a few icon facts, and the caveats that sit behind its ⓘ. */
+export type PersonCard = { title: string; detail: string; facts: CardFact[]; notes: string[] };
+
+/** An icon per role (roles are drawn in `role()` above). */
+const ROLE_ICON: Record<string, string> = {
+  forager: '🧺',
+  gatherer: '🧺',
+  hunter: '🏹',
+  toolmaker: '🪨',
+  'fire-keeper': '🔥',
+  fisher: '🎣',
+  herder: '🐐',
+  shepherd: '🐑',
+  milker: '🥛',
+  weaver: '🧵',
+  tanner: '🦌',
+  farmer: '🌾',
+  potter: '🏺',
+  builder: '🪵',
+  'young child': '🍼',
+  child: '🧒',
+  elder: '🧓',
+};
+const DEFAULT_ROLE_ICON = '🧑';
+
+/** An icon per kind of group, by its mark's name (lib/waysOfLife.ts `LOOKS`). */
+const GROUP_ICON: Record<string, string> = { band: '🔥', camp: '⛺', village: '🏠', glow: '🏙️' };
+const GROUP_WORD: Record<string, string> = { band: 'Band', camp: 'Camp', village: 'Village', glow: 'Town' };
+
+/** An icon per footwear (lib/footwear.ts `FOOTWEAR`). */
+const FOOTWEAR_ICON = ['👣', '🥾', '🩴', '👞'];
+
+const OTHER_HUMAN_ICON = '🦴';
+const NOW_ICON = '🕒';
+const FOOTWEAR_NOTE = 'Footwear: imagined from era and climate.';
+export const FIGURE_NOTE = 'The figure is an imagined illustration, not a likeness.';
+
+const capitalise = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+/** The person card as icons and short labels; every caveat goes in `notes`, shown only behind the ⓘ. */
+export function personCard(p: Person, routineMs?: number): PersonCard {
+  const { title, detail } = describePerson(p, routineMs);
+  const mark = LOOKS[WAY_OF_KIND[p.groupKind as keyof typeof WAY_OF_KIND]].mark;
+  const shoes = FOOTWEAR[p.footwear] ?? 'barefoot';
+  const people = Math.round(p.groupPeople).toLocaleString();
+  const kind = p.kindOfHuman ? OTHER_HUMANS.find((h) => h.id === p.kindOfHuman) : undefined;
+  const facts: CardFact[] = [
+    { icon: ROLE_ICON[p.role] ?? DEFAULT_ROLE_ICON, text: capitalise(p.role), label: 'Role' },
+    ...(kind ? [{ icon: OTHER_HUMAN_ICON, text: kind.name, label: 'Kind of human' }] : []),
+    { icon: GROUP_ICON[mark] ?? GROUP_ICON.band, text: `${kind ? 'Band' : (GROUP_WORD[mark] ?? 'Group')} of ${people}`, label: 'Group' },
+    { icon: FOOTWEAR_ICON[p.footwear] ?? FOOTWEAR_ICON[0], text: capitalise(shoes), label: 'Footwear' },
+  ];
+  if (routineMs !== undefined) facts.push({ icon: NOW_ICON, text: capitalise(routineNow(p, routineMs)), label: 'Now' });
+  const notes = [
+    ...(kind ? [`${kind.name}: another kind of human, not Homo sapiens. The band, its size and its place are guesses.`] : []),
+    `Age drawn from the ${AGE_STRUCTURE_NAME[p.ageStructure]}. ${AGE_LABEL}.`,
+    FOOTWEAR_NOTE,
+    ...(routineMs !== undefined ? [ROUTINE_NOTE] : []),
+  ];
+  return { title, detail, facts, notes };
 }
 
 // --- layer: people as footprints that walk and stop in real time (GPU) ---

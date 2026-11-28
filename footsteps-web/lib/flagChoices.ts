@@ -41,6 +41,7 @@ export const MENU_FLAGS: readonly MenuFlag[] = [
   { name: 'food', on: '1', group: 'Extras', label: 'Food in hover card', hint: 'Crops, animals and forager staples around the cursor (modelled)' },
   { name: 'langs', on: 'deep', group: 'Extras', label: 'Spreading languages', hint: '“Languages spreading here” in the hover card (from 3050 BCE)' },
   { name: 'tour', on: '1', group: 'Extras', label: 'Guided tour', hint: 'Nine sourced stops that fly the camera and set the year' },
+  { name: 'explain', on: '1', group: 'Extras', label: 'How we estimate this', hint: 'A quiet link under the counter: which sources and methods drive the map here and now, and how far to trust them' },
   { name: 'chart', on: '1', group: 'Extras', label: 'Population chart', hint: 'World population chart under the counter' },
 ];
 

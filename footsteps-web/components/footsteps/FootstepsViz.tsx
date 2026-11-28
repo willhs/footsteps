@@ -40,6 +40,8 @@ import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
 import { UnitKind } from './layers/units';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
+import EstimatePanel from './overlays/EstimatePanel';
+import { explainParam } from '@/lib/estimate';
 import { tourParam } from '@/lib/tourParam';
 import dynamic from 'next/dynamic';
 import WaySign from './overlays/WaySign';
@@ -178,6 +180,11 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   // Its code loads only with the flag.
   const [tourOn, setTourOn] = useState(false);
   useEffect(() => setTourOn(tourParam(window.location.search)), []);
+  // `?explain=1` (lib/estimate.ts, off until Will decides how to show uncertainty): a quiet "How is this estimated?" link under
+  // the counter opens a panel naming the sources, methods and a confidence word for the place and year.
+  const [explainOn, setExplainOn] = useState(false);
+  useEffect(() => setExplainOn(explainParam(window.location.search)), []);
+  const [explainOpen, setExplainOpen] = useState(false);
 
   const [, setTileLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -400,7 +407,10 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const otherHover = !evidenceHover && otherHumans.hover && onMap(otherHumans.hover.x) ? otherHumans.hover : null;
   const shelterInfo = sheltersOn && !evidenceHover && !otherHover && shelterHover && shelters.length && onMap(shelterHover.x) ? shelterHover : null;
   const cardPoint = hoverCard && !evidenceHover && !otherHover && !shelterInfo && hoverPoint && onMap(hoverPoint.x) ? hoverPoint : null;
-  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || shelterInfo || tooltipData);
+  const columnBusy = Boolean(cardPoint || evidenceHover || otherHover || shelterInfo || tooltipData || explainOpen);
+  // The explainer follows the cursor while it is on the map, and keeps the last spot when the cursor leaves for the panel.
+  const lastPointRef = useRef<{ lon: number; lat: number } | null>(null);
+  if (cardPoint) lastPointRef.current = { lon: cardPoint.lon, lat: cardPoint.lat };
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
   const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
@@ -614,6 +624,8 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
         is3DMode={is3DMode}
         year={Math.round(time)}
         now={now}
+        onExplain={explainOn ? () => setExplainOpen((o) => !o) : undefined}
+        explainOpen={explainOpen}
       />
 
       {/* Bottom-left stack: details panel above the legend, both above the timeline. */}
@@ -716,7 +728,19 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
             }}
           />
         )}
-        {cardPoint && !featured && !selectedAnimal && !(peopleView && selectedPlace) && (
+        {explainOpen && (
+          <EstimatePanel
+            time={time}
+            place={
+              selectedPlace
+                ? { lon: selectedPlace[0], lat: selectedPlace[1] }
+                : lastPointRef.current ?? { lon: viewState.longitude, lat: viewState.latitude }
+            }
+            placeFrom={selectedPlace ? 'selected' : cardPoint ? 'cursor' : lastPointRef.current ? 'cursor' : 'centre'}
+            onClose={() => setExplainOpen(false)}
+          />
+        )}
+        {cardPoint && !explainOpen && !featured && !selectedAnimal && !(peopleView && selectedPlace) && (
           <HoverCard point={cardPoint} time={time} year={year} grid={grid} region={hoverRegion} largest={hoverLargest} />
         )}
 

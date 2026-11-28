@@ -47,6 +47,7 @@ opt-in looks and says so on screen.
 | `?chart=1` | off | World-population chart under the counter (modelled band, HYDE line, slider year; click or drag sets the year) | [footsteps-web/AGENTS.md](../../footsteps-web/AGENTS.md) (no ops doc) | no |
 | `?seasons=1` | off | Off / Jun / Dec season controls in the settlement note; also keeps the settlement model on | [settlements.md](settlements.md), [site-terrain.md](site-terrain.md) | no |
 | `?sky=1` | off | Close-up light from the local sun clock, distance haze into a sky at the horizon (steeper tilt from zoom 10, camera lifted over high ground), animated water with glint, shallows and shore foam | [close-up-scene.md](close-up-scene.md) | no |
+| `?explain=1` | off | "How is this estimated?" link under the counter: a panel naming the sources, methods and a confidence word for the place and year | [estimate-panel.md](estimate-panel.md) | no |
 | `?tilt=1` | off | The close-up tilts as you zoom in (55° from zoom 8), as it did by default until 2026-11-24; `?sky=1` tilts anyway | [close-up-scene.md](close-up-scene.md) | no |
 
 ## Off switches (on until `=0`)

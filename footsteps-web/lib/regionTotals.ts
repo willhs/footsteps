@@ -1,7 +1,8 @@
 // Regions whose HYDE total is too low or too high for a span of years, moved toward a published figure. Cells keep HYDE's
 // pattern inside the region; only its total changes, and the people added or removed are not taken from anywhere else
 // (the world total moves by that much). Applied per cell in `gridDataFrom` (components/footsteps/hooks/gridData.ts).
-// Research 0017 (docs/research/0017-australia-philippines) reads the sources.
+// Research 0017 (docs/research/0017-australia-philippines) reads Australia's sources, research 0019
+// (docs/research/0019-farming-fronts-and-the-congo) the Congo's.
 
 type Box = readonly [west: number, south: number, east: number, north: number]; // degrees
 
@@ -14,6 +15,8 @@ export type RegionTotal = {
   targetPeople: number;
   /** [calendar year, weight], ascending: 0 is HYDE's total as it is, 1 is `targetPeople`; linear between, 0 outside. */
   weights: readonly (readonly [number, number])[];
+  /** One short line for the place notes (lib/estimate.ts), saying which way the region is moved and why. */
+  note: string;
   source: string;
 };
 
@@ -35,6 +38,23 @@ const LAST_PULSE_END = 1500; // 0.4 ka BP is ~1550 CE; 1500 is the image year be
 const FIRST_FLEET = 1788;
 const AFTER_CONTACT = 1800; // HYDE's own figure again (the next image year)
 
+// The Congo rainforest's Early Iron Age farmers collapsed. Seidensticker et al. 2021 (Sci Adv 7:eabd8352, PMC7880602; read
+// in full 2026-11-28) sum 1,075 screened radiocarbon dates from pottery sites across the rainforest: a peak of activity around
+// 350 CE, a collapse between ~400 and 600 CE, "markedly low human activity between ~600 and 1000 CE", then a second expansion
+// 1000-1400 CE (Gabon's genomes agree: "very low population size until ~35 generations ago, i.e., around 1000 CE", exponential
+// growth from ~1300 CE). HYDE 3.5 has the opposite: the box's people triple from 758,000 at 400 CE to 2.3 million at 1000 CE.
+// The depth is read off their Fig. 2A (summed probability ~0.47 at the 350 CE peak, ~0.11 at the low around 950 CE), so the
+// low is about a quarter of the peak. The peak's size is HYDE's own 400 CE total, measured on the served images
+// (docs/research/0019-farming-fronts-and-the-congo/measure.js).
+const CONGO_SPD_PEAK = 0.47; // Seidensticker et al. 2021 Fig. 2A, ~350 CE, read off the plot
+const CONGO_SPD_LOW = 0.11; // the same curve at its ~950 CE low
+const CONGO_HYDE_AT_PEAK = 758_000; // HYDE's people in the boxes below at 400 CE, the image year after the peak
+const CONGO_LOW = Math.round((CONGO_HYDE_AT_PEAK * CONGO_SPD_LOW) / CONGO_SPD_PEAK);
+const CONGO_COLLAPSE_START = 400;
+const CONGO_COLLAPSE_END = 600;
+const CONGO_RESETTLEMENT_START = 1000;
+const CONGO_RESETTLEMENT_END = 1400; // the end of their second expansion phase; HYDE's own figure from here
+
 export const REGION_TOTALS: readonly RegionTotal[] = [
   {
     id: 'australia',
@@ -51,8 +71,27 @@ export const REGION_TOTALS: readonly RegionTotal[] = [
       [FIRST_FLEET, 1],
       [AFTER_CONTACT, 0],
     ],
+    note: `Raised: HYDE has Australia flat; moved toward ~${Math.round(AUSTRALIA_CONTACT / 1000).toLocaleString('en-US')},000 by contact.`,
     source:
       'Williams 2013, Proc R Soc B 280:20130486: ~770,000-1.1 million at European contact, after growth pulses of which the last (1.6-0.4 ka) is the largest. HYDE has ~0.4 million, flat.',
+  },
+  {
+    id: 'congo_rainforest',
+    name: 'the Congo rainforest',
+    // Southern Cameroon, Gabon, the Congos and the inner basin, Seidensticker's regions A-H; the Katanga woodland (south of 6° S)
+    // and the Great Lakes (east of 28° E) stay out, and so does Bioko (west of 9° E): the woodland and Bioko peaked 900-1200 CE,
+    // while the forest was low.
+    boxes: [[9, -6, 28, 4.5]],
+    targetPeople: CONGO_LOW,
+    weights: [
+      [CONGO_COLLAPSE_START, 0],
+      [CONGO_COLLAPSE_END, 1],
+      [CONGO_RESETTLEMENT_START, 1],
+      [CONGO_RESETTLEMENT_END, 0],
+    ],
+    note: 'Lowered: the forest\'s first farmers collapsed 400-600 CE and stayed few until ~1000 CE; HYDE keeps growing.',
+    source:
+      'Seidensticker et al. 2021, Sci Adv 7:eabd8352: 1,149 radiocarbon dates from 726 sites show a collapse 400-600 CE and low activity 600-1000 CE, then resettlement. Depth (about a quarter of the 350 CE peak) read off their Fig. 2A; foragers, who leave few dated pottery sites, are lowered with everyone else.',
   },
 ];
 

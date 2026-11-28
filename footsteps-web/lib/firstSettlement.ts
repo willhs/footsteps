@@ -22,6 +22,7 @@ export const FIRST_SETTLEMENTS: readonly FirstSettlement[] = [
   { name: 'Galápagos', box: [-92, -89, -1.6, 0.8], year: 1600, source: 'Found by Tomás de Berlanga in 1535; no sign of earlier people (Heyerdahl\'s claimed pre-Columbian sherds are not accepted).' },
   { name: 'Falkland Islands', box: [-62, -57, -53, -51], year: 1764, source: 'First settled by the French at Port Louis, 1764; no securely dated earlier occupation.' },
   { name: 'Hawaii', box: [-161, -154, 18, 23], year: 1200, source: 'East Polynesia settled in one pulse ~1190-1290 CE (Wilmshurst et al. 2011, PNAS 108:1815).' },
+  { name: 'New Zealand', box: [166, 179, -48, -34], year: 1300, source: 'Pacific rat bones and rat-gnawed seeds date the first people to ~1280 CE, matching the earliest sites (Wilmshurst et al. 2008, PNAS 105:7676); HYDE has people from 1200.' },
   { name: 'Madagascar and Comoros', box: [43, 51, -26, -11], year: 400, source: 'Settlement in the first millennium CE (the arrival table\'s central 2.3 ka BP, prehistory/arrivals.yaml); earlier forager traces (Dewar et al. 2013, ~4 ka) are debated.' },
   { name: 'Canary Islands', box: [-18.5, -13.35, 27.5, 29.5], year: -500, source: 'First settlers from North Africa in the first millennium BCE (radiocarbon, e.g. Velasco-Vázquez et al. 2021, the earliest secure ~500 BCE-0 CE).' },
   { name: 'Greater Antilles', box: [-85, -60, 17.5, 24], year: -3800, source: 'First settlement ~5.8 ka BP (the arrival table\'s Caribbean central; Napolitano et al. 2019, Sci Adv 5:eaar7806).' },

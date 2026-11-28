@@ -66,7 +66,7 @@ describe('dwellings of a band, camp or village', () => {
   it('falls back to the kind of group when no analog was drawn', () => {
     const dwellings = sheltersForGroups([{ ...band, kind: UnitKind.Camp, society: NO_SOCIETY }], 1900, table);
     expect(dwellings.length).toBeGreaterThan(0);
-    expect(dwellings.every((d) => d.spec.how === 'kind' && d.shape === 'drum')).toBe(true);
+    expect(dwellings.every((d) => d.spec.how === 'kind' && d.shape === 'dome')).toBe(true); // a Kalahari camp: a mat hut
   });
 
   it('is deterministic: the same place draws the same roofs', () => {

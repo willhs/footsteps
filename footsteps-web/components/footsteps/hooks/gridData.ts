@@ -373,7 +373,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
   const hydeRead = adjustedRead ? null : readPixels(gridUrl(year), `Grid ${year}`);
   const landUse = readLandUse(year); // never rejects: a missing file classes by head count
   const catalogRead = settlements ? loadSettlementCatalog() : null;
-  const habitatRead = settlements && isModelled(year) ? readPixels(habitatUrl(habitatStep(year)), 'Settlement climate') : null;
+  // Deep time needs the year's habitat; in HYDE years far-from-analog foragers read it (lib/settlements.ts FAR_FORAGER_KM).
+  const habitatRead = settlements ? readPixels(habitatUrl(habitatStep(year)), 'Settlement climate') : null;
   // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
   const dwellingsRead = settlements ? loadDwellings().catch(() => null) : null;
   if (modelled) void warmSiteImages();
@@ -389,7 +390,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
   const [iceOn, lake] = await Promise.all([iceRead, lakeRead]);
   return prepareYearGrid(year, data, {
     catalog: await catalogRead!,
-    habitat: habitatRead ? (await habitatRead).data : null,
+    // A failed fetch in a HYDE year only keeps far foragers on their regional mix.
+    habitat: habitatRead ? await habitatRead.then((px) => px.data, (error) => { if (isModelled(year)) throw error; return null; }) : null,
     sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
     epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
     dwellings: await dwellingsRead,

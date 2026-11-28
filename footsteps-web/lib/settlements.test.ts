@@ -1,4 +1,4 @@
-import { allocateCities, cityNameAt, blendCities, cityPopulation, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
+import { allocateCities, blendCities, cityNameAt, cityPopulation, FAR_FORAGER_KM, profileAt, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { prepareYearGrid } from '@/components/footsteps/hooks/gridData';
 import { buildSettlementUnits } from '@/components/footsteps/layers/settlementUnits';
@@ -107,6 +107,32 @@ describe('settlementsFromParams', () => {
     expect(settlementsFromParams(new URLSearchParams('settlements=1'))).toBe(true);
     expect(settlementsFromParams(new URLSearchParams('settlements=0'))).toBe(false);
     expect(settlementsFromParams(new URLSearchParams('settlements=0&seasons=1'))).toBe(false);
+  });
+});
+
+describe('Holocene foragers far from any recorded foragers', () => {
+  const regional = { components: [{ weight: 1, size: 150, moves: null, pattern: 2, mode: 'mobile' as const, society: 'far analog' }], storage: null };
+  const climate = { components: [{ weight: 1, size: 20, moves: 8, pattern: 2, mode: 'mobile' as const, society: 'climate analog' }], storage: null };
+  const withKm = (km: number): SettlementCatalog => ({
+    version: 1, cities: [], climate: { '20,0': climate },
+    regions: { '17,36': [{ ...regional, km }, { ...regional, km }, regional, regional] },
+  });
+  const habitat = new Uint8ClampedArray(720 * 360 * 4);
+  habitat.set([4, 141, 1, 255], cellOffset(0.05, 0.05)); // 20 C, no rain
+
+  it('take the climate-matched mix where the region\'s nearest forager analog is far (Mesolithic Britain: no Inuit snow houses)', () => {
+    expect(profileAt(withKm(FAR_FORAGER_KM + 1), 0.05, 0.05, 0, -7000, habitat)).toBe(climate);
+  });
+  it('keep the regional mix where recorded foragers lived nearby, for farmers, and without the year\'s habitat', () => {
+    expect(profileAt(withKm(300), 0.05, 0.05, 0, -7000, habitat).components[0].society).toBe('far analog');
+    expect(profileAt(withKm(FAR_FORAGER_KM + 1), 0.05, 0.05, 1, -7000, habitat).components[0].society).toBe('far analog');
+    expect(profileAt(withKm(FAR_FORAGER_KM + 1), 0.05, 0.05, 0, -7000, null).components[0].society).toBe('far analog');
+  });
+  it('size their bands from the climate mix in the settlement model', () => {
+    const data = grid([60, 80]);
+    const units = buildSettlementUnits(data, withKm(FAR_FORAGER_KM + 1), -7000, habitat);
+    expect(units.length).toBe(7); // 140 people in bands of about 20, not one group of 150
+    expect(sum(units.people)).toBeCloseTo(140, 4);
   });
 });
 

@@ -1,15 +1,17 @@
 // Dated past water (`?pastwater=1`, off by default until Will has reviewed it on prod): scenarios shared by every consumer, so the Earth
-// picture, the groups' wet exclusion, the freshwater distance and the close-up water cannot disagree. Three scenarios, each a manifest
-// in public/pastwater/ baked by footstep-generator (past_water.py, past_water_lgm.py, past_water_mesopotamia.py):
+// picture, the groups' wet exclusion, the freshwater distance and the close-up water cannot disagree. Four scenarios, each a manifest
+// in public/pastwater/ baked by footstep-generator (past_water.py, past_water_lgm.py, past_water_mesopotamia.py, past_water_texcoco.py):
 //   Mega-Chad          modelled highstand lake, 11.5–5 ka BP
 //   European LGM       published lake and river vectors (CRC806), one snapshot 26.5–19 ka BP
 //   Mesopotamian coast three stages traced from Giosan & Goodman 2025 Fig 6, interpreted
+//   Basin of Mexico    modelled lakes (Texcoco and the four others) 4 ka BP–1600 CE, before the colonial drainage
 // The EPOCH is the unit: an id unique across scenarios, a mask patch, an optional freshwater-distance patch and a water level rule. A year
 // has a set of active epochs; epochs that hold at the same time never reach the same cell (tested), so a cell sees at most one.
 // See docs/ops/past-water.md.
 import megaChadJson from '../public/pastwater/mega_chad.json';
 import lgmEuropeJson from '../public/pastwater/lgm_europe.json';
 import mesopotamiaJson from '../public/pastwater/mesopotamia.json';
+import texcocoJson from '../public/pastwater/texcoco.json';
 
 /** A rectangle of a grid: column and row of its north-west pixel in the full grid, and its size. */
 export type Patch = { x0: number; y0: number; width: number; height: number };
@@ -19,6 +21,8 @@ export type WaterLevel = { kind: 'plane'; m: number; clip_to_dem: boolean } | { 
 export type EpochMeta = {
   id: number; name: string; from_bp: number; to_bp: number; from_year: number; to_year: number;
   water: string; paint: string; level: WaterLevel; mask: PatchFile; distance: PatchFile | null;
+  /** A finer shore for the close-up only (Basin of Mexico): a mask on the world grid `scale` times finer than 2.5′, with flat water at `m`. */
+  shore?: PatchFile & { scale: number; m: number };
 };
 export type ScenarioMeta = {
   id: string; label: string; short: string; summary: string; evidence: string; datum: string;
@@ -26,7 +30,7 @@ export type ScenarioMeta = {
 };
 
 /** Every scenario's manifest, in the order the notes list them. */
-export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson] as unknown as ScenarioMeta[];
+export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson, texcocoJson] as unknown as ScenarioMeta[];
 const EPOCHS: readonly { scenario: ScenarioMeta; epoch: EpochMeta }[] = PAST_WATER_SCENARIOS.flatMap((scenario) => scenario.epochs.map((epoch) => ({ scenario, epoch })));
 
 /** `?pastwater=1` turns the scenarios on. Read once per page load by the page and the grid worker. */
@@ -53,7 +57,9 @@ export function pastWaterTerrainYear(year: number): boolean {
 
 /** An epoch's water on the 2.5′ world grid (8640 × 4320, row 0 north, column 0 180 W), cropped to `Patch`: `wet` 1 where water;
  * `level` metres per pixel when the epoch's level is per pixel. */
-export type LakeMask = Patch & { wet: Uint8Array; level?: Int32Array };
+export type LakeMask = Patch & { wet: Uint8Array; level?: Int32Array; shore?: ShoreMask };
+/** The close-up's finer shore: `wet` on a grid `scale` times finer than 2.5′, cropped to its patch, water flat at `m` metres. */
+export type ShoreMask = Patch & { scale: number; m: number; wet: Uint8Array };
 /** Freshwater distance codes (water_distance.json's encoding) on the HYDE 5′ grid, cropped to `Patch`; outside it the static image holds. */
 export type WaterPatch = Patch & { code: Uint8Array };
 export type EpochLayers = { id: number; lake: LakeMask; water: WaterPatch | null; level: WaterLevel };
@@ -80,7 +86,8 @@ async function readImage(url: string): Promise<{ width: number; height: number; 
 }
 
 /** One epoch's layers from its decoded images (RGBA), checked against the manifest. Shared by the browser loader and the Node measure. */
-export function epochLayersFrom(epoch: EpochMeta, mask: { width: number; height: number; data: ArrayLike<number> }, distance: { width: number; height: number; data: ArrayLike<number> } | null): EpochLayers {
+type Pixels = { width: number; height: number; data: ArrayLike<number> };
+export function epochLayersFrom(epoch: EpochMeta, mask: Pixels, distance: Pixels | null, shoreImage: Pixels | null = null): EpochLayers {
   const m = epoch.mask;
   const d = epoch.distance;
   if (mask.width !== m.width || mask.height !== m.height || (d && (!distance || distance.width !== d.width || distance.height !== d.height))) {
@@ -100,7 +107,15 @@ export function epochLayersFrom(epoch: EpochMeta, mask: { width: number; height:
     for (let i = 0; i < code.length; i++) code[i] = distance.data[i * 4];
     water = { x0: d.x0, y0: d.y0, width: d.width, height: d.height, code };
   }
-  return { id: epoch.id, lake: { x0: m.x0, y0: m.y0, width: m.width, height: m.height, wet, level }, water, level: epoch.level };
+  let shore: ShoreMask | undefined;
+  const sm = epoch.shore;
+  if (sm && shoreImage) {
+    if (shoreImage.width !== sm.width || shoreImage.height !== sm.height) throw new Error(`Past water epoch ${epoch.id}: shore does not match its manifest`);
+    const sw = new Uint8Array(sm.width * sm.height);
+    for (let i = 0; i < sw.length; i++) sw[i] = shoreImage.data[i * 4] > 127 ? 1 : 0;
+    shore = { x0: sm.x0, y0: sm.y0, width: sm.width, height: sm.height, scale: sm.scale, m: sm.m, wet: sw };
+  }
+  return { id: epoch.id, lake: { x0: m.x0, y0: m.y0, width: m.width, height: m.height, wet, level, shore }, water, level: epoch.level };
 }
 
 let layers: Promise<PastWaterLayers> | undefined;
@@ -109,11 +124,12 @@ let layers: Promise<PastWaterLayers> | undefined;
 export function loadPastWater(): Promise<PastWaterLayers> {
   if (!layers) {
     layers = Promise.all(EPOCHS.map(async ({ epoch }) => {
-      const [mask, distance] = await Promise.all([
+      const [mask, distance, shore] = await Promise.all([
         readImage(`/pastwater/${epoch.mask.file}`),
         epoch.distance ? readImage(`/pastwater/${epoch.distance.file}`) : null,
+        epoch.shore ? readImage(`/pastwater/${epoch.shore.file}`) : null,
       ]);
-      return epochLayersFrom(epoch, mask, distance);
+      return epochLayersFrom(epoch, mask, distance, shore);
     }))
       .then((epochs) => ({ epochs }))
       .catch((error) => { layers = undefined; throw error; });
@@ -122,9 +138,9 @@ export function loadPastWater(): Promise<PastWaterLayers> {
 }
 
 /** Water share (0..1) around a point: the bilinear mix of the four 2.5′ pixel centres. 0 outside the patch. */
-export function lakeShareAt(lake: LakeMask, lon: number, lat: number): number {
-  const px = ((lon + 180) / 360) * PIXELS_ACROSS - 0.5;
-  const py = ((90 - lat) / 180) * PIXELS_DOWN - 0.5;
+export function lakeShareAt(lake: Patch & { wet: Uint8Array }, lon: number, lat: number, scale = 1): number {
+  const px = ((lon + 180) / 360) * PIXELS_ACROSS * scale - 0.5;
+  const py = ((90 - lat) / 180) * PIXELS_DOWN * scale - 0.5;
   const fx0 = Math.floor(px);
   const fy0 = Math.floor(py);
   const fx = px - fx0;
@@ -173,6 +189,12 @@ export function lakePlaneFor(layers: PastWaterLayers | null, year: number, seaLe
     key: active.map((e) => `${digest(e.id)}#${e.id}`).join('+') + (sea ? `@sea${seaLevel.toFixed(1)}` : ''),
     levelAt(lon, lat, h) {
       for (const e of active) {
+        // A finer shore, where the epoch has one, decides the close-up's water on its own: flat at its level, not clipped to the DEM.
+        const shore = e.lake.shore;
+        if (shore) {
+          if (lakeShareAt(shore, lon, lat, shore.scale) >= 0.5) return shore.m;
+          continue;
+        }
         if (lakeShareAt(e.lake, lon, lat) < 0.5) continue;
         const level = e.level;
         if (level.kind === 'plane') return !level.clip_to_dem || h < level.m ? level.m : null;

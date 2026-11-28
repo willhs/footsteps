@@ -1,6 +1,10 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
-import { classifyCell } from '@/lib/waysOfLife';
+import { classifyCell, URBAN_MIN_CELL } from '@/lib/waysOfLife';
+import { citiesBy } from '@/lib/firstCities';
+import { CROPS, HERDS, domesticatesBits, gateEra } from '@/lib/domesticatesGate';
+import { LAST_FIRST_SETTLEMENT, unsettledAt } from '@/lib/firstSettlement';
+import { MISSING_ISLANDS, islandCells, islandPeopleAt } from '@/lib/missingIslands';
 import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
 import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
@@ -261,9 +265,14 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const keeps: Uint8Array[] = [];
   const counts: number[] = [];
   const scratch = new Uint8Array(parts);
+  // HYDE peoples islands before anyone reached them (Iceland, the Canaries, Galápagos...): those cells stay empty (lib/firstSettlement.ts).
+  // Real images only (HYDE's 5′, the model's 0.5°): the boxes are finer than a coarse test image's cells.
+  const checkSettled = year < LAST_FIRST_SETTLEMENT && sw >= 720;
+  const sourceDeg = 360 / sw;
   for (let i = 0; i < sw * sh; i++) {
     const level = (px[i * 4] << 8) | px[i * 4 + 1];
     if (!level) continue;
+    if (checkSettled && unsettledAt(-180 + ((i % sw) + 0.5) * sourceDeg, 90 - (Math.floor(i / sw) + 0.5) * sourceDeg, year)) continue;
     occupied++;
     if (mask && slot) {
       const { count, allSea } = landSubcells(mask, i % sw, Math.floor(i / sw), scale, w, drop, scratch);
@@ -276,12 +285,26 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       levels[i] = sharedLevel(level, parts);
     }
   }
+  // Islands HYDE leaves empty though people lived there (Tahiti, the Marquesas, Rapa Nui, the Azores): a rough count spread over
+  // their cells, only where the image has none (lib/missingIslands.ts).
+  if (sw === HYDE_WIDTH && !mask) {
+    for (const island of MISSING_ISLANDS) {
+      const n = islandPeopleAt(island, year);
+      const cells = islandCells(island, sw);
+      if (!(n >= 1) || cells.some((c) => levels[c])) continue;
+      const level = Math.min(LEVELS, Math.max(1, Math.round((Math.log1p(n / cells.length) / LOG_MAX) * LEVELS)));
+      for (const c of cells) levels[c] = level;
+      occupied += cells.length;
+    }
+  }
   const length = mask ? counts.reduce((a, b) => a + b, 0) : occupied * parts;
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
   const ways = new Uint8Array(length);
   const cellDeg = 360 / w;
+  // Farming and herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts); none in the modelled deep past.
+  const era = gateEra(year);
   let index = 0;
   let total = 0;
   for (let row = 0; row < h; row++) {
@@ -304,9 +327,14 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       people[index] = population;
       cellIds[index] = row * w + col;
       const px4 = (row * w + col) * 4;
+      const can = domesticatesBits(positions[index * 2], positions[index * 2 + 1], era);
+      const canFarm = (can & CROPS) !== 0;
+      const canHerd = (can & HERDS) !== 0;
+      // A city glow only where towns had begun (lib/firstCities.ts); checked only for cells full enough to be one.
+      const canCity = population < URBAN_MIN_CELL || citiesBy(positions[index * 2], positions[index * 2 + 1], year);
       ways[index] = land
-        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255)
-        : classifyCell(population, 0, 0);
+        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255, canFarm, canHerd, canCity)
+        : classifyCell(population, 0, 0, canFarm, canHerd, canCity);
       total += population;
       index++;
     }

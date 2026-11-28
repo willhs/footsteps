@@ -1,4 +1,4 @@
-import { allocateCities, blendCities, cityPopulation, FAR_FORAGER_KM, profileAt, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
+import { allocateCities, blendCities, cityNameAt, cityPopulation, FAR_FORAGER_KM, profileAt, settlementsFromParams, type HistoricalCity, type SettlementCatalog } from './settlements';
 import type { GridData } from '@/components/footsteps/hooks/gridData';
 import { prepareYearGrid } from '@/components/footsteps/hooks/gridData';
 import { buildSettlementUnits } from '@/components/footsteps/layers/settlementUnits';
@@ -133,5 +133,17 @@ describe('Holocene foragers far from any recorded foragers', () => {
     const units = buildSettlementUnits(data, withKm(FAR_FORAGER_KM + 1), -7000, habitat);
     expect(units.length).toBe(7); // 140 people in bands of about 20, not one group of 150
     expect(sum(units.people)).toBeCloseTo(140, 4);
+  });
+});
+
+describe('cityNameAt', () => {
+  it('uses the name a place had at the time', () => {
+    expect(cityNameAt('St. Louis', 1000)).toBe('Cahokia');
+    expect(cityNameAt('St. Louis', 1850)).toBe('St. Louis');
+    expect(cityNameAt('Mexico City', 1500)).toBe('Tenochtitlan');
+    expect(cityNameAt('Istanbul', 100)).toBe('Byzantium');
+    expect(cityNameAt('Istanbul', 1000)).toBe('Constantinople');
+    expect(cityNameAt('Istanbul', 1500)).toBe('Istanbul');
+    expect(cityNameAt('Rome', -500)).toBe('Rome');
   });
 });

@@ -51,3 +51,26 @@ test('default, loading, missing biome, sea and ice omit the row', () => {
     expect(hoverCardRows({ ...input, habitat: { ...habitat, surface }, food: [{ name: 'wheat', confidence: 'low', checked: false }] }).some((r) => r.id === 'food')).toBe(false);
   }
 });
+
+describe('forager food from the animals modelled here', () => {
+  it('uses the game present, not the biome default', () => {
+    const data = { version: 1, eras: [-10000], taxa: [], cells: {}, biomes: { Taiga: { plants: ['berries'], animals: ['moose', 'caribou'], plant_weight: 'low' } } } as never;
+    const habitat = { surface: 'land', biome: 'Taiga' } as never;
+    const names = (game?: string[]) => foodHere(data, 138, 36, -30000, habitat, game).map((f) => f.name);
+    expect(names()).toContain('moose');
+    expect(names(["naumann's elephant", 'giant deer'])).toEqual(["naumann's elephant", 'giant deer', 'berries']);
+  });
+});
+
+test('domesticates are listed longest-established first, and foragers get wild staples', () => {
+  const mexico: FoodData = {
+    ...data,
+    cells: { '15,-100': { wheat: [2, 'high', true], goat: [2, 'low', false], maize: [0, 'medium', false] } },
+  };
+  // Central Mexico after the Spanish: maize (here since the first era) before wheat and goats.
+  expect(foodHere(mexico, -99, 18, -3000, habitat).map((f) => f.name)).toEqual(['maize', 'wheat', 'goats']);
+  // Foragers beside the first farmers: the biome's staples, not the crops.
+  const foraging = foodHere(data, 36, 33, -8000, habitat, null, true).map((f) => f.name);
+  expect(foraging).not.toContain('wheat');
+  expect(foraging).toContain('horse');
+});

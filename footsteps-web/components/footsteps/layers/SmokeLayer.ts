@@ -83,17 +83,24 @@ export class SmokeLayer extends ScatterplotLayer<Puff, PuffProps> {
             + vec2(-along.y, along.x) * sin(age * 9.0 + instancePuff.y) * 3.5 * age;
           vec3 metres = vec3(east_north, 1.5 + ${PLUME_RISE_M.toFixed(1)} * pow(age, 0.8));
           vec4 centre = project_position_to_clipspace(instancePositions, instancePositions64Low, project_size(metres), geometry.position);
-          // Widens as it rises; never under a pixel or two, so a plume still reads when it is a few metres across.
+          // Widens as it rises; never under a pixel or two, so a plume still reads when it is a few metres across. A puff drawn larger than
+          // its real size keeps its real amount of smoke (alpha × the area ratio): before 2026-11-28 the enlarged puffs of a village's
+          // hundreds of hearths piled up into an opaque white cushion over it from zoom 12-13.
           float strength = instancePuff.w;
-          float px = max(outerRadiusPixels * mix(0.12, 1.0, pow(age, 0.6)) * instancePuff.z * sqrt(strength), 3.0 + 3.5 * age);
+          float realPx = outerRadiusPixels * mix(0.12, 1.0, pow(age, 0.6)) * instancePuff.z * sqrt(strength);
+          float px = max(realPx, 3.0 + 3.5 * age);
+          float ink = clamp(realPx / px, 0.0, 1.0);
+          ink *= ink;
           gl_Position = centre;
           gl_Position.xy += project_pixel_size_to_clipspace((edgePadding * positions * px).xy);
           float night = hearthNight(instancePositions.xy);
           float fade = smoothstep(0.0, 0.1, age) * (1.0 - smoothstep(0.4, 1.0, age));
           // Lit from below by its own fire at night, near the hearth; grey by day, darker in the dark.
-          vec3 smoke = mix(vec3(0.70, 0.71, 0.74), vec3(0.22, 0.22, 0.26), night);
+          // Wood smoke is a thin blue-grey by day, browner and denser near the fire.
+          vec3 smoke = mix(vec3(0.62, 0.64, 0.69), vec3(0.22, 0.22, 0.26), night);
+          smoke = mix(smoke, vec3(0.5, 0.47, 0.43), (1.0 - night) * (1.0 - smoothstep(0.0, 0.3, age)));
           smoke = mix(smoke, vec3(1.0, 0.58, 0.26), night * (1.0 - smoothstep(0.0, 0.35, age)) * 0.75);
-          vFillColor = vec4(smoke, 0.7 * fade * sqrt(strength) * layer.opacity);
+          vFillColor = vec4(smoke, 0.55 * fade * sqrt(strength) * max(ink, 0.04) * layer.opacity);
         `,
         'fs:DECKGL_FILTER_COLOR': 'color.a *= pow(max(0.0, 1.0 - length(geometry.uv)), 1.6);',
       },

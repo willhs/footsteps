@@ -32,3 +32,9 @@ The Reba catalog files Cahokia's 1000 CE figure under "St. Louis" (founded 1764)
 `cityNameAt` in `lib/settlements.ts` labels them Cahokia, Tenochtitlan, and Istanbul as Byzantium / Constantinople before
 330 / 1453. The hover card's way of life now reads the map's class for the cell (head count, land use and the domesticates
 gate) instead of HYDE land use alone, which called Cusco, Mohenjo-daro and Memphis "Foraging".
+
+## [2026-11-28] fix | No herder camps in medieval Germany; no foragers in Poland or Tibet
+
+Grazing cells with 150+ people where crops are known are mixed farming (Germany 1000 CE had 31% of its cells drawn as herder
+camps, median ~350 people; the steppe's herders are 13-44 per cell). Light grazing (≥ 2%) is herding and light cropland
+(≥ 0.5%) farming, so Poland, England and Tibet are no longer mostly foragers. Research 0015 section 4.

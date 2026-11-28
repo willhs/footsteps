@@ -76,7 +76,26 @@ farmers before a crop, no herders before a herd animal; a crowded cell with neit
 Rendering bugs found on the same pass (antimeridian, 404s, a hole in the Hudson Bay ice, the card and map disagreeing on
 Sunda's land) were passed to the bugs thread.
 
-## 4. Found, not fixed (from the image counts)
+## 4. Herders and foragers in farming country (Task 4 counts)
+
+Populated cells by class under the old rules (crop ≥ 2% farmer; grazing ≥ 10% herder; else ≥ 600 people farmer; else forager):
+
+| Region, year | cells | farmer | herder (crop 0) | forager with some land use | median people, herder cells |
+| --- | --- | --- | --- | --- | --- |
+| Germany 1000 | 7,615 | 4,328 | 2,331 | 444 | 346 |
+| France 1000 | 5,039 | 3,433 | 1,141 | 101 | 409 |
+| England 1000 | 2,654 | 1,504 | 174 | 942 | 293 |
+| Poland 1000 | 5,183 | 2,600 | 121 | 2,380 | 483 |
+| Kazakh steppe 1000 | 25,622 | 8,990 | 8,501 | 2,444 | 16 |
+| Mongolia 1000 | 16,469 | 636 | 11,995 | 1,804 | 13 |
+| Sahel 1000 | 29,112 | 5,040 | 11,375 | 6,884 | 44 |
+| Andes puna 1400 | 4,204 | 204 | 1,018 | 1,077 | 100 |
+| Tibet 1400 | 10,584 | 10 | 144 | 10,012 | 60 |
+
+**Fixed** in `classifyCell`: crowded grazing cells (≥ 150 people) where crops are known are mixed farming; light grazing
+(≥ 2%) is herding and light cropland (≥ 0.5%) farming.
+
+## 5. Found, not fixed (from the image counts)
 
 - **Missing land**: the Azores and East Polynesia (Tahiti) have no populated cells even in 1900. HYDE's country table or
   land mask misses them; fixing needs the raw HYDE files.

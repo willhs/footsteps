@@ -1,4 +1,4 @@
-import { classifyCell, LOOKS, WayOfLife, SETTLED_MIN_CELL, URBAN_MIN_CELL } from './waysOfLife';
+import { classifyCell, LOOKS, WayOfLife, PASTORAL_MAX_CELL, SETTLED_MIN_CELL, URBAN_MIN_CELL } from './waysOfLife';
 
 describe('classifyCell', () => {
   test('no land use means foragers: the 10,000 BCE and modelled case', () => {
@@ -8,14 +8,24 @@ describe('classifyCell', () => {
 
   test('cropland makes farmers, and outranks the pasture HYDE puts round farms', () => {
     expect(classifyCell(200, 0.02, 0)).toBe(WayOfLife.Farmer);
-    expect(classifyCell(200, 0.019, 0)).toBe(WayOfLife.Forager);
     expect(classifyCell(200, 0.3, 0.6)).toBe(WayOfLife.Farmer);
   });
 
-  test('grazing without crops makes herders, at any density below a city', () => {
-    expect(classifyCell(200, 0, 0.1)).toBe(WayOfLife.Herder);
-    expect(classifyCell(200, 0.01, 0.09)).toBe(WayOfLife.Forager);
-    expect(classifyCell(5000, 0, 0.5)).toBe(WayOfLife.Herder);
+  test('a little cropland is still farming; only a trace is foraging', () => {
+    expect(classifyCell(200, 0.019, 0)).toBe(WayOfLife.Farmer);
+    expect(classifyCell(200, 0.004, 0)).toBe(WayOfLife.Forager);
+  });
+
+  test('grazing makes herders where people are as sparse as pastoralists', () => {
+    expect(classifyCell(40, 0, 0.1)).toBe(WayOfLife.Herder);
+    expect(classifyCell(40, 0, 0.03)).toBe(WayOfLife.Herder);
+    expect(classifyCell(40, 0, 0.01)).toBe(WayOfLife.Forager);
+  });
+
+  test('a crowded grazing cell where crops are known is mixed farming, not herder camps', () => {
+    expect(classifyCell(PASTORAL_MAX_CELL, 0, 0.3)).toBe(WayOfLife.Farmer); // medieval Germany's pastures
+    expect(classifyCell(PASTORAL_MAX_CELL - 1, 0, 0.3)).toBe(WayOfLife.Herder);
+    expect(classifyCell(5000, 0, 0.5, false, true)).toBe(WayOfLife.Herder); // no crops yet: herders however crowded
   });
 
   test('a crowded cell cannot be foragers even with no recorded land use', () => {

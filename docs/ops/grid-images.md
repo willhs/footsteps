@@ -96,6 +96,13 @@ Northwest Coast, the Calusa and Jōmon villages were dense foragers). Reindeer a
 as foraging. Checked on the served images: HYDE's grazing is already 0 in Australia before 1900 and in eastern North
 America before 1700, so the gate mostly changes trace cropland and the crowded-cell fallback.
 
+**Herders are sparse; a little land use is still farming** (2026-11-28). On the served images Germany at 1000 CE had 2,331
+cells (31%) with grazing ≥ 10%, no cropland and a median of ~350 people, drawn as herder camps; the steppe's grazing cells hold
+13 (Mongolia) to 44 (Sahel). A grazing cell with ≥ 150 people (`PASTORAL_MAX_CELL`, ~1.8/km²) where crops are known is now
+mixed farming. Below the old thresholds, grazing ≥ 2% is herding and cropland ≥ 0.5% farming, so Poland and England at
+1000 CE (46% and 35% of cells "foragers" with some land use) and Tibet at 1400 (95%) are no longer foragers. Counts per
+region are in research 0015.
+
 **Islands before their first settlers** (2026-11-28). HYDE spreads each modern country's people over its land at every
 date, so the served images put people on Iceland and the Faroes from 10,000 BCE, on Galápagos (never settled before 1535),
 the Canaries, Madagascar, Hawaii and the Caribbean before their first settlers. `lib/firstSettlement.ts` lists those islands

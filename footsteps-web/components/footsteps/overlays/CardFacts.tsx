@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import type { CardFact } from '../layers/people';
+import { Icon } from '@/components/ui/Icon';
 
 /** A card's facts as icon + short label rows (a picture first, words second). */
 export function FactList({ facts, className = '' }: { facts: CardFact[]; className?: string }) {
@@ -7,9 +8,7 @@ export function FactList({ facts, className = '' }: { facts: CardFact[]; classNa
     <ul className={`ov-body flex flex-col gap-0.5 text-[var(--ov-text)] ${className}`}>
       {facts.map((f) => (
         <li key={f.label} className="flex items-baseline gap-1.5" title={f.label}>
-          <span aria-hidden className="w-5 shrink-0 text-center">
-            {f.icon}
-          </span>
+          <Icon name={f.icon} className="w-5 shrink-0 text-center" />
           <span>
             <span className="sr-only">{f.label}: </span>
             {f.text}
@@ -37,7 +36,7 @@ export function useInfoNotes(label: string) {
       }}
       className={`ov-icon-btn h-6 w-6 shrink-0 text-[13px] ${open ? 'text-[var(--ov-text)]' : ''}`}
     >
-      ⓘ
+      <Icon name="info" />
     </button>
   );
   const panel = (notes: string[]) =>

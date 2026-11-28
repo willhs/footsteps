@@ -14,6 +14,7 @@ import { ROUTINE_NOTE, WALK_MS, planAttributes, planOf, routineLine, routineNow 
 import { solarNowMs } from '@/lib/solarClock';
 import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
 import { OTHER_HUMANS, type OtherHuman } from '@/lib/otherHumans';
+import type { IconName } from '@/lib/icons';
 
 export type Person = {
   id: number;
@@ -271,42 +272,42 @@ export function describePerson(p: Person, routineMs?: number) {
 }
 
 /** One short fact on the person card: an icon and a word or two. */
-export type CardFact = { icon: string; text: string; label: string };
+export type CardFact = { icon: IconName; text: string; label: string };
 
 /** The card's picture-first summary: a title, a few icon facts, and the caveats that sit behind its ⓘ. */
 export type PersonCard = { title: string; detail: string; facts: CardFact[]; notes: string[] };
 
 /** An icon per role (roles are drawn in `role()` above). */
-const ROLE_ICON: Record<string, string> = {
-  forager: '🧺',
-  gatherer: '🧺',
-  hunter: '🏹',
-  toolmaker: '🪨',
-  'fire-keeper': '🔥',
-  fisher: '🎣',
-  herder: '🐐',
-  shepherd: '🐑',
-  milker: '🥛',
-  weaver: '🧵',
-  tanner: '🦌',
-  farmer: '🌾',
-  potter: '🏺',
-  builder: '🪵',
-  'young child': '🍼',
-  child: '🧒',
-  elder: '🧓',
+const ROLE_ICON: Record<string, IconName> = {
+  forager: 'gatherer',
+  gatherer: 'gatherer',
+  hunter: 'hunter',
+  toolmaker: 'toolmaker',
+  'fire-keeper': 'fire-keeper',
+  fisher: 'fisher',
+  herder: 'herder',
+  shepherd: 'shepherd',
+  milker: 'milker',
+  weaver: 'weaver',
+  tanner: 'tanner',
+  farmer: 'farmer',
+  potter: 'potter',
+  builder: 'builder',
+  'young child': 'young-child',
+  child: 'child',
+  elder: 'elder',
 };
-const DEFAULT_ROLE_ICON = '🧑';
+const DEFAULT_ROLE_ICON: IconName = 'person';
 
 /** An icon per kind of group, by its mark's name (lib/waysOfLife.ts `LOOKS`). */
-const GROUP_ICON: Record<string, string> = { band: '🔥', camp: '⛺', village: '🏠', glow: '🏙️' };
+const GROUP_ICON: Record<string, IconName> = { band: 'band', camp: 'tent', village: 'village', glow: 'town' };
 const GROUP_WORD: Record<string, string> = { band: 'Band', camp: 'Camp', village: 'Village', glow: 'Town' };
 
-/** An icon per footwear (lib/footwear.ts `FOOTWEAR`). */
-const FOOTWEAR_ICON = ['👣', '🥾', '🩴', '👞'];
+/** An icon per footwear, in lib/footwear.ts `FOOTWEAR` order. */
+const FOOTWEAR_ICON: IconName[] = ['barefoot', 'wraps', 'sandals', 'shoes'];
 
-const OTHER_HUMAN_ICON = '🦴';
-const NOW_ICON = '🕒';
+const OTHER_HUMAN_ICON: IconName = 'other-human';
+const NOW_ICON: IconName = 'now';
 const FOOTWEAR_NOTE = 'Footwear: imagined from era and climate.';
 export const FIGURE_NOTE = 'The figure is an imagined illustration, not a likeness.';
 

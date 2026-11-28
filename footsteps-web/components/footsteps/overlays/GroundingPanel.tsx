@@ -5,6 +5,7 @@ import Portrait from './Portrait';
 import { AVATAR_3D } from './avatarLazy';
 import { FIGURE_NOTE, type CardFact, type Person, type PersonCard } from '../layers/people';
 import { FactList, useInfoNotes } from './CardFacts';
+import type { IconName } from '@/lib/icons';
 import { CloseIcon } from '@/components/ui/icons';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import { avatarFromParams } from '@/lib/avatar';
@@ -113,20 +114,20 @@ export default function GroundingPanel({
 }
 
 /** An icon per way of life, for the cell's facts. */
-const WAY_ICON: Record<WayOfLifeValue, string> = {
-  [WayOfLife.Forager]: '🔥',
-  [WayOfLife.Farmer]: '🌾',
-  [WayOfLife.Herder]: '🐐',
-  [WayOfLife.Urban]: '🏙️',
+const WAY_ICON: Record<WayOfLifeValue, IconName> = {
+  [WayOfLife.Forager]: 'forager',
+  [WayOfLife.Farmer]: 'farmer',
+  [WayOfLife.Herder]: 'herder',
+  [WayOfLife.Urban]: 'town',
 };
 
 /** The cell's counts as icon rows; the caveats sit behind the ⓘ. */
 function cellFacts(facts: GroundingFacts, modelled: boolean, count: (n: number) => string): CardFact[] {
   return [
-    { icon: '👥', text: `≈ ${count(facts.people)} ${modelled ? 'in this block' : 'in this cell'}`, label: 'People here' },
-    { icon: '🗺️', text: `≈ ${count(facts.neighbourhoodPeople)} around (3×3)`, label: 'Neighbourhood' },
+    { icon: 'people', text: `≈ ${count(facts.people)} ${modelled ? 'in this block' : 'in this cell'}`, label: 'People here' },
+    { icon: 'spread', text: `≈ ${count(facts.neighbourhoodPeople)} around (3×3)`, label: 'Neighbourhood' },
     facts.way === null
-      ? { icon: '·', text: 'No one recorded', label: 'Way of life' }
+      ? { icon: 'people', text: 'No one recorded', label: 'Way of life' }
       : { icon: WAY_ICON[facts.way], text: LOOKS[facts.way].name, label: 'Way of life' },
   ];
 }

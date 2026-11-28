@@ -1,6 +1,7 @@
 import type { Person } from '../layers/people';
 import { personCard } from '../layers/people';
 import { FactList } from './CardFacts';
+import { Icon } from '@/components/ui/Icon';
 import { useState } from 'react';
 import Portrait from './Portrait';
 import { AVATAR_3D } from './avatarLazy';
@@ -49,7 +50,9 @@ export default function FeaturedPerson({
           <div className="min-w-0">
             <p className="ov-title text-[var(--ov-warm)]">{title}</p>
             <FactList facts={facts} className="mt-1.5" />
-            <p className="ov-note mt-2 text-[var(--ov-text-3)]">👆 Click for their day</p>
+            <p className="ov-note mt-2 text-[var(--ov-text-3)]">
+              <Icon name="click" /> Click for their day
+            </p>
           </div>
         </div>
       </div>

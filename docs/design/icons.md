@@ -63,11 +63,11 @@ an open set covers it (no), or it needs our own prehistoric drawing (yes). "In c
 
 | Concept | Name | Emoji now | Custom? | Note |
 | --- | --- | --- | --- | --- |
-| Foragers | `forager` | 🏹 | yes | a digging stick and basket says more than a bow: most forager food was gathered |
-| Farmers | `farmer` | 🌾 | no | wheat ear (Lucide `wheat`) |
-| Herders | `herder` | 🐑 | partly | a sheep or goat in profile; cattle and reindeer herders need their own |
+| Foragers | `forager` (in code) | 🧺 | yes | a digging stick and basket says more than a bow: most forager food was gathered |
+| Farmers | `farmer` (in code) | 🌾 | no | wheat ear (Lucide `wheat`) |
+| Herders | `herder` (in code) | 🐐 | partly | a sheep or goat in profile; cattle and reindeer herders need their own |
 | City dwellers | `urban` | 🏛️ | yes | a mud-brick wall and gate reads older than a columned temple |
-| Band | `band` | 👥 | no | a few figures (Lucide `users`) |
+| Band | `band` (in code) | 🔥 | no | a few figures (Lucide `users`) |
 | Camp | `camp` / `groups` (in code) | 🏕️ | yes | hide tents round a fire, not a modern campsite |
 | Village | `village` (in code) | 🏠 | partly | a cluster of round houses for early villages |
 | Town | `town` (in code) | 🏘️ | no | |
@@ -78,18 +78,18 @@ an open set covers it (no), or it needs our own prehistoric drawing (yes). "In c
 
 | Concept | Name | Emoji now | Custom? | Note |
 | --- | --- | --- | --- | --- |
-| Gatherer | `gatherer` | 🧺 | partly | basket is fine; digging stick better |
-| Hunter | `hunter` | 🏹 | yes | a spear for most of the timeline: the oldest likely arrowheads are ~64,000 years old (Sibudu, Lombard 2011) and bows spread much later |
-| Toolmaker | `toolmaker` | 🪨 | yes | a knapped flake or hand axe outline |
-| Fire-keeper | `fire-keeper` | 🔥 | no | flame (Lucide `flame`) |
-| Fisher | `fisher` | 🐟 | no | fish; a net or weir would say "prehistoric" better |
-| Shepherd | `shepherd` | 🐑 | partly | crook and sheep |
-| Milker | `milker` | 🥛 | yes | a leather or clay pot, not a glass |
-| Weaver | `weaver` | 🧵 | yes | a warp-weighted loom or spindle whorl, not a spool |
-| Tanner | `tanner` | 🦌 | yes | a stretched hide on a frame |
-| Potter | `potter` | 🏺 | no | a plain pot outline (the emoji amphora is Classical) |
-| Builder | `builder` | 🪵 | partly | posts and a lashing |
-| Young child, child, elder | `young-child`, `child`, `elder` | 👶 🧒 🧓 | no | figure at three heights; avoid faces |
+| Gatherer | `gatherer` (in code) | 🧺 | partly | basket is fine; digging stick better |
+| Hunter | `hunter` (in code) | 🏹 | yes | a spear for most of the timeline: the oldest likely arrowheads are ~64,000 years old (Sibudu, Lombard 2011) and bows spread much later |
+| Toolmaker | `toolmaker` (in code) | 🪨 | yes | a knapped flake or hand axe outline |
+| Fire-keeper | `fire-keeper` (in code) | 🔥 | no | flame (Lucide `flame`) |
+| Fisher | `fisher` (in code) | 🎣 | no | fish; a net or weir would say "prehistoric" better |
+| Shepherd | `shepherd` (in code) | 🐑 | partly | crook and sheep |
+| Milker | `milker` (in code) | 🥛 | yes | a leather or clay pot, not a glass |
+| Weaver | `weaver` (in code) | 🧵 | yes | a warp-weighted loom or spindle whorl, not a spool |
+| Tanner | `tanner` (in code) | 🦌 | yes | a stretched hide on a frame |
+| Potter | `potter` (in code) | 🏺 | no | a plain pot outline (the emoji amphora is Classical) |
+| Builder | `builder` (in code) | 🪵 | partly | posts and a lashing |
+| Young child, child, elder | `young-child`, `child`, `elder` (in code) | 🍼 🧒 🧓 | no | figure at three heights; avoid faces |
 
 ### Dwellings and shelters (`lib/dwellings.ts` shapes)
 
@@ -153,8 +153,8 @@ an open set covers it (no), or it needs our own prehistoric drawing (yes). "In c
 | Drag to turn | `drag` (in code) | 🖱️ | no | |
 | Close | `close` (in code) | ✕ | no | the map controls already have `CloseIcon` |
 | Warning | `warning` (in code) | ⚠️ | no | |
-| Info | `info` | ℹ️ | no | |
-| Footwear: barefoot, wraps, sandals, shoes | `barefoot`, `wraps`, `sandals`, `shoes` | 🦶 … 👞 | yes | outlines of a foot and three soles |
+| Info | `info` (in code) | ⓘ | no | |
+| Footwear: barefoot, wraps, sandals, shoes | `barefoot`, `wraps`, `sandals`, `shoes` (in code) | 👣 🥾 🩴 👞 | yes | outlines of a foot and three soles |
 
 **Counting the "yes" rows:** about 25 concepts need our own drawing. Most are dwellings, roles that look modern as emoji, and the land
 notes. Everything else comes from Lucide.

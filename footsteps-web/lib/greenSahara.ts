@@ -15,6 +15,6 @@ export function inGreenSahara(lon: number, lat: number, time: number): boolean {
 }
 
 export const GREEN_SAHARA_NOTE = {
-  text: 'Wetter than shown: the Green Sahara',
+  text: '🌿 Green Sahara: wetter than shown',
   detail: 'grassland, savanna and lakes ~11,500–5,500 years ago; the climate model here is too dry (Tierney et al. 2017)',
 };

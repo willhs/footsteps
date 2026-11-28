@@ -111,3 +111,9 @@ Will's review of the preview: the lake round Tenochtitlan was a straight-edged d
 it. The 2.5′ mask's edge is straight at close-up scale, and the plane (2270 m) clipped to today's DEM left the city's buildings
 and fill above the water. The close-up now uses a finer shore (`texcoco_shore.webp`, 7.5″): today's ground smoothed ~0.5 km and
 flooded at 2250 m, islands carved as discs, water flat at that level. `LakePlane.levelAt` uses an epoch's shore when it has one.
+
+## [2026-11-28] change | River colour and shorter biome notes, from Will's preview review
+
+Rivers are drawn a dark, slightly green blue (`RIVER_RGB` 52, 86, 92), as river water looks from above, instead of the shallow-sea
+teal. The hover card's biome notes are shorter, with an emoji: "🌾 Prairie, not forest", "🦣 Mammoth steppe, not forest",
+"🌿 Green Sahara: wetter than shown"; the detail line is unchanged.

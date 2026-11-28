@@ -16,7 +16,7 @@ const FOREST = /forest|taiga|woodland/i;
 
 const PRAIRIE = { west: -104, east: -94, south: 33, north: 49, from: -6000, to: 1880 } as const;
 export const PRAIRIE_NOTE: BiomeNote = {
-  text: 'Grassland, not forest: the prairie',
+  text: '🌾 Prairie, not forest',
   detail: 'tallgrass and mixed-grass prairie from the mid-Holocene until the plough (1870s–1900s); the biome model puts trees here (Williams, Shuman & Bartlein 2009)',
 };
 
@@ -28,7 +28,7 @@ const STEPPE_BOXES = [
 const STEPPE_FROM = -28000;
 const STEPPE_TO = -13000;
 export const MAMMOTH_STEPPE_NOTE: BiomeNote = {
-  text: 'Steppe-tundra, not forest: the mammoth steppe',
+  text: '🦣 Mammoth steppe, not forest',
   detail: 'cold, dry grassland with mammoth, horse, bison and reindeer across the north at the glacial maximum, trees only in sheltered valleys; the biome model puts forest here (Guthrie 1990; Zimov et al. 2012)',
 };
 

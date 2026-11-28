@@ -22,7 +22,9 @@ export type Rivers = { lines: RiverLine[]; bins: Map<number, number[]> };
 export const RIVER_WIDTH_M = [800, 600, 400, 300, 200, 150, 100, 70, 50, 35, 25];
 /** Never thinner than this on screen, so a stream stays a line from afar. */
 export const RIVER_MIN_PX = 1.2;
-export const RIVER_RGB: [number, number, number] = [70, 132, 146]; // close3d's shallow water
+/** River water as it looks from above: a dark, slightly green blue (the Nile at Luxor, the Danube), not the teal of shallow sea, which read
+ * as painted on. Silty rivers (the Yellow River, the Amazon's white-water tributaries) are browner; one colour is used for all. */
+export const RIVER_RGB: [number, number, number] = [52, 86, 92];
 /** Drawn metres a river stands above the ground under it, so the relief does not cut it. */
 const LIFT_M = 2;
 

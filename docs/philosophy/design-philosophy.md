@@ -16,18 +16,21 @@ I want to show where humans were at any point in time in history, ideally as far
 
 It should be an instantiation of the avilable data on history - that is it should always show where humans were at any time, ideally down to every human on earth, performance permitting. The aim is to be as accurate as possible as we integrate with more data sets / anthropology data.
 
+Where the data runs thin, show a best-guess, plausible picture rather than a blank. The past matters most; after 1900 simple and approximate is enough.
+
 ### Inspiration: the Marauder's Map
 
 The Marauder's Map from the Harry Potter films is a touchstone for the close-up view: a living map where every person is
 a pair of inked footprints that steps, pauses and wanders in real time, each print fading as the next foot lands. When
 you zoom in far enough to see individuals, Footsteps aims for that feeling: you are watching people go about their
 day, not dots. The name fits: footsteps of time. (Their footwear and movements are imagined; see `lib/footwear.ts`.)
+It is a touchstone for the feeling, not the look: close up, the picture aims to look like the real place (Realism up close, below).
 
 ### Design Principles
 
-#### Core Principle: Data-Driven Minimalism
+#### Telling the Story with Data Viz: Data Ink
 
-Footsteps of Time follows Edward Tufte's principle of **"data ink"** – every pixel serves the purpose of communicating historical data. We eliminate "chartjunk" and visual decoration that doesn't advance understanding of human settlement patterns across deep time.
+Wherever data is visualised in the project (the counter, legends, panels, charts, density on the map), follow Edward Tufte's principle of **"data ink"**: every mark communicates data. No "chartjunk" or decoration that doesn't advance understanding of human presence across deep time.
 
 Note that in footsteps we're working with incomplete data so ink may be also be used to tell the story where we believe data could exist, in addition to human locations based on hard data.
 
@@ -37,6 +40,16 @@ Transform "dry demographic tables into a visceral, time-lapse journey" by priori
 - **Immediate impact**: The first 3 seconds should convey the scale of human expansion
 - **Intuitive interaction**: Dragging should feel like controlling time itself
 - **Historical empathy**: Each dot represents real people living their lives
+
+#### Realism up Close
+
+The map itself aims for realism as you zoom in: ground, light, water, shelters and people as they plausibly were. Far out, people can
+stay symbols (firelight, units). Symbolic overlays and invented elements with no source behind them are suspect.
+
+#### Short Text, Icons for Imagery
+
+Labels are a word or two plus an icon, not sentences. Sources, methods and caveats sit behind ⓘ. No uncertainty is drawn by default;
+the opt-in "How we estimate this" panel (`?explain=1`) explains it. Icons go through the shared Icon system (`docs/design/icons.md`).
 
 #### The Anti-Duck Principle
 

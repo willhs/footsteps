@@ -14,7 +14,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   Tailwind. No application server in production.
 - The people view is chosen by zoom: firelight far out, Units (bands, villages, herding camps,
   city glow) for the cells around the viewport closer in. Each populated cell has a way of life
-  (forager / farmer / herder / urban) read from HYDE land use (`footsteps-web/lib/waysOfLife.ts`,
+  (forager / farmer / herder / urban) read from HYDE land use, gated by whether a crop or herd animal had arrived (`lib/domesticatesGate.ts`, from `food/gate.py`) (`footsteps-web/lib/waysOfLife.ts`,
   `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
@@ -34,6 +34,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `layers/fieldsDrape.ts` drapes per elevation tile, `hooks/useLand.ts` reads 5′ HYDE cropland, water distance and the food table): extent modelled, layout imagined.
   See `docs/ops/close-up-scene.md`.
   Dots uses static PMTiles archives and snaps to the nearest built year.
+- `footsteps-web/lib/firstSettlement.ts`: islands HYDE peoples before their first settlers (Iceland, Faroes, Galápagos, Canaries, Madagascar, Hawaii, Caribbean...) are left empty before a cited year (`gridDataFrom`). Research 0015.
 - `footstep-generator/grid_image.py`: HYDE density → people per cell → one ~1 MB
   lossless WebP per year in `data/tiles/grid/`. Browser decoding is in
   `footsteps-web/components/footsteps/hooks/useGridLayer.ts`.
@@ -67,7 +68,7 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   sign, pidgin, creole, artificial, post-1500 transplanted and ancient written languages dropped) and `fields.languages` in the record for eras 1500-1900 only: a recorded baseline for about 1500 CE, never earlier.
   The hover card shows it from 1500 (`lib/languages.ts`, `hooks/useLanguages.ts`, `GET /api/anthropology?...&fill=0` which skips the model). D-PLACE societies carry their `glottocode`. See `docs/ops/languages.md`, research 0007.
   Steps 2-3: `anthropology/languages_expansions.yaml` (cited colonial and deep-time expansions as 5° boxes; `checked`/`unverified` per row) → `languages_expansions.py` →
-  `footsteps-web/public/languages/expansions.json` (6.6 KB), read by `lib/languageExpansions.ts` for a "Spreading: …" hover line only with `?langs=deep`, never before 3050 BCE (5 ka).
+  `footsteps-web/public/languages/expansions.json` (6.6 KB), read by `lib/languageExpansions.ts` for a "Languages spreading here" hover line only with `?langs=deep`, never before 3050 BCE (5 ka).
 - `footstep-generator/food/`: a cited table of 19 crops and 15 domestic animals (centres, first dates, spread fronts), pooled with the habitat
   tiles' HYDE land use and Krapp biome into `data/food/food.json.gz`: which domesticates were around each 5° cell per HYDE era, plus forager
   staples by biome. A modelled dataset (origins checked against DOIs on 2026-11-19; fronts and the rest say why they were not, see `checked` and `unverified`); read by the hover card only with `?food=1`. See `docs/ops/food.md`, research 0008.
@@ -89,6 +90,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   with `ice_sheets.json`, in `footsteps-web/public/ice/`. A year shows the NEAREST epoch, never interpolated; before 80 ka nothing. Behind `?ice=1` (off until reviewed; `lib/iceSheets.ts`): a white
   overlay with a blue-grey edge over the terrain, an ice surface in the close-up (`close3d.ts withIce`; no surface height), ice patches as extra exclusions in the ranker (`siteRanking.ts`,
   ids 101+ beside past-water epochs; cells all ice are counted `unresolved`), a hover row and a note. `ice.real.test.ts` checks no group on ice 25,000-10,000 BCE. See `docs/ops/ice-sheets.md`.
+- `footstep-generator/holocene_shares.py` → `footsteps-web/lib/holoceneShares.json` (+ `lib/holoceneShares.ts`, applied per cell in `gridDataFrom`, on by default):
+  one multiplier per continent box per year, 13,000-4,000 BCE. HYDE 3.5's 10,000 BCE continental split is a shrunken modern one (Africa 5%, the just-settled
+  Americas 51%), so the blend from the pre-HYDE model drained Africa into the Americas; the table sets each continent's total to the forager model's share,
+  fading to HYDE's by 3000 BCE (West Asia keeps HYDE's). Cell pattern inside a continent and the world total are unchanged. Modelled. See research 0016.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE, served at `/grid/adjusted/`. Read by the grid pipeline
   only with `?spread=1` (`lib/adjustedSpread.ts`, off until reviewed), labelled "Adjusted spread (modelled on HYDE)"; Dots says it is not applied.
@@ -157,7 +162,7 @@ Run checks appropriate to changed files before committing:
 - Documentation/configuration: `git diff --check`; validate TOML/config syntax.
 - Frontend: `pnpm --dir footsteps-web lint`,
   `pnpm --dir footsteps-web exec tsc --noEmit`,
-  `pnpm --dir footsteps-web test --runInBand` (no `--`: pnpm passes it to jest as a test pattern and finds no tests).
+  `pnpm --dir footsteps-web test -- --runInBand`.
 - Static-export changes: `pnpm --dir footsteps-web build`.
 - Python processing: `poetry run pytest footstep-generator/tests/ -q`.
 - Deployment/data changes: `scripts/smoke.sh [base-url]` against the intended server.
@@ -168,6 +173,15 @@ PRs touching `footsteps-web/` get a preview at `https://pr-<number>.footsteps.pa
 choices for Will to judge puts that link (with a starting view) and a short "What to judge" note in its description (`.github/pull_request_template.md`).
 Keep WebP encoding/decoding constants (`LEVELS`, `MAX_PEOPLE`) in sync. Units positions within cells are
 invented, stable representations, not measured settlement locations.
+
+## Ways of working
+
+- **Code style:** no magic numbers (named constants, each with its source), clear names, generous spacing.
+- **Feature flags** are a short staging step toward a full, default-on feature, not a permanent opt-in (`docs/ops/flags.md`).
+- **Merging:** clear bug and data fixes merge once CI is green. Design and UX PRs wait for Will, with the preview link and a
+  "What to judge" note (see Verification).
+- **Direction:** realism up close, short text with icons, no uncertainty drawn by default, and the open questions are in
+  `docs/philosophy/vision.md`.
 
 ## Documentation and configuration
 

@@ -276,7 +276,12 @@ function FootstepsVizInner({ time, onLoadingChange, onTimeChange }: FootstepsViz
   const shadedBackground = useMemo(() => {
     const nightSun = nightOn ? sunPosition(now) : null;
     const props = { extensions: [NIGHT], nightSun };
-    return backgroundLayers.map(layer => layer.clone((light && layer.id === 'close3d' ? { ...props, light, groundTop: lift } : props) as typeof props));
+    return backgroundLayers.map((layer) => {
+      if (light && layer.id === 'close3d') return layer.clone({ ...props, light, groundTop: lift } as typeof props);
+      // Keep a layer's own extensions (the flat backdrop's SkyTint under the close-up) beside the night shading, and give it the light.
+      const own = (layer.props.extensions ?? []).filter((e) => e !== NIGHT);
+      return layer.clone({ ...props, extensions: [NIGHT, ...own], ...(light && own.length ? { skyLight: light } : {}) } as typeof props);
+    });
   }, [backgroundLayers, nightOn, now, light, lift]);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({

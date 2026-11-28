@@ -156,4 +156,4 @@ which are not in git. `SKIP_TILES=1` skips PMTiles only.
 
 ## Opt-in hearth smoke and firelight
 
-- `?smoke=1` (`lib/hearths.ts`, `layers/SmokeLayer.ts`, `hooks/useSmokeLayer.ts`): one hearth per household in view (same places as `?shelters=1` dwellings, from `useGridLayer`'s `hearths`), a GPU-animated smoke plume and, by the local sun clock, a flickering pool of light. Drawn at z = 0 like the people, top-level (not inside a Close3D tile); `lib/groundHeights.ts` only drops hearths over water. `scripts/smoke-shots.mjs` takes the proof shots. See `docs/ops/close-up-scene.md`.
+- `?smoke=1` (`lib/hearths.ts`, `layers/SmokeLayer.ts`, `hooks/useSmokeLayer.ts`): one hearth per household in view (same places as `?shelters=1` dwellings, from `useGridLayer`'s `hearths`), a GPU-animated smoke plume and, by the local sun clock, a flickering pool of light. Top-level (not inside a Close3D tile); in the close-up the hearths, like the people, stand on the drawn ground (`drawnGroundZ` in `lib/groundHeights.ts`, which also drops hearths over water). `scripts/smoke-shots.mjs` takes the proof shots. See `docs/ops/close-up-scene.md`.

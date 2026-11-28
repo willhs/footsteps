@@ -163,7 +163,7 @@ Off by default until Will has looked at it on prod; no default flips. Works with
 1. **Cloud shadows**: soft patches (noise lattice ~1.1 km, coarsened to 3 pixels like the other patterns) that darken and cool the ground, over land and
    water alike, drifting along the wind. The more of them, the cloudier the place.
 2. **Wind in the grass**: grass, reeds and crops (the green axis of `Cover`, open or wet, thinned by tree cover) brighten and dim as gusts
-   travel through (patches ~90 m and up), and close in (zoom 15 and nearer, where a pixel is under ~1.5 m) ripples 13 m apart run with the wind inside the gusts.
+   travel through (patches ~90 m and up). Close-in ripples 13 m apart used to run with the wind inside the gusts. They were removed on 2026-11-28 because at zoom 16 they read as stripes sliding across the screen.
    There is no crop class in `Cover`: crops are the era image's farmland colour on the grass axis, so they sway like grass.
 
 **Data shape** (`lib/weather.ts`, tested in `weather.test.ts`):

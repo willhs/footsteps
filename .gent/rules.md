@@ -164,6 +164,8 @@ Run checks appropriate to changed files before committing:
   Server health alone does not prove population data is present or the globe renders.
 
 For visual changes, use browser checks with real data across Units, Grid, and Dots.
+PRs touching `footsteps-web/` get a preview at `https://pr-<number>.footsteps.pages.dev` (`docs/ops/previews.md`). A PR with design or UX
+choices for Will to judge puts that link (with a starting view) and a short "What to judge" note in its description (`.github/pull_request_template.md`).
 Keep WebP encoding/decoding constants (`LEVELS`, `MAX_PEOPLE`) in sync. Units positions within cells are
 invented, stable representations, not measured settlement locations.
 

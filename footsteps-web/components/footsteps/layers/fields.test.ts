@@ -296,3 +296,20 @@ describe('tileLandKey', () => {
     expect(tileLandKey([inside[0]], bbox)).not.toBe(key);
   });
 });
+
+test('a big field on bumpy ground stands clear of every ground vertex under each of its pieces', () => {
+  // Gentle bumps (under the terracing slope) a few cells across; a field 0.03° wide spans about 38 ground cells each way, more than the cuts.
+  const height = (x: number, y: number) => 100 + 4 * Math.sin(x / 3) * Math.cos(y / 4);
+  const land = drapeLand(tile(height), bbox, 12, [square(31.05, 30.05, 0.015)], 0);
+  const m = land.solid!;
+  const last = 256 / MESH_STEP;
+  for (let t = 0; t < m.indices.length; t += 3) {
+    const v = [0, 1, 2].map((k) => m.indices[t + k]);
+    const fx = v.map((i) => (m.positions[i * 3] / 0.1) * last);
+    const fy = v.map((i) => ((0.1 - m.positions[i * 3 + 1]) / 0.1) * last);
+    const zMin = Math.min(...v.map((i) => m.positions[i * 3 + 2]));
+    for (let j = Math.ceil(Math.min(...fy)); j <= Math.floor(Math.max(...fy)); j++)
+      for (let i = Math.ceil(Math.min(...fx)); i <= Math.floor(Math.max(...fx)); i++)
+        expect(height(Math.min(255, i * MESH_STEP), Math.min(255, j * MESH_STEP)) * 1.6).toBeLessThanOrEqual(zMin + 1e-3);
+  }
+});

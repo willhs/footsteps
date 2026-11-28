@@ -301,4 +301,15 @@ ANIMALS: tuple[Taxon, ...] = (
         claim(0.5, R.EASTERN_NA, F, "turkey: Eastern Woodlands, wild turkeys used; domestic only locally ~0.5 ka; recalled, low confidence"),
         claim(0.45, R.EUROPE_ALL, H, "turkey to Spain in the 1520s CE, widespread in Europe by 1550s; recalled"),
     ), ""),
+
+    Taxon("reindeer", "Reindeer", "animal", "livestock", "Arctic Siberia (lower Ob, Yamal); Fennoscandia separately", (
+        claim(2.0, (60, 75, 63, 70), D, "Losey et al. 2021 J Archaeol Method Theory 28:197 doi:10.1007/s10816-020-09455-w: reindeer harness parts (bridle cheekpieces) and draught-worn bones at Ust'-Polui on the lower Ob, ~2,000 years old, the earliest firm sign of domestic reindeer", origin=True,
+              unverified="the ~2 ka date is read from the University of Alberta's summary of the paper (Folio, June 2020), not the paper's text"),
+        claim(1.5, (88, 120, 48, 58), F, "reindeer: riding and pack reindeer among Sayan and Baikal peoples (Tofa, Tuvan Todzha, Evenki ancestors) in the first millennium CE; recalled, low confidence"),
+        claim(1.1, R.N_FENNOSCANDIA, H, "reindeer: Ohthere (Ottar) of Halogaland told King Alfred, c. 890 CE, that he kept 600 tame reindeer; small tame herds, not yet large-scale herding; recalled"),
+        claim(1.0, (105, 150, 58, 73), F, "reindeer: Tungus (Evenki, Even) riding reindeer across Yakutia and the Okhotsk coast by ~1 ka; recalled, low confidence"),
+        claim(0.3, (43, 115, 63, 77), H, "reindeer: large-scale tundra pastoralism among the Nenets and their neighbours, and Dolgan herding on Taymyr, from the 18th century (Krupnik 1993, Arctic Adaptations); recalled"),
+        claim(0.3, (150, 180, 58, 70), H, "reindeer: large Chukchi and Koryak herds from the 17th-18th centuries; recalled"),
+        claim(0.06, (-170, -140, 59, 72), H, "reindeer brought from Chukotka to Alaska in 1892 (Sheldon Jackson's programme); recalled"),
+    ), "Reindeer were kept in small numbers for riding, pack and decoys long before the large herds of the last three centuries; this table says only when they were kept at all."),
 )

@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "footsteps-web" / "lib" / "domesticatesGate.json"
 
 # Animals kept in herds on grazing land. Not dogs (companions), pigs, guinea pigs or poultry, which are kept round the house.
-HERD_IDS = {"sheep", "goat", "cattle", "zebu", "horse", "donkey", "dromedary", "bactrian", "llama", "water_buffalo"}
+HERD_IDS = {"sheep", "goat", "cattle", "zebu", "horse", "donkey", "dromedary", "bactrian", "llama", "water_buffalo", "reindeer"}
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"
 NONE = "."
 

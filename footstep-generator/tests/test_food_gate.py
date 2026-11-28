@@ -30,3 +30,16 @@ def test_first_era_examples():
     # Fertile Crescent: both by 8000 BCE.
     assert gate.ERAS[gate.first_era(crops, 38, 36)] <= -8000
     assert gate.ERAS[gate.first_era(herds, 38, 36)] <= -8000
+
+
+def test_reindeer_make_the_arctic_herding_country_only_once_they_were_kept():
+    herds = [t for t in gate.ANIMALS if t.id in gate.HERD_IDS]
+    # Yamal (lower Ob): harnessed reindeer at Ust'-Polui ~2 ka, so herding is possible from the turn of the era, not before.
+    first = gate.ERAS[gate.first_era(herds, 70, 67)]
+    assert -500 < first <= 100
+    # The Chukchi tundra: large herds from the 17th-18th centuries.
+    assert gate.ERAS[gate.first_era(herds, 170, 66)] >= 1600
+    # Taymyr: Dolgan herds from the 18th century.
+    assert gate.ERAS[gate.first_era(herds, 100, 72)] >= 1700
+    # North Greenland: never reindeer herding, nor any other herd animal.
+    assert gate.first_era(herds, -45, 76) is None

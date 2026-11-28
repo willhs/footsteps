@@ -63,3 +63,11 @@ Past water had no Lake Texcoco, so at 1400 the Valley of Mexico's towns stood on
 basin floor from Texcoco on the same smoothed DEM as Mega-Chad, at a level calibrated to the lakes' area (1,598 km²), from
 2050 BCE to 1600 CE; Tenochtitlan's island is kept dry, and only the fresh southern lakes (Xochimilco, Chalco) count as
 fresh water. See docs/ops/past-water.md.
+
+## [2026-11-28] add | Reindeer in the food table, and as herd animals in the Arctic
+
+The food table had no reindeer, so Arctic Eurasia could never have herders and its card listed none. `food/animals.py` adds
+them, dated: harnessed reindeer at Ust'-Polui on the lower Ob ~2 ka (Losey et al. 2021), riding reindeer round the Sayan in
+the first millennium CE, Ohthere's tame herd c. 890 CE, and the large tundra herds of the Nenets, Dolgan, Chukchi and Koryak
+from the 17th-18th centuries. They count in the herding gate (`domesticatesGate.json`, regenerated). The hover card's food
+list (`public/food/food.json`, built from data on budgie) shows them once `food/build.py` and `export_web.py` are re-run there.

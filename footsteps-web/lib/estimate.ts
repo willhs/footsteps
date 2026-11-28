@@ -7,6 +7,7 @@ import series from '../public/climate_series.json';
 import { unsettledAt } from './firstSettlement';
 import { FIRST_CITIES, citiesBy } from './firstCities';
 import { MISSING_ISLANDS, islandPeopleAt } from './missingIslands';
+import { REGION_TOTALS, inRegion, regionWeightAt } from './regionTotals';
 import { HYDE_MIN, dataStatus, calendarLabel, populationRangeAt, populationRangeLabel, populationLabel } from './time';
 import type { IconName } from './icons';
 
@@ -283,6 +284,11 @@ export function correctionsAt(lon: number, lat: number, time: number): PlaceCave
     const near = island.centres.some(([x, y]) => Math.hypot(x - lon, y - lat) <= island.radiusDeg * 3);
     const people = near ? islandPeopleAt(island, time) : 0;
     if (people > 0) out.push({ text: `Added: HYDE has no one on ${island.name}; ~${Math.round(people).toLocaleString('en-US')} from the literature.`, source: island.source });
+  }
+  for (const region of REGION_TOTALS) {
+    if (inRegion(region, lon, lat) && regionWeightAt(region, time) > 0) {
+      out.push({ text: `Raised: HYDE has ${region.name} flat; moved toward ~${Math.round(region.targetPeople / 1000).toLocaleString('en-US')},000 by contact.`, source: region.source });
+    }
   }
   return out;
 }

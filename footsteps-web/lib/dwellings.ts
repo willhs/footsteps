@@ -10,11 +10,6 @@
 // Pure helpers only; the instanced meshes are in layers/shelters.ts and the drawing in layers/Close3DLayer.ts.
 import { UnitKind } from '@/components/footsteps/layers/units';
 
-/** Off by default until reviewed on prod: `?shelters=1` draws dwellings in the close-up. */
-export function sheltersParam(search: string): boolean {
-  return new URLSearchParams(search).get('shelters') !== '0';
-}
-
 export type DwellingCodes = { plan: number | null; walls: number | null; roof: number | null };
 export type DwellingSociety = DwellingCodes & { id: string; name: string; year: number | null };
 export type DwellingFile = {

@@ -30,3 +30,9 @@ export const CloseIcon = () => (
     <path d="M6 6l12 12M18 6 6 18" />
   </svg>
 );
+
+export const ExpandIcon = () => (
+  <svg {...base} width={12} height={12} strokeWidth={2}>
+    <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+  </svg>
+);

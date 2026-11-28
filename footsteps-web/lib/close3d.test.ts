@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 import {
   farMultiplier,
   fitSlope,
@@ -10,9 +11,7 @@ import {
   MESH_STEP,
   buildTerrainMesh,
   close3dNote,
-  close3dParam,
   coverFor,
-  groundParam,
   openWater,
   groundColour,
   pitchForZoom,
@@ -37,9 +36,9 @@ const heightsOf = (f: (x: number, y: number) => number) => {
 };
 
 test('the flag and the tilt', () => {
-  expect(close3dParam('')).toBe(true);
-  expect(close3dParam('?close3d=1')).toBe(true);
-  expect(close3dParam('?close3d=0')).toBe(false);
+  expect(flags('').enabled('close3d')).toBe(true);
+  expect(flags('?close3d=1').enabled('close3d')).toBe(true);
+  expect(flags('?close3d=0').enabled('close3d')).toBe(false);
   expect(pitchForZoom(6)).toBe(0);
   expect(pitchForZoom(8)).toBe(0);
   expect(pitchForZoom(12)).toBe(CLOSE3D_PITCH);
@@ -177,12 +176,6 @@ test('open water: patches reaching the edge or big enough; specks are not', () =
   const water = openWater(below, n);
   expect(water[10 * n + 10]).toBe(0);
   expect(water[5 * n]).toBe(1);
-});
-
-test('ground detail is on unless ?ground=0', () => {
-  expect(groundParam('')).toBe(true);
-  expect(groundParam('?year=-3000&ground=1')).toBe(true);
-  expect(groundParam('?ground=0')).toBe(false);
 });
 
 test('cover follows the biome: forest crowns, grass, sand, ice', () => {

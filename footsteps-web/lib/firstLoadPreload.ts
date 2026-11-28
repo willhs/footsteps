@@ -1,6 +1,8 @@
 // The images the first view waits for, started with the HTML instead of after the scripts (docs/ops/first-load.md).
 // app/layout.tsx inlines `firstLoadUrls` and `bracketIn` (lib/time.ts) in the page head as source text, so both must be
 // self-contained: no imports or outside names inside them. The tables they need are passed in as JSON.
+import { FLAGS } from './flagRegistry';
+import { flags, parseFlags, type FlagSnapshot } from './flags';
 import { DEFAULT_TIME, PEOPLE_YEARS, TARGET_YEARS, TERRAIN_VERSION, TERRAIN_YEARS } from './constants';
 import { ADJUSTED_SPREAD_YEARS, ADJUSTED_VERSION } from './adjustedSpread';
 import { PAST_WATER_SCENARIOS } from './pastWater';
@@ -46,12 +48,13 @@ export function firstLoadUrls(
   search: string,
   t: PreloadTables,
   bracket: (years: readonly number[], time: number) => { y0: number; y1: number },
+  readFlags: (search: string) => FlagSnapshot = flags,
 ): string[] {
-  const q = new URLSearchParams(search);
-  if (q.get('mode') === 'dots') return [];
-  const spread = q.get('spread') !== '0';
-  const pastWater = q.get('pastwater') !== '0';
-  const asked = Number(q.get('year') ?? NaN); // as app/page.tsx reads it
+  const q = readFlags(search);
+  if (q.value('mode') === 'dots') return [];
+  const spread = q.enabled('spread');
+  const pastWater = q.enabled('pastwater');
+  const asked = Number(q.value('year') ?? NaN); // as app/page.tsx reads it
   const time = Number.isFinite(asked) ? Math.min(t.timeMax, Math.max(t.timeMin, asked)) : t.defaultTime;
   const people = bracket(t.peopleYears, time);
   const earth = bracket(t.terrainYears, time);
@@ -69,5 +72,5 @@ export function firstLoadUrls(
 
 /** The inline head script: adds a `<link rel=preload as=fetch>` per image (the app reads them with `fetch`), the Earth at high priority. */
 export function preloadScript(): string {
-  return `try{(${firstLoadUrls.toString()})(location.search,${JSON.stringify(PRELOAD_TABLES)},${bracketIn.toString()}).forEach(function(u){var l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';if(u.indexOf('/terrain/')===0)l.setAttribute('fetchpriority','high');l.href=u;document.head.appendChild(l)})}catch(e){}`;
+  return `try{window.__footstepsFlags=(${parseFlags.toString()})(location.search,${JSON.stringify(FLAGS)});(${firstLoadUrls.toString()})('',${JSON.stringify(PRELOAD_TABLES)},${bracketIn.toString()},function(){return window.__footstepsFlags;}).forEach(function(u){var l=document.createElement('link');l.rel='preload';l.as='fetch';l.crossOrigin='anonymous';if(u.indexOf('/terrain/')===0)l.setAttribute('fetchpriority','high');l.href=u;document.head.appendChild(l)})}catch(e){}`;
 }

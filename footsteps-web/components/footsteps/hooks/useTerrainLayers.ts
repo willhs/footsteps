@@ -1,7 +1,9 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import { biomeCorrectionKey, withBiomeCorrections } from '@/lib/biomeNotes';
-import { riversParam } from '@/lib/rivers';
+
 import { useEffect, useMemo, useState } from 'react';
 import { lazy, useLazy } from '@/lib/lazyModule';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
@@ -13,10 +15,9 @@ import TerrainReliefLayer, { TERRAIN_DESATURATE, TERRAIN_TINT } from '../layers/
 import { makeGround } from '@/lib/eraGround';
 import { habitatStep, habitatUrl } from '@/lib/habitat';
 import { loadLookup } from '@/lib/habitatImages';
-import { groundParam, treesParam } from '@/lib/close3d';
-import { weatherParam } from '@/lib/weather';
-import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterParam, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
-import { iceBounds, iceEpochAt, iceOverlayPixels, iceParam, iceShareAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
+
+import { lakePlaneFor, loadPastWater, pastWaterEpochs, pastWaterTerrainYear, type PastWaterLayers } from '@/lib/pastWater';
+import { iceBounds, iceEpochAt, iceOverlayPixels, iceShareAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
 import {
   DETAIL_REF_URL,
   loadDetailManifest,
@@ -25,7 +26,6 @@ import {
   recolour,
   sampleDetail,
   WEIGHT_TAP_PX,
-  terrainTilesParam,
   type DetailManifest,
   type DetailPixels,
 } from '@/lib/terrainDetail';
@@ -40,9 +40,9 @@ const DETAIL_MODULE = lazy(() => import('../layers/TerrainDetailLayer'));
 // upper one at opacity f: an exact cross-fade, no shader needed.
 // TERRAIN_VERSION (lib/constants.ts) busts Cloudflare's day-long cache when the images are regenerated.
 // `?pastwater=1`: the years the past-water scenarios repaint come from /terrain/pastwater/ (terrain_image.py --pastwater); the flag is fixed for the page load.
-const pastWaterOn = () => typeof window !== 'undefined' && pastWaterParam(window.location.search);
+const pastWaterOn = () => typeof window !== 'undefined' && flags().enabled('pastwater');
 // `?ice=1`: the dated ice sheets (lib/iceSheets.ts) as their own layer over the flat terrain and as ice in the close-up ground.
-const iceOn = () => typeof window !== 'undefined' && iceParam(window.location.search);
+const iceOn = () => typeof window !== 'undefined' && flags().enabled('ice');
 /** The overlay picture of each ice patch, made once per patch (id) from its mask. */
 const iceBitmaps = new Map<number, Promise<ImageBitmap>>();
 function iceBitmap(m: IceMask): Promise<ImageBitmap> {
@@ -229,7 +229,7 @@ export default function useTerrainLayers(time: number, close3d = false): Layer[]
   // The colour pyramid (lib/terrainDetail.ts): only with ?terrain_tiles=1 (off until reviewed). Read after mount (static export).
   const [detail, setDetail] = useState<DetailSource | null>(null);
   useEffect(() => {
-    if (!terrainTilesParam(window.location.search)) return;
+    if (!flags().enabled('terrain_tiles')) return;
     let live = true;
     loadDetailSource()
       .then((d) => live && setDetail(d))
@@ -258,7 +258,7 @@ export default function useTerrainLayers(time: number, close3d = false): Layer[]
   useEffect(() => {
     // The modern coastline (Natural Earth 110m) is off: its long straight segments read as solid lines close in,
     // and in the Ice Age it sits inland. `?coast=1` draws it.
-    if (new URLSearchParams(window.location.search).get('coast') === '1') loadCoastline().then(setCoast);
+    if (flags().enabled('coast')) loadCoastline().then(setCoast);
   }, []);
 
   // Blend weight quantised so the 3D ground is rebuilt at most ~20 times across a terrain step.
@@ -345,7 +345,7 @@ export default function useTerrainLayers(time: number, close3d = false): Layer[]
     // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
     if (!close3dModule) return layers;
     const Close3DLayer = close3dModule.default;
-    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, trees: typeof window !== 'undefined' && treesParam(window.location.search), rivers: typeof window === 'undefined' || riversParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
+    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && flags().enabled('terrain_tiles'), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, trees: typeof window !== 'undefined' && flags().enabled('trees'), rivers: typeof window === 'undefined' || flags().enabled('rivers'), detail: typeof window !== 'undefined' && flags().enabled('ground'), weather: typeof window !== 'undefined' && flags().enabled('weather') }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 export interface ViewState {
   longitude: number;
   latitude: number;
@@ -19,14 +20,14 @@ export interface ViewState {
  * @param search The query string portion of a URL (e.g. `window.location.search`).
  * @returns Initial view state derived from the query string.
  */
-export default function parseInitialViewState(search = ''): ViewState {
+export default function parseInitialViewState(search?: string): ViewState {
   try {
-    const sp = new URLSearchParams(search);
+    const sp = flags(search);
     
     // Parse parameters only if they exist, otherwise use undefined to trigger defaults
-    const latParam = sp.get('lat');
-    const lonParam = sp.get('lon') || sp.get('lng');
-    const zoomParam = sp.get('zoom') || sp.get('z');
+    const latParam = sp.value('lat');
+    const lonParam = sp.value('lon') || sp.value('lng');
+    const zoomParam = sp.value('zoom') || sp.value('z');
     
     // Coerce to numbers, using NaN when absent so Number.isFinite checks work and types stay number
     const lat = latParam !== null ? Number(latParam) : Number.NaN;

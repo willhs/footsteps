@@ -33,11 +33,6 @@ export type ScenarioMeta = {
 export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson, texcocoJson] as unknown as ScenarioMeta[];
 const EPOCHS: readonly { scenario: ScenarioMeta; epoch: EpochMeta }[] = PAST_WATER_SCENARIOS.flatMap((scenario) => scenario.epochs.map((epoch) => ({ scenario, epoch })));
 
-/** `?pastwater=1` turns the scenarios on. Read once per page load by the page and the grid worker. */
-export function pastWaterParam(search: string): boolean {
-  return new URLSearchParams(search).get('pastwater') !== '0';
-}
-
 /** No epoch: the scenarios say nothing about this cell at this date. That is "geography unknown", never "dry". */
 export const NO_EPOCH = 0;
 /** The epochs holding at a year (ids); empty when no scenario says anything then. */
@@ -204,6 +199,16 @@ export function lakePlaneFor(layers: PastWaterLayers | null, year: number, seaLe
       return null;
     },
   };
+}
+
+/** Whether a point is in the past water of a year (any active epoch's 2.5′ mask, the same share rule as the groups' exclusion), or null
+ * when no epoch holds then. For marks drawn straight from the grid (the far-out firelight), which the settlement model does not place. */
+export function pastWaterWetAt(layers: PastWaterLayers | null, year: number): ((lon: number, lat: number) => boolean) | null {
+  if (!layers) return null;
+  const ids = pastWaterEpochs(year);
+  const active = layers.epochs.filter((e) => ids.includes(e.id));
+  if (!active.length) return null;
+  return (lon, lat) => active.some((e) => lakeShareAt(e.lake, lon, lat) >= 0.5);
 }
 
 export type PeopleMode = 'units' | 'grid' | 'dots';

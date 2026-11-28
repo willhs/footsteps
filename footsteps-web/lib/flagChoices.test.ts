@@ -1,5 +1,6 @@
-import { FLAG_CHOICES_KEY, MENU_FLAGS, applyFlagChoices, flagChoicesScript, flagOn, readChoices, rememberChoice, withFlag } from './flagChoices';
-import { FLAGS } from '../scripts/flags-lib.mjs';
+import { FLAG_CHOICES_KEY, MENU_FLAGS, applyFlagChoices, flagChoicesScript, readChoices, rememberChoice, withFlag } from './flagChoices';
+import { FLAGS } from './flagRegistry';
+import { flags } from './flags';
 
 const memory = () => {
   const data = new Map<string, string>();
@@ -10,15 +11,15 @@ const humans = MENU_FLAGS.find((f) => f.name === 'humans')!;
 
 describe('flag choices', () => {
   it('every menu feature is a registered flag with the same value', () => {
-    const registry = new Map((FLAGS as { name: string; on: string }[]).map((f) => [f.name, f.on]));
+    const registry = new Map(FLAGS.map((f) => [f.name, 'on' in f ? f.on : undefined]));
     for (const f of MENU_FLAGS) expect(registry.get(f.name)).toBe(f.on);
   });
 
   it('reads on and off from the URL, including features on by default', () => {
-    expect(flagOn(sky, '')).toBe(true);
-    expect(flagOn(sky, '?sky=0')).toBe(false);
-    expect(flagOn(humans, '')).toBe(true);
-    expect(flagOn(humans, '?humans=0')).toBe(false);
+    expect(flags('').enabled('sky')).toBe(true);
+    expect(flags('?sky=0').enabled('sky')).toBe(false);
+    expect(flags('').enabled('humans')).toBe(true);
+    expect(flags('?humans=0').enabled('humans')).toBe(false);
     expect(withFlag(new URL('https://x/?a=1'), sky, false).search).toBe('?a=1&sky=0');
     expect(withFlag(new URL('https://x/?sky=0'), sky, true).search).toBe('');
     expect(withFlag(new URL('https://x/'), humans, false).search).toBe('?humans=0');

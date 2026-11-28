@@ -9,11 +9,6 @@ import { groupSeed } from './people';
 import { nominalPeople, townRadius, townRoofs, type TownInView } from './shelters';
 import { UnitKind } from './units';
 
-/** Off by default until Will has looked at it on prod: `?fields=1` draws fields, gardens and paths in the close-up. */
-export function fieldsParam(search: string): boolean {
-  return new URLSearchParams(search).get('fields') !== '0';
-}
-
 type Rgb = [number, number, number];
 export type Corner = [number, number];
 

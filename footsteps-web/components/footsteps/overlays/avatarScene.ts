@@ -36,6 +36,7 @@ import {
 } from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { AvatarSpec } from '@/lib/avatarSpec';
 import { LOOPS, workPose, workWeight } from '@/lib/avatarWork';
@@ -49,6 +50,35 @@ const SHADE_MAX = 1.5;
 /** The adult bodies are about this tall (m) in the bind pose. */
 const BODY_M = 1.8;
 const FRAME_MS = 1000 / 30;
+
+/**
+ * Orbit view limits. The camera circles the figure; these keep it framed and above ground.
+ * Distances are in metres from the point looked at; angles in radians from straight up.
+ */
+const ORBIT = {
+  /** Close enough to fill the view with a face (an adult head is about 0.23 m tall). */
+  minDistance: 0.55,
+  /** Times the starting (full-figure) distance: a little room around the whole person. */
+  maxDistanceScale: 1.35,
+  /** From above, never straight down onto the head. */
+  minPolarAngle: 0.35,
+  /** From a little below eye level, never under the ground. */
+  maxPolarAngle: Math.PI / 2 + 0.08,
+  /** The point looked at stays on the person: within this many metres sideways of them... */
+  targetSideM: 0.6,
+  /** ...and between the ankles and just above the head. */
+  targetMinY: 0.1,
+  targetMaxY: BODY_M + 0.1,
+  /** Coast after letting go (three's OrbitControls damping, per update at 30 fps). */
+  damping: 0.12,
+  /** The canvas is small: a full drag across it turns the view about one full turn. */
+  rotateSpeed: 0.9,
+  zoomSpeed: 1.1,
+  panSpeed: 0.8,
+} as const;
+
+/** The view starts three-quarter on: the camera this far round the figure (radians). */
+const START_AZIMUTH = 0.35;
 
 export const AVATAR_REQUESTED = 'footsteps:avatar-requested';
 export const AVATAR_FIRST_FRAME = 'footsteps:avatar-first-frame';
@@ -245,8 +275,8 @@ export type AvatarView = {
 };
 
 /**
- * Draws `spec` into `canvas` until disposed. `still`: one fixed frame (no idle, no glances), redrawn only when dragged.
- * Drag (pointer) turns the figure; it never turns by itself.
+ * Draws `spec` into `canvas` until disposed. `still`: one fixed frame (no idle, no glances), redrawn only on input.
+ * Orbit controls move the camera round the figure; it never moves by itself. The canvas may be resized: the view follows.
  */
 export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still, stillAt = STILL_SECONDS }: { still: boolean; stillAt?: number }): AvatarView {
   const t0 = performance.now();
@@ -278,14 +308,21 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
   rim.position.set(1.6, 1.8, -2.2);
   scene.add(rim);
 
-  const camera = new PerspectiveCamera(24, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.1, 20);
+  // Lights keep their place relative to the viewer as the camera circles, so every side is lit like the front.
+  const lightOffsets = [
+    [key, key.position.clone()],
+    [rim, rim.position.clone()],
+  ] as const;
+
+  const camera = new PerspectiveCamera(24, canvas.clientWidth / Math.max(1, canvas.clientHeight), 0.05, 20);
   // Framed for an adult whatever the age, so a child stands smaller in the card than a grown-up does.
   const fitDist = (BODY_M * 0.58) / Math.tan((camera.fov * Math.PI) / 360);
-  camera.position.set(0, BODY_M * 0.62, fitDist);
-  camera.lookAt(0, BODY_M * 0.5, 0);
+  const startTarget = new Vector3(0, BODY_M * 0.5, 0);
+  const startOffset = new Vector3(0, BODY_M * 0.12, fitDist).applyAxisAngle(Y, START_AZIMUTH);
+  camera.position.copy(startTarget).add(startOffset);
+  camera.lookAt(startTarget);
 
-  const figure = new Group(); // the person stands in this; drag turns it
-  figure.rotation.y = -0.35; // a three-quarter view to begin with
+  const figure = new Group(); // the person stands in this
   scene.add(figure);
   const shadow = blobShadow();
   shadow.scale.set(0.9 * spec.height, 0.6 * spec.height, 1);
@@ -296,33 +333,60 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
   let clipSeconds = 1;
   const disposables: { dispose: () => void }[] = [];
 
-  // Drag to turn, with a little coast after letting go; nothing turns it otherwise.
-  let dragging = false;
-  let lastX = 0;
-  let spin = 0;
-  const onDown = (e: PointerEvent) => {
-    dragging = true;
-    lastX = e.clientX;
-    spin = 0;
-    canvas.setPointerCapture(e.pointerId);
+  // Orbit view: drag to circle the person, scroll or pinch to zoom (towards the cursor), right-drag or two fingers to
+  // move, double-click to reset. Nothing moves it otherwise. Events stop at the canvas, so the map and the card under
+  // it never see them.
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.copy(startTarget);
+  controls.minDistance = ORBIT.minDistance;
+  controls.maxDistance = fitDist * ORBIT.maxDistanceScale;
+  controls.minPolarAngle = ORBIT.minPolarAngle;
+  controls.maxPolarAngle = ORBIT.maxPolarAngle;
+  controls.rotateSpeed = ORBIT.rotateSpeed;
+  controls.zoomSpeed = ORBIT.zoomSpeed;
+  controls.panSpeed = ORBIT.panSpeed;
+  controls.zoomToCursor = true;
+  controls.screenSpacePanning = true;
+  // A still frame redraws only on input, so no coast to finish there.
+  controls.enableDamping = !still;
+  controls.dampingFactor = ORBIT.damping;
+  controls.update();
+  controls.saveState();
+
+  const keepOnPerson = () => {
+    const t = controls.target;
+    const side = Math.hypot(t.x, t.z);
+    if (side > ORBIT.targetSideM) t.multiplyScalar(ORBIT.targetSideM / side).setY(controls.target.y);
+    t.y = Math.min(ORBIT.targetMaxY, Math.max(ORBIT.targetMinY, t.y));
   };
-  const onMove = (e: PointerEvent) => {
-    if (!dragging) return;
-    const dx = e.clientX - lastX;
-    lastX = e.clientX;
-    figure.rotation.y += dx * 0.012;
-    spin = dx * 0.012;
+  const placeLights = () => {
+    const azimuth = controls.getAzimuthalAngle();
+    for (const [light, offset] of lightOffsets) light.position.copy(offset).applyAxisAngle(Y, azimuth);
+  };
+  const onChange = () => {
+    keepOnPerson();
+    placeLights();
+    if (!mixer) return; // nothing to draw until the figure is built
     if (still) draw(performance.now());
+    else wake();
   };
-  const onUp = (e: PointerEvent) => {
-    dragging = false;
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (still) spin = 0;
-  };
-  canvas.addEventListener('pointerdown', onDown);
-  canvas.addEventListener('pointermove', onMove);
-  canvas.addEventListener('pointerup', onUp);
-  canvas.addEventListener('pointercancel', onUp);
+  const resetView = () => controls.reset();
+  const stopHere = (e: Event) => e.stopPropagation();
+  controls.addEventListener('change', onChange);
+  canvas.addEventListener('dblclick', resetView);
+  for (const type of ['pointerdown', 'wheel', 'click', 'contextmenu'] as const) canvas.addEventListener(type, stopHere);
+  placeLights();
+
+  // The canvas can change size (the card's figure opened large): keep the drawing sharp and unstretched.
+  const resize = new ResizeObserver(() => {
+    const { clientWidth: w, clientHeight: h } = canvas;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    if (mixer && still) draw(performance.now());
+  });
+  resize.observe(canvas);
 
   const figureQ = new Quaternion();
   let shown = false;
@@ -390,16 +454,12 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
     raf = requestAnimationFrame(frame);
     if (now - last < FRAME_MS - 1) return;
     last = now;
-    if (!dragging && spin) {
-      figure.rotation.y += spin;
-      spin *= 0.9;
-      if (Math.abs(spin) < 1e-4) spin = 0;
-    }
+    controls.update();
     draw(now);
   }
-  const wake = () => {
+  function wake() {
     if (!raf && !disposed && onScreen && !document.hidden && !still && mixer) raf = requestAnimationFrame(frame);
-  };
+  }
   const io = new IntersectionObserver((entries) => {
     onScreen = entries.some((e) => e.isIntersecting);
     wake();
@@ -504,11 +564,12 @@ export function mountAvatar(canvas: HTMLCanvasElement, spec: AvatarSpec, { still
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
       io.disconnect();
+      resize.disconnect();
       document.removeEventListener('visibilitychange', wake);
-      canvas.removeEventListener('pointerdown', onDown);
-      canvas.removeEventListener('pointermove', onMove);
-      canvas.removeEventListener('pointerup', onUp);
-      canvas.removeEventListener('pointercancel', onUp);
+      controls.removeEventListener('change', onChange);
+      controls.dispose();
+      canvas.removeEventListener('dblclick', resetView);
+      for (const type of ['pointerdown', 'wheel', 'click', 'contextmenu'] as const) canvas.removeEventListener(type, stopHere);
       mixer?.stopAllAction();
       for (const d of disposables) d.dispose();
       (shadow.material as MeshBasicMaterial).map?.dispose();

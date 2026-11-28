@@ -1,5 +1,7 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import { useEffect, useState } from 'react';
 import { bracket, clampTime } from '@/lib/time';
 import { DEFAULT_TIME } from '@/lib/constants';
@@ -15,9 +17,9 @@ const TimeNavigator = dynamic(() => import('@/components/ui/TimeNavigator'), { s
 // Start the grid worker on the opening years as soon as this script runs, not after React mounts (docs/ops/first-load.md):
 // the far-out firelight draws from exactly these (usePresenceLayers), and the requests join the head's preloads.
 function warmOpeningYears() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('mode') === 'dots') return;
-  const asked = Number(params.get('year') ?? NaN);
+  const params = flags();
+  if (params.value('mode') === 'dots') return;
+  const asked = Number(params.value('year') ?? NaN);
   const { y0, y1 } = bracket(Number.isFinite(asked) ? clampTime(asked) : DEFAULT_TIME);
   for (const year of new Set([y0, y1])) loadGridData(year).catch(() => {}); // the hooks report failures when they ask again
 }
@@ -33,11 +35,11 @@ export default function Home() {
   const [oldBar, setOldBar] = useState(false);
   // ?year=-6000 opens at that year (deep links, screenshots).
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const y = Number(params.get('year') ?? NaN);
+    const params = flags();
+    const y = Number(params.value('year') ?? NaN);
     if (Number.isFinite(y)) setTime(clampTime(y));
     setStarted(true);
-    setOldBar(params.get('bar') === 'old');
+    setOldBar(params.value('bar') === 'old');
   }, []);
 
   const Bar = oldBar ? TimeNavigator : TimeBar;

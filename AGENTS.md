@@ -157,7 +157,7 @@ Run checks appropriate to changed files before committing:
 - Documentation/configuration: `git diff --check`; validate TOML/config syntax.
 - Frontend: `pnpm --dir footsteps-web lint`,
   `pnpm --dir footsteps-web exec tsc --noEmit`,
-  `pnpm --dir footsteps-web test -- --runInBand`.
+  `pnpm --dir footsteps-web test --runInBand` (no `--`: pnpm passes it to jest as a test pattern and finds no tests).
 - Static-export changes: `pnpm --dir footsteps-web build`.
 - Python processing: `poetry run pytest footstep-generator/tests/ -q`.
 - Deployment/data changes: `scripts/smoke.sh [base-url]` against the intended server.

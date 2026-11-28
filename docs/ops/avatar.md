@@ -172,9 +172,15 @@ WebGL or a file fails.
   stands smaller.
 - The idle clip loops from a per-person phase; every 4-10 s the head glances up to ~30° aside and back (`glanceAt`). The
   pack's rig has no eye bones, so the head turns, not the eyes.
-- Drag turns the figure (with a short coast). It never turns by itself.
+- Orbit view (three's `OrbitControls`, limits in `ORBIT` in `avatarScene.ts`): drag circles the person, scroll or pinch
+  zooms towards the cursor (down to a face), right-drag or two fingers move the view (kept on the person), double-click
+  resets. The camera stays above ground and the lights turn with it, so every side is lit like the front. It never moves
+  by itself. Events stop at the canvas: the map and the card under it never see them, and a drag in the left column's
+  card does not open the person's panel (the card is a stretched button under the content; the figure sits above it).
+- The expand button in the figure's corner opens the same person large over the map (its own canvas, up to 720 px tall);
+  Esc, the close button or a click outside closes it.
 - `?still=1` or `prefers-reduced-motion: reduce`: one fixed frame (the clip at `STILL_SECONDS`, no glances), redrawn only
-  when dragged.
+  on input.
 - Draws at most 30 frames a second, only while the canvas is on screen (IntersectionObserver) and the tab is visible; the
   WebGL context is released when the card closes.
 - Adjustments after the clip (stoop, glances) are undone before each update: three's mixer only rewrites a bone when its

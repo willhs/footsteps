@@ -7,7 +7,6 @@ import {
   parseDwellings,
   recordedHouse,
   shelterSpec,
-  sheltersParam,
   townMix,
   type DwellingFile,
 } from './dwellings';
@@ -26,14 +25,6 @@ const file: DwellingFile = {
 const table = parseDwellings(file);
 const at = (kind: number, year = 1000, lon = 0, lat = 0) => ({ kind, year, lon, lat });
 const codes = (plan: number | null, walls: number | null, roof: number | null) => ({ plan, walls, roof });
-
-describe('?shelters flag', () => {
-  it('is on unless ?shelters=0', () => {
-    expect(sheltersParam('')).toBe(true);
-    expect(sheltersParam('?year=-3000&shelters=1')).toBe(true);
-    expect(sheltersParam('?shelters=0')).toBe(false);
-  });
-});
 
 describe('dwelling type from an analog society (Ethnographic Atlas house codes)', () => {
   const type = (c: ReturnType<typeof codes> | null, kind: number, year = 1000, lon = 0, lat = 0) => {

@@ -1,12 +1,6 @@
 import { pastWaterNote } from './pastWater';
-import { ICE, iceBounds, iceEpochAt, iceHoverRow, iceIds, iceMaskAt, iceNote, iceOverlayPixels, iceParam, iceShareAt, ICE_EDGE, ICE_FILL, type IceMask } from './iceSheets';
+import { ICE, iceBounds, iceEpochAt, iceHoverRow, iceIds, iceMaskAt, iceNote, iceOverlayPixels, iceShareAt, ICE_EDGE, ICE_FILL, type IceMask } from './iceSheets';
 import { PAST_WATER_SCENARIOS } from './pastWater';
-
-test('on unless ?ice=0', () => {
-  expect(iceParam('')).toBe(true);
-  expect(iceParam('?year=-3000&ice=1')).toBe(true);
-  expect(iceParam('?ice=0')).toBe(false);
-});
 
 test('a year shows its nearest 2.5 ka epoch (calendar BP from 1950), with no gaps, and nothing before 80 ka', () => {
   expect(iceEpochAt(-20000)?.bp).toBe(22500); // 21,950 BP

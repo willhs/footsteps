@@ -1,3 +1,4 @@
+import { flags, resetFlags } from '@/lib/flags';
 // `?still=1` stops every time-based animation, so a screenshot of the same scene has the same pixels each run
 // (the visual regression run, docs/ops/visual-regression.md). It freezes three things:
 //   - the shader clock (fire flicker, morph shimmer, walking feet, animal sway): `animSeconds` is a fixed instant;
@@ -12,24 +13,16 @@ export const STILL_SECONDS = 7.25;
 /** The fixed day the frozen sun clock reads (the June solstice: a plain, far-from-edge sun). */
 export const STILL_DAY_UTC_MS = Date.UTC(2024, 5, 21);
 
-/** Whether a query string asks for a still scene. */
-export function stillRequested(search: string): boolean {
-  return new URLSearchParams(search).get('still') === '1';
-}
-
-let cached: boolean | null = null;
-
 /** Whether this page is still. Read once from the address bar in the browser (the app is one page per URL);
  * on the server there is no address, so it is not cached and is false. */
 export function stillOn(): boolean {
   if (typeof window === 'undefined') return false;
-  if (cached === null) cached = stillRequested(window.location.search);
-  return cached;
+  return flags().enabled('still');
 }
 
 /** Forget the cached answer (tests). */
 export function resetStill(): void {
-  cached = null;
+  resetFlags();
 }
 
 /**

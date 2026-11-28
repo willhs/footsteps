@@ -36,8 +36,6 @@ import { dayLengthHours, sunPosition } from './sunTime';
 /** Walking pace on a trip, metres a second (assumed; the shader has the same number). */
 export const WALK_MS = 1.2;
 
-export const routineParam = (search: string) => new URLSearchParams(search).get('routine') !== '0';
-
 export type TripKind =
   | 'gathering'
   | 'hunting'

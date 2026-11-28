@@ -1,14 +1,14 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import React, { useEffect, useRef, useState } from 'react';
 import { evidenceAt, populationRangeAt, populationRangeLabel } from '@/lib/time';
 import { formatPopulation, formatYear } from '@/lib/format';
 import { sunTimeLabel } from '@/lib/sunTime';
+import { Icon } from '@/components/ui/Icon';
 import { ZOOM } from '../hooks/peopleView';
-import { close3dNote, groundParam, treesParam } from '@/lib/close3d';
-import { weatherParam } from '@/lib/weather';
-import { skyParam } from '@/lib/sky';
-import { fieldsParam } from '../layers/fields';
+import { close3dNote } from '@/lib/close3d';
 
 const LOD_SUMMARY: Record<number, string> = {
   0: 'LOD 0 · Regional clusters (~1° ≈ 111 km)',
@@ -58,7 +58,7 @@ function SunTime({ lon, lat, now }: { lon: number; lat?: number; now: Date }) {
       data-testid="sun-time"
       title="Local sun time right now at the centre of the map (a sundial's reading, within ~15 minutes). Close in, people move in real time."
     >
-      ☀ {sunTimeLabel(lon, now, lat)}, local sun time
+      <Icon name="sun-clock" /> {sunTimeLabel(lon, now, lat)}, local sun time
     </div>
   );
 }
@@ -98,12 +98,12 @@ function SupportingText({
     };
   }, []);
   const [treesOn, setTreesOn] = useState(false);
-  useEffect(() => setTreesOn(treesParam(window.location.search)), []);
-  useEffect(() => setGroundOn(groundParam(window.location.search)), []);
-  useEffect(() => setWeatherOn(weatherParam(window.location.search)), []);
+  useEffect(() => setTreesOn(flags().enabled('trees')), []);
+  useEffect(() => setGroundOn(flags().enabled('ground')), []);
+  useEffect(() => setWeatherOn(flags().enabled('weather')), []);
   const [skyOn, setSkyOn] = useState(false);
-  useEffect(() => setSkyOn(skyParam(window.location.search)), []);
-  useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
+  useEffect(() => setSkyOn(flags().enabled('sky')), []);
+  useEffect(() => setFieldsOn(flags().enabled('fields')), []);
 
   const note = close3dNote(false, groundOn, weatherOn, treesOn, skyOn, fieldsOn);
 

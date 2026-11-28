@@ -91,6 +91,9 @@ class DetailBitmapLayer extends BitmapLayer<TileProps> {
           // BitmapLayer's desaturate then tint, as the base Earth layers draw it.
           c = mix(c, vec3((c.r + c.g + c.b) * 0.333333333), detail.desaturate);
           fragColor = vec4(c * detail.tint, layer.opacity);
+          // This colour replaces the one the extensions filtered (the night shading, NightExtension.ts), so filter it again:
+          // without this the layer stayed in daylight at night.
+          DECKGL_FILTER_COLOR(fragColor, geometry);
         `,
       },
     };

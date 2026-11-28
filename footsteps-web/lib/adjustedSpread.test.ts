@@ -1,12 +1,6 @@
-import { ADJUSTED_SPREAD_LABEL, ADJUSTED_SPREAD_YEARS, adjustedGridUrl, adjustedSpreadYear, spreadNote, spreadParam, spreadTotalOk } from './adjustedSpread';
+import { ADJUSTED_SPREAD_LABEL, ADJUSTED_SPREAD_YEARS, adjustedGridUrl, adjustedSpreadYear, spreadNote, spreadTotalOk } from './adjustedSpread';
 import { HYDE_TOTALS } from './time';
 import { TARGET_YEARS } from './constants';
-
-test('on unless ?spread=0', () => {
-  expect(spreadParam('')).toBe(true);
-  expect(spreadParam('?year=-3000&spread=1')).toBe(true);
-  expect(spreadParam('?spread=0')).toBe(false);
-});
 
 test('covers 10,000 to 4,000 BCE, every one a HYDE year with a world total', () => {
   expect(ADJUSTED_SPREAD_YEARS).toEqual([-10000, -9000, -8000, -7000, -6000, -5000, -4000]);

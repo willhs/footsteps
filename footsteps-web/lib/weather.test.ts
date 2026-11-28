@@ -1,10 +1,4 @@
-import { CLOUD_MPS, COVER_EASE_PER_S, GUST_MPS, advanceWeather, cloudCover, newWeatherClock, weatherFor, weatherParam, windToward } from './weather';
-
-test('weather is on unless ?weather=0', () => {
-  expect(weatherParam('')).toBe(true);
-  expect(weatherParam('?year=-3000&weather=1')).toBe(true);
-  expect(weatherParam('?weather=0')).toBe(false);
-});
+import { CLOUD_MPS, COVER_EASE_PER_S, GUST_MPS, advanceWeather, cloudCover, newWeatherClock, weatherFor, windToward } from './weather';
 
 test('cloud cover rises with rainfall: arid places mostly clear, wet ones cloudier', () => {
   const nile = cloudCover(60); // Egypt, a few tens of mm

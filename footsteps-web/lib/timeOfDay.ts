@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 // The time-of-day dial: the hour of the day the map shows, chosen by the viewer, in place of the old Day/night switch that
 // followed the real clock. Turning it sets the local sun time at the view's centre, and that fixes one sun for the whole Earth:
 // panning and zooming afterwards never move the sun or the night side, the dial just reads the local hour at the new centre.
@@ -9,6 +10,7 @@
 // shown there). Who sleeps and who walks out at that hour is the routine's model.
 
 import { solarAltitude, sunPosition } from './sunTime';
+import type { IconName } from './icons';
 
 const HOUR_MS = 3_600_000;
 const HOURS_PER_DAY = 24;
@@ -27,8 +29,8 @@ const NORTH_DIAL_DAY_UTC_MS = Date.UTC(2024, 3, 22);
 const SOUTH_DIAL_DAY_UTC_MS = Date.UTC(2024, 9, 25);
 
 /** `?hour=21.5` opens the map at that local sun hour (for links to a night scene); without it the dial starts at DEFAULT_DIAL_HOUR. */
-export function hourParam(search: string): number | null {
-  const raw = new URLSearchParams(search).get('hour');
+export function hourParam(search?: string): number | null {
+  const raw = flags(search).value('hour');
   if (raw === null || raw.trim() === '') return null;
   const hour = Number(raw);
   return Number.isFinite(hour) ? wrapHour(hour) : null;
@@ -77,4 +79,4 @@ export function skyPhase(ms: number, lon: number, lat: number): SkyPhase {
 /** Local sun hour (0 to 24) at a longitude at a sun-clock instant. */
 const localSunHour = (ms: number, lon: number) => wrapHour(ms / HOUR_MS + lon / DEGREES_PER_HOUR);
 
-export const SKY_PHASE_ICON: Record<SkyPhase, string> = { night: '🌙', dawn: '🌅', day: '☀️', dusk: '🌇' };
+export const SKY_PHASE_ICON: Record<SkyPhase, IconName> = { night: 'night', dawn: 'dawn', day: 'day', dusk: 'dusk' };

@@ -35,6 +35,31 @@ export function tagVisibility(zoom: number): number {
 export type Projected = { x: number; y: number; scale: number };
 export type Project = (lonLat: [number, number]) => Projected;
 
+/** `project` for `chooseTags`: a place on the ground to the screen, at the height it is drawn (`zAt`, metres: the close-up's raised ground,
+ * where the people stand; 0 on the flat map). `scale` is pixels for a small step of ground there against the same at the view centre's
+ * ground (deck.gl draws pixel sizes smaller with distance). Projecting at z = 0 under raised ground put each tag off to the side of its
+ * person, toward the view centre, and zoomed in made it look far smaller than it is drawn, so it was dropped. */
+export function groundProjector(
+  viewport: { project: (xyz: number[]) => number[] },
+  centre: [number, number],
+  zAt: (lon: number, lat: number) => number,
+): Project {
+  const D = 1e-5;
+  // Pixels for a small step east and north (the longer: a tilt only squashes one way).
+  const groundPx = (lon: number, lat: number, z: number) => {
+    const [x, y] = viewport.project([lon, lat, z]);
+    const [x1, y1] = viewport.project([lon + D, lat, z]);
+    const [x2, y2] = viewport.project([lon, lat + D, z]);
+    return Math.max(Math.hypot(x1 - x, y1 - y), Math.hypot(x2 - x, y2 - y));
+  };
+  const centrePx = groundPx(centre[0], centre[1], zAt(centre[0], centre[1]));
+  return ([lon, lat]) => {
+    const z = zAt(lon, lat);
+    const [x, y] = viewport.project([lon, lat, z]);
+    return { x, y, scale: groundPx(lon, lat, z) / centrePx };
+  };
+}
+
 export type Tag = {
   person: Person;
   text: string;

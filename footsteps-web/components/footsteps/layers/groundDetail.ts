@@ -205,17 +205,14 @@ const FS_FILTER_COLOR = `
 const FS_WEATHER = `
   if (weather.on > 0.5) {
     vec3 w = color.rgb;
-    vec2 wd = weather.wind;
     // Wind: grass, reeds and crops (the green axis, open or wet, thinned by tree cover) brighten and dim as gusts travel through.
-    // Patches of gust a few hundred metres across, and, close in, ripples in the grass a few metres apart that run with the wind
-    // and show only inside a gust.
+    // Patches of gust a few hundred metres across. (Until 2026-11-28 close-in ripples 13 m apart also ran with the wind inside a gust;
+    // at street zoom they read as stripes sliding across the screen, so they were removed.)
     if (gLayer > -0.75) {
       float sway = clamp(1.0 - abs(geometry.uv.x - 1.0), 0.0, 1.0) * (1.0 - 0.85 * clamp(gLayer, 0.0, 1.0));
       if (sway > 0.01) {
         float gust = gFbm(gm - weather.gust, 90.0, gmpp);
-        float front = smoothstep(0.42, 0.7, gust);
-        float ripple = sin(6.2832 * (dot(gm - weather.gust, wd) / 13.0) + 4.0 * gust);
-        w *= 1.0 + sway * (0.5 * (gust - 0.5) + 0.12 * front * ripple * gFade(13.0, gmpp));
+        w *= 1.0 + sway * 0.5 * (gust - 0.5);
       }
     }
     // Cloud shadows: soft patches a kilometre or two across, more of them the cloudier the place; over land and water alike.
@@ -328,8 +325,7 @@ const FIELD_FS_FILTER_COLOR = `
     if (weather.on > 0.5) {
       if (kind < 2.5) {
         float gust = gFbm(fm - weather.gust, 90.0, fmpp);
-        float ripple = sin(6.2832 * (dot(fm - weather.gust, weather.wind) / 13.0) + 4.0 * gust);
-        c *= 1.0 + (kind < 0.5 ? 0.8 : 0.6) * (0.5 * (gust - 0.5) + 0.12 * smoothstep(0.42, 0.7, gust) * ripple * gFade(13.0, fmpp));
+        c *= 1.0 + (kind < 0.5 ? 0.8 : 0.6) * 0.5 * (gust - 0.5);
       }
       float thr = 0.71 - 0.58 * weather.cover;
       float cloud = smoothstep(thr, thr + 0.16 + clamp(fmpp / 600.0, 0.0, 0.25), gFbm(fm - weather.cloud + 8000.0, 1100.0, fmpp)) * (1.0 - smoothstep(20.0, 60.0, fmpp));

@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 import type { GroundingFacts } from '../layers/grounding';
 import EvidenceNearby from './EvidenceNearby';
 import PersonDay, { type DayRequest } from './PersonDay';
@@ -6,7 +7,7 @@ import { AVATAR_3D } from './avatarLazy';
 import type { Person } from '../layers/people';
 import { CloseIcon } from '@/components/ui/icons';
 import { cssRgb, LOOKS } from '@/lib/waysOfLife';
-import { avatarFromParams } from '@/lib/avatar';
+
 import { useLazy } from '@/lib/lazyModule';
 import { useState } from 'react';
 
@@ -37,7 +38,7 @@ export default function GroundingPanel({
 }) {
   const count = (n: number) => Math.round(n).toLocaleString();
   // `?avatar=3d`: the 3D figure instead of the drawing (docs/ops/avatar.md). The drawing shows until its code is in.
-  const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
+  const [avatar3d] = useState(() => typeof window !== 'undefined' && flags().enabled('avatar'));
   const Avatar = useLazy(AVATAR_3D, avatar3d && !!portrait)?.default;
   return (
     <section

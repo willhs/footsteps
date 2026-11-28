@@ -1,15 +1,17 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import { useEffect, useMemo, useState } from 'react';
 import { clampTime } from '@/lib/time';
-import { iceEpochAt, iceHoverRow, iceMaskAt, iceParam, loadIceAt, type IceMask } from '@/lib/iceSheets';
+import { iceEpochAt, iceHoverRow, iceMaskAt, loadIceAt, type IceMask } from '@/lib/iceSheets';
 
 /** `?ice=1` only: the hover card's ice line for the point at this year ("Ice sheet (PaleoMIST 1.0, 22.5 ka)"), or null off the ice, while
  * loading, or with the flag off. The masks are the ones the map draws (one epoch at a time, shared with the terrain layer). */
 export default function useIceAt(point: { lon: number; lat: number } | null, time: number): { text: string; detail: string } | null {
   const epoch = iceEpochAt(clampTime(time));
   const [loaded, setLoaded] = useState<{ bp: number; masks: IceMask[] } | null>(null);
-  const on = point !== null && epoch !== null && typeof window !== 'undefined' && iceParam(window.location.search);
+  const on = point !== null && epoch !== null && typeof window !== 'undefined' && flags().enabled('ice');
   const bp = epoch?.bp ?? null;
   useEffect(() => {
     if (!on || bp === null) return;

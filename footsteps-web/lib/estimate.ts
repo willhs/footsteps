@@ -7,7 +7,9 @@ import series from '../public/climate_series.json';
 import { unsettledAt } from './firstSettlement';
 import { FIRST_CITIES, citiesBy } from './firstCities';
 import { MISSING_ISLANDS, islandPeopleAt } from './missingIslands';
+import { REGION_TOTALS, inRegion, regionWeightAt } from './regionTotals';
 import { HYDE_MIN, dataStatus, calendarLabel, populationRangeAt, populationRangeLabel, populationLabel } from './time';
+import type { IconName } from './icons';
 
 /** How far to trust a line: sources agree closely / roughly / differ several-fold / nobody measured it. */
 export type Confidence = 'fair' | 'rough' | 'very rough' | 'imagined';
@@ -283,6 +285,11 @@ export function correctionsAt(lon: number, lat: number, time: number): PlaceCave
     const people = near ? islandPeopleAt(island, time) : 0;
     if (people > 0) out.push({ text: `Added: HYDE has no one on ${island.name}; ~${Math.round(people).toLocaleString('en-US')} from the literature.`, source: island.source });
   }
+  for (const region of REGION_TOTALS) {
+    if (inRegion(region, lon, lat) && regionWeightAt(region, time) > 0) {
+      out.push({ text: `Raised: HYDE has ${region.name} flat; moved toward ~${Math.round(region.targetPeople / 1000).toLocaleString('en-US')},000 by contact.`, source: region.source });
+    }
+  }
   return out;
 }
 
@@ -298,14 +305,17 @@ export function placeNotes({ time, lon, lat, corrections = correctionsAt(lon, la
   return [...corrections, ...caveatsAt(lon, lat, time)];
 }
 
-/** Whether `?explain=1` is set. */
-export function explainParam(search: string): boolean {
-  return new URLSearchParams(search).get('explain') === '1';
-}
-
 /** One icon per line, so the panel reads at a glance. */
-export const LINE_ICON: Record<EstimateLine['id'], string> = {
-  people: '👥', continents: '🌍', spread: '🗺️', between: '⏳', life: '🌾', groups: '🏕️', land: '🌊', climate: '🌡️', corrections: '🛠️',
+export const LINE_ICON: Record<EstimateLine['id'], IconName> = {
+  people: 'people',
+  continents: 'continents',
+  spread: 'spread',
+  between: 'between',
+  life: 'way-of-life',
+  groups: 'groups',
+  land: 'land',
+  climate: 'climate',
+  corrections: 'corrections',
 };
 
 /** What each trust word means, for its tooltip. */

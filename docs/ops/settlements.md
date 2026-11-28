@@ -88,8 +88,8 @@ so age, sex, role and footwear come out exactly as without households; only the 
 **Regional group (hover or selection only).** `lib/regionalGroup.ts`. The data gives sizes, not who belonged to whom (research 0012), so membership is a modelling
 choice: a block of the 5' cell grid, 2^level cells a side, aligned so blocks nest and never depend on the year. The level is the smallest whose block holds
 about 840 people (Binford regional population 839, CI 736-954). A block over 3,360 (840 x 4, one level up) falls back to the level below; **no regional group is modelled** (no line, no tint) where one cell already exceeds 3,360 (a 1900 CE town), or where even a 5.3° block holds under 100 people.
-So a group's block is the same in every year **at the same level**; the level (and so which groups share a block, and the people count) follows the year's population. The tint is one
-soft rectangle (14 nested, inset, faint fills, no line) drawn by `layers/regionTint.ts` for the cell under the cursor, or else the clicked place, from zoom 7 (marks clickable). The hover card gets "Part of a regional group of about N people" (two figures, *modelled*).
+So a group's block is the same in every year **at the same level**; the level (and so which groups share a block, and the people count) follows the year's population. Until 2026-11-28 a soft
+tint (14 nested, inset, faint fills) marked the block under the cursor; it read as a stray light following the mouse, so it was removed. The hover card gets "Part of a regional group of about N people" (two figures, *modelled*).
 
 Tests: `households.test.ts`, `peopleGen.test.ts` (same people and head count, households of 2-7 averaging about 4.5, person *i* independent of group size, the morph contract), `regionalGroup.test.ts` (block nesting, same block across years, fall-back and "none" cases), `hoverCard.test.ts`.
 

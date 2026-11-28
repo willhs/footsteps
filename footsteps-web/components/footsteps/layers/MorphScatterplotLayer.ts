@@ -81,37 +81,47 @@ const shapesFs = /* glsl */ `
       a = max(max(glow, built), max(roofs * 0.95, sign));
       white = roofs * 0.35 + sign * 0.35 + exp(-r * r * 3.0) * 0.25 * (1.0 - signW);
     } else {
-      // Fire (far out, and a band's sign).
-      float body = 1.0 - smoothstep(vCore * 0.7, vCore, d);
-      float halo = exp(-d * d * 5.0) * 0.5;
-      float hot = exp(-pow(d / max(vCore, 0.05), 2.0) * 3.0);
-      float fire = max(body, halo) * flicker(vSeed);
-      // The kind's sign, drawn in the inner 70% of the sprite.
-      vec2 s = geometry.uv / 0.72;
-      float aaS = aaUv / 0.72;
-      float bandSign = max(exp(-d * d * 14.0), halo * 0.6) * flicker(vSeed);
-      float signShape = vKind < 0.5 ? bandSign : vKind < 1.5 ? houseMask(s, aaS) : tentMask(s, aaS);
-      float signGlow = exp(-d * d * 4.0) * 0.22;
-      float signLight = vKind > 0.5 && vKind < 1.5 ? houseLight(s, aaS) : 0.0;
-      // Households at their real spread: a cell grid in pixels, about 60% of cells inside the footprint taken.
-      vec2 p = geometry.uv * vOuterPx;
-      vec2 cell = floor(p / vCellPx);
-      vec2 jit = (vec2(hash12(cell + 3.1 + vSeed), hash12(cell + 7.7 + vSeed)) - 0.5) * 0.5;
-      vec2 q = (p / vCellPx - cell - 0.5 - jit * 0.5) * 2.0;
-      float edge = vCorePx * (0.72 + 0.28 * hash12(cell * 0.37 + vSeed * 13.0));
-      float inside = 1.0 - step(edge, length((cell + 0.5) * vCellPx));
-      float taken = step(hash12(cell + vSeed * 97.0), 0.6) * inside;
-      float aaC = 2.4 / vCellPx;
-      vec2 hq = q / 0.72;
-      float aaH = aaC / 0.72;
-      float hearth = exp(-dot(q, q) * 9.0) * flicker(hash12(cell + vSeed));
-      float home = vKind < 0.5 ? hearth : vKind < 1.5 ? houseMask(hq, aaH) : tentMask(hq, aaH);
-      float homes = taken * home;
-      float wash = (1.0 - smoothstep(0.75, 1.0, d * vOuterPx / max(vCorePx, 1.0))) * 0.07;
+      // Fire (far out), the kind's sign (middle zoom) and households (close in) are weighted by vFire, vSign and the rest,
+      // which are the same for the whole sprite: compute only the looks that are drawn. Far out (zoom ~5) the households
+      // and signs of ~170,000 marks were computed per pixel and multiplied by zero, which halved the frame rate.
       float rest = max(0.0, 1.0 - vFire - vSign);
-      a = vFire * fire + vSign * max(signShape, signGlow) + rest * max(homes, wash);
-      white = vFire * hot * 0.55 + vSign * (signLight * 0.8 + (vKind < 0.5 ? exp(-d * d * 30.0) * 0.5 : 0.0))
-        + rest * taken * (vKind < 0.5 ? hearth * 0.4 : vKind < 1.5 ? houseLight(hq, aaH) * 0.7 : 0.0);
+      float halo = exp(-d * d * 5.0) * 0.5;
+      float fl = vFire > 0.001 || (vSign > 0.001 && vKind < 0.5) ? flicker(vSeed) : 1.0;
+      if (vFire > 0.001) {
+        // Fire: a body the mark's true size, a soft halo, a white-hot centre.
+        float body = 1.0 - smoothstep(vCore * 0.7, vCore, d);
+        float hot = exp(-pow(d / max(vCore, 0.05), 2.0) * 3.0);
+        a += vFire * max(body, halo) * fl;
+        white += vFire * hot * 0.55;
+      }
+      if (vSign > 0.001) {
+        // The kind's sign, drawn in the inner 70% of the sprite.
+        vec2 s = geometry.uv / 0.72;
+        float aaS = aaUv / 0.72;
+        float signShape = vKind < 0.5 ? max(exp(-d * d * 14.0), halo * 0.6) * fl : vKind < 1.5 ? houseMask(s, aaS) : tentMask(s, aaS);
+        float signGlow = exp(-d * d * 4.0) * 0.22;
+        float signLight = vKind > 0.5 && vKind < 1.5 ? houseLight(s, aaS) : 0.0;
+        a += vSign * max(signShape, signGlow);
+        white += vSign * (signLight * 0.8 + (vKind < 0.5 ? exp(-d * d * 30.0) * 0.5 : 0.0));
+      }
+      if (rest > 0.001) {
+        // Households at their real spread: a cell grid in pixels, about 60% of cells inside the footprint taken.
+        vec2 p = geometry.uv * vOuterPx;
+        vec2 cell = floor(p / vCellPx);
+        vec2 jit = (vec2(hash12(cell + 3.1 + vSeed), hash12(cell + 7.7 + vSeed)) - 0.5) * 0.5;
+        vec2 q = (p / vCellPx - cell - 0.5 - jit * 0.5) * 2.0;
+        float edge = vCorePx * (0.72 + 0.28 * hash12(cell * 0.37 + vSeed * 13.0));
+        float inside = 1.0 - step(edge, length((cell + 0.5) * vCellPx));
+        float taken = step(hash12(cell + vSeed * 97.0), 0.6) * inside;
+        float aaC = 2.4 / vCellPx;
+        vec2 hq = q / 0.72;
+        float aaH = aaC / 0.72;
+        float hearth = exp(-dot(q, q) * 9.0) * flicker(hash12(cell + vSeed));
+        float home = vKind < 0.5 ? hearth : vKind < 1.5 ? houseMask(hq, aaH) : tentMask(hq, aaH);
+        float wash = (1.0 - smoothstep(0.75, 1.0, d * vOuterPx / max(vCorePx, 1.0))) * 0.07;
+        a += rest * max(taken * home, wash);
+        white += rest * taken * (vKind < 0.5 ? hearth * 0.4 : vKind < 1.5 ? houseLight(hq, aaH) * 0.7 : 0.0);
+      }
     }
     color.rgb = mix(color.rgb, vec3(1.0, 0.97, 0.9), clamp(white, 0.0, 1.0));
     color.a *= clamp(a, 0.0, 1.0);
@@ -140,7 +150,7 @@ export default class MorphScatterplotLayer extends ScatterplotLayer<
   initializeState() {
     super.initializeState();
     this.getAttributeManager()!.addInstanced({
-      instanceMobility: { size: 2, accessor: 'getMobility', defaultValue: [1, 1] },
+      instanceCrowd: { size: 2, accessor: 'getCrowd', defaultValue: [0, 1] },
       instanceTargetRadius: {
         size: 1,
         accessor: 'getTargetRadius',

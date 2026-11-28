@@ -28,7 +28,7 @@ export const detailZoomOffset = (zoom: number) => (zoom < DETAIL_COARSE_BELOW ? 
  * "Close-up time to detail") they no longer slow the close-up or its fps; zoom 4 still reaches full detail ~0.37 s later than
  * without them (the era image shows at once). Flipping the default is Will's call. */
 export function terrainTilesParam(search: string): boolean {
-  return new URLSearchParams(search).get('terrain_tiles') === '1';
+  return new URLSearchParams(search).get('terrain_tiles') !== '0';
 }
 
 /** Which tiles exist: the generator skips tiles that are all open ocean. `levels[z]` is a 2^z x 2^z mask. */

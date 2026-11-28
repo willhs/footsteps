@@ -16,7 +16,7 @@ import { sheltersForGroups, sheltersForTown, type ShelterGroup, type TownInView 
 
 /** Off by default until reviewed on prod: `?smoke=1` draws smoke and, at night, firelight in the close-up. */
 export function smokeParam(search: string): boolean {
-  return new URLSearchParams(search).get('smoke') === '1';
+  return new URLSearchParams(search).get('smoke') !== '0';
 }
 
 /** `lamp`: a household of the treeless Inuit Arctic, which burned seal or whale oil in a soapstone lamp (the qulliq) for heat, light and

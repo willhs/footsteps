@@ -10,7 +10,7 @@ export type FoodData = {
   biomes: Record<string, { plants: string[]; animals: string[]; plant_weight: string }>;
 };
 
-export const foodEnabled = (search: string) => new URLSearchParams(search).get('food') === '1';
+export const foodEnabled = (search: string) => new URLSearchParams(search).get('food') !== '0';
 
 /** Crops that went with a staple rather than being one: Mesoamerica's squash and beans grew among the maize (milpa), pulses
  * beside the cereals. They follow the staples in `cropsAround`'s order. */

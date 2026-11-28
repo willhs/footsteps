@@ -28,6 +28,8 @@ describe('bandsInView', () => {
 describe('emptyViewNote', () => {
   it('says nothing when someone is there', () => {
     expect(emptyViewNote(3, 0, 'model')).toBeNull();
+    // A few thin cells (0.2 people each on average) are still drawn as groups.
+    expect(emptyViewNote(0.4, 0, 'model')).toBeNull();
   });
   it('names the source of the emptiness', () => {
     expect(emptyViewNote(0, 0, 'model')).toContain('the model');

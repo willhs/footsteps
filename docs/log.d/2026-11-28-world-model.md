@@ -78,3 +78,9 @@ Kansas at 3000 BCE read "Temperate deciduous forest", and the ice edge at 20,000
 model's biome and adds a line under it where the record disagrees: "Grassland, not forest: the prairie" (the Plains, 6000
 BCE-1880) and "Steppe-tundra, not forest: the mammoth steppe" (north of 45°N and Beringia, 28,000-13,000 BCE), beside the
 Green Sahara note, all from `lib/biomeNotes.ts`.
+
+## [2026-11-28] fix | No city glows before a region's first towns
+
+HYDE crowds city-like numbers into cells long before any city stood there (central Mexico glowed at 3000 BCE). A cell is now
+drawn as a city only from its region's first towns (`lib/firstCities.ts`, 18 regions, 1500 CE elsewhere); before that it is a
+dense farming village, and the hover card's density says village too.

@@ -75,7 +75,9 @@ farmers before a crop, no herders before a herd animal; a crowded cell with neit
   north of 45°N (and Beringia) 28,000-13,000 BCE (`lib/biomeNotes.ts`); the lookup itself is unchanged.
 - 40°N 95°W (Kansas/Nebraska) reads "Temperate deciduous forest" at 3000 BCE; it was tallgrass prairie. The card now adds
   "Grassland, not forest: the prairie" on the Plains 6000 BCE-1880 where the model has trees.
-- HYDE draws a bright, city-like glow in central Mexico at 3000 BCE (Late Archaic).
+- HYDE draws a bright, city-like glow in central Mexico at 3000 BCE (Late Archaic). HYDE's numbers stand, but a cell is drawn as a city only from
+  its region's first towns on (`lib/firstCities.ts`: Uruk 3500 BCE, the Indus and Caral 2600 BCE, San Lorenzo 1200 BCE,
+  Cahokia 1050 CE, 1500 where no region is listed); before that it is a dense farming village.
 - Siberia at 1800 is nearly empty (the Sakha alone were ~200,000), and there are no reindeer or horse herders.
 - The card calls a HYDE cell with no one "measured" ("No one counted · measured"). HYDE's pre-1500 cell values are
   allocations, not counts; the vision table calls HYDE "measured", so the word is Will's to change.

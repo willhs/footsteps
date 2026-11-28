@@ -1,6 +1,7 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
-import { classifyCell } from '@/lib/waysOfLife';
+import { classifyCell, URBAN_MIN_CELL } from '@/lib/waysOfLife';
+import { citiesBy } from '@/lib/firstCities';
 import { CROPS, HERDS, domesticatesBits, gateEra } from '@/lib/domesticatesGate';
 import { LAST_FIRST_SETTLEMENT, unsettledAt } from '@/lib/firstSettlement';
 import { MISSING_ISLANDS, islandCells, islandPeopleAt } from '@/lib/missingIslands';
@@ -316,9 +317,11 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       const can = domesticatesBits(positions[index * 2], positions[index * 2 + 1], era);
       const canFarm = (can & CROPS) !== 0;
       const canHerd = (can & HERDS) !== 0;
+      // A city glow only where towns had begun (lib/firstCities.ts); checked only for cells full enough to be one.
+      const canCity = population < URBAN_MIN_CELL || citiesBy(positions[index * 2], positions[index * 2 + 1], year);
       ways[index] = land
-        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255, canFarm, canHerd)
-        : classifyCell(population, 0, 0, canFarm, canHerd);
+        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255, canFarm, canHerd, canCity)
+        : classifyCell(population, 0, 0, canFarm, canHerd, canCity);
       total += population;
       index++;
     }

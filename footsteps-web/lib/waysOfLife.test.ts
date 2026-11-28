@@ -62,4 +62,9 @@ describe('classifyCell with the domesticates gate', () => {
     expect(classifyCell(URBAN_MIN_CELL, 0, 0, false, false)).toBe(WayOfLife.Forager);
     expect(classifyCell(URBAN_MIN_CELL, 0, 0, true, false)).toBe(WayOfLife.Urban);
   });
+
+  it('keeps a crowded cell a farming village before towns began in its region', () => {
+    expect(classifyCell(URBAN_MIN_CELL, 0.5, 0, true, true, false)).toBe(WayOfLife.Farmer);
+    expect(classifyCell(URBAN_MIN_CELL, 0.5, 0, true, true, true)).toBe(WayOfLife.Urban);
+  });
 });

@@ -206,6 +206,16 @@ export function lakePlaneFor(layers: PastWaterLayers | null, year: number, seaLe
   };
 }
 
+/** Whether a point is in the past water of a year (any active epoch's 2.5′ mask, the same share rule as the groups' exclusion), or null
+ * when no epoch holds then. For marks drawn straight from the grid (the far-out firelight), which the settlement model does not place. */
+export function pastWaterWetAt(layers: PastWaterLayers | null, year: number): ((lon: number, lat: number) => boolean) | null {
+  if (!layers) return null;
+  const ids = pastWaterEpochs(year);
+  const active = layers.epochs.filter((e) => ids.includes(e.id));
+  if (!active.length) return null;
+  return (lon, lat) => active.some((e) => lakeShareAt(e.lake, lon, lat) >= 0.5);
+}
+
 export type PeopleMode = 'units' | 'grid' | 'dots';
 export type Unresolved = { groups: number; people: number; ice?: { groups: number; people: number }; water?: { groups: number; people: number } };
 

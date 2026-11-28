@@ -8,6 +8,7 @@ import { bracket } from '@/lib/time';
 import { PEOPLE_YEARS, TARGET_YEARS } from '@/lib/constants';
 import { loadGridData } from './gridLoader';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction } from '../layers/FireLayer';
+import { loadPastWater, pastWaterParam, pastWaterWetAt, type PastWaterLayers } from '@/lib/pastWater';
 
 // Fire marks per data year, kept compact (positions, radius, rank) so every
 // year can stay in memory and scrubbing never waits once they are warm.
@@ -29,9 +30,13 @@ function marksFor(year: number): Promise<Built> {
   const pending = inFlight.get(year);
   if (pending) return pending;
   // The grid alone (not the units): the firelight draws before the settlement model is built.
-  const p = loadGridData(year)
-    .then((grid) => {
-      const b = { year, data: fireData(buildFireMarks(year, grid)) };
+  // Past water (on unless `?pastwater=0`): no fire on a lake; a failed load draws the marks as without it.
+  const water: Promise<PastWaterLayers | null> = typeof window !== 'undefined' && pastWaterParam(window.location.search)
+    ? loadPastWater().catch(() => null)
+    : Promise.resolve(null);
+  const p = Promise.all([loadGridData(year), water])
+    .then(([grid, lakes]) => {
+      const b = { year, data: fireData(buildFireMarks(year, grid, undefined, pastWaterWetAt(lakes, year))) };
       built.set(year, b);
       if (built.size > MAX_BUILT) built.delete(built.keys().next().value!);
       return b;

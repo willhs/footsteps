@@ -51,7 +51,29 @@ function rng(seed: number) {
   };
 }
 
-export function buildFireMarks(year: number, grid: GridData, budget = fireBudget(grid.total)): FireMarks {
+/** Where a cell's marks go when its own square is under past water: the nearest dry point, searched in rings of a cell's width out to
+ * SHORE_RINGS cells; null keeps them in place (never seen: a lake is ~100 cells across at most). */
+const SHORE_RINGS = 40;
+function shoreNear(lon: number, lat: number, step: number, wet: (lon: number, lat: number) => boolean): [number, number] | null {
+  for (let ring = 1; ring <= SHORE_RINGS; ring++) {
+    let best: [number, number] | null = null;
+    let bestD = Infinity;
+    for (let dy = -ring; dy <= ring; dy++)
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const x = lon + dx * step, y = lat + dy * step;
+        if (wet(x, y)) continue;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = [x, y]; }
+      }
+    if (best) return best;
+  }
+  return null;
+}
+
+/** `wet`: the year's past water (lib/pastWater.ts `pastWaterWetAt`); a mark that would land on it is drawn again in its cell, and a cell
+ * wholly under water has its marks on the nearest shore, so the people are kept and none burn on a lake. */
+export function buildFireMarks(year: number, grid: GridData, budget = fireBudget(grid.total), wet: ((lon: number, lat: number) => boolean) | null = null): FireMarks {
   const per = Math.max(1, grid.total / budget);
   const n = grid.length;
   const counts = new Uint8Array(n);
@@ -81,9 +103,19 @@ export function buildFireMarks(year: number, grid: GridData, budget = fireBudget
     const lat = grid.positions[i * 2 + 1];
     const size = Math.log1p(grid.people[i]) / LOG_MAX;
     const rgba = FIRE_RGBA[grid.ways[i]];
+    let [cx, cy] = [lon, lat];
+    if (wet && wet(lon, lat)) [cx, cy] = shoreNear(lon, lat, grid.cellDeg, wet) ?? [lon, lat];
     for (let k = 0; k < c; k++) {
-      out.positions[j * 2] = lon + (r() - 0.5) * grid.cellDeg * 0.9;
-      out.positions[j * 2 + 1] = lat + (r() - 0.5) * grid.cellDeg * 0.9;
+      let x = cx + (r() - 0.5) * grid.cellDeg * 0.9;
+      let y = cy + (r() - 0.5) * grid.cellDeg * 0.9;
+      // A few draws for a dry spot in a shore cell; else the cell's (dry) centre.
+      for (let tries = 0; wet && tries < 6 && wet(x, y); tries++) {
+        x = cx + (r() - 0.5) * grid.cellDeg * 0.9;
+        y = cy + (r() - 0.5) * grid.cellDeg * 0.9;
+      }
+      if (wet && wet(x, y)) [x, y] = [cx, cy];
+      out.positions[j * 2] = x;
+      out.positions[j * 2 + 1] = y;
       out.size[j] = size;
       out.rank[j] = r();
       out.cellPeople[j] = grid.people[i];

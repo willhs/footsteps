@@ -16,6 +16,7 @@ import { iceIds, iceLayers, loadIceAt, type IceLayers } from '@/lib/iceSheets';
 import { landSubcells, type TerrainSea } from './landSubcells';
 import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
 import { shareFactors } from '@/lib/holoceneShares';
+import { mergedScales, regionScales } from '@/lib/regionTotals';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -300,6 +301,12 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       occupied += cells.length;
     }
   }
+  // Regions whose HYDE total is moved toward a published figure (lib/regionTotals.ts: Australia 400-1788 CE). HYDE images only,
+  // whose cells are the output's cells one to one, so the walk below meets them in ascending order.
+  const regions = sw === HYDE_WIDTH && scale === 1
+    ? mergedScales(regionScales(year, sw, sh, (cell) => (levels[cell] ? Math.expm1((levels[cell] / LEVELS) * LOG_MAX) : 0)))
+    : null;
+  let nextRegionCell = 0;
   const length = mask ? counts.reduce((a, b) => a + b, 0) : occupied * parts;
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
@@ -328,6 +335,10 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       }
       totalBeforeFactors += population;
       if (continentFactors) population *= continentFactors[block];
+      if (regions) {
+        while (nextRegionCell < regions.cells.length && regions.cells[nextRegionCell] < block) nextRegionCell++;
+        if (regions.cells[nextRegionCell] === block) population *= regions.factors[nextRegionCell];
+      }
 
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;

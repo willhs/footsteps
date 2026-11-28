@@ -17,3 +17,21 @@ describe('shader extensions', () => {
     for (const [hook, code] of Object.entries(shaders.inject ?? {})) expect([hook, typeof code]).toEqual([hook, 'string']);
   });
 });
+
+// A layer whose `fs:#main-end` writes fragColor replaces the colour the extensions already filtered, so the night shading
+// (NightExtension) vanished on the terrain detail and relief layers from zoom 3 (2026-11-28). Such a layer must filter again.
+describe('layers that rewrite the colour at the end of main', () => {
+  const fs = jest.requireActual<typeof import('fs')>('fs');
+  const path = jest.requireActual<typeof import('path')>('path');
+  const files = fs.readdirSync(__dirname).filter((f) => /\.ts$/.test(f) && !/\.test\.ts$/.test(f));
+  const rewriters = files.filter((f) => /'fs:#main-end':\s*`[^`]*fragColor\s*=/.test(fs.readFileSync(path.join(__dirname, f), 'utf8')));
+
+  it('finds the terrain layers', () => {
+    expect(rewriters).toEqual(expect.arrayContaining(['TerrainDetailLayer.ts', 'TerrainReliefLayer.ts']));
+  });
+
+  it.each(rewriters)('%s runs DECKGL_FILTER_COLOR after it writes fragColor', (file) => {
+    const block = /'fs:#main-end':\s*`([^`]*)`/.exec(fs.readFileSync(path.join(__dirname, file), 'utf8'))![1];
+    expect(block.lastIndexOf('DECKGL_FILTER_COLOR(fragColor')).toBeGreaterThan(block.lastIndexOf('fragColor ='));
+  });
+});

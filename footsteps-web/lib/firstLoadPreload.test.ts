@@ -14,7 +14,7 @@ function appFetches(time: number, { spread = true, pastWater = true } = {}): str
   const e = terrainBracket(time);
   const grid = (y: number) => gridUrl(y, spread && adjustedSpreadYear(y));
   const people = [...new Set([p.y0, p.y1])].flatMap((y) => (y >= TARGET_YEARS[0] ? [grid(y), landUseUrl(y)] : [grid(y)]));
-  const earth = [...new Set([e.y0, e.y1])].map((y) => (pastWater && pastWaterTerrainYear(y) ? `/terrain/pastwater/earth_${y}.webp?v=${TERRAIN_VERSION}` : `/terrain/earth_${y}.webp?v=${TERRAIN_VERSION}`));
+  const earth = [...new Set([e.y0, e.y1])].filter((y) => !(pastWater && pastWaterTerrainYear(y))).map((y) => `/terrain/earth_${y}.webp?v=${TERRAIN_VERSION}`);
   return [...earth, ...people];
 }
 
@@ -38,11 +38,11 @@ describe('firstLoadUrls', () => {
     expect(urls('?mode=dots')).toEqual([]);
   });
 
-  it('preloads the adjusted spread and past-water images in place of the ones they replace', () => {
+  it('preloads the adjusted spread images in place of HYDE’s, and leaves out past-water years', () => {
     expect(urls('?year=-6000')).toContain('/grid/adjusted/humans_-6000.webp?v=1');
     expect(urls('?year=-6000&spread=0')).toContain('/grid/humans_-6000.webp');
     const y = PRELOAD_TABLES.pastWaterEarthYears[0];
-    expect(urls(`?year=${y}`)).toContain(`/terrain/pastwater/earth_${y}.webp?v=${TERRAIN_VERSION}`);
+    expect(urls(`?year=${y}`).some((u) => u.includes(`earth_${y}.webp`))).toBe(false); // may not be published: not preloaded
     expect(urls(`?year=${y}&pastwater=0`)).toContain(`/terrain/earth_${y}.webp?v=${TERRAIN_VERSION}`);
   });
 });

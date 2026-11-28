@@ -39,7 +39,8 @@ export const PRELOAD_TABLES: PreloadTables = {
  * The people images (and HYDE land use) of the two data years either side of the opening year, and the two Earth images
  * either side of it: exactly what the firelight and the globe fetch first (usePresenceLayers, gridData, useTerrainLayers).
  * None in Dots, which does not use them. The adjusted spread and past water (on unless `?spread=0` / `?pastwater=0`) read
- * other addresses for some years (gridData.ts `gridUrl`, useTerrainLayers.ts `terrainUrl`): those are preloaded instead.
+ * other addresses for some years (gridData.ts `gridUrl`, useTerrainLayers.ts `terrainUrl`): the adjusted images are preloaded
+ * instead, the past-water Earth images are left out.
  */
 export function firstLoadUrls(
   search: string,
@@ -56,7 +57,9 @@ export function firstLoadUrls(
   const earth = bracket(t.terrainYears, time);
   // The Earth first: it is a tenth of the bytes and the globe waits only for it.
   const urls: string[] = [];
-  for (const y of earth.y0 === earth.y1 ? [earth.y0] : [earth.y0, earth.y1]) urls.push(pastWater && t.pastWaterEarthYears.indexOf(y) >= 0 ? `/terrain/pastwater/earth_${y}.webp?v=${t.terrainVersion}` : `/terrain/earth_${y}.webp?v=${t.terrainVersion}`);
+  // A past-water year is not preloaded: its image may not be published (the app then falls back to the ordinary one), and a
+  // preload of either could be the wasted one.
+  for (const y of earth.y0 === earth.y1 ? [earth.y0] : [earth.y0, earth.y1]) if (!(pastWater && t.pastWaterEarthYears.indexOf(y) >= 0)) urls.push(`/terrain/earth_${y}.webp?v=${t.terrainVersion}`);
   for (const y of people.y0 === people.y1 ? [people.y0] : [people.y0, people.y1]) {
     urls.push(spread && t.adjustedYears.indexOf(y) >= 0 ? `/grid/adjusted/humans_${y}.webp?v=${t.adjustedVersion}` : `/grid/humans_${y}.webp`);
     if (y >= t.hydeMin) urls.push(`/grid/landuse_${y}.png`);

@@ -5,8 +5,10 @@
 // read it; `--offline` uses none.
 //
 //   pnpm --dir footstep-generator/avatar install && pnpm --dir footsteps-web install
-//   node footstep-generator/avatar/sheet.mjs [out.webp] [--offline] [--at SECONDS] [--only id,id] [--scale 2]
+//   node footstep-generator/avatar/sheet.mjs [out.webp] [--offline] [--at SECONDS] [--only id,id] [--scale 2] [--detail]
 //
+// `--detail` draws as the large view does (avatarDetail.ts: skin, hair and eye maps, cloth surfaces, soft shadows); use it
+// with a big `--scale` (the large view is up to 720 px tall: `--scale 4.3`) to compare with and without.
 // Writes the sheet (default docs/ops/avatar-sheet.webp) and prints each person's spec line. Still frames (`?still=1`'s
 // pose, work at full strength) at `--at` seconds into the clip.
 import { build } from 'esbuild';
@@ -75,7 +77,7 @@ fs.writeFileSync(
   `import { mountAvatar } from '@/components/footsteps/overlays/avatarScene';
 import { avatarCaption, avatarSpec } from '@/lib/avatarSpec';
 import { portraitLooks } from '@/lib/avatar';
-const { people, at, scale } = (window as any).__sheet;
+const { people, at, scale, detail } = (window as any).__sheet;
 const grid = document.getElementById('grid')!;
 const frames: Promise<number>[] = [];
 const specs: any[] = [];
@@ -93,7 +95,7 @@ for (const p of people) {
   cap.innerHTML = '<b>' + p.label + '</b><br>' + (p.person.female ? 'woman' : 'man').replace('woman', p.person.age < 13 ? 'girl' : 'woman').replace(/^man$/, p.person.age < 13 ? 'boy' : 'man') + ', ' + p.person.age + ', ' + p.person.role + '<br>' + avatarCaption(spec) + (spec.otherHuman ? '<br><i>Our species\\' body; theirs differed</i>' : '');
   cell.appendChild(cap);
   grid.appendChild(cell);
-  frames.push(mountAvatar(canvas, spec, { still: true, stillAt: at }).firstFrame);
+  frames.push(mountAvatar(canvas, spec, { still: true, stillAt: at, detail }).firstFrame);
 }
 (window as any).__specs = specs;
 Promise.all(frames).then(() => ((window as any).__ready = true), (e) => ((window as any).__error = String(e)));
@@ -117,16 +119,19 @@ body{margin:0;background:#1d1914;font:${11 * scale}px/1.3 system-ui,sans-serif;c
 #grid{display:grid;grid-template-columns:repeat(6,${120 * scale + 16}px);gap:${6 * scale}px;padding:${8 * scale}px}
 .cell{padding:4px}canvas{display:block;border-radius:6px;background:radial-gradient(ellipse at 50% 35%,#3b3428 0%,#2a241d 70%)}
 .cap{margin-top:4px;height:${92 * scale}px;overflow:hidden;color:#a89c88}.cap b{color:#e6dccb;font-weight:600}
-</style><div id="grid"></div><script>window.__sheet=${JSON.stringify({ people, at: Number(opt.at ?? 2.5), scale })}</script><script type="module" src="/sheet.js"></script>`,
+</style><div id="grid"></div><script>window.__sheet=${JSON.stringify({ people, at: Number(opt.at ?? 2.5), scale, detail: !!opt.detail })}</script><script type="module" src="/sheet.js"></script>`,
 );
 
 const { server, base } = await serveStatic([work, path.join(WEB, 'public')]);
-const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+// Metal on a Mac; elsewhere (Linux, CI) headless Chromium's software WebGL.
+const GPU_ARGS = process.platform === 'darwin' ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
+const browser = await chromium.launch({ args: GPU_ARGS, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}) });
 try {
   const page = await browser.newPage({ viewport: { width: 6 * (120 * scale + 16) + 16 * scale + 40, height: 800 }, deviceScaleFactor: 2 });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('response', (r) => r.status() >= 400 && !r.url().endsWith('/favicon.ico') && errors.push(`${r.status()} ${r.url()}`));
+  page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
   await page.goto(`${base}/index.html`);
   await page.waitForFunction(() => window.__ready || window.__error, undefined, { timeout: 60000 });
   const err = await page.evaluate(() => window.__error);

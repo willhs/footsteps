@@ -178,13 +178,36 @@ WebGL or a file fails.
   by itself. Events stop at the canvas: the map and the card under it never see them, and a drag in the left column's
   card does not open the person's panel (the card is a stretched button under the content; the figure sits above it).
 - The expand button in the figure's corner opens the same person large over the map (its own canvas, up to 720 px tall);
-  Esc, the close button or a click outside closes it.
+  Esc, the close button or a click outside closes it. The large view draws in more detail (below).
 - `?still=1` or `prefers-reduced-motion: reduce`: one fixed frame (the clip at `STILL_SECONDS`, no glances), redrawn only
   on input.
 - Draws at most 30 frames a second, only while the canvas is on screen (IntersectionObserver) and the tab is visible; the
   WebGL context is released when the card closes.
 - Adjustments after the clip (stoop, glances) are undone before each update: three's mixer only rewrites a bone when its
   animated value changes, so an adjustment left on a bone would pile up.
+
+## The large view (`avatarDetail.ts`)
+
+The figure opened large is 4-6 times taller on screen than in the card, where per-vertex shading blurs the face and plain
+cloth reads as plastic. Only there (`mountAvatar(..., { detail: true })`; the card fetches no image):
+
+- **Skin, brows and hair** take their shading per texel from shade maps baked from the pack's base-colour textures (same
+  encoding as the vertex shade: luminance against the typical pixel, over `SHADE_MAX`; the pack's grey underwear = 1), plus
+  the pack's OpenGL-convention normal maps. Eyelids, lips, nostrils, ears, collarbones and knuckles show. Each mesh names
+  its maps in glTF extras (`userData.detail`); body, brows, eyes and hair keep `TEXCOORD_0` for them.
+- **Eyes** take the pack's eye texture (iris and pupil) instead of one blended colour.
+- **Cloth** gets a surface by material, drawn on a 256 px canvas at runtime (no bytes) and laid on the bind pose from three
+  sides, so it moves with the cloth: plain weave (linen, cotton), 2/2 twill (wool), fine weave (silk), matted felt,
+  downward fur tufts, grained hide, beaten bark fibres, twined plant-fibre cords. It lightens and darkens the colour and
+  bends the light like a bump map. Threads are drawn about 4× coarser than real homespun (10-20 a cm) so the weave reads at
+  ~1.5 mm a pixel; tile sizes and strengths are `CLOTH` in `avatarDetail.ts`.
+- **Soft shadows** from the key light (2048 px PCF map): arms on the body, hair and hoods on the face, cape folds.
+- Files: `detail_skin_{male,female}.webp` (2048 px grey, ~41 KiB), `detail_skin_normal_*.webp` (2048 px, 97-128 KiB),
+  `detail_hair_{1,2}[_normal].webp` (1024 px, 21-105 KiB), `detail_eye.webp` (256 px). One person fetches about 0.25-0.35 MB
+  more, once per visit; a map that fails to load leaves that mesh on its vertex shading. Keeping UVs adds ~30 KiB to each
+  body and 2-11 KiB to each hair file for everyone.
+- Compare: `node footstep-generator/avatar/sheet.mjs out.png --scale 6 --only nile,steppe,iceage [--detail]`
+  (`CHROMIUM_PATH=/opt/pw-browsers/chromium` in a cloud session).
 
 ## Measure
 
@@ -240,4 +263,6 @@ total 1,677 KiB. `pnpm visual` (flag off): all ten scenes pass, `rome-1000bce-pe
 - Shell pieces follow the body's triangles, so their edges are stepped at close range (the trim band hides most of it);
   kneeling and crouching push knees through long skirts and capes bunch on the back.
 - Keyframed work is coarse: hands near, not on, the work (no IK). The sit clip has no seat.
+- Shell hems are stepped (they follow body triangles) and fitted shells keep the body's muscle relief; both show more in
+  the large view. Smoothing hem outlines and shell normals in `pieces.mjs` is the next step for cloth.
 - Eyes do not move (no eye bones). No footwear on the figure yet (the footprints have it: `lib/footwear.ts`).

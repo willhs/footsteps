@@ -87,7 +87,6 @@ EASTERN_NA: Box = (-100, -70, 25, 43)  # Eastern Woodlands and the Central Plain
 # The Eastern Agricultural Complex and Hopewell maize: east of the Plains, north of the forager Florida peninsula.
 EASTERN_WOODLANDS_FARMING: Box = (-96, -70, 28, 43)
 CENTRAL_PLAINS: Box = (-104, -96, 33, 43)  # Plains Village farmers from ~900 CE
-FLORIDA_PENINSULA: Box = (-83, -79.5, 25, 28)
 # The farming Southwest (Colorado Plateau, Mogollon, Rio Grande, Hohokam), west of the Plains.
 SW_FARMING: Box = (-115, -103, 30, 38.5)
 NE_WOODLANDS: Box = (-85, -60, 43, 50)

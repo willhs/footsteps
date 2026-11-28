@@ -60,3 +60,16 @@ describe('forager food from the animals modelled here', () => {
     expect(names(["naumann's elephant", 'giant deer'])).toEqual(["naumann's elephant", 'giant deer', 'berries']);
   });
 });
+
+test('domesticates are listed longest-established first, and foragers get wild staples', () => {
+  const mexico: FoodData = {
+    ...data,
+    cells: { '15,-100': { wheat: [2, 'high', true], goat: [2, 'low', false], maize: [0, 'medium', false] } },
+  };
+  // Central Mexico after the Spanish: maize (here since the first era) before wheat and goats.
+  expect(foodHere(mexico, -99, 18, -3000, habitat).map((f) => f.name)).toEqual(['maize', 'wheat', 'goats']);
+  // Foragers beside the first farmers: the biome's staples, not the crops.
+  const foraging = foodHere(data, 36, 33, -8000, habitat, null, true).map((f) => f.name);
+  expect(foraging).not.toContain('wheat');
+  expect(foraging).toContain('horse');
+});

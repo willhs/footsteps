@@ -98,3 +98,9 @@ or claims that were missing. Fixed in `footstep-generator/food/` and `lib/domest
 - Mainland Southeast Asia farmed from ~2500-2000 BCE (taro moved from 7 ka to match rice; Higham); rice in the Philippines at
   ~4.2 ka, after Taiwan (~5 ka).
 Tested in `tests/test_food_gate.py`. `public/food/food.json` still uses the old boxes until it is rebuilt on budgie.
+
+## [2026-11-28] fix | The food hover card leads with the long-established staple, and foragers get wild food
+
+Central Mexico at 1600 listed wheat, barley, sheep and goats before maize, because domesticates were listed in table order.
+`foodHere` and `cropsAround` (`lib/food.ts`) now list them by their first era in the cell, then table order. Where the way of
+life is foraging, the card gives the biome's wild staples even when farmers in the same 5° cell had crops.

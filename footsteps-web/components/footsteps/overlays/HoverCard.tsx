@@ -7,6 +7,7 @@ import type { HoverPoint } from '../hooks/useHoverPoint';
 import useHabitatLookups from '../hooks/useHabitatLookups';
 import useFood from '../hooks/useFood';
 import { foodHere } from '@/lib/food';
+import { WayOfLife } from '@/lib/waysOfLife';
 import useFauna from '../hooks/useFauna';
 import useLanguages from '../hooks/useLanguages';
 import useLanguageExpansions from '../hooks/useLanguageExpansions';
@@ -108,7 +109,7 @@ export default function HoverCard({
         languages,
         ice,
         expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,
-        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat, fauna ? gameAnimals(fauna.species, fauna.ids) : null) : null,
+        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat, fauna ? gameAnimals(fauna.species, fauna.ids) : null, facts?.way === WayOfLife.Forager) : null,
       }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:

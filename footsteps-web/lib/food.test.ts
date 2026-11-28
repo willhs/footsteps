@@ -50,3 +50,13 @@ test('default, loading, missing biome, sea and ice omit the row', () => {
     expect(hoverCardRows({ ...input, habitat: { ...habitat, surface }, food: [{ name: 'wheat', confidence: 'low', checked: false }] }).some((r) => r.id === 'food')).toBe(false);
   }
 });
+
+describe('forager food from the animals modelled here', () => {
+  it('uses the game present, not the biome default', () => {
+    const data = { version: 1, eras: [-10000], taxa: [], cells: {}, biomes: { Taiga: { plants: ['berries'], animals: ['moose', 'caribou'], plant_weight: 'low' } } } as never;
+    const habitat = { surface: 'land', biome: 'Taiga' } as never;
+    const names = (game?: string[]) => foodHere(data, 138, 36, -30000, habitat, game).map((f) => f.name);
+    expect(names()).toContain('moose');
+    expect(names(["naumann's elephant", 'giant deer'])).toEqual(["naumann's elephant", 'giant deer', 'berries']);
+  });
+});

@@ -38,3 +38,9 @@ gate) instead of HYDE land use alone, which called Cusco, Mohenjo-daro and Memph
 Grazing cells with 150+ people where crops are known are mixed farming (Germany 1000 CE had 31% of its cells drawn as herder
 camps, median ~350 people; the steppe's herders are 13-44 per cell). Light grazing (≥ 2%) is herding and light cropland
 (≥ 0.5%) farming, so Poland, England and Tibet are no longer mostly foragers. Research 0015 section 4.
+
+## [2026-11-28] fix | Forager food is the game modelled there, not the biome's default
+
+The food row (`?food=1`) gave foragers their biome's generic animals, so Ice Age Honshu, Doggerland and NE Siberia all ate
+"moose, caribou". Where the fauna layer has large prey for the place and time, those are the animal staples now
+(`gameAnimals` in `lib/fauna.ts`).

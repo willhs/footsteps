@@ -15,7 +15,7 @@ import useGroundIndex from '../hooks/useGroundIndex';
 import { groundingFacts } from '../layers/grounding';
 import type { GridData } from '../hooks/gridData';
 import { readHabitat, readLandUse } from '@/lib/habitat';
-import { notableAnimals } from '@/lib/fauna';
+import { gameAnimals, notableAnimals } from '@/lib/fauna';
 import { formatPlace, hoverCardRows, settledLife, type CardRow } from '@/lib/hoverCard';
 import { groundImageUrl, groundView, type GroundView } from '@/lib/groundScene';
 import { HYDE_MIN } from '@/lib/time';
@@ -107,7 +107,7 @@ export default function HoverCard({
         languages,
         ice,
         expansions: expansionData ? expansionsHere(expansionData, point.lon, point.lat, time) : null,
-        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat) : null,
+        region, largest, food: food ? foodHere(food, point.lon, point.lat, time, input.habitat, fauna ? gameAnimals(fauna.species, fauna.ids) : null) : null,
       }),
       // In HYDE years the way of life picks the scene, so wait for it rather than flash the wrong picture.
       view:

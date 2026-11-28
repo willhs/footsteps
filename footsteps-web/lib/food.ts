@@ -26,7 +26,8 @@ export function cropsAround(data: FoodData, lon: number, lat: number, time: numb
 }
 
 /** Possible availability, not calorie shares or evidence of farming at this spot. */
-export function foodHere(data: FoodData, lon: number, lat: number, time: number, habitat: HabitatCell | null): FoodItem[] {
+/** `game`: large prey modelled here then (lib/fauna.ts `gameAnimals`); where given, foragers' animal staples are these, not the biome's. */
+export function foodHere(data: FoodData, lon: number, lat: number, time: number, habitat: HabitatCell | null, game?: string[] | null): FoodItem[] {
   if (habitat?.surface !== 'land' || !Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90) return [];
   const west = Math.floor(((((lon + 180) % 360) + 360) % 360 - 180) / 5) * 5;
   const south = Math.min(85, Math.floor(lat / 5) * 5);
@@ -40,8 +41,9 @@ export function foodHere(data: FoodData, lon: number, lat: number, time: number,
     const selected = [...crops.slice(0, 2), ...animals.slice(0, 2), ...crops.slice(2), ...animals.slice(2)].slice(0, 4);
     if (selected.length) return selected.map((t) => ({ name: t.name, confidence: cell[t.id][1], checked: cell[t.id][2] }));
   }
-  const diet = habitat.biome ? data.biomes[habitat.biome] : null;
-  if (!diet) return [];
+  const biomeDiet = habitat.biome ? data.biomes[habitat.biome] : null;
+  if (!biomeDiet) return [];
+  const diet = game && game.length ? { ...biomeDiet, animals: game } : biomeDiet;
   const staples = diet.plant_weight === 'low' || diet.plant_weight === 'none'
     ? [...diet.animals.slice(0, 2), ...diet.plants, ...diet.animals.slice(2)]
     : [...diet.plants.slice(0, 2), ...diet.animals, ...diet.plants.slice(2)];

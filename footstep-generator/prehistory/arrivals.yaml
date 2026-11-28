@@ -189,6 +189,18 @@ regions:
     source: "Fu et al. 2013 PNAS 110:2223 (Tianyuan, ~40 ka, confirmed in this pass), as for `east_asia`; evidence in docs/research/0009-model-vs-evidence (section 1: Kunming, Guilin and Yuchanyan fell in the 70 ka mainland Southeast Asia box)."
     notes: "Added 2026-11-21 (research 0009 P3): this strip was part of `southeast_asia_mainland` (70 ka). It takes `east_asia`'s dates, with a slower ramp of 8 ka (research 0009 P3 and P6: the dated sites stay thin to ~35 ka). It also covers north Myanmar and Assam east of 92 E, where there is no evidence either way. Placed before `east_asia`, whose box would otherwise take it from 92 E; it holds the same boundary as the capped Southeast Asia row, so the order between the two does not matter."
 
+  - id: philippines
+    name: Philippines (Palawan, Luzon, the Visayas and north Mindanao)
+    bbox: [116.9, 7.5, 127, 21]   # south edge 7.5 N keeps Sabah (Banggi, 7.3 N) in `island_se_asia_wallacea`
+    arrival_ka_bp: {central: 47, early: 58, late: 31}
+    alt: {ka_bp: 67, note: "Callao Cave, Luzon: a hominin metatarsal at 67 ka (Mijares et al. 2010), since assigned to H. luzonensis, not H. sapiens; listed for the 'not only us' note, not as a sapiens arrival."}
+    ramp_ka: 3
+    weight_evidence: none      # research 0009 P8: no dated evidence tests this region's share; widens the counter's range
+    verification: checked
+    could_not_verify: "Only Palawan has a dated sapiens fossil this old; using Tabon's date for Luzon, the Visayas and north Mindanao is the model's inference (they were islands throughout, and no older sapiens site there was checked). Détroit et al. themselves say the tibia's oldest possible age (~58 ka) 'has to be considered with caution'."
+    source: "Détroit et al. 2004 C R Palevol 3:705 (doi:10.1016/j.crpv.2004.06.004; full text read 2026-11-28, Table 1: U-series on human bone, tibia fragment IV-2000-T-197 47 +11/-10 kyr BP, right mandible fragment 31 +8/-7, frontal bone 16.5 +/- 2.0; occupation layers 14C-dated ~30,500-9,000 BP). An earlier note cited this paper as J Hum Evol; it is Comptes Rendus Palevol."
+    notes: "Added 2026-11-28 (research 0016 section 6, 0017): this box used to fall to `pacific_remote` (3.1 ka), so Palawan and the Visayas were empty until the HYDE blend. Central 47 ka is the Tabon tibia; late 31 ka the mandible. Placed before `island_se_asia_wallacea`; south Mindanao and the Sulu islands (below 7.5 N) stay in that box."
+
   - id: island_se_asia_wallacea
     name: Island Southeast Asia, Sunda shelf and Wallacea
     bbox: [95, -12, 126, 8]
@@ -198,7 +210,7 @@ regions:
     ramp_ka: 3
     weight_evidence: none      # research 0009 P8: no dated evidence tests this region's share; widens the counter's range
     verification: checked
-    could_not_verify: "Central 60 ka is the model's hedge between Lida Ajer (73-63 ka, one site, one study) and the secure archaeology (Niah 46 ka, Jerimalai 42-44 ka); no paper dates a transit at 60 ka. The Tabon (Philippines) date was not checked; Callao is H. luzonensis, not sapiens."
+    could_not_verify: "Central 60 ka is the model's hedge between Lida Ajer (73-63 ka, one site, one study) and the secure archaeology (Niah 46 ka, Jerimalai 42-44 ka); no paper dates a transit at 60 ka. The Philippines north of 7.5 N are now their own row (`philippines`, Tabon 47 ka); Callao is H. luzonensis, not sapiens."
     source: "Barker et al. 2007 J Hum Evol 52:243 (doi:10.1016/j.jhevol.2006.08.011; Niah activity ca. 46,000 to ca. 34,000 years ago); Westaway et al. 2017 Nature 548:322 (doi:10.1038/nature23452; Lida Ajer, Sumatra, modern human teeth 73-63 ka); O'Connor et al. 2011 Science 334:1117 (doi:10.1126/science.1207703; Jerimalai, Timor, pelagic fishing 42 ka)."
     notes: "Corridor to Sahul; coastal sites are now drowned (sea level) so absence of evidence is expected."
 

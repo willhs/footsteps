@@ -342,6 +342,9 @@ the wind blows. The settlement note says so.
 - **Motion on the GPU** (`layers/SmokeLayer.ts`): a puff's only per-instance data is its seed (phase, wobble, size, strength) and the place's wind. The vertex shader turns the
   time uniform (`animClock`, frozen by `?still=1`) into a rise (90 m), a drift (up to 140 m with the wind), a widening and a fade, and builds the camera-facing sprite. No per-frame CPU work;
   the sun is read once every 5 s. The pool is a flat additive disc whose light is `1 - smoothstep(-0.12, 0.02, sun altitude)` at the hearth, flickering from three waves; by day its quad is sent outside the clip volume.
+- **Enlarged puffs keep their real amount of smoke** (2026-11-28): a puff drawn at its minimum on-screen size, larger than its real size, has its
+  alpha cut by the area ratio, so far out a village's hundreds of plumes add up to a faint haze, not the opaque white cushion they made over every
+  village at zoom 12-13 before. Day smoke is a thinner blue-grey, browner near the fire.
 - **Height**: the layers are drawn at z = 0, where the people's footprints are, above all the ground tiles. The brief asked for the ground height, but the close-up ground is raised
   by its height × 1.6 and the camera looks at sea level, so on high ground at close zoom the ground (and `?shelters=1` roofs) sit far up the screen from the people: at Madrid (1,076 m)
   at zoom 15 about 600 px. A hearth on the ground would be off-screen from its own people. (A layer inside a Close3D tile also cannot do it: the next tile's ground paints over it.)

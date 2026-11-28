@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { WebMercatorViewport, type LayersList } from '@deck.gl/core';
 import { TextLayer } from '@deck.gl/layers';
 import { animClock } from '@/lib/gait';
+import { drawnGroundZ, groundVersion, subscribeGround } from '@/lib/groundHeights';
 import { solarNowMs } from '@/lib/solarClock';
 import type { Person } from '../layers/people';
-import { TAG_FONT_PX, TAG_GAP_PX, chooseTags, tagVisibility, type Tag } from '../layers/personTags';
+import { TAG_FONT_PX, TAG_GAP_PX, chooseTags, groundProjector, tagVisibility, type Tag } from '../layers/personTags';
 
-type View = { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number };
+type View = { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number; position?: [number, number, number] };
 
 /** How often tags follow their walkers. A walker moves ~1.4 m/s: ~4 px/s at the closest zoom, so
  * this is well under a pixel of lag. Only positions are rewritten; the text is laid out once. */
@@ -23,6 +24,7 @@ export default function usePersonTags({
   enabled,
   peopleOpacity,
   routineEpoch = null,
+  onGround = false,
 }: {
   people: readonly Person[];
   view: View;
@@ -31,6 +33,10 @@ export default function usePersonTags({
   peopleOpacity: number;
   /** The daily routine's plan hour (`epochHour`), or null when it is off: tags then follow people on their trips. */
   routineEpoch?: number | null;
+  /** The close-up 3D ground is drawn: the people stand on its drawn height (lib/groundHeights.ts drawnGroundZ), so their tags must too.
+   * At z = 0 under raised ground a tag was drawn off to the side of its person (toward the view centre) and, zoomed in, so far below the
+   * camera that it was judged too small and dropped. */
+  onGround?: boolean;
 }): LayersList {
   const opacity = enabled ? tagVisibility(view.zoom) * peopleOpacity : 0;
   const active = opacity > 0 && people.length > 0 && !!size;
@@ -43,7 +49,9 @@ export default function usePersonTags({
   }, [active]);
 
   const shown = useRef<Tag[]>([]);
-  const { longitude, latitude, zoom, pitch = 0, bearing = 0 } = view;
+  const { longitude, latitude, zoom, pitch = 0, bearing = 0, position: eye } = view;
+  const groundVer = useSyncExternalStore(subscribeGround, groundVersion, groundVersion);
+  const zAt = (lon: number, lat: number) => (onGround ? drawnGroundZ(lon, lat) : 0);
   const width = size?.width ?? 0;
   const height = size?.height ?? 0;
   const tags = useMemo(() => {
@@ -51,27 +59,13 @@ export default function usePersonTags({
       shown.current = [];
       return shown.current;
     }
-    const viewport = new WebMercatorViewport({ longitude, latitude, zoom, pitch, bearing, width, height });
-    // Pixels on screen for a small step on the ground (the longer of east and north: a tilt only
-    // squashes one way). Against the same at the view centre it is how big deck.gl draws a mark
-    // of fixed pixel size there.
-    const D = 1e-5;
-    const groundPx = (lon: number, lat: number) => {
-      const [x, y] = viewport.project([lon, lat]);
-      const [x1, y1] = viewport.project([lon + D, lat]);
-      const [x2, y2] = viewport.project([lon, lat + D]);
-      return Math.max(Math.hypot(x1 - x, y1 - y), Math.hypot(x2 - x, y2 - y));
-    };
-    const centrePx = groundPx(longitude, latitude);
+    const viewport = new WebMercatorViewport({ longitude, latitude, zoom, pitch, bearing, width, height, ...(eye ? { position: eye } : {}) });
     const next = chooseTags({
       people,
       clock: animClock(),
       centre: [longitude, latitude],
       size: { width, height },
-      project: ([lon, lat]) => {
-        const [x, y] = viewport.project([lon, lat]);
-        return { x, y, scale: groundPx(lon, lat) / centrePx };
-      },
+      project: groundProjector(viewport, [longitude, latitude], zAt),
       kept: new Set(shown.current.map((t) => t.person.id)),
       routine: routineEpoch === null ? undefined : { epoch: routineEpoch, ms: solarNowMs() },
     });
@@ -85,7 +79,7 @@ export default function usePersonTags({
     return shown.current;
     // `frame` is the clock tick: it is what re-runs this as the walkers move.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, people, longitude, latitude, zoom, pitch, bearing, width, height, frame, routineEpoch]);
+  }, [active, people, longitude, latitude, zoom, pitch, bearing, eye?.[2], width, height, frame, routineEpoch, onGround, groundVer]);
 
   return useMemo(
     () =>
@@ -94,7 +88,7 @@ export default function usePersonTags({
             new TextLayer<Tag>({
               id: 'person-tags',
               data: tags,
-              getPosition: (t) => t.position,
+              getPosition: (t) => [t.position[0], t.position[1], zAt(t.position[0], t.position[1])],
               getText: (t) => t.text,
               getSize: TAG_FONT_PX,
               getColor: [255, 226, 170, 255],
@@ -111,10 +105,11 @@ export default function usePersonTags({
               pickable: false,
               // Like the prints: drawn over the raised ground of the close-up 3D view.
               parameters: { depthCompare: 'always', depthWriteEnabled: false },
-              updateTriggers: { getPosition: frame },
+              updateTriggers: { getPosition: [frame, onGround, groundVer] },
             }),
           ]
         : [],
-    [active, tags, opacity, frame],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [active, tags, opacity, frame, onGround, groundVer],
   );
 }

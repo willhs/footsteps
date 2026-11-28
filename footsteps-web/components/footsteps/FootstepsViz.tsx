@@ -457,6 +457,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     enabled: tagsOn && renderMode !== 'dots' && !is3DMode,
     peopleOpacity: blend.people,
     routineEpoch,
+    onGround: close3d,
   });
 
   const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({

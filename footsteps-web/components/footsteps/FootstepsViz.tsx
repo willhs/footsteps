@@ -45,7 +45,6 @@ import FeaturedPerson from './overlays/FeaturedPerson';
 import { personKey, pickFeatured, samePerson } from '@/lib/featuredPerson';
 import useRegionalGroup from './hooks/useRegionalGroup';
 import useLargestSettlement from './hooks/useLargestSettlement';
-import { regionTintLayer } from './layers/regionTint';
 import useOtherHumansLayer, { OTHER_HUMANS_RGB } from './hooks/useOtherHumansLayer';
 import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
@@ -395,8 +394,9 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)), onGround: close3d });
 
-  // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
-  // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.
+  // The regional group (the level above a camp, ?settlements=1 only): a hover-card line for the group under the cursor. Close in,
+  // where groups can be picked one by one. Its soft tint (nested squares round the cursor) was removed on 2026-11-28: it read as a
+  // stray light, not a group.
   const regionOn = settlements && blend.pickable && (renderMode === 'auto' || renderMode === 'units');
   // The left column swaps its legend for the hover card while the cursor is on the map; over the column itself
   // (to reach the legend or "About the data") there is no card, so the legend comes back.
@@ -412,9 +412,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const lastPointRef = useRef<{ lon: number; lat: number } | null>(null);
   if (cardPoint) lastPointRef.current = { lon: cardPoint.lon, lat: cardPoint.lat };
   const hoverRegion = useRegionalGroup(grid, hoverPoint, regionOn);
-  const selectedRegion = useRegionalGroup(grid, selectedPlace && { lon: selectedPlace[0], lat: selectedPlace[1] }, regionOn);
   const hoverLargest = useLargestSettlement(grid, year, hoverPoint, settlements && (renderMode === 'auto' || renderMode === 'units'));
-  const regionLayers = useMemo(() => regionTintLayer(hoverRegion ?? selectedRegion), [hoverRegion, selectedRegion]);
 
   // Name tags beside the walkers at the closest zoom: imagined, like the people (layers/personTags.ts).
   // On by default; ?tags=0 turns them off (to compare frame rates, or for a plain view of the prints).
@@ -541,7 +539,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const layers: LayersList = [
     ...sceneBackground,
     ...otherHumans.below,
-    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...regionLayers, ...gridLayers, ...smokeLayers, ...presenceLayers, ...tagLayers]),
+    ...(renderMode === 'dots' ? (modelled ? [] : humanLayers) : [...gridLayers, ...smokeLayers, ...presenceLayers, ...tagLayers]),
     ...otherHumans.above,
   ] as LayersList;
   // First-load marks (lib/firstLoadMarks.ts): the frame after the Earth, then the year's people, are handed to deck.gl.

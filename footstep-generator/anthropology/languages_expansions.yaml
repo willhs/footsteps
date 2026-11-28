@@ -184,7 +184,9 @@ rows:
     glottocode: arab1395
     kind: historical
     start_year: 670
-    boxes: [[25, -15, 40, 25]]
+    # Not [25, -15, 40, 25]: that took in Andalusia, the Peloponnese and southern Italy, which Arabic never spread over.
+    # Ifriqiya's northern cell (Kairouan, Tunis) takes in Sicily too, which was Arabic-speaking from the 9th century.
+    boxes: [[25, -15, 35, 25], [35, 5, 40, 15]]
     disputed: false
     note: "Kairouan founded about 670; the countryside was Arabised mostly after the Banu Hilal migrations of the 11th century (Kairouan taken 1057). Berber languages remain across the region"
     cite: "Kairouan, Wikipedia"
@@ -210,7 +212,9 @@ rows:
     glottocode: turk1311
     kind: historical
     start_year: 552
-    boxes: [[35, 50, 55, 90]]
+    # Not [35, 50, 55, 90] alone: its south row took in northern Iran, Afghanistan and Tibet, and it left out Mongolia, where
+    # the Khaganate began (the Orkhon valley, ~47°N 102°E).
+    boxes: [[40, 50, 55, 90], [40, 90, 55, 120]]
     disputed: false
     note: "The First Turkic Khaganate (Göktürks, from 552) and its successors carried Turkic west across the steppe; Iranian languages (Sogdian, Khwarazmian) were replaced over the next centuries. Orkhon inscriptions, early 8th century"
     cite: "First Turkic Khaganate, Wikipedia"

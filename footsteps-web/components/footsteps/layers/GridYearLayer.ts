@@ -32,6 +32,7 @@ type Props = {
   progress: number; // year morph, 0..1
   settle?: number; // morph only: 1 = groups breathe (fire flicker), 0 = still
   halo?: number; // morph only: smallest fire sprite (px) for bands and villages
+  homes?: number; // morph only: 0..1 households drawn close in (0 where 3D dwellings stand instead)
   pickable: boolean;
   onReady: () => void;
   morph: boolean;
@@ -222,6 +223,7 @@ export default class GridYearLayer extends CompositeLayer<Props> {
               brightness: this.props.brightness,
               settle: this.props.settle ?? 1,
               halo: this.props.halo ?? 0,
+              homes: this.props.homes ?? 1,
             }
           : {}),
         parameters: this.props.units

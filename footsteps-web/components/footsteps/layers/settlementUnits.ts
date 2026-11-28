@@ -1,7 +1,7 @@
 import type { GridData } from '../hooks/gridData';
 import { UnitKind, KIND_OF_WAY, type Units, type UnitKindValue } from './units';
 import { WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
-import { layoutOfPattern, profileAt, type Layout, type SettlementCatalog } from '@/lib/settlements';
+import { foragerUsesClimate, layoutOfPattern, profileAt, type Layout, type SettlementCatalog } from '@/lib/settlements';
 import { seaLevelAt } from '@/lib/climate';
 import { CAUSE_ICE, CAUSE_WATER, type SiteRanker } from './siteRanking';
 import { DISPERSE_POOL, layGroups } from './settlementLayout';
@@ -44,8 +44,9 @@ export function buildSettlementUnits(
   const componentsFor = (i: number, way: number) => {
     const lon = data.positions[i * 2];
     const lat = data.positions[i * 2 + 1];
-    const deg = year < -10000 ? 0.5 : 5;
-    const key = (Math.floor((90 - lat) / deg) * 1024 + Math.floor((lon + 180) / deg)) * 64 + way;
+    // Climate-matched profiles vary per 0.5° habitat cell, regional ones per 5° box.
+    const deg = habitat && foragerUsesClimate(catalog, lon, lat, way, year) ? 0.5 : 5;
+    const key = ((Math.floor((90 - lat) / deg) * 1024 + Math.floor((lon + 180) / deg)) * 64 + way) * 2 + (deg === 5 ? 1 : 0);
     let profile = profiles.get(key);
     if (!profile) {
       profile = profileAt(catalog, lon, lat, way, year, habitat);

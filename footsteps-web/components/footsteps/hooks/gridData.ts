@@ -1,6 +1,10 @@
 import { buildUnits, type Units } from '../layers/units';
 import { TARGET_YEARS } from '@/lib/constants';
-import { classifyCell } from '@/lib/waysOfLife';
+import { classifyCell, URBAN_MIN_CELL } from '@/lib/waysOfLife';
+import { citiesBy } from '@/lib/firstCities';
+import { CROPS, HERDS, domesticatesBits, gateEra } from '@/lib/domesticatesGate';
+import { LAST_FIRST_SETTLEMENT, unsettledAt } from '@/lib/firstSettlement';
+import { MISSING_ISLANDS, islandCells, islandPeopleAt } from '@/lib/missingIslands';
 import { allocateCities, loadSettlementCatalog, type AllocatedCity, type SettlementCatalog } from '@/lib/settlements';
 import { buildSettlementUnits } from '../layers/settlementUnits';
 import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
@@ -11,6 +15,7 @@ import { loadPastWater, NO_EPOCHS, pastWaterEpochs, type Epochs, type PastWaterL
 import { iceIds, iceLayers, loadIceAt, type IceLayers } from '@/lib/iceSheets';
 import { landSubcells, type TerrainSea } from './landSubcells';
 import { adjustedGridUrl, adjustedSpreadYear, spreadTotalOk } from '@/lib/adjustedSpread';
+import { shareFactors } from '@/lib/holoceneShares';
 
 // Both must match grid_image.py: level 0 is "no people", level q > 0 is
 // expm1(q / LEVELS * log1p(MAX_PEOPLE)) people.
@@ -252,6 +257,8 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const land = landUse?.width === w && landUse.height === h ? landUse : null;
   if (landUse && !land) console.warn(`[grid] land use ${year} is ${landUse.width}×${landUse.height}, expected ${w}×${h}`);
   const mask = scale > 1 ? sea : null;
+  // 13,000-4,000 BCE: continental totals set by lib/holoceneShares.ts (one multiplier per source cell), null otherwise.
+  const continentFactors = shareFactors(year, sw, sh);
   const drop = Math.max(0, -seaLevelAt(year));
   // Level of each source cell, then of each of its sub-cells (equal share), or its land sub-cells (mask).
   const levels = new Uint16Array(sw * sh);
@@ -261,9 +268,14 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const keeps: Uint8Array[] = [];
   const counts: number[] = [];
   const scratch = new Uint8Array(parts);
+  // HYDE peoples islands before anyone reached them (Iceland, the Canaries, Galápagos...): those cells stay empty (lib/firstSettlement.ts).
+  // Real images only (HYDE's 5′, the model's 0.5°): the boxes are finer than a coarse test image's cells.
+  const checkSettled = year < LAST_FIRST_SETTLEMENT && sw >= 720;
+  const sourceDeg = 360 / sw;
   for (let i = 0; i < sw * sh; i++) {
     const level = (px[i * 4] << 8) | px[i * 4 + 1];
     if (!level) continue;
+    if (checkSettled && unsettledAt(-180 + ((i % sw) + 0.5) * sourceDeg, 90 - (Math.floor(i / sw) + 0.5) * sourceDeg, year)) continue;
     occupied++;
     if (mask && slot) {
       const { count, allSea } = landSubcells(mask, i % sw, Math.floor(i / sw), scale, w, drop, scratch);
@@ -276,14 +288,29 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       levels[i] = sharedLevel(level, parts);
     }
   }
+  // Islands HYDE leaves empty though people lived there (Tahiti, the Marquesas, Rapa Nui, the Azores): a rough count spread over
+  // their cells, only where the image has none (lib/missingIslands.ts).
+  if (sw === HYDE_WIDTH && !mask) {
+    for (const island of MISSING_ISLANDS) {
+      const n = islandPeopleAt(island, year);
+      const cells = islandCells(island, sw);
+      if (!(n >= 1) || cells.some((c) => levels[c])) continue;
+      const level = Math.min(LEVELS, Math.max(1, Math.round((Math.log1p(n / cells.length) / LOG_MAX) * LEVELS)));
+      for (const c of cells) levels[c] = level;
+      occupied += cells.length;
+    }
+  }
   const length = mask ? counts.reduce((a, b) => a + b, 0) : occupied * parts;
   const positions = new Float32Array(length * 2);
   const people = new Float32Array(length);
   const cellIds = new Uint32Array(length);
   const ways = new Uint8Array(length);
   const cellDeg = 360 / w;
+  // Farming and herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts); none in the modelled deep past.
+  const era = gateEra(year);
   let index = 0;
   let total = 0;
+  let totalBeforeFactors = 0; // the image's own world total
   for (let row = 0; row < h; row++) {
     const blockRow = Math.floor(row / scale);
     const sourceRow = blockRow * sw;
@@ -299,17 +326,33 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       } else {
         population = Math.expm1((value / LEVELS) * LOG_MAX);
       }
+      totalBeforeFactors += population;
+      if (continentFactors) population *= continentFactors[block];
+
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;
       cellIds[index] = row * w + col;
       const px4 = (row * w + col) * 4;
+      const can = domesticatesBits(positions[index * 2], positions[index * 2 + 1], era);
+      const canFarm = (can & CROPS) !== 0;
+      const canHerd = (can & HERDS) !== 0;
+      // A city glow only where towns had begun (lib/firstCities.ts); checked only for cells full enough to be one.
+      const canCity = population < URBAN_MIN_CELL || citiesBy(positions[index * 2], positions[index * 2 + 1], year);
       ways[index] = land
-        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255)
-        : classifyCell(population, 0, 0);
+        ? classifyCell(population, land.data[px4] / 255, land.data[px4 + 1] / 255, canFarm, canHerd, canCity)
+        : classifyCell(population, 0, 0, canFarm, canHerd, canCity);
       total += population;
       index++;
     }
+  }
+
+  // The multipliers keep the world total for the image they were fitted on (HYDE's or the model's); renormalise so any other
+  // image read for the year (the `?spread=1` one) keeps its own total too.
+  if (continentFactors && total > 0) {
+    const keepWorldTotal = totalBeforeFactors / total;
+    for (let i = 0; i < index; i++) people[i] *= keepWorldTotal;
+    total = totalBeforeFactors;
   }
   return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }
@@ -345,7 +388,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
   const hydeRead = adjustedRead ? null : readPixels(gridUrl(year), `Grid ${year}`);
   const landUse = readLandUse(year); // never rejects: a missing file classes by head count
   const catalogRead = settlements ? loadSettlementCatalog() : null;
-  const habitatRead = settlements && isModelled(year) ? readPixels(habitatUrl(habitatStep(year)), 'Settlement climate') : null;
+  // Deep time needs the year's habitat; in HYDE years far-from-analog foragers read it (lib/settlements.ts FAR_FORAGER_KM).
+  const habitatRead = settlements ? readPixels(habitatUrl(habitatStep(year)), 'Settlement climate') : null;
   // Only the close-up shelters read it (?shelters=1); the model runs without it if the small file is missing.
   const dwellingsRead = settlements ? loadDwellings().catch(() => null) : null;
   if (modelled) void warmSiteImages();
@@ -361,7 +405,8 @@ export async function decodeYearGrid(year: number, settlements = false, sites = 
   const [iceOn, lake] = await Promise.all([iceRead, lakeRead]);
   return prepareYearGrid(year, data, {
     catalog: await catalogRead!,
-    habitat: habitatRead ? (await habitatRead).data : null,
+    // A failed fetch in a HYDE year only keeps far foragers on their regional mix.
+    habitat: habitatRead ? await habitatRead.then((px) => px.data, (error) => { if (isModelled(year)) throw error; return null; }) : null,
     sites: sites ? await loadSiteRanker(lake, iceOn ? iceLayers : null) : null,
     epochs: lake || iceOn ? [...(lake ? pastWaterEpochs(year) : []), ...(iceOn ? iceIds(year) : [])] : NO_EPOCHS,
     dwellings: await dwellingsRead,

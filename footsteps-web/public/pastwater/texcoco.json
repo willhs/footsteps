@@ -1,0 +1,127 @@
+{
+  "id": "texcoco",
+  "version": 2,
+  "label": "Lakes of the Basin of Mexico (modelled, experimental)",
+  "short": "Basin of Mexico lakes",
+  "summary": "The five lakes of the Basin of Mexico (Zumpango, Xaltocan, Texcoco, Xochimilco, Chalco) before the colonial drainage: the basin-connected 2270 m contour of a smoothed modern DEM, calibrated to the lakes' area, 4 ka BP to 1600 CE, modelled; Tenochtitlan's island is kept dry; only the southern lakes count as fresh water.",
+  "evidence": "modelled",
+  "flag": "?pastwater=1",
+  "level_m": 2270.0,
+  "datum": "metres above the geoid on Terrarium zoom 6 averaged to 2.5' (smoothed: the level is calibrated to area on this surface, not the lakes' surveyed ~2236-2240 m)",
+  "epochs": [
+    {
+      "id": 6,
+      "name": "before the drainage",
+      "from_bp": 4000,
+      "to_bp": 350,
+      "from_year": -2050,
+      "to_year": 1600,
+      "state": "the lakes at their calibrated level, held through the window; seasonal and yearly swings not modelled",
+      "water": "brackish to saline (Texcoco, Xaltocan, Zumpango); fresh (Xochimilco, Chalco): only the southern lakes give fresh water",
+      "paint": "lake",
+      "level": {
+        "kind": "plane",
+        "m": 2270.0,
+        "clip_to_dem": true
+      },
+      "mask": {
+        "file": "texcoco_mask.webp",
+        "x0": 1937,
+        "y0": 1682,
+        "width": 13,
+        "height": 19,
+        "grid": "8640 x 4320 world pixels of 2.5'; x0, y0 = column, row of the patch's north-west pixel (row 0 north, column 0 180 W)",
+        "bytes": 66,
+        "sha256": "8df52fef2c9b4346de6c4ed71b355977508d4877411e570fe1103f59f409c20c",
+        "red": "255 = lake, 0 = not",
+        "lake_pixels": 79,
+        "area_km2": 1598
+      },
+      "shore": {
+        "file": "texcoco_shore.webp",
+        "x0": 38788,
+        "y0": 33689,
+        "width": 165,
+        "height": 292,
+        "scale": 20,
+        "m": 2250.0,
+        "grid": "172800 x 86400 world pixels of 7.5\"; x0, y0 = column, row of the patch's north-west pixel",
+        "bytes": 734,
+        "sha256": "93fe4804edcb311d53dfef5a95fa351b4436bd3089c6f203bc7a58dad927c7bb",
+        "red": "255 = lake, 0 = not",
+        "area_km2": 1158,
+        "rule": "close-up only: Terrarium zoom 11, smoothed ~0.5 km, flooded from the seed at 2250 m, islands carved as discs, within a pixel of the mask; flat water at that level, not clipped to the DEM"
+      },
+      "distance": {
+        "file": "texcoco_water.webp",
+        "x0": 967,
+        "y0": 841,
+        "width": 11,
+        "height": 16,
+        "grid": "4320 x 2160 HYDE 5' cells; x0, y0 = column, row of the patch's north-west cell",
+        "encoding": "water_distance.json: metres = max_metres * (code / 255) ** 2, code 0 = water in the cell",
+        "bytes": 132,
+        "sha256": "ce2f186c48267b92224d2d84498cbf3c64f169fee4ce2c4b64c5dd47600cfe95",
+        "cells_changed": 95,
+        "rule": "min(static distance image, distance to the lake cells south of 19.34 N); outside the patch the static image is exact",
+        "fresh_area_km2": 304
+      }
+    }
+  ],
+  "outside_epochs": "scenario inactive: the geography is unknown at that date, which is not the same as a dry basin; the app draws and places as it does without the flag",
+  "area_km2": 1598,
+  "area_reference_km2": {
+    "range": [
+      1000,
+      2000
+    ],
+    "source": "the lake system's area at contact as usually given (about 1,000-2,000 km2, varying with season and year; e.g. Sanders, Parsons & Santley 1979, The Basin of Mexico)"
+  },
+  "islands": [
+    {
+      "name": "Tenochtitlan",
+      "lat": 19.4326,
+      "lon": -99.1332
+    },
+    {
+      "name": "Tlatelolco",
+      "lat": 19.4515,
+      "lon": -99.137
+    }
+  ],
+  "digest": "a8d9c1208629be8b",
+  "licence": "derived from AWS Terrarium elevation tiles (public-domain and openly licensed DEMs, attribution per the tiles' notice)",
+  "sources": {
+    "height": "AWS Terrarium elevation tiles, zoom 6, mean of 3 x 3 samples per 2.5' pixel (as site_terrain.py)",
+    "level": "calibrated: the lowest level at which the fill reaches all five lakes, checked against the lakes' usual area; the surveyed lake surface was ~2236-2240 m",
+    "chronology": "lakes present through the Holocene; held from 4 ka BP (Formative shore villages) to 1600 CE, before the Desagüe of Huehuetoca begun in 1607",
+    "freshwater": "Texcoco saline, Xochimilco and Chalco fresh (spring-fed), Zumpango and Xaltocan brackish; Nezahualcoyotl's dike (~1449) separated fresh from salt water in the western lake",
+    "static_water": "footsteps-web/public/water/water_distance.webp (Natural Earth 10m v5.1.2)"
+  },
+  "uncertainty": [
+    "The shoreline is a contour of a 2.4 km DEM averaged to 4.6 km, calibrated to area: the shape is the basin floor's, not a mapped shore.",
+    "The close-up's shore is a contour of today's smoothed ground at 2250 m: the city has sunk up to ~10 m since 1900 and the lakebed was filled, so it is a sketch of the shore, not a survey.",
+    "The lakes rose and fell with the seasons and the years; one level is held for 3,650 years.",
+    "Only Tenochtitlan and Tlatelolco are kept dry; other islands (Xaltocan, Mixquic), the causeways and the chinampas are not modelled.",
+    "Which parts were fresh is simplified to a latitude line south of the city.",
+    "Nothing is said before 4 ka BP or after 1600: not dry, not wet."
+  ],
+  "build": {
+    "fill_window": [
+      18.8,
+      20.6,
+      -99.8,
+      -98.2
+    ],
+    "seed": [
+      19.45,
+      -99.0
+    ],
+    "window_min_m": 749.2222290039062,
+    "window_max_m": 4355.66650390625
+  },
+  "terrain": {
+    "years": [],
+    "path": "/terrain/pastwater/earth_{year}.webp (terrain_image.py --pastwater); other years use the ordinary images"
+  }
+}

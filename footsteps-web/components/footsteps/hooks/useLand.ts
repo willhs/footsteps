@@ -4,7 +4,7 @@
 // its 0.5° cell, the crops around its 5° cell, distance and way to fresh water) and builds the patches once per view box (useGridLayer's
 // `inView`), never per frame. Nothing is fetched while the flag is off.
 import { useEffect, useMemo, useState } from 'react';
-import { cropsAround } from '@/lib/food';
+import { cropsAround, herdsAround } from '@/lib/food';
 import { landUseUrl, type GridData } from './gridData';
 import { HYDE_MIN } from '@/lib/time';
 import type { LandSet } from '../layers/Close3DLayer';
@@ -125,7 +125,7 @@ export default function useLand({ enabled, inView, season, grid }: { enabled: bo
         };
       }),
       towns.map((t) => ({ ...t, crop: landUseAt(shares, t.lon, t.lat).crop, cellShare: cellShare(t.lon, t.lat, t.people), water: w && waterHere(w, t.lon, t.lat) })),
-      { season, crops: (lon, lat) => (food ? cropsAround(food, lon, lat, year) : []) },
+      { season, crops: (lon, lat) => (food ? cropsAround(food, lon, lat, year) : []), herds: food ? (lon, lat) => herdsAround(food, lon, lat, year) : undefined },
     );
     // A new key for every new set of patches: the close-up drapes a tile again only when its key changes.
     return { key: `land${++landVersion}`, patches };

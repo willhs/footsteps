@@ -144,8 +144,3 @@ export function portraitLooks(person: Person, year: number, lat: number, rec: At
     : pick(r, person.female ? ['long', 'tied', 'braid', 'short', 'wrap'] : ['short', 'long', 'tied', 'short', 'wrap']);
   return { skin, skinShade, hair, cloth, beads, paint, hairStyle, child, elder, r };
 }
-
-/** `?avatar=3d` asks for the 3D figure in the person card (off by default until Will reviews it). */
-export function avatarFromParams(search: string): boolean {
-  return new URLSearchParams(search).get('avatar') !== '0';
-}

@@ -1,4 +1,4 @@
-import { cameraDistanceM, cameraLift, horizonRow, overlayTint, sceneLight, skyBackdrop, skyParam, sunVector } from './sky';
+import { cameraDistanceM, cameraLift, horizonRow, overlayTint, sceneLight, skyBackdrop, sunVector } from './sky';
 import { CLOSE3D_PITCH, SKY_PITCH } from './close3d';
 import { sunPosition } from './sunTime';
 
@@ -7,12 +7,6 @@ const LON = 32.6;
 const LAT = 25.7;
 const at = (utcHours: number) => Date.UTC(2024, 5, 21) + utcHours * 3_600_000;
 const warmth = (c: number[]) => c[0] - c[2];
-
-test('the flag: on unless ?sky=0', () => {
-  expect(skyParam('')).toBe(true);
-  expect(skyParam('?year=-3000&sky=1')).toBe(true);
-  expect(skyParam('?sky=0')).toBe(false);
-});
 
 test('the sun vector is a unit vector: east in the morning, west in the afternoon, high at noon', () => {
   for (const h of [3, 7, 9.8, 13, 16.5, 22]) {

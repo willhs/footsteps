@@ -1,10 +1,12 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { FIRST_GLOBE, FIRST_PEOPLE, markOnce } from '@/lib/firstLoadMarks';
 import { prefetchAfterFirstPeople } from '@/lib/lazyModule';
-import { CLOSE3D_MODULE } from '@/components/footsteps/hooks/useTerrainLayers';
-import { terrainTilesParam } from '@/lib/terrainDetail';
+import useTerrainLayers, { CLOSE3D_MODULE } from '@/components/footsteps/hooks/useTerrainLayers';
+
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { WebMercatorViewport, type LayersList, type PickingInfo } from '@deck.gl/core';
 import { bandsInView, emptyViewNote, peopleInView } from '@/lib/emptyView';
@@ -16,22 +18,21 @@ import ControlRow from '@/components/ui/ControlRow';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipData, useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import PopulationTooltip from './overlays/PopulationTooltip';
-import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { personCard, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
 import { seaLevelAt } from '@/lib/climate';
-import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, close3dParam, farMultiplier, pitchForZoom } from '@/lib/close3d';
+import { CLOSE3D_ZOOM, EXAGGERATION, SKY_FULL_ZOOM, farMultiplier, pitchForZoom } from '@/lib/close3d';
 import { heightAt } from '@/lib/groundHeights';
 import { reanchor } from './views/liftAnchor';
 import useSmokeLayer from '@/components/footsteps/hooks/useSmokeLayer';
-import { smokeParam } from '@/lib/hearths';
+
 import useGridLayer from '@/components/footsteps/hooks/useGridLayer';
 import usePresenceLayers from '@/components/footsteps/hooks/usePresenceLayers';
 import usePersonTags from '@/components/footsteps/hooks/usePersonTags';
 import GroundingPanel from './overlays/GroundingPanel';
 import { AVATAR_3D } from './overlays/avatarLazy';
-import { avatarFromParams } from '@/lib/avatar';
+
 import { groundingFacts } from './layers/grounding';
 import { MODEL_NOTES_URL, nearestDotTileYear } from '@/lib/constants';
 import { PEOPLE_MODES, type PeopleMode } from './hooks/peopleView';
@@ -39,7 +40,7 @@ import { UnitKind } from './layers/units';
 import { LOOKS, WayOfLife, type WayOfLifeValue } from '@/lib/waysOfLife';
 import HoverCard from './overlays/HoverCard';
 import EstimatePanel from './overlays/EstimatePanel';
-import { explainParam } from '@/lib/estimate';
+
 import WaySign from './overlays/WaySign';
 import FeaturedPerson from './overlays/FeaturedPerson';
 import { personKey, pickFeatured, samePerson } from '@/lib/featuredPerson';
@@ -50,29 +51,28 @@ import OtherHumansTooltip from './overlays/OtherHumansTooltip';
 import useHoverPoint, { type Unproject } from './hooks/useHoverPoint';
 import useSolarClock from './hooks/useSolarClock';
 import useGroundLift from './hooks/useGroundLift';
-import { epochHour, routineParam } from '@/lib/routine';
+import { epochHour } from '@/lib/routine';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
-import { sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
+import { sceneLight, skyBackdrop } from '@/lib/sky';
 import { setSolarClockAt, solarClockParams } from '@/lib/solarClock';
 import { DEFAULT_DIAL_HOUR, dialInstant, hourParam, skyPhase, type DialSun } from '@/lib/timeOfDay';
 import parseInitialViewState from '@/lib/parseInitialViewState';
 import { sunHours } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
-import { settlementsFromParams } from '@/lib/settlements';
-import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
-import { iceNote, iceParam } from '@/lib/iceSheets';
-import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
+
+import { pastWaterNote } from '@/lib/pastWater';
+import { iceNote } from '@/lib/iceSheets';
+import { ADJUSTED_SPREAD_LABEL, spreadNote } from '@/lib/adjustedSpread';
 import TimeOfDayDial from '@/components/ui/TimeOfDayDial';
 import FeaturesMenu from '@/components/ui/FeaturesMenu';
-import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
-import { fieldsParam } from './layers/fields';
+import { loadDwellings, type DwellingTable } from '@/lib/dwellings';
+
 import useLand from './hooks/useLand';
 import { shelterHoverOf, type ShelterHover } from './layers/shelters';
-import { treesParam } from '@/lib/close3d';
-import ShelterTooltip from './overlays/ShelterTooltip';
 
+import ShelterTooltip from './overlays/ShelterTooltip';
 
 const NIGHT = new NightExtension();
 
@@ -80,18 +80,9 @@ const NIGHT = new NightExtension();
 // and also reveals the mode button.
 const RENDER_MODE_LABEL: Record<PeopleMode, string> = { auto: 'Auto', dots: 'Dots', grid: 'Grid', units: 'Units' };
 const DEFAULT_RENDER_MODE: PeopleMode = 'auto';
-function modeParam(): string | null {
-  if (typeof window === 'undefined') return null;
-  return new URLSearchParams(window.location.search).get('mode');
-}
 function renderModeFromUrl(): PeopleMode {
-  const m = modeParam();
+  const m = flags().value('mode');
   return PEOPLE_MODES.includes(m as PeopleMode) ? (m as PeopleMode) : DEFAULT_RENDER_MODE;
-}
-// The hover card (habitat, climate, animals and people under the cursor) is on by default;
-// ?hover=0 turns it off.
-function hoverParam(): boolean {
-  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hover') !== '0';
 }
 const NOTES_KEY = 'footsteps.legendNotes';
 const LEGEND: WayOfLifeValue[] = [WayOfLife.Forager, WayOfLife.Farmer, WayOfLife.Herder, WayOfLife.Urban];
@@ -142,9 +133,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Null while a URL clock (`?utc=`, `?warp=`) runs, until the dial is first turned.
   const [dialSun, setDialSun] = useState<DialSun | null>(null);
   useEffect(() => {
-    const search = window.location.search;
-    const start = parseInitialViewState(search);
-    const hour = hourParam(search) ?? (solarClockParams(search) ? null : DEFAULT_DIAL_HOUR);
+    const start = parseInitialViewState();
+    const hour = hourParam() ?? (solarClockParams() ? null : DEFAULT_DIAL_HOUR);
     setDialSun(hour === null ? null : { hour, lon: start.longitude, lat: start.latitude });
   }, []);
   useEffect(() => {
@@ -154,22 +144,21 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
   // `?pastwater=1`: the dated past-water scenarios (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
   const [pastWaterOn, setPastWaterOn] = useState(false);
-  useEffect(() => setPastWaterOn(pastWaterParam(window.location.search)), []);
+  useEffect(() => setPastWaterOn(flags().enabled('pastwater')), []);
   // `?ice=1`: the dated ice sheets (lib/iceSheets.ts), off until reviewed on prod. The note names the epoch drawn and what the groups did.
   const [iceOn, setIceOn] = useState(false);
-  useEffect(() => setIceOn(iceParam(window.location.search)), []);
+  useEffect(() => setIceOn(flags().enabled('ice')), []);
   // `?spread=1`: HYDE's people moved toward where the climate then let them live, 10,000–4,000 BCE (lib/adjustedSpread.ts), off until reviewed.
   const [spreadOn, setSpreadOn] = useState(false);
-  useEffect(() => setSpreadOn(spreadParam(window.location.search)), []);
+  useEffect(() => setSpreadOn(flags().enabled('spread')), []);
   const [routineOn, setRoutineOn] = useState(false);
-  useEffect(() => setRoutineOn(routineParam(window.location.search)), []);
+  useEffect(() => setRoutineOn(flags().enabled('routine')), []);
   const routineEpoch = routineOn ? epochHour(now.getTime()) : null;
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setSettlements(settlementsFromParams(params));
+    setSettlements(flags().enabled('settlements'));
     setRenderMode(renderModeFromUrl());
-    setDebugModes(modeParam() !== null);
-    setHoverCard(hoverParam());
+    setDebugModes(flags().value('mode') !== null);
+    setHoverCard(flags().enabled('hover'));
     setIs3DMode(getViewMode());
   }, []);
 
@@ -178,7 +167,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // `?explain=1` (lib/estimate.ts, off until Will decides how to show uncertainty): a quiet "How is this estimated?" link under
   // the counter opens a panel naming the sources, methods and a confidence word for the place and year.
   const [explainOn, setExplainOn] = useState(false);
-  useEffect(() => setExplainOn(explainParam(window.location.search)), []);
+  useEffect(() => setExplainOn(flags().enabled('explain')), []);
   const [explainOpen, setExplainOpen] = useState(false);
 
   const [, setTileLoading] = useState<boolean>(true);
@@ -189,11 +178,11 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   // Zoomed in, the map shows the 3D landscape (lib/close3d.ts); ?close3d=0 keeps it flat.
   const [close3dOn, setClose3dOn] = useState(false);
-  useEffect(() => setClose3dOn(close3dParam(window.location.search)), []);
+  useEffect(() => setClose3dOn(flags().enabled('close3d')), []);
   // `?sky=1` (lib/sky.ts, off until reviewed on prod): the close-up lit by the sun clock, hazed into a sky, with moving water. It also
   // tilts the close-up further from zoom 11 so the horizon is in frame.
   const [skyOn, setSkyOn] = useState(false);
-  useEffect(() => setSkyOn(skyParam(window.location.search)), []);
+  useEffect(() => setSkyOn(flags().enabled('sky')), []);
   // The close-up never tilts by itself as you zoom (removed 2026-11-28: a tilt that changes with zoom made it hard to zoom onto a
   // group). A right-drag still tilts by hand, and the sky shows once the horizon is in frame.
   const autoTilt = false;
@@ -280,11 +269,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     [skyOn, close3d, lightLon, lightLat, now],
   );
 
-  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
+  // The Earth of each era is the only background (the flat "Plain" fill was removed on 2026-11-28).
+  const backgroundLayers = useTerrainLayers(time, close3d);
   // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
   useEffect(() => (close3dOn ? prefetchAfterFirstPeople(CLOSE3D_MODULE) : undefined), [close3dOn]);
   // `?avatar=3d`: fetch the 3D person's code once the people are up, so a click shows the figure without waiting for it.
-  useEffect(() => (avatarFromParams(window.location.search) ? prefetchAfterFirstPeople(AVATAR_3D) : undefined), []);
+  useEffect(() => (flags().enabled('avatar') ? prefetchAfterFirstPeople(AVATAR_3D) : undefined), []);
   const shadedBackground = useMemo(() => {
     const nightSun = sunPosition(now);
     const props = { extensions: [NIGHT], nightSun };
@@ -334,7 +324,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Read after mount so the server-rendered HTML (no query string) matches the first client render.
   // Other kinds of human (Neanderthals, Denisovans, ...): on by default; ?humans=0 or the Features menu turns it off.
   const [otherHumansOn, setOtherHumansOn] = useState(true);
-  useEffect(() => setOtherHumansOn(new URLSearchParams(window.location.search).get('humans') !== '0'), []);
+  useEffect(() => setOtherHumansOn(flags().enabled('humans')), []);
   const otherHumans = useOtherHumansLayer({
     enabled: otherHumansOn,
     time,
@@ -348,8 +338,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Close-up dwellings (`?shelters=1`, off by default until reviewed): type modelled from analogs, place imagined (lib/dwellings.ts).
   const [sheltersOn, setSheltersOn] = useState(false);
   const [treesOn, setTreesOn] = useState(false);
-  useEffect(() => setTreesOn(treesParam(window.location.search)), []);
-  useEffect(() => setSheltersOn(sheltersParam(window.location.search)), []);
+  useEffect(() => setTreesOn(flags().enabled('trees')), []);
+  useEffect(() => setSheltersOn(flags().enabled('shelters')), []);
   const [dwellings, setDwellings] = useState<DwellingTable | null>(null);
   useEffect(() => {
     if (sheltersOn || treesOn) loadDwellings().then(setDwellings).catch((error) => console.warn('[shelters] failed to load', error));
@@ -357,12 +347,12 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [shelterHover, setShelterHover] = useState<ShelterHover | null>(null);
   // Close-up fields, gardens and paths (`?fields=1`, off by default until reviewed): imagined layout, farmed share from HYDE (layers/fields.ts).
   const [fieldsOn, setFieldsOn] = useState(false);
-  useEffect(() => setFieldsOn(fieldsParam(window.location.search)), []);
+  useEffect(() => setFieldsOn(flags().enabled('fields')), []);
   // The dwelling under the cursor is gone when the set changes (a pan, zoom out or scrub): drop its card rather than leave it stale.
 
   // Hearth smoke and, at night, firelight (`?smoke=1`, off by default until reviewed): imagined (lib/hearths.ts).
   const [smokeOn, setSmokeOn] = useState(false);
-  useEffect(() => setSmokeOn(smokeParam(window.location.search)), []);
+  useEffect(() => setSmokeOn(flags().enabled('smoke')), []);
 
   const [selectedPlace, setSelectedPlace] = useState<[number, number] | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ kind: number; people: number } | null>(null);
@@ -417,7 +407,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // Name tags beside the walkers at the closest zoom: imagined, like the people (layers/personTags.ts).
   // On by default; ?tags=0 turns them off (to compare frame rates, or for a plain view of the prints).
   const [tagsOn, setTagsOn] = useState(true);
-  useEffect(() => setTagsOn(new URLSearchParams(window.location.search).get('tags') !== '0'), []);
+  useEffect(() => setTagsOn(flags().enabled('tags')), []);
   // Their walkers (other kinds of human) get tags too.
   const taggedPeople = useMemo(
     () => (otherHumans.people.length ? [...people, ...otherHumans.people] : people),
@@ -458,7 +448,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     onGround: close3d,
   });
 
-  const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
+  const { layers: presenceLayers, waiting: presenceWaiting } = usePresenceLayers({
     enabled: renderMode === 'auto',
     time,
     view: viewState,
@@ -569,9 +559,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}
         unprojectRef={hoverCard ? unprojectRef : undefined}
-        // Night lights flicker and bands/villages move on the GPU; redraw
-        // continuously only while either is on screen.
-        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating || otherHumans.shown)}
+        // Night lights flicker and bands/villages move on the GPU over the terrain; redraw continuously except in the Dots view.
+        animate={renderMode !== 'dots'}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
@@ -582,7 +571,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           if (Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lat) <= 90) setSelectedPlace([lon, lat]);
         }}
       />
-
 
       {/* Data info overlay */}
       <SupportingText
@@ -768,10 +756,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 {notesOpen && ' Places follow climate and habitat inside rough ranges drawn around known fossils and DNA. Ringed dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. Fainter fires east of Borneo are hinted only by Denisovan DNA in Papuans today.'}
               </p>
             )}
-            {notesOpen && showTerrain && <TerrainNote />}
+            {notesOpen && <TerrainNote />}
           </div>
         ) : (
-          !peopleView && showTerrain && (
+          !peopleView && (
             <div className="ov-panel shrink-0 px-3.5 py-3">
               <TerrainNote />
             </div>
@@ -784,8 +772,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         <VizToggles
           is3DMode={is3DMode}
           onModeChange={changeViewMode}
-          showTerrain={showTerrain}
-          onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
           showColorScheme={renderMode === 'dots'}
@@ -855,7 +841,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 function TerrainNote() {
   // The colour pyramid's line only when it is drawn (`?terrain_tiles=1`, lib/terrainDetail.ts).
   const [tiles, setTiles] = useState(false);
-  useEffect(() => setTiles(terrainTilesParam(window.location.search)), []);
+  useEffect(() => setTiles(flags().enabled('terrain_tiles')), []);
   return (
     <span className="ov-note mt-1.5 block">
       Land, sea and ice reconstructed from climate and ice models (Krapp et al. 2021),

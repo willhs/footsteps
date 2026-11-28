@@ -1,5 +1,5 @@
 import { configureSolarClock, resetSolarClock, solarClockBent, solarNowMs } from './solarClock';
-import { STILL_DAY_UTC_MS, STILL_SECONDS, animSeconds, resetStill, stillRequested } from './still';
+import { STILL_DAY_UTC_MS, STILL_SECONDS, animSeconds, resetStill } from './still';
 
 afterEach(() => {
   resetSolarClock();
@@ -9,12 +9,6 @@ afterEach(() => {
 });
 
 describe('?still=1', () => {
-  it('is asked for only by ?still=1', () => {
-    expect(stillRequested('?still=1')).toBe(true);
-    expect(stillRequested('?year=-3000&still=1')).toBe(true);
-    expect(stillRequested('')).toBe(false);
-    expect(stillRequested('?still=0')).toBe(false);
-  });
 
   it('gives the shader clock one instant, however long the page has run', () => {
     window.history.replaceState(null, '', '/?still=1');

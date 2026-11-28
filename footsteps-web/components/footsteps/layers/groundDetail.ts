@@ -311,6 +311,18 @@ const FIELD_FS_FILTER_COLOR = `
       // Garden: beds about 2.5 m apart with paths between.
       float bed = smoothstep(0.18, 0.28, fract(v / 2.5)) * (1.0 - smoothstep(0.82, 0.92, fract(v / 2.5)));
       c *= mix(1.0, mix(0.8, 1.08, bed), gFade(2.5, fmpp));
+    } else if (kind > 4.5 && kind < 5.5) {
+      // A camp's trodden ground (foragers' clearing): bare, packed earth where people sit and work round the hearths, grass coming back
+      // in tufts towards the edge, and no edge at all: it fades into the ground through a ragged, noisy margin. Before 2026-11-28 it was
+      // one flat brown polygon. (A clearing is drawn as wedges from the camp's middle: v runs out from the middle, vField.y is left to the rim.)
+      float reach = max(v + vField.y, 1.0);
+      float out_ = v / reach;
+      float ragged = gFbm(fm + seed * 211.0, 6.0, fmpp) - 0.5;
+      float grass = smoothstep(0.35, 1.0, out_ + 0.5 * ragged + 0.25 * (gFbm(fm + 470.0, 1.6, fmpp) - 0.5));
+      vec3 earth = c * (0.92 + 0.2 * (gFbm(fm + 90.0, 0.9, fmpp) - 0.5));
+      vec3 tufts = vec3(0.34, 0.38, 0.2) * (0.85 + 0.35 * mott);
+      c = mix(earth, tufts, grass * 0.85);
+      color.a *= 1.0 - smoothstep(0.55, 1.0, out_ + 0.45 * ragged);
     } else if (kind > 5.5) {
       // Track: worn paler down the middle, darker ruts and grass at the sides.
       float side = min(v, vField.y) / max(v + vField.y, 0.01);

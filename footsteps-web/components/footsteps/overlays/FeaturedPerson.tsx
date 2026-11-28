@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 import type { Person } from '../layers/people';
 import { personCard } from '../layers/people';
 import { FactList } from './CardFacts';
@@ -5,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useState } from 'react';
 import Portrait from './Portrait';
 import { AVATAR_3D } from './avatarLazy';
-import { avatarFromParams } from '@/lib/avatar';
+
 import { useLazy } from '@/lib/lazyModule';
 
 /** At street zoom, the left column shows a person in frame without a click (lib/featuredPerson.ts picks them). A click on
@@ -23,7 +24,7 @@ export default function FeaturedPerson({
 }) {
   const { title, facts } = personCard(person, routineMs);
   // `?avatar=3d`: the 3D figure, as in the person panel (docs/ops/avatar.md); the drawing shows until its code is in.
-  const [avatar3d] = useState(() => typeof window !== 'undefined' && avatarFromParams(window.location.search));
+  const [avatar3d] = useState(() => typeof window !== 'undefined' && flags().enabled('avatar'));
   const Avatar = useLazy(AVATAR_3D, avatar3d)?.default;
   const portrait = { person, year, lat: person.position[1] };
   return (

@@ -7,12 +7,10 @@ import {
   FARM_RADIUS_M,
   farmedArea,
   SUBSISTENCE_M2_PER_PERSON,
-  fieldsParam,
   growing,
   isSwidden,
   landPatches,
   patchArea,
-  WATER_PATH_MAX_M,
   waterHere,
   type AreaPatch,
   type LandContext,
@@ -32,12 +30,6 @@ const farmed = (patches: LandPatch[]) => patches.filter(isArea).filter((p) => FA
 const centre = (p: AreaPatch): [number, number] => [p.corners.reduce((a, c) => a + c[0], 0) / 4, p.corners.reduce((a, c) => a + c[1], 0) / 4];
 const metres = (a: [number, number], b: [number, number]) =>
   Math.hypot((a[0] - b[0]) * 111_320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111_320);
-
-test('on unless ?fields=0', () => {
-  expect(fieldsParam('')).toBe(true);
-  expect(fieldsParam('?year=-3000&fields=1')).toBe(true);
-  expect(fieldsParam('?fields=0')).toBe(false);
-});
 
 test('the same groups always give the same land', () => {
   const groups = [village(31.2, 30.0, 0.3, { water: { metres: 800, dir: [1, 0] } }), village(31.23, 30.01, 0.2)];
@@ -115,16 +107,11 @@ test('a town has gardens among its roofs and a ring of fields beyond them', () =
   expect(nearestField).toBeGreaterThan(inner * 0.95);
 });
 
-test('a path leads towards fresh water, no longer than the cap', () => {
+test('no invented track to water, and none between camps', () => {
   const g = village(30, 10, 0, { water: { metres: 50_000, dir: [0, 1] } });
-  const path = landPatches([g], [], ctx).filter((p) => p.kind === 'path');
-  expect(path.length).toBeGreaterThan(3);
-  const ends = path.flatMap((p) => (p.kind === 'path' ? p.line : []));
-  const far = ends.reduce((a, e) => (metres(e, [g.lon, g.lat]) > metres(a, [g.lon, g.lat]) ? e : a));
-  expect(far[1]).toBeGreaterThan(g.lat); // north, the way the water lies
-  expect(metres(far, [g.lon, g.lat])).toBeLessThan(WATER_PATH_MAX_M * 1.05);
-  // Water in the cell (under the minimum) draws no track.
-  expect(landPatches([village(30, 10, 0, { water: { metres: 20, dir: [0, 1] } })], [], ctx).some((p) => p.kind === 'path')).toBe(false);
+  expect(landPatches([g], [], ctx).some((p) => p.kind === 'path')).toBe(false);
+  const bands = [village(30, 10, 0, { kind: UnitKind.Band, people: 25 }), village(30.02, 10, 0, { kind: UnitKind.Band, people: 25 })];
+  expect(landPatches(bands, [], ctx).some((p) => p.kind === 'path')).toBe(false);
 });
 
 test('neighbours within a few km are joined by one track', () => {

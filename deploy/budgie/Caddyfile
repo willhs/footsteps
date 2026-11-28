@@ -2,11 +2,19 @@
 :80 {
 	encode zstd gzip
 
+	# Missing assets may be published moments later. Never cache file-server errors.
+	handle_errors {
+		header Cache-Control "no-store"
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+
 	# Tiles: one PMTiles archive per year, read with HTTP Range requests.
 	# Don't compress (Range offsets must match the file) and let Cloudflare cache.
 	handle_path /pmtiles/* {
 		root * /srv/pmtiles
-		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800" {
+			match status 2xx
+		}
 		header Access-Control-Allow-Origin "*"
 		file_server
 	}
@@ -15,7 +23,9 @@
 	@images path /grid/* /terrain/* /habitat/* /ground/* /water/*
 	handle @images {
 		root * /srv/app
-		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800" {
+			match status 2xx
+		}
 		file_server
 	}
 

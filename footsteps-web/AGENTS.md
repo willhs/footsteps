@@ -22,7 +22,7 @@ Read the root README and `.gent/rules.md` for data acquisition and deployment.
   (`GridData.ways`); `FireLayer.ts` colours the far-out fires the same way, and the legend reads `LOOKS`.
   `unitMorphVertex.ts` reads a mark's kind from its colour, so `waysOfLife.test.ts` pins the palette.
   Copy `../data/tiles/grid/landuse_*.png` into `public/grid/` for local dev.
-- The settlement model is the default Units view (`settlementsFromParams` in `lib/settlements.ts`, read by the page and the grid worker;
+- The settlement model is the default Units view (`flags().enabled('settlements')` in `lib/flags.ts`, read by the page and the grid worker;
   `?settlements=0` gives the old even groups at random spots). It also ranks spots inside each cell (`layers/siteRanking.ts`, one ranker per worker, cached by cell id; reads `/sites/site_terrain.webp` and
   `/water/water_distance.webp` through `readChannels` in `hooks/gridData.ts`): group *k* sits at spot *k*, off the sea and lakes at the year's sea level. `?sites=0` turns it off to compare.
   `components/footsteps/layers/settlementSites.real.test.ts` is the gated real-data count (docs/ops/site-terrain.md "Measure").
@@ -122,7 +122,7 @@ pnpm install
 pnpm dev                 # port 4444
 pnpm lint
 pnpm exec tsc --noEmit
-pnpm test -- --runInBand
+pnpm test --runInBand    # no `--`: it becomes a jest pattern, "No tests found"
 pnpm build               # writes out/
 pnpm e2e                 # Playwright; see playwright.config.ts
 ```

@@ -4,6 +4,211 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-28] research | Strategic overview: what next after two weeks of building
+
+Research 0018 (`docs/research/0018-strategic-overview-2026-11/research.md`): a ranked memo read at `3f8d757`. Five next
+directions, each with a first task in Steady's idea lane (not dispatched): measure the new default view after the 28 Nov
+flag flip, a first minute for a new visitor (share card, About and sources page), groups / belief / trade / conflict from
+D-PLACE, real maps of people for 1950-2025, and a phone check. Three debts: nothing checks that what is live is right (the
+visual baselines predate the flip, data is published by hand); the paid day API is not ready for strangers; `AGENTS.md` no
+longer matches the code and has no test ladder. Also: cards for 1950-2025 wrongly say their counts are HYDE estimates;
+what to stop (more close-up layers, flags for review, Dots, the GCP leftovers); and corrections to the task's premise (the
+board was not empty; the flags had been promoted that day). No code changed; nothing was run in the app.
+
+## [2026-11-28] refactor | One registry-backed URL flag snapshot
+
+Moved FLAGS into browser-safe `lib/flagRegistry.js`, shared with the Node sweep.
+`lib/flags.ts` now owns parsing and typed boolean/raw lookups. The head applies saved
+choices, parses the URL once for preloads, and shares the immutable snapshot with
+the application. Server defaults cannot seed browser state. View/clock validation,
+worker message shape, live toggles, defaults and off-switch values stay unchanged.
+Deleted feature-local parsers and their paired flag-only tests; the registry-driven
+snapshot tests cover every flag, empty/repeated values, aliases and head ordering.
+The Features menu derives its defaults and switch values from the registry.
+
+The premise was confirmed against the source and default-flip commit `72546d4`.
+The main risks outside the diff are preload serialization, saved-choice ordering,
+static rendering and worker settings. The snapshot tests exercise head execution
+and reuse, and existing view/clock/preload tests preserve their domain contracts.
+Close3D construction and derived flag dependencies remain separate follow-on work.
+
+## [2026-11-28] fix | No firelight on past lakes
+
+Will saw fires on the open water of Lake Mega-Chad at 5000 BCE, zoomed out. The groups were already kept off past water, but the
+far-out firelight is built straight from the grid's cells (`buildFireMarks`), which knew nothing of it. A mark that would land on
+an active epoch's water is now drawn again in its cell, and a cell wholly under water has its marks on the nearest shore, so no
+one is lost (`pastWaterWetAt` in `lib/pastWater.ts`; off with `?pastwater=0`).
+
+## [2026-11-28] update | Holocene foragers: climate-matched analogs where none were recorded nearby; dug house types
+
+Mesolithic Britain no longer draws Inuit snow houses, nor the Natufian Levant Congo Mbuti. Forager cells whose region's nearest
+analog is over 1,000 km away take the year's climate-matched mix (bands of about 10-50); new cited dug house types (Natufian,
+PPNA, Jōmon, Mesolithic, Linear Pottery, Yangshao); snow houses only in the Inuit Arctic from 500 BCE. See docs/ops/settlements.md.
+Herding camps: Andean stone houses, European shielings, and black tents / yurts / lavvu by region instead of whichever cloth tent the analog had.
+Fields: the longest-grown crops lead (maize, not wheat, in 1600 Mexico), no pasture where no grazing animal had arrived, swidden
+clearings for tropical root-crop villages. Smoke: Arctic Inuit households glow with oil lamps instead of smoking.
+
+## [2026-11-28] update | One shared icon system
+
+Every emoji in the UI now goes through one name→glyph map (`lib/icons.ts`, `ICON_GLYPHS`) and one `<Icon name>` component
+(`components/ui/Icon.tsx`), with `iconGlyph(name)` for plain strings. Data carries icon names (`BiomeNote.icon`, `CardRow.icon`,
+`LINE_ICON`, `SKY_PHASE_ICON`). A guard test fails on any emoji written elsewhere. No visual change. `docs/design/icons.md` holds the
+concept inventory, which need custom prehistoric drawings, the proposed line style and the plan to swap in SVGs from Lucide.
+
+## [2026-11-28] add | Rivers in the close-up
+
+The close-up had no river geometry, so even the Nile did not show at zoom 13. Natural Earth 10m rivers are now baked into
+`public/water/rivers.json` (`footstep-generator/rivers_asset.py`) and draped on each ground tile as a path (`lib/rivers.ts`,
+`Close3DLayer`), on by default, `?rivers=0` off. Present-day courses; none in the sea, past water or under the ice.
+
+## [2026-11-28] fix | Square holes in the adjusted spread
+
+The climate-adjusted spread emptied whole 0.5° blocks in central and southern Africa around 5000 BCE (45% of cells
+between 20°S and 20°N, 5-45°E were empty, against 15% in HYDE). `climate_shift` subtracted each cell's lost share of the
+capacity, which exceeded HYDE's people wherever HYDE was sparser than the capacity model, once the Green Sahara pulled
+capacity north. Losses are now proportional (`hyde × share_then / share_now`), gains stay additive. Needs
+`hyde_climate_spread.py --verify` and `GRID_ONLY=1 scripts/deploy-budgie.sh` on budgie.
+
+## [2026-11-28] fix | No people on islands before their first settlers; no farmers or herders before domesticates
+
+HYDE peoples Iceland and the Faroes from 10,000 BCE, Galápagos before 1535, and the Canaries, Madagascar, Hawaii and the
+Caribbean before their first settlers. `lib/firstSettlement.ts` empties those islands before a cited first-settlement year.
+The way of life now also needs a crop (farmers) or herd animal (herders) to have reached the 1° cell by then
+(`lib/domesticatesGate.ts`, from the food table via `food/gate.py`); a crowded cell with neither stays foragers.
+Research 0015 has the per-island counts read off the served images and what was found but not fixed.
+
+## [2026-11-28] fix | Two language boxes that claimed the wrong places
+
+`arabic-maghreb` (from 670) covered [25, -15, 40, 25], which took in Andalusia, the Peloponnese and southern Italy; it is now
+North Africa plus the Ifriqiya cell (Tunisia and Sicily). `turkic-central-asia` (from 552) took in northern Iran, Afghanistan
+and Tibet and left out Mongolia, where the Khaganate began; it now runs 40-55°N from 50°E to 120°E.
+
+## [2026-11-28] fix | Nobody in Britain or the north European plain at the glacial maximum; no towns before crops; Green Sahara note
+
+The modelled bands ran up to the ice in Denmark, north Germany and Britain at 20,000 BCE; `ABANDONMENTS` in
+`lib/firstSettlement.ts` empties them for the dated gaps. A cell of 40,000+ is a town only once a crop had arrived. The hover
+card's way of life reads land use through the domesticates gate too. On Saharan land 9000-3500 BCE the card says the climate
+model is too dry (the Green Sahara), as the terrain images' overlay already paints it. Research 0015 section 3.
+
+## [2026-11-28] fix | City names of the time; the hover card's way of life matches the map
+
+The Reba catalog files Cahokia's 1000 CE figure under "St. Louis" (founded 1764) and Tenochtitlan's under "Mexico City";
+`cityNameAt` in `lib/settlements.ts` labels them Cahokia, Tenochtitlan, and Istanbul as Byzantium / Constantinople before
+330 / 1453. The hover card's way of life now reads the map's class for the cell (head count, land use and the domesticates
+gate) instead of HYDE land use alone, which called Cusco, Mohenjo-daro and Memphis "Foraging".
+
+## [2026-11-28] fix | No herder camps in medieval Germany; no foragers in Poland or Tibet
+
+Grazing cells with 150+ people where crops are known are mixed farming (Germany 1000 CE had 31% of its cells drawn as herder
+camps, median ~350 people; the steppe's herders are 13-44 per cell). Light grazing (≥ 2%) is herding and light cropland
+(≥ 0.5%) farming, so Poland, England and Tibet are no longer mostly foragers. Research 0015 section 4.
+
+## [2026-11-28] fix | Forager food is the game modelled there, not the biome's default
+
+The food row (`?food=1`) gave foragers their biome's generic animals, so Ice Age Honshu, Doggerland and NE Siberia all ate
+"moose, caribou". Where the fauna layer has large prey for the place and time, those are the animal staples now
+(`gameAnimals` in `lib/fauna.ts`).
+
+## [2026-11-28] fix | People on Tahiti, the Marquesas, Rapa Nui and the Azores
+
+HYDE has no populated cell on these islands in any year, so Tahiti at 1500 said "No one here" while its card listed
+Austronesian languages and taro. `lib/missingIslands.ts` adds a rough, cited count from settlement (Tahiti ~35,000 at contact,
+Rapa Nui ~3,000 in 1722, the Azores 256,000 in 1900) over a few cells each, only where the image is empty.
+
+## [2026-11-28] add | The lakes of the Basin of Mexico, before the colonial drainage
+
+Past water had no Lake Texcoco, so at 1400 the Valley of Mexico's towns stood on its bed. `past_water_texcoco.py` floods the
+basin floor from Texcoco on the same smoothed DEM as Mega-Chad, at a level calibrated to the lakes' area (1,598 km²), from
+2050 BCE to 1600 CE; Tenochtitlan's island is kept dry, and only the fresh southern lakes (Xochimilco, Chalco) count as
+fresh water. See docs/ops/past-water.md.
+
+## [2026-11-28] add | Reindeer in the food table, and as herd animals in the Arctic
+
+The food table had no reindeer, so Arctic Eurasia could never have herders and its card listed none. `food/animals.py` adds
+them, dated: harnessed reindeer at Ust'-Polui on the lower Ob ~2 ka (Losey et al. 2021), riding reindeer round the Sayan in
+the first millennium CE, Ohthere's tame herd c. 890 CE, and the large tundra herds of the Nenets, Dolgan, Chukchi and Koryak
+from the 17th-18th centuries. They count in the herding gate (`domesticatesGate.json`, regenerated). The hover card's food
+list (`public/food/food.json`, built from data on budgie) shows them once `food/build.py` and `export_web.py` are re-run there.
+
+## [2026-11-28] fix | The hover card corrects the biome model on the prairie and the mammoth steppe
+
+Kansas at 3000 BCE read "Temperate deciduous forest", and the ice edge at 20,000 BCE "Deciduous taiga". The card keeps the
+model's biome and adds a line under it where the record disagrees: "Grassland, not forest: the prairie" (the Plains, 6000
+BCE-1880) and "Steppe-tundra, not forest: the mammoth steppe" (north of 45°N and Beringia, 28,000-13,000 BCE), beside the
+Green Sahara note, all from `lib/biomeNotes.ts`.
+
+## [2026-11-28] fix | No city glows before a region's first towns
+
+HYDE crowds city-like numbers into cells long before any city stood there (central Mexico glowed at 3000 BCE). A cell is now
+drawn as a city only from its region's first towns (`lib/firstCities.ts`, 20 regions, 1500 CE elsewhere; no city in the settlement catalogue predates its region); before that it is a
+dense farming village, and the hover card's density says village too.
+
+## [2026-11-28] fix | More islands left empty before their first settlers
+
+`lib/firstSettlement.ts` now also covers the Marianas (~1500 BCE), Vanuatu, New Caledonia, Fiji, Tonga and Samoa (Lapita, kept
+from HYDE's -1000), Madeira (1420), Cape Verde (1462), Bermuda (1612), St Helena (1659) and the Seychelles (1770).
+
+## [2026-11-28] fix | Trees on the Sahel at 3000 BCE, and the close-up follows the biome corrections
+
+The close-up drew no trees on the Sahel at 3000 BCE: the biome model is too dry there, as in the Green Sahara. The close-up's
+ground now reads corrected biomes (`correctedBiome` in `lib/biomeNotes.ts`): savanna on the Sahel until ~4.5 ka (Shanahan et
+al. 2015) and in the southern Green Sahara, grassland in its north, prairie grass on the Plains, steppe-tundra at the ice edge.
+The ground is rebuilt only when the set of corrections in force changes.
+
+## [2026-11-28] fix | Farming and herding dates in Africa, the Americas and Southeast Asia
+
+A probe of the domesticates gate found farming and herding at the wrong times in several regions, from boxes that were too wide
+or claims that were missing. Fixed in `footstep-generator/food/` and `lib/domesticatesGate.json` regenerated:
+- Herds at Lake Chad (~3.8 ka), on the Middle Nile (Khartoum Neolithic, ~7 ka), in the West African Sahel (~4 ka) and at
+  Kintampo (~3.5 ka); goats in the Congo basin (~2 ka). Before this the gate gave none until 500 CE or later.
+- No farming at the Cape or in the Kalahari before Europeans (sorghum and millet stop at the Fish River and the Limpopo).
+- The Great Plains farmed from ~900 CE (Central Plains tradition), not the Archaic; Southwest and Eastern Woodlands boxes
+  narrowed to where maize was grown.
+- No farming or llamas on the Pampas or in Patagonia; Andean farming stops at the Sierras de Cordoba; the Amazon box no longer
+  reaches the Chaco. Potato in south-central Chile only west of the Andes (Mapuche).
+- Mainland Southeast Asia farmed from ~2500-2000 BCE (taro moved from 7 ka to match rice; Higham); rice in the Philippines at
+  ~4.2 ka, after Taiwan (~5 ka).
+Tested in `tests/test_food_gate.py`. `public/food/food.json` still uses the old boxes until it is rebuilt on budgie.
+
+## [2026-11-28] fix | The food hover card leads with the long-established staple, and foragers get wild food
+
+Central Mexico at 1600 listed wheat, barley, sheep and goats before maize, because domesticates were listed in table order.
+`foodHere` and `cropsAround` (`lib/food.ts`) now list them by their first era in the cell, then table order. Where the way of
+life is foraging, the card gives the biome's wild staples even when farmers in the same 5° cell had crops.
+
+## [2026-11-28] fix | The Basin of Mexico's lakes in the close-up: a traced shore, not bands and fragments
+
+Will's review of the preview: the lake round Tenochtitlan was a straight-edged diagonal band with fragments and fields standing in
+it. The 2.5′ mask's edge is straight at close-up scale, and the plane (2270 m) clipped to today's DEM left the city's buildings
+and fill above the water. The close-up now uses a finer shore (`texcoco_shore.webp`, 7.5″): today's ground smoothed ~0.5 km and
+flooded at 2250 m, islands carved as discs, water flat at that level. `LakePlane.levelAt` uses an epoch's shore when it has one.
+
+## [2026-11-28] change | River colour and shorter biome notes, from Will's preview review
+
+Rivers are drawn a dark, slightly green blue (`RIVER_RGB` 52, 86, 92), as river water looks from above, instead of the shallow-sea
+teal. The hover card's biome notes are shorter, with an emoji: "🌾 Prairie, not forest", "🦣 Mammoth steppe, not forest",
+"🌿 Green Sahara: wetter than shown"; the detail line is unchanged.
+
+## [2026-11-28] update | Continental shares across the hand-over to HYDE
+
+Research 0016: by continent, HYDE 3.5's 10,000 BCE map has Africa at 5% and the Americas at 51%, so the 14,000-10,000 BCE blend moved
+~2 M people from Africa and Southeast Asia to the Americas and Siberia. `holocene_shares.py` → `lib/holoceneShares.json`: per-continent
+multipliers 13,000-4,000 BCE (pure model's shares, fading to HYDE's by 3000 BCE; West Asia kept), applied in `gridDataFrom`. Also flagged,
+not changed: South Asia empty while Southeast Asia is full 68-45 ka; Ice Age Europe the right size but missing its glacial-maximum dip (Tallavaara 2015); Sahul possibly several times too full.
+
+## [2026-11-28] fix | Prevent long-lived missing asset responses
+
+Caddy now applies day-long caching only to successful image and PMTiles responses,
+including partial-content responses. File-server errors return `Cache-Control:
+no-store`, preserving their status so a request before data publication cannot
+prime a cacheable 404. The URL-version changes in 97dc388 and 9a291c4 remain useful
+for already cached responses; this change prevents new ones at the origin.
+
+Run `scripts/check-caddy-cache.sh` (Docker and curl required) to validate the
+production Caddyfile and check missing, existing, range, and publish-after-404
+responses with disposable fixtures. Existing Cloudflare entries are not purged;
+production behavior can be checked once this configuration lands and deploys.
+
 ## [2026-11-28] feature | Time-of-day dial replaces the Day/night switch
 
 Will asked for a day/night dial the viewer turns, defaulting to day, with people following basic schedules as it turns. A round

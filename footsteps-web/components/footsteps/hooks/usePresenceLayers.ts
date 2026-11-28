@@ -1,5 +1,7 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 // Firelight: people far out drawn as flickering fire sprites (FireLayer),
 // in place of the per-cell density glow.
 import { useEffect, useMemo, useState } from 'react';
@@ -8,7 +10,7 @@ import { bracket } from '@/lib/time';
 import { PEOPLE_YEARS, TARGET_YEARS } from '@/lib/constants';
 import { loadGridData } from './gridLoader';
 import FireLayer, { buildFireMarks, fireData, fireVisibleFraction } from '../layers/FireLayer';
-import { loadPastWater, pastWaterParam, pastWaterWetAt, type PastWaterLayers } from '@/lib/pastWater';
+import { loadPastWater, pastWaterWetAt, type PastWaterLayers } from '@/lib/pastWater';
 
 // Fire marks per data year, kept compact (positions, radius, rank) so every
 // year can stay in memory and scrubbing never waits once they are warm.
@@ -31,7 +33,7 @@ function marksFor(year: number): Promise<Built> {
   if (pending) return pending;
   // The grid alone (not the units): the firelight draws before the settlement model is built.
   // Past water (on unless `?pastwater=0`): no fire on a lake; a failed load draws the marks as without it.
-  const water: Promise<PastWaterLayers | null> = typeof window !== 'undefined' && pastWaterParam(window.location.search)
+  const water: Promise<PastWaterLayers | null> = typeof window !== 'undefined' && flags().enabled('pastwater')
     ? loadPastWater().catch(() => null)
     : Promise.resolve(null);
   const p = Promise.all([loadGridData(year), water])
@@ -84,7 +86,7 @@ export default function usePresenceLayers({
   time: number;
   view: View;
   far: number;
-}): { layers: LayersList; animating: boolean; waiting: [number, number] | null } {
+}): { layers: LayersList; waiting: [number, number] | null } {
   const { y0, y1, f } = bracket(time);
   const [pair, setPair] = useState<{ a: Built; b: Built } | null>(null);
   const wanted = enabled;
@@ -130,5 +132,5 @@ export default function usePresenceLayers({
       layers.push(l.clone({ visibleFraction, opacity, visible: opacity > 0.001 }));
     });
   const waiting: [number, number] | null = wanted && !fresh ? [y0, y1] : null;
-  return { layers, animating: layers.length > 0, waiting };
+  return { layers, waiting };
 }

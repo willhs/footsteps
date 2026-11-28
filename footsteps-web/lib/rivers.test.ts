@@ -1,4 +1,4 @@
-import { decodeRivers, riversForTile, riversParam, smooth, RIVER_WIDTH_M } from './rivers';
+import { decodeRivers, riversForTile, smooth, RIVER_WIDTH_M } from './rivers';
 import { EXAGGERATION, type Ground } from './close3d';
 
 const ground = (biome = 21): Ground => ({ colourAt: () => [0, 0, 0], biomeAt: () => biome, tempAt: () => 25, precipAt: () => 20 });
@@ -6,11 +6,6 @@ const flat = (h: number) => new Float32Array(256 * 256).fill(h);
 // A Nile-like line running north through the tile 31.0-31.1 E, 30.0-30.1 N, as the file stores it (1e-4 degree deltas).
 const file = { version: 1 as const, scale: 10000, rivers: [[1, 310500, 299000, 0, 1000, 0, 1000, 0, 1000]] };
 const bbox = { west: 31.0, east: 31.1, south: 30.0, north: 30.1 };
-
-test('rivers are on unless ?rivers=0', () => {
-  expect(riversParam('')).toBe(true);
-  expect(riversParam('?rivers=0')).toBe(false);
-});
 
 test('smoothing keeps the ends and cuts the corners', () => {
   const c = smooth(Float64Array.from([0, 0, 1, 0, 1, 1]), 1);

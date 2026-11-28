@@ -5,27 +5,25 @@ import { groupSeed } from '@/components/footsteps/layers/people';
 import { HOUSEHOLD_SPACING_M, householdsOf } from '@/components/footsteps/layers/households';
 import { sheltersForGroups } from '@/components/footsteps/layers/shelters';
 import {
+  SMOKE_CLOSE_SHARE,
+  SMOKE_CLOSE_ZOOM,
+  smokeCloseFade,
   MAX_HEARTHS, MAX_STRENGTH, PUFFS_PER_HEARTH, SMOKE_ZOOM, capHearths, hearthsForView, hearthSeed, poolOf, poolRadiusOf, puffsOf, smokeOpacity,
-  smokeParam, strengthOf, windAt, type Hearth,
+  strengthOf, windAt, type Hearth,
 } from './hearths';
 
 const band = { lon: 20.5, lat: -20.2, kind: UnitKind.Band, people: 30, society: 0 };
 const village = { lon: -3.7, lat: 40.4, kind: UnitKind.Village, people: 180, society: -1 };
 const hearth = (over: Partial<Hearth> = {}): Hearth => ({ lon: -3.7, lat: 40.4, seed: hearthSeed(-3.7, 40.4), kind: 'village', homes: 1, ...over });
 
-describe('flag', () => {
-  it('is on unless ?smoke=0', () => {
-    expect(smokeParam('')).toBe(true);
-    expect(smokeParam('?year=-3000&smoke=1')).toBe(true);
-    expect(smokeParam('?smoke=0')).toBe(false);
-  });
-});
-
 describe('hearths of the groups in view', () => {
-  it('stand at the households of a group, the same places its dwellings do, with no dwelling table', () => {
+  it('stand at the households of a group, before the doors of its dwellings in a camp (under the roof in a village), with no dwelling table', () => {
     const hearths = hearthsForView([band], [], 1900);
     const dwellings = sheltersForGroups([band], 1900, null);
-    expect(hearths.map((h) => [h.lon, h.lat])).toEqual(dwellings.map((d) => d.position));
+    expect(dwellings.every((d) => d.hearth)).toBe(true);
+    expect(hearths.map((h) => [h.lon, h.lat])).toEqual(dwellings.map((d) => d.hearth));
+    const homes = sheltersForGroups([village], 1000, null);
+    expect(hearthsForView([village], [], 1000).map((h) => [h.lon, h.lat])).toEqual(homes.map((d) => d.position));
     const sizes: number[] = [];
     for (const home of householdsOf(groupSeed(band.lon, band.lat), HOUSEHOLD_SPACING_M.camp)) {
       sizes.push(home.size);
@@ -114,8 +112,8 @@ describe('plume seeding', () => {
 });
 
 describe('pools of light', () => {
-  it('are about the households\' spacing wide', () => {
-    expect(poolRadiusOf({ kind: 'camp' }) * 2).toBeGreaterThan(HOUSEHOLD_SPACING_M.camp * 0.9);
+  it('are about the households\' spacing wide in a village, and small apart from each other in a camp', () => {
+    expect(poolRadiusOf({ kind: 'camp' }) * 2).toBeLessThan(HOUSEHOLD_SPACING_M.camp * 0.65);
     expect(poolRadiusOf({ kind: 'village' }) * 2).toBeGreaterThan(HOUSEHOLD_SPACING_M.village * 0.9);
     expect(poolOf({ ...hearth(), z: 3 }).position).toEqual([-3.7, 40.4, 3]);
   });
@@ -145,5 +143,14 @@ describe('oil lamps in the Inuit Arctic', () => {
     expect(hearthsForView([{ ...iglulik, lat: 56 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
     expect(hearthsForView([iglulik], [], -3000).every((h) => h.kind === 'camp')).toBe(true);
     expect(hearthsForView([{ ...iglulik, lon: 130 }], [], 1800).every((h) => h.kind === 'camp')).toBe(true);
+  });
+});
+
+describe('smoke close in', () => {
+  it('thins to a wisp at camp zoom; the far-out plumes are untouched', () => {
+    expect(smokeCloseFade(14)).toBe(1);
+    expect(smokeCloseFade(SMOKE_CLOSE_ZOOM.full + 1)).toBeCloseTo(SMOKE_CLOSE_SHARE, 6);
+    expect(smokeCloseFade((SMOKE_CLOSE_ZOOM.from + SMOKE_CLOSE_ZOOM.full) / 2)).toBeLessThan(1);
+    expect(smokeCloseFade((SMOKE_CLOSE_ZOOM.from + SMOKE_CLOSE_ZOOM.full) / 2)).toBeGreaterThan(SMOKE_CLOSE_SHARE);
   });
 });

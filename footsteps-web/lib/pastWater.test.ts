@@ -1,12 +1,6 @@
-import { PAST_WATER_SCENARIOS, epochLayersFrom, lakePlaneFor, lakeShareAt, pastWaterEpochs, pastWaterNote, pastWaterParam, pastWaterTerrainYear, type EpochMeta, type PastWaterLayers } from './pastWater';
+import { PAST_WATER_SCENARIOS, epochLayersFrom, lakePlaneFor, lakeShareAt, pastWaterEpochs, pastWaterNote, pastWaterTerrainYear, type EpochMeta, type PastWaterLayers } from './pastWater';
 
 const scenario = (id: string) => PAST_WATER_SCENARIOS.find((s) => s.id === id)!;
-
-test('on unless ?pastwater=0', () => {
-  expect(pastWaterParam('')).toBe(true);
-  expect(pastWaterParam('?year=-3000&pastwater=1')).toBe(true);
-  expect(pastWaterParam('?pastwater=0')).toBe(false);
-});
 
 test('three scenarios; every epoch window is calendar BP from 1950 and every id is unique', () => {
   expect(PAST_WATER_SCENARIOS.map((s) => s.id)).toEqual(['mega_chad', 'lgm_europe', 'mesopotamia', 'texcoco']);

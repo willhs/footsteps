@@ -71,6 +71,7 @@ separate series from `tasks/0001-0003`.
 - [`research/hosting/hosting-codex.md`](research/hosting/hosting-codex.md) — superseded 2025-08 note on near-zero-cost hosting (GitHub Pages + R2)
 - [`research/interpolation/gpu-interpolation-guide.md`](research/interpolation/gpu-interpolation-guide.md) — a guide to GPU interpolation of population between years (not built)
 - [`research/revitalisation/state-of-the-project.md`](research/revitalisation/state-of-the-project.md) — superseded: the original outage investigation and revitalisation plan
+- [`research/0018-strategic-overview-2026-11/research.md`](research/0018-strategic-overview-2026-11/research.md) — ranked memo (2026-11-28): what Footsteps is now, five next directions with a first task each, three debts, what to stop
 
 ## Tasks: spec (`task.md`) and plan (`plan.md`) per piece of work
 

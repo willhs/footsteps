@@ -1,13 +1,23 @@
 import { IconLayer } from '@deck.gl/layers';
 import { animSeconds } from '@/lib/still';
 import { TREE_KINDS, type TreeInstance } from '@/lib/trees';
+import { sunShadowNow } from '@/lib/sunShadow';
 export { treesForTile, clearedMask, clearingsKey, treeLodShare } from '@/lib/trees';
 
 export const TREE_MAPPING = Object.fromEntries(TREE_KINDS.flatMap((kind, x) => [0, 1, 2].map(y => [`${kind}-${y}`, {
   x: x * 128, y: y * 192, width: 128, height: 192, anchorX: 64, anchorY: 184, mask: false,
 }])));
-const WIND_BLOCK = 'uniform treeWindUniforms { float time; float share; float topdown; } treeWind;';
-const wind = { name: 'treeWind', vs: WIND_BLOCK, fs: WIND_BLOCK, uniformTypes: { time: 'f32', share: 'f32', topdown: 'f32' } } as const;
+const WIND_BLOCK = 'uniform treeWindUniforms { float time; float share; float topdown; vec2 shadowDir; float shadow; } treeWind;';
+const wind = {
+  name: 'treeWind', vs: WIND_BLOCK, fs: WIND_BLOCK,
+  uniformTypes: { time: 'f32', share: 'f32', topdown: 'f32', shadowDir: 'vec2<f32>', shadow: 'f32' },
+} as const;
+
+/** A tree's shadow from above is its crown cast onto the ground: the crown's middle stands at about this share of the tree's height, so the
+ * shadow's middle lies that far along the sun's shadow vector (lib/sunShadow.ts). */
+const CROWN_MIDDLE_SHARE = 0.65;
+/** How dark a crown's shadow is at full sun: leaves let some light through, and the sky lights the shade. */
+const TREE_SHADOW_ALPHA = 0.42;
 
 /** Below this camera tilt (degrees) a tree is drawn as its crown seen from above, not as a standing sprite: from straight overhead a
  * camera-facing sprite showed every tree side-on, a lollipop lying on the map. */
@@ -15,12 +25,17 @@ export const TOPDOWN_BELOW_PITCH = 25;
 
 /** `getRank`: a tree's place in the tile's random order, 0-1 (above 1: hidden, standing in a clearing). `lodShare`: draw ranks up to this.
  * Thinning and clearings are done here, on the GPU, so the tile's instance buffers are built once and never rebuilt as the camera moves. */
-type TreeProps = { getRank?: (t: TreeInstance, info: { index: number }) => number; lodShare?: number };
+type TreeProps = {
+  getRank?: (t: TreeInstance, info: { index: number }) => number;
+  lodShare?: number;
+  /** Draw the crowns' shadows on the ground instead of the crowns (a second layer over the same trees, drawn first). Top-down view only. */
+  shadow?: boolean;
+};
 
 /** Alpha-tested billboards anchored at the trunk base. One atlas and one draw call per terrain tile. */
 export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
   static layerName = 'TreeLayer';
-  static defaultProps = { ...IconLayer.defaultProps, getRank: { type: 'accessor', value: 0 }, lodShare: 1 } as unknown as typeof IconLayer.defaultProps;
+  static defaultProps = { ...IconLayer.defaultProps, getRank: { type: 'accessor', value: 0 }, lodShare: 1, shadow: false } as unknown as typeof IconLayer.defaultProps;
   initializeState() {
     super.initializeState();
     this.getAttributeManager()!.addInstanced({ instanceRank: { size: 1, accessor: 'getRank', defaultValue: 0 } });
@@ -56,15 +71,19 @@ export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
           vec2 leafAt = kindIx < 0.5 ? vec2(0.5, 0.45) : kindIx < 1.5 ? vec2(0.5, 0.3) : kindIx < 2.5 ? vec2(0.42, 0.14)
             : kindIx < 3.5 ? vec2(0.5, 0.1) : kindIx < 4.5 ? vec2(0.5, 0.55) : vec2(0.5, 0.45);
           vec4 treeBase;
-          gl_Position = project_position_to_clipspace(instancePositions, instancePositions64Low, vec3(0.0), treeBase);
-          gl_Position.xy += project_pixel_size_to_clipspace(positions * sizePixels * crownR);
+          // Its shadow: the same crown moved along the sun's shadow vector by the crown's height, a little larger and softer.
+          vec3 treeCast = treeWind.shadow > 0.0
+            ? project_size(vec3(treeWind.shadowDir * instanceSizes * ${CROWN_MIDDLE_SHARE.toFixed(2)}, 0.0))
+            : vec3(0.0);
+          gl_Position = project_position_to_clipspace(instancePositions, instancePositions64Low, treeCast, treeBase);
+          gl_Position.xy += project_pixel_size_to_clipspace(positions * sizePixels * crownR * (treeWind.shadow > 0.0 ? 1.08 : 1.0));
           vTextureCoords = (instanceIconFrames.xy + leafAt * instanceIconFrames.zw) / icon.iconsTextureDim;
           treeSeed_ = fract(treePhase * 0.137);
           treeKind_ = kindIx;
           treeTop_ = 1.0;
         }
-        // Thinned out by distance, or in a clearing: behind the far plane, so the GPU drops it.
-        if (instanceRank > treeWind.share) gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        // Thinned out by distance, or in a clearing: behind the far plane, so the GPU drops it. A shadow only from above, by day.
+        if (instanceRank > treeWind.share || (treeWind.shadow > 0.0 && treeWind.topdown < 0.5)) gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
       `,
       'fs:#decl': 'in float treeFade; in vec3 treeTint; in float treeTop_; in float treeSeed_; in float treeKind_;',
       'fs:DECKGL_FILTER_COLOR': `
@@ -82,6 +101,13 @@ export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
           else if (treeKind_ > 1.5 && treeKind_ < 2.5) rim = 0.35 + 0.62 * pow(abs(sin(ang * 3.5 + k)), 3.0);
           else if (treeKind_ > 4.5) rim = 0.25 + 0.7 * pow(abs(sin(ang * 2.5 + k)), 14.0);
           color.a = 1.0 - smoothstep(rim - 0.1, rim, r);
+          if (treeWind.shadow > 0.0) {
+            // Soft-edged, cool and dark; leaf gaps let a little light through.
+            float gaps = 0.85 + 0.15 * sin(q.x * 9.0 + k) * sin(q.y * 9.0 - k);
+            color = vec4(0.03, 0.05, 0.04, ${TREE_SHADOW_ALPHA.toFixed(2)} * treeWind.shadow * gaps * (1.0 - smoothstep(rim - 0.35, rim, r)) * treeFade);
+            if (color.a < 0.01) discard;
+            return;
+          }
           float clump = sin(q.x * 8.0 + k) * sin(q.y * 8.0 - 1.3 * k);
           color.rgb *= 1.08 - 0.5 * r * r + 0.28 * dot(q, vec2(-0.7, -0.7)) + 0.12 * clump;
         }
@@ -94,7 +120,17 @@ export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
   }
   draw(params: Parameters<IconLayer<TreeInstance>['draw']>[0]) {
     const pitch = (this.context.viewport as unknown as { pitch?: number }).pitch ?? 0;
-    this.state.model?.shaderInputs.setProps({ treeWind: { time: animSeconds(600), share: this.props.lodShare ?? 1, topdown: pitch < TOPDOWN_BELOW_PITCH ? 1 : 0 } });
+    const viewport = this.context.viewport as unknown as { longitude: number; latitude: number };
+    const sun = this.props.shadow ? sunShadowNow(viewport.longitude, viewport.latitude) : null;
+    this.state.model?.shaderInputs.setProps({
+      treeWind: {
+        time: animSeconds(600),
+        share: this.props.lodShare ?? 1,
+        topdown: pitch < TOPDOWN_BELOW_PITCH ? 1 : 0,
+        shadowDir: sun ? [sun.east, sun.north] : [0, 0],
+        shadow: sun ? Math.max(1e-3, sun.strength) : 0,
+      },
+    });
     super.draw(params);
   }
 }

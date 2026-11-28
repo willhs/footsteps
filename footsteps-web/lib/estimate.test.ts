@@ -1,4 +1,4 @@
-import { agreement, correctionsAt, caveatsAt, estimateLines, explainParam, placeNotes, seaLevelWithSigma, worldSpreadAt } from './estimate';
+import { agreement, correctionsAt, caveatsAt, estimateLines, placeNotes, seaLevelWithSigma, worldSpreadAt } from './estimate';
 
 describe('estimate panel words', () => {
   test('confidence follows how far published world totals differ', () => {
@@ -83,10 +83,5 @@ describe('estimate panel words', () => {
     expect(correctionsAt(-1.5, 52.5, -20000)[0].text).toMatch(/^Left empty/); // England at the LGM
     expect(correctionsAt(-109.35, -27.12, 1600)[0].text).toMatch(/Rapa Nui/);
     expect(correctionsAt(2, 48, 1500)).toHaveLength(0);
-  });
-
-  test('flag', () => {
-    expect(explainParam('?explain=1')).toBe(true);
-    expect(explainParam('')).toBe(false);
   });
 });

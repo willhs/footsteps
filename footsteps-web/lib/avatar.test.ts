@@ -1,4 +1,4 @@
-import { avatarFromParams, GREY_HAIR, personSeed, portraitLooks, SKIN_DEEP, SKIN_LIGHT } from './avatar';
+import { GREY_HAIR, personSeed, portraitLooks, SKIN_DEEP, SKIN_LIGHT } from './avatar';
 import { avatarSpec } from './avatarSpec';
 import type { Person } from '@/components/footsteps/layers/people';
 import type { AtlasRecord } from '@/components/footsteps/hooks/useAnthropology';
@@ -165,10 +165,4 @@ test('the seed is the spot, not the id (ids change as the view moves)', () => {
   expect(personSeed(person())).toBe(personSeed(person()));
   expect(personSeed(person({ id: 8 }))).toBe(personSeed(person()));
   expect(personSeed(person({ gait: 0.7 }))).not.toBe(personSeed(person()));
-});
-
-test('the 3D figure is on unless ?avatar=0', () => {
-  expect(avatarFromParams('')).toBe(true);
-  expect(avatarFromParams('?year=-3000&avatar=1')).toBe(true);
-  expect(avatarFromParams('?avatar=0')).toBe(false);
 });

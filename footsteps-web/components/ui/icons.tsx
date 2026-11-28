@@ -25,22 +25,6 @@ export const GlobeIcon = () => (
   </svg>
 );
 
-export const TerrainIcon = () => (
-  <svg {...base}>
-    <path d="m3 19 6-10 4 6 2.5-3.5L21 19H3Z" />
-    <circle cx="17" cy="6" r="1.6" />
-  </svg>
-);
-
-export const PlainIcon = () => (
-  <svg {...base}>
-    <rect x="4" y="4" width="16" height="16" rx="3" />
-    <circle cx="9" cy="10" r="0.9" fill="currentColor" />
-    <circle cx="14" cy="13" r="0.9" fill="currentColor" />
-    <circle cx="11" cy="15.5" r="0.9" fill="currentColor" />
-  </svg>
-);
-
 export const CloseIcon = () => (
   <svg {...base} width={14} height={14} strokeWidth={2}>
     <path d="M6 6l12 12M18 6 6 18" />

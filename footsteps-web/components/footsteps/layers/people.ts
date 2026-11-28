@@ -12,7 +12,8 @@ import { FOOTWEAR, footwearFor } from '@/lib/footwear';
 import { animClock, gaitSeed } from '@/lib/gait';
 import { ROUTINE_NOTE, WALK_MS, planAttributes, planOf, routineLine, routineNow } from '@/lib/routine';
 import { solarNowMs } from '@/lib/solarClock';
-import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, householdsOf, type Household } from './households';
+import { sunShadowNow } from '@/lib/sunShadow';
+import { HOUSEHOLD_RADIUS_M, HOUSEHOLD_SPACING_M, ROUND_THE_HEARTH_M, hearthOf, householdsOf, type Household } from './households';
 import { OTHER_HUMANS, type OtherHuman } from '@/lib/otherHumans';
 import type { IconName } from '@/lib/icons';
 
@@ -193,9 +194,12 @@ function* generate(g: GroupInView, n: number, firstId: number, year: number, lay
       // The same three draws as the hearth layout takes, so age, sex and role come out as they do without households.
       r();
       const a = r() * Math.PI * 2;
-      const d = Math.sqrt(r()) * HOUSEHOLD_RADIUS_M;
-      x = home!.x + Math.cos(a) * d;
-      y = home!.y + Math.sin(a) * d;
+      // In a camp a family is round its hearth in front of its shelter (households.ts `hearthOf`); in a village, round its house.
+      const camp = g.kind !== UnitKind.Village;
+      const d = Math.sqrt(r()) * (camp ? ROUND_THE_HEARTH_M : HOUSEHOLD_RADIUS_M);
+      const [cx, cy] = camp ? hearthOf(home!, groupSeed(g.lon, g.lat)) : [home!.x, home!.y];
+      x = cx + Math.cos(a) * d;
+      y = cy + Math.sin(a) * d;
     } else {
       // clustered around a few hearths/houses
       const hearth = Math.floor(r() * (g.kind === UnitKind.Village ? 10 : 4));
@@ -354,17 +358,48 @@ export function footprintData(people: Person[]): Person[] {
   return out;
 }
 
-const peopleAnim = {
-  name: 'peopleAnim',
-  vs: /* glsl */ `uniform peopleAnimUniforms {
+const PEOPLE_ANIM_BLOCK = /* glsl */ `uniform peopleAnimUniforms {
   float time;
   float sunUtc;
   float routine;
   float figures;
+  float topdown;
+  vec2 shadowDir;
+  float shadow;
 } peopleAnim;
-`,
-  uniformTypes: { time: 'f32', sunUtc: 'f32', routine: 'f32', figures: 'f32' },
+`;
+const peopleAnim = {
+  name: 'peopleAnim',
+  vs: PEOPLE_ANIM_BLOCK,
+  fs: PEOPLE_ANIM_BLOCK,
+  uniformTypes: { time: 'f32', sunUtc: 'f32', routine: 'f32', figures: 'f32', topdown: 'f32', shadowDir: 'vec2<f32>', shadow: 'f32' },
 } as const;
+
+// --- Close in: each person seen from above (`topdown`, from FIGURE_ZOOM) -----------------------------------------------------------
+// From about zoom 17 a person's newest footprint becomes the person, seen from straight above as the camera sees them: head and hair,
+// shoulders in their clothes, arms swinging and feet stepping as they walk, knees up when they sit, lying down asleep, and their shadow
+// on the ground from the sun clock (lib/sunShadow.ts). Real size (shoulders about half a metre across) once that is a few pixels wide;
+// enlarged to FIGURE_MIN_PX until then. The two older prints fade out. All imagined: the look is a drawing, not a record of anyone.
+
+/** Zoom over which the footprints hand over to the people seen from above. */
+export const FIGURE_ZOOM = { from: 16.8, full: 17.8 } as const;
+/** 0 below FIGURE_ZOOM, 1 above, smoothly. */
+export function figureBlend(zoom: number): number {
+  const t = Math.min(1, Math.max(0, (zoom - FIGURE_ZOOM.from) / (FIGURE_ZOOM.full - FIGURE_ZOOM.from)));
+  return t * t * (3 - 2 * t);
+}
+/** An adult's shoulders are never drawn narrower than this many pixels. */
+const FIGURE_MIN_PX = 7;
+/** An adult's shoulder width and standing height, metres. */
+const SHOULDERS_M = 0.48;
+const STANDING_M = 1.65;
+/** Clothes seen from above: hides and leather, undyed plant fibre and wool, ochre-dyed (imagined palette). */
+const CLOTHES_GLSL = `
+vec3 topClothes(float h) {
+  float i = floor(fract(h * 5.3) * 5.0);
+  return i < 0.5 ? vec3(0.42, 0.29, 0.19) : i < 1.5 ? vec3(0.55, 0.41, 0.27) : i < 2.5 ? vec3(0.33, 0.25, 0.18)
+    : i < 3.5 ? vec3(0.64, 0.58, 0.46) : vec3(0.58, 0.33, 0.2);
+}`;
 
 // Where print k of this person is, which way it points, and how strongly it shows.
 // KEEP IN SYNC with gaitAt() / routineGaitAt() in lib/gait.ts and stateAt() in lib/routine.ts: name tags
@@ -514,7 +549,43 @@ const shapeFootprint = /* glsl */ `
     float heel = max(hq.x, hq.y);
     d = min(sole, heel);
   }
-  if (vFigure > 0.5) {
+  if (vTop > 0.5) {
+    // Seen from above (see FIGURE_ZOOM): x across the body, y the way they face, in an adult's metres.
+    vec2 p = vTopPos;
+    vec3 cloth = topClothes(vTopSeed);
+    vec3 hair = mix(vec3(0.06, 0.045, 0.035), vec3(0.24, 0.16, 0.1), fract(vTopSeed * 7.7));
+    vec3 skin = vec3(0.56, 0.39, 0.28) * (0.75 + 0.4 * fract(vTopSeed * 13.1));
+    vec3 c = vec3(0.02, 0.03, 0.02);
+    // The shadow: a soft capsule from the feet along the sun's shadow vector.
+    vec2 e = vTopCast;
+    float st = dot(e, e) > 1e-6 ? clamp(dot(p, e) / dot(e, e), 0.0, 1.0) : 0.0;
+    float a = (1.0 - smoothstep(0.12, 0.24, length(p - e * st))) * 0.42 * peopleAnim.shadow;
+    float sw = vSwing;
+    // Painted back to front: limbs, body, head. el(): inside an ellipse at o with half-axes r.
+    #define EL(o, r) (length((p - (o)) / (r)) < 1.0)
+    if (vPose > 1.5) {
+      // Asleep: lying along the way they faced, under a hide.
+      if (EL(vec2(0.0, -0.12), vec2(0.22, 0.62))) { c = cloth * 0.9; a = 1.0; }
+      if (EL(vec2(0.0, 0.56), vec2(0.1, 0.11))) { c = hair; a = 1.0; }
+    } else if (vPose > 0.5) {
+      // Sitting: knees up in front, shoulders, head bent forward a little.
+      if (EL(vec2(-0.09, 0.22), vec2(0.065, 0.17)) || EL(vec2(0.09, 0.22), vec2(0.065, 0.17))) { c = cloth * 0.8; a = 1.0; }
+      if (EL(vec2(-0.25, 0.08), vec2(0.055, 0.1)) || EL(vec2(0.25, 0.08), vec2(0.055, 0.1))) { c = skin; a = 1.0; }
+      if (EL(vec2(0.0, -0.04), vec2(0.23, 0.14))) { c = cloth; a = 1.0; }
+      if (EL(vec2(0.0, 0.02), vec2(0.1, 0.11))) { c = hair; a = 1.0; }
+    } else {
+      // Standing or walking: a foot steps out front and back, the arms swing the other way.
+      if (abs(sw) > 0.01 && (EL(vec2(-0.09, 0.26 * sw), vec2(0.045, 0.085)) || EL(vec2(0.09, -0.26 * sw), vec2(0.045, 0.085)))) { c = vec3(0.2, 0.15, 0.11); a = 1.0; }
+      if (EL(vec2(-0.26, -0.12 * sw), vec2(0.055, 0.09)) || EL(vec2(0.26, 0.12 * sw), vec2(0.055, 0.09))) { c = skin; a = 1.0; }
+      if (EL(vec2(0.0, 0.0), vec2(0.23, 0.12))) { c = cloth; a = 1.0; }
+      if (EL(vec2(0.0, 0.015), vec2(0.1, 0.11))) { c = hair; a = 1.0; }
+    }
+    #undef EL
+    // Light from the upper left, the way the trees are lit.
+    if (a > 0.99) c *= 1.0 + 0.25 * clamp(dot(p, vec2(-0.6, 0.6)) * 3.0, -1.0, 1.0);
+    if (a < 0.01) discard;
+    color = vec4(c, a * color.a * peopleAnim.topdown);
+  } else if (vFigure > 0.5) {
     if (figure(geometry.uv) > 0.0) discard;
   } else if (picking.isActive < 0.5) {
     if (d > 1.0 || vPrintAlpha <= 0.01) discard;
@@ -526,6 +597,8 @@ const shapeFootprint = /* glsl */ `
 type RoutineProps = {
   routine?: boolean;
   figures?: boolean;
+  /** 0 to 1: how far the people seen from above have taken over from the footprints (`figureBlend`). */
+  topdown?: number;
   getEquipment?: (p: unknown) => number;
   getDay?: (p: unknown) => [number, number, number, number];
   getTrip?: (p: unknown) => [number, number, number, number];
@@ -572,6 +645,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
     getTrip: { type: 'accessor', value: [0, 0, 0, 0] },
     routine: false,
     figures: false,
+    topdown: 0,
     getHeight: { type: 'accessor', value: (p: unknown) => as(p).age < 13 ? 0.6 : 1 },
     getEquipment: { type: 'accessor', value: 0 },
     pickable: true,
@@ -601,7 +675,7 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
       modules: [...shaders.modules, peopleAnim],
       inject: {
         ...shaders.inject,
-        'vs:#decl': 'in float instanceHeight;\nin float instanceEquipment;\nout float vFigure;\nout float vPose;\nout float vSwing;\nout float vEquipment;\nin float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nin vec4 instanceDay;\nin vec4 instanceTrip;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
+        'vs:#decl': 'out float vTop;\nout vec2 vTopPos;\nout vec2 vTopCast;\nout float vTopSeed;\nin float instanceHeight;\nin float instanceEquipment;\nout float vFigure;\nout float vPose;\nout float vSwing;\nout float vEquipment;\nin float instancePrint;\nin float instanceShoe;\nin float instanceGait;\nin vec4 instanceDay;\nin vec4 instanceTrip;\nout float vFoot;\nout float vPrintAlpha;\nout float vShoe;',
         // Lying on the ground: turn the quad to the walking direction, set the foot a little to
         // its side of the path, and move it along the path in metres.
         'vs:DECKGL_FILTER_SIZE': `${gait}
@@ -618,17 +692,43 @@ export class PeopleLayer extends ScatterplotLayer<unknown, RoutineProps> {
     size.z = (q.y + r) * scale;
     if (vPose > 1.5) { size.xy = right * q.x + dir * q.y * 0.4; size.z = r * 0.12; }
   }
+  vTop = 0.0;
+  if (peopleAnim.topdown > 0.0) {
+    if (k < 0.5) {
+      // The person from above, in a quad on the ground that also holds their shadow (both just inside scatterplot's unit circle).
+      vTop = 1.0;
+      float mC = project_size(1.0);
+      float grow = max(1.0, ${FIGURE_MIN_PX.toFixed(1)} * project_pixel_size(1.0) / (${SHOULDERS_M.toFixed(2)} * mC));
+      vec2 castM = peopleAnim.shadowDir * ${STANDING_M.toFixed(2)} * instanceHeight * (vPose > 1.5 ? 0.15 : vPose > 0.5 ? 0.55 : 1.0);
+      float reachM = 0.95 * instanceHeight + 0.5 * length(castM);
+      vec2 local = geometry.uv * reachM + 0.5 * castM;
+      size.xy = local * grow * mC;
+      size.z = 0.0;
+      vec2 side_ = vec2(dir.y, -dir.x);
+      vTopPos = vec2(dot(local, side_), dot(local, dir)) / instanceHeight;
+      vTopCast = vec2(dot(castM, side_), dot(castM, dir)) / instanceHeight;
+      vTopSeed = h;
+    } else {
+      vPrintAlpha *= 1.0 - peopleAnim.topdown;
+    }
+  }
   size.xy += project_size(m);
 `,
-        'fs:#decl': 'in float vFigure;\nin float vPose;\nin float vSwing;\nin float vEquipment;\nin float vFoot;\nin float vPrintAlpha;\nin float vShoe;\n' + figureShape,
+        'fs:#decl': 'in float vTop;\nin vec2 vTopPos;\nin vec2 vTopCast;\nin float vTopSeed;\n' + CLOTHES_GLSL + 'in float vFigure;\nin float vPose;\nin float vSwing;\nin float vEquipment;\nin float vFoot;\nin float vPrintAlpha;\nin float vShoe;\n' + figureShape,
         'fs:DECKGL_FILTER_COLOR': shapeFootprint,
       },
     };
   }
 
   draw(params: Parameters<ScatterplotLayer['draw']>[0]) {
+    const topdown = this.props.topdown ?? 0;
+    const { longitude, latitude } = this.context.viewport as unknown as { longitude: number; latitude: number };
+    const sun = topdown > 0 ? sunShadowNow(longitude, latitude) : null;
     this.state.model?.shaderInputs.setProps({
-      peopleAnim: { time: animClock(), sunUtc: (solarNowMs() / 3_600_000) % 24, routine: this.props.routine ? 1 : 0, figures: this.props.figures ? 1 : 0 },
+      peopleAnim: {
+        time: animClock(), sunUtc: (solarNowMs() / 3_600_000) % 24, routine: this.props.routine ? 1 : 0, figures: this.props.figures ? 1 : 0,
+        topdown, shadowDir: sun ? [sun.east, sun.north] : [0, 0], shadow: sun?.strength ?? 0,
+      },
     });
     super.draw(params);
   }

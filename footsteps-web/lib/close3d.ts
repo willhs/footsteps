@@ -20,16 +20,6 @@ export const MESH_STEP = 2;
  * neighbour at another zoom (far tiles are coarser, Close3DLayer's DemTileset) leaves no crack to see through. */
 const SKIRT_SHARE = 0.01;
 
-/** Shaded tree impostors: on unless `?trees=0`. */
-export function treesParam(search: string): boolean {
-  return new URLSearchParams(search).get('trees') !== '0';
-}
-
-/** Biome surface detail in the ground shader (grass, closed canopy, sand ripples, cracked ice, reeds, rock): on unless `?ground=0`. */
-export function groundParam(search: string): boolean {
-  return new URLSearchParams(search).get('ground') !== '0';
-}
-
 const RELIEF = "Relief is measured elevation, drawn 1.6 times taller; water sits at the year's sea level.";
 
 /** The close-up's evidence note (its label and hover text), by which imagined layers are drawn. */
@@ -72,11 +62,6 @@ export function close3dNote(plants: boolean, ground: boolean, weather = false, t
     label: imagined.length ? `3D: ground measured, ${imagined.join(' and ')} imagined` : '3D: ground measured',
     title: `${RELIEF} ${how.join(' ')}`,
   };
-}
-
-/** On unless the URL says ?close3d=0. */
-export function close3dParam(search: string): boolean {
-  return new URLSearchParams(search).get('close3d') !== '0';
 }
 
 /** Tilt reached with `?sky=1` (lib/sky.ts) by SKY_FULL_ZOOM: steep enough that the horizon, and the sky above it, are in frame

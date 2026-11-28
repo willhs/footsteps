@@ -33,11 +33,6 @@ export type ScenarioMeta = {
 export const PAST_WATER_SCENARIOS: readonly ScenarioMeta[] = [megaChadJson, lgmEuropeJson, mesopotamiaJson, texcocoJson] as unknown as ScenarioMeta[];
 const EPOCHS: readonly { scenario: ScenarioMeta; epoch: EpochMeta }[] = PAST_WATER_SCENARIOS.flatMap((scenario) => scenario.epochs.map((epoch) => ({ scenario, epoch })));
 
-/** `?pastwater=1` turns the scenarios on. Read once per page load by the page and the grid worker. */
-export function pastWaterParam(search: string): boolean {
-  return new URLSearchParams(search).get('pastwater') !== '0';
-}
-
 /** No epoch: the scenarios say nothing about this cell at this date. That is "geography unknown", never "dry". */
 export const NO_EPOCH = 0;
 /** The epochs holding at a year (ids); empty when no scenario says anything then. */

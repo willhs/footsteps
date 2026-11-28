@@ -7,8 +7,7 @@ updated: 2026-11-28
 
 # URL flags
 
-Every query parameter the app reads, found by grepping the source for `URLSearchParams` reads (`params.get(`, `searchParams`); the registry
-is `footsteps-web/scripts/flags-lib.mjs` `FLAGS`, and `lib/flags.test.ts` fails if the code reads a parameter that is not in the registry or
+Every query parameter the app reads is defined in the browser-safe `footsteps-web/lib/flagRegistry.js` `FLAGS` registry (also re-exported by `scripts/flags-lib.mjs`), and `lib/flags.test.ts` fails if the code reads a parameter that is not in the registry or
 not in this page (or the reverse). **Adding a flag: add it to `FLAGS`, add a row here, then run the sweep.** No flag changes a default
 by being listed; "Reviewed" is whether Will has looked at the look on prod.
 
@@ -101,6 +100,25 @@ Run it before changing how a flag is read, when adding a flag or an overlay, and
 
 **174 of 174 loads pass**: no console error, page error, failed request outside the known-optional list, blank map or unsettled page in any scene, for any flag alone or all together. So far the sweep has found **no app bug**. What it found:
 
-- `?ice` (named in the task that asked for the sweep) is not a flag: nothing reads it. It is not in the registry.
+- `?ice` is an off-switch in the registry, on by default; `?ice=0` disables it.
 - The first sweep flagged 26 loads as blank (Sahara 6000 BCE, Croatia 50,000 BCE). The pictures were smooth terrain, not blank: the detector was too strict (it wanted 12 colours), so its thresholds were lowered to "one flat fill" and the Sahara/Croatia cases pinned as passing. The code was not at fault.
 - **Coverage gap, not a bug:** on this machine the data for `?terrain_tiles=1` (photo pyramid), `?pastwater=1` (Earth frames) and `?spread=1` (adjusted grids) is not built, and the day API is not in the static server. Those flags ran on their fallback path (all four 404s are listed in `flags-out/report.md` as notes). Run `--strict` against a machine or `--base` that has the data to see them with it.
+
+## Runtime flag snapshot
+
+`lib/flags.ts` owns URL parsing. `flags().enabled(name)` answers boolean switches;
+`flags().value(name)` preserves raw values (including absent versus empty and aliases)
+for the view and clock helpers to validate. Names and boolean eligibility are derived
+from `FLAGS`. Feature modules do not parse URL parameters.
+
+The head applies saved choices first, then the preload script parses one immutable
+snapshot and stores it on `window.__footstepsFlags`. The app reuses that snapshot;
+if preloading cannot run it is created lazily on the first browser read. SSR uses an
+independent default snapshot. A browser URL change takes effect on reload, as before;
+the existing live Other humans toggle still uses React state. Pure helpers accept an
+explicit search string for tests and non-page inputs. The Features menu derives its
+switch values and defaults from the same registry.
+
+`lib/flagSnapshot.test.ts` checks every registry entry, switch values, aliases,
+repeated and empty parameters, one parse per page, and saved-choice/head/app ordering.
+The view, clock and preload tests retain their numeric-validation and URL contracts.

@@ -1,5 +1,7 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 // The person card's 3D figure behind `?avatar=3d` (docs/ops/avatar.md), in place of the SVG portrait. Loaded only with
 // the flag (overlays/avatarLazy.ts). Same inputs and the same palette as the SVG (lib/avatar.ts): it waits for the atlas
 // the same way, then builds the figure once. If WebGL or the files fail, it shows the SVG instead.
@@ -16,14 +18,14 @@ import { mountAvatar } from './avatarScene';
 import { portraitLooks } from '@/lib/avatar';
 import { Icon } from '@/components/ui/Icon';
 import { avatarCaption, avatarSpec, OTHER_HUMAN_BODY_NOTE } from '@/lib/avatarSpec';
-import { epochHour, localHourAt, planOf, routineParam, stateAt } from '@/lib/routine';
+import { epochHour, localHourAt, planOf, stateAt } from '@/lib/routine';
 import { solarNowMs } from '@/lib/solarClock';
 import { stillOn } from '@/lib/still';
 import { CloseIcon, ExpandIcon } from '@/components/ui/icons';
 
 /** With `?routine=1`, what the person is doing now (read once when the card opens). */
 function routineNow(person: Person) {
-  if (typeof window === 'undefined' || !routineParam(window.location.search)) return null;
+  if (typeof window === 'undefined' || !flags().enabled('routine')) return null;
   const ms = solarNowMs();
   return stateAt(planOf(person, epochHour(ms)), localHourAt(ms, person.position[0]));
 }

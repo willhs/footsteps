@@ -81,15 +81,16 @@ test('start wording: CE year, CE range, years-ago range rounded to 100, single v
   expect(startWords({ range_bp: [5230, 5230] })).toBe('from about 5,200 years ago');
 });
 
-test('the line names family, range, source, and disputed / not verified where they apply', () => {
+test('the line is short: family, range, and disputed where it applies', () => {
   const bantu = data.rows.find((r) => r.id === 'bantu-west-central')!;
-  expect(expansionLine([bantu]).text).toBe('Languages spreading here: Bantu (from about 4,000-5,000 years ago; Koile et al. 2022)');
+  expect(expansionLine([bantu]).text).toBe('Spreading: Bantu (from about 4,000-5,000 years ago)');
   const aymara = data.rows.find((r) => r.id === 'aymara-early-horizon')!;
   expect(expansionLine([aymara]).text).toBe(
-    'Languages spreading here: Aymaran (from about 2,200-2,900 years ago; Beresford-Jones & Heggarty 2012; disputed, not verified)',
+    'Spreading: Aymaran (from about 2,200-2,900 years ago, disputed)',
   );
   const spanish = data.rows.find((r) => r.id === 'spanish-mexico')!;
-  expect(expansionLine([spanish]).text).toContain('Spanish (from 1519 CE; Spanish conquest of the Aztec Empire, Wikipedia; not verified)');
+  expect(expansionLine([spanish]).text).toContain('Spanish (from 1519 CE)');
+  expect(expansionLine([spanish]).detail).toMatch(/not all verified/);
 });
 
 describe('hover card row', () => {
@@ -99,7 +100,7 @@ describe('hover card row', () => {
 
   test('shown on land with rows, labelled modelled', () => {
     const row = at(-1000, expansionsHere(data, ...CONGO, -1000)).find((r) => r.id === 'spread');
-    expect(row?.text).toMatch(/^Languages spreading here: Bantu/);
+    expect(row?.text).toMatch(/^Spreading: Bantu/);
     expect(row?.evidence).toBe('modelled');
   });
 

@@ -73,8 +73,10 @@ D-PLACE societies now carry their `glottocode` through `build.py` (607 of 607 in
 
 Left column, after the way-of-life row, only when the slider year is 1500 or later (`LANGUAGES_FROM`; the row builder also refuses it earlier):
 
-> Languages recorded here (about 1500 CE): Otomanguean 165, Uto-Aztecan 17, Mixe-Zoque 8 and 2 more families
-> 194 languages · nearest: Diuxi-Tilantongo Mixtec (20 km), ... · documented points, not this year · colonial and later movement not applied · measured
+> Languages: Otomanguean, Uto-Aztecan and 3 more
+> recorded about 1500 · measured
+
+Cut to one short line on 2026-11-28 (Will: too much language text in the card). Counts, nearest languages and caveats stay in the data.
 
 The label says "about 1500 CE" at 1900 too: it is the same baseline, not a 1900 census. No family colours on the globe, nothing for 3000 BCE or earlier.
 A cell with no point says "No language recorded in this cell (about 1500 CE)" and names the nearest.
@@ -134,7 +136,8 @@ Rows whose range is older than 5 ka (Austronesian Taiwan, Pama-Nyungan, Sino-Tib
 
 **In the hover card**, after the baseline line:
 
-> Languages spreading here: Bantu (from about 4,000-5,000 years ago; Koile et al. 2022)
+> Spreading: Bantu (from about 4,000-5,000 years ago)
+> cited · rough areas · modelled
 > cited studies and records · hand-drawn 5° areas, not boundaries · nothing before 5,000 years ago · *modelled*
 
 Ranges older than 1 CE are in years ago, rounded to 100; later ones in calendar years ("from about 1190-1290 CE"); historical rows say "from 1519 CE".

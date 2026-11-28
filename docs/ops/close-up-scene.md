@@ -379,3 +379,8 @@ In the close-up the footprints (PeopleLayer) and hearths (smoke) stand on the dr
 ## The ground patterns' coordinate (2026-11-28)
 
 The ground and field detail shaders (`layers/groundDetail.ts`) draw their noise in metres. These used to be `lon x cos(lat) x 111 km` from Greenwich: a sinusoidal projection, which shears by (lon in radians) x sin(lat) away from 0°. At Beringia (168°W, 64°N) a metre north moved 2.6 m "east", so grass, canopy, sand, ice and cloud shadows were drawn as diagonal streaks. The Americas, East Asia and Australia were the same, but Rome and the Alps looked fine. The shaders now measure from `weather.origin` (`patternOrigin`): a whole degree near the view that moves only after the view travels 3° from it. That keeps the shear under ~0.05 and keeps float32 precision. The patterns re-roll once when the origin moves.
+
+## Far water and far clouds (2026-11-28)
+
+- **Glint** (`layers/skyLight.ts`): the ripple lattice is coarsened to stay over ~3 pixels, and far out the drawn ripples kept full steepness and a power-180 highlight. Each pixel then caught or missed a pin-point sparkle, so Lake Mega-Chad at zoom 9 looked like TV static. The ripples now flatten by the coarsening factor, and the lobe widens with it (normalised, so the energy is kept). Far water shows a broad, soft glitter. The water's metre coordinate uses the same nearby origin as the ground patterns.
+- **Cloud shadows** fade out from `gmpp` 20 to 60 (zoom ~10.5 to ~9; deck's 512-pixel tiles make `gmpp` about half the usual metres per pixel). Further out each cloud is a 5-20 pixel blotch: camouflage on white ice, blocky mottle on water.

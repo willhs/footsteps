@@ -221,7 +221,11 @@ const FS_WEATHER = `
     // Cloud shadows: soft patches a kilometre or two across, more of them the cloudier the place; over land and water alike.
     // The cutoff 0.71 - 0.58 cover puts about that share of the noise above it, and the shadow is a little cool as well as dark.
     float thr = 0.71 - 0.58 * weather.cover;
-    float cloud = smoothstep(thr, thr + 0.16, gFbm(gm - weather.cloud + 8000.0, 1100.0, gmpp));
+    // Softer edges further out: from high up the shadows' hard edges read as camouflage blotches (on white ice above all).
+    float cloud = smoothstep(thr, thr + 0.16 + clamp(gmpp / 600.0, 0.0, 0.25), gFbm(gm - weather.cloud + 8000.0, 1100.0, gmpp));
+    // ...and fade out in overview views (gmpp 20 to 60: zoom ~10.5 to ~9): there a cloud is a 5-20 pixel blotch, which reads as
+    // camouflage on white ice and as blocky mottle on water, not as weather.
+    cloud *= 1.0 - smoothstep(20.0, 60.0, gmpp);
     w = mix(w, w * vec3(0.9, 0.95, 1.04), 0.6 * cloud) * (1.0 - 0.3 * cloud);
     color.rgb = clamp(w, 0.0, 1.0);
   }
@@ -328,7 +332,7 @@ const FIELD_FS_FILTER_COLOR = `
         c *= 1.0 + (kind < 0.5 ? 0.8 : 0.6) * (0.5 * (gust - 0.5) + 0.12 * smoothstep(0.42, 0.7, gust) * ripple * gFade(13.0, fmpp));
       }
       float thr = 0.71 - 0.58 * weather.cover;
-      float cloud = smoothstep(thr, thr + 0.16, gFbm(fm - weather.cloud + 8000.0, 1100.0, fmpp));
+      float cloud = smoothstep(thr, thr + 0.16 + clamp(fmpp / 600.0, 0.0, 0.25), gFbm(fm - weather.cloud + 8000.0, 1100.0, fmpp)) * (1.0 - smoothstep(20.0, 60.0, fmpp));
       c = mix(c, c * vec3(0.9, 0.95, 1.04), 0.6 * cloud) * (1.0 - 0.3 * cloud);
     }
     color.rgb = clamp(c, 0.0, 1.0);

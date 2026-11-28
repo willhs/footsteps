@@ -21,6 +21,7 @@ export const FLAG_CHOICES_KEY = 'footsteps.flags.v1';
 export const MENU_FLAGS: readonly MenuFlag[] = [
   { name: 'sky', on: '0', defaultOn: true, group: 'Close-up', label: 'Sky and sunlight', hint: 'Light from the local sun clock, haze into a sky at the horizon (tilt by hand to see it), moving water' },
   { name: 'trees', on: '0', defaultOn: true, group: 'Close-up', label: 'Trees', hint: 'Trees by biome, with clearings round homes (imagined)' },
+  { name: 'rivers', on: '0', defaultOn: true, group: 'Close-up', label: 'Rivers', hint: 'Today’s rivers (Natural Earth 10m) drawn on the close-up ground; courses that moved are drawn where they run now' },
   { name: 'fields', on: '0', defaultOn: true, group: 'Close-up', label: 'Fields and paths', hint: 'Fields, gardens, terraces, corrals and worn paths round each group (extent modelled, layout imagined)' },
   { name: 'shelters', on: '0', defaultOn: true, group: 'Close-up', label: 'Shelters', hint: 'One dwelling per household, its type from the analog society’s house codes' },
   { name: 'smoke', on: '0', defaultOn: true, group: 'Close-up', label: 'Hearth smoke', hint: 'Smoke from each hearth, and firelight at night (imagined)' },

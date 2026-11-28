@@ -110,7 +110,10 @@ def binford_components(society: dict) -> list[dict]:
             {**base, "weight": 0.5, "size": aggregated, "mode": "aggregation"}]
 
 
-def profile(analogs, *, binford: bool = False) -> dict:
+def profile(analogs, *, binford: bool = False, km: bool = False) -> dict:
+    """`km`: also record how far the nearest analog lives from the place (regional profiles). The app uses it to
+    swap a Holocene forager profile drawn from far away (Mesolithic Britain was drawn from Greenland Inuit) for a
+    climate-matched one."""
     components = []
     total = sum(a.score for a in analogs)
     if total <= 0:
@@ -121,7 +124,10 @@ def profile(analogs, *, binford: bool = False) -> dict:
             if part is None:
                 raise ValueError("Analog pool contains a society without a settlement size")
             components.append({**part, "weight": part["weight"] * analog.score / total})
-    return {"components": components, "storage": None}
+    out = {"components": components, "storage": None}
+    if km:
+        out["km"] = min(a.distance_km for a in analogs)
+    return out
 
 
 def build_profiles(export: dict) -> tuple[dict, dict]:
@@ -148,7 +154,7 @@ def build_profiles(export: dict) -> tuple[dict, dict]:
         for col in range(72):
             lat, lon = 87.5 - row * 5, -177.5 + col * 5
             regions[f"{row},{col}"] = [
-                profile(nearest_analogs({"societies": regional_pool}, lat, lon, 0, way).analogs)
+                profile(nearest_analogs({"societies": regional_pool}, lat, lon, 0, way).analogs, km=True)
                 for way in WAYS
             ]
     climate_pool = []
@@ -264,6 +270,8 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=OUT)
     parser.add_argument("--dwellings", action="store_true",
                         help="Rewrite only dwellings.json from the shipped catalog (needs no raw Reba files)")
+    parser.add_argument("--regions", action="store_true",
+                        help="Rebuild only the regional profiles, keeping the shipped catalog's cities and climate bins (needs no raw Reba files)")
     parser.add_argument("--check-sites", type=Path, help="Inspect shipped catalog against real habitat pixels; write diagnostic JSON without rebuilding")
     args = parser.parse_args()
     if args.check_sites:
@@ -271,6 +279,12 @@ def main() -> None:
         args.check_sites.parent.mkdir(parents=True, exist_ok=True)
         args.check_sites.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
         print(json.dumps({"checks": len(result["checks"]), "output": str(args.check_sites)}))
+        return
+    if args.regions:
+        catalog = json.loads(args.out.read_text())
+        catalog["regions"], _ = build_profiles(load())
+        args.out.write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")) + "\n")
+        print(json.dumps(write_dwellings(catalog, args.out.parent / "dwellings.json")))
         return
     if args.dwellings:
         print(json.dumps(write_dwellings(json.loads(args.out.read_text()), args.out.parent / "dwellings.json")))

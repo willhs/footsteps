@@ -3,6 +3,8 @@
 // words. Every row carries the kind of claim it is (docs/philosophy/vision.md).
 import { climateChange, lifeKind, wayOfLife, type HabitatCell, type LandUse, type LifeKind } from './habitat';
 import { seaLevelLabel } from './climate';
+import { WayOfLife, type WayOfLifeValue } from './waysOfLife';
+import type { BiomeNote } from './biomeNotes';
 import type { FoodItem } from './food';
 import type { Evidence } from './time';
 import type { LargestSettlement } from './rankSize';
@@ -10,7 +12,7 @@ import { LANGUAGES_FROM, languageLine, type LanguageBlock } from './languages';
 import { EXPANSIONS_FLOOR_YEAR, expansionLine, type ExpansionRow } from './languageExpansions';
 
 export type CardRow = {
-  id: 'habitat' | 'ice' | 'climate' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
+  id: 'habitat' | 'ice' | 'climate' | 'climate-note' | 'people' | 'life' | 'region' | 'largest' | 'animals' | 'food' | 'languages' | 'spread';
   text: string;
   detail?: string;
   /** Measured = counted or observed; modelled = reconstructed by a model. (No row is imagined yet.) */
@@ -31,15 +33,25 @@ export type HoverCardInput = {
   /** The same cell at 0 BP, for "vs today". */
   today: HabitatCell | null;
   /** Head counts from the decoded population grid; null while it loads or in Dots mode. */
-  people: { count: number; evidence: Evidence; cellDeg: number; adjusted?: boolean } | null;
+  /** `way`: the cell's way of life as the map draws it (lib/waysOfLife.ts `classifyCell`), so the card and the marks agree. */
+  people: { count: number; evidence: Evidence; cellDeg: number; adjusted?: boolean; way?: WayOfLifeValue | null } | null;
   /** HYDE land use for the same cell, only for HYDE years. */
   landUse: LandUse | null;
   /** `?settlements=1` only: the modelled regional group this cell belongs to (lib/regionalGroup.ts), people in it. */
   region?: { people: number } | null;
   /** `?ice=1` only: the dated ice sheet under the point (lib/iceSheets.ts `iceHoverRow`), or null off the ice. */
   ice?: { text: string; detail: string } | null;
+  /** A known bias of the climate or biome model at this point and year (lib/biomeNotes.ts): the Green Sahara, the prairie, the mammoth steppe. */
+  climateNote?: BiomeNote | null;
   /** `?settlements=1` only: the biggest settlement in the ~590 km block (lib/rankSize.ts), or null where the model says nothing. */
   largest?: LargestSettlement | null;
+};
+
+const WAY_TEXT: Record<WayOfLifeValue, string> = {
+  [WayOfLife.Forager]: 'Foraging',
+  [WayOfLife.Farmer]: 'Farming',
+  [WayOfLife.Herder]: 'Herding',
+  [WayOfLife.Urban]: 'Town or city',
 };
 
 const MINUS = '−';
@@ -121,15 +133,18 @@ export function hoverCardRows(i: HoverCardInput): CardRow[] {
     if (i.ice) rows.push({ id: 'ice', ...i.ice, evidence: 'modelled' });
     const c = climateRow(i.habitat, i.today);
     if (c) rows.push(c);
+    if (i.climateNote && i.habitat.surface === 'land') rows.push({ id: 'climate-note', ...i.climateNote, evidence: 'modelled' });
   }
   // Open sea with no one in it says nothing about people.
   const emptySea = i.habitat?.surface === 'sea' && (i.people?.count ?? 0) <= 0;
   if (i.people && !emptySea) rows.push(peopleRow(i.people));
   const use = settledUse(i);
   if (use) {
+    const way = i.people?.way;
     rows.push({
       id: 'life',
-      text: wayOfLife(use),
+      // The map's class when known (it also weighs head count and what had been domesticated), else HYDE's land use alone.
+      text: way !== undefined && way !== null ? WAY_TEXT[way] : wayOfLife(use),
       detail: `${share(use.crop)} cropland, ${share(use.grazing)} grazing`,
       evidence: 'modelled',
     });

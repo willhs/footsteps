@@ -1,7 +1,7 @@
 // Generation and draping only; the layer class needs WebGL and is not imported here.
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
 import { MESH_STEP } from '@/lib/close3d';
-import { cropsAround, type FoodData } from '@/lib/food';
+import { cropsAround, herdsAround, type FoodData } from '@/lib/food';
 import {
   CROP_LOOK,
   FARM_RADIUS_M,
@@ -9,6 +9,7 @@ import {
   SUBSISTENCE_M2_PER_PERSON,
   fieldsParam,
   growing,
+  isSwidden,
   landPatches,
   patchArea,
   WATER_PATH_MAX_M,
@@ -157,6 +158,43 @@ test('cropsAround reads the 5° cell at the era, staples first', () => {
   expect(cropsAround(food, 31, 31, 1500)).toEqual(['wheat', 'maize']);
   expect(cropsAround(food, 31, 31, -12000)).toEqual([]);
   expect(cropsAround(food, 0, 0, 1000)).toEqual([]);
+});
+
+test('cropsAround puts the longest-grown staples first and side crops last: central Mexico at 1600 is maize, not wheat', () => {
+  const food: FoodData = {
+    version: 1, eras: [-10000, -5000, -2000, 1600],
+    taxa: ['wheat', 'barley', 'maize', 'squash', 'common_bean'].map((id): FoodData['taxa'][number] => ({ id, name: id, kind: 'crop' }))
+      .concat([{ id: 'turkey', name: 'Turkey', kind: 'animal' }, { id: 'sheep', name: 'Sheep', kind: 'animal' }]),
+    cells: { '15,-100': { squash: [1, 'high', true], maize: [2, 'high', true], common_bean: [2, 'high', true], turkey: [2, 'high', true],
+      wheat: [3, 'high', true], barley: [3, 'high', true], sheep: [3, 'high', true] } },
+    biomes: {},
+  };
+  expect(cropsAround(food, -99, 19, 1600)).toEqual(['maize', 'wheat', 'barley', 'squash', 'common_bean']);
+  expect(herdsAround(food, -99, 19, 1000)).toBe(false); // turkeys graze no pasture
+  expect(herdsAround(food, -99, 19, 1600)).toBe(true);
+});
+
+test('no pasture where no grazing animal had arrived', () => {
+  const noHerds: LandContext = { ...ctx, herds: () => false };
+  expect(landPatches([village(31, 30, 0.3)], [], ctx).some((p) => p.kind === 'pasture')).toBe(true);
+  expect(landPatches([village(31, 30, 0.3)], [], noHerds).some((p) => p.kind === 'pasture')).toBe(false);
+});
+
+test('tropical root-crop villages farm scattered swidden clearings, not strip fields', () => {
+  const amazon: LandContext = { season: 'off', crops: () => ['cassava', 'maize'], herds: () => false };
+  const g = village(-60, -3, 0.05);
+  const patches = landPatches([g], [], amazon).filter(isArea);
+  const fields = patches.filter((p) => p.kind === 'field' || p.kind === 'fallow');
+  expect(fields.length).toBeGreaterThan(0);
+  expect(patches.some((p) => p.kind === 'pasture')).toBe(false);
+  // Clearings are fans of thin spokes round a centre, not 150 m strips: no patch has a side near a field block's.
+  expect(Math.max(...fields.map(patchArea))).toBeLessThan(1500);
+  // Not where paddies or highland potatoes say the fields were permanent (Java, the Andes).
+  expect(isSwidden(['taro', 'banana', 'rice'], -7)).toBe(false);
+  expect(isSwidden(['cassava', 'maize', 'potato'], -14)).toBe(false);
+  expect(isSwidden(['yam', 'sorghum'], 7)).toBe(true);
+  // The same crops at 40°N are ordinary fields.
+  expect(landPatches([village(-60, 40, 0.05)], [], amazon).filter(isArea).some((p) => p.kind === 'field' && patchArea(p) > 3000)).toBe(true);
 });
 
 // --- Drape -----------------------------------------------------------------------------------------------------------

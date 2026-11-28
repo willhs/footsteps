@@ -25,7 +25,13 @@ const PIECE_CELLS = 1;
 const MAX_CUTS = 8;
 const SUN = [-0.5, 0.5, Math.SQRT1_2];
 
-export type DrapedMesh = { positions: Float32Array; normals: Float32Array; colors: Float32Array; indices: Uint32Array };
+/** `texCoords`: metres along the patch's first side and across it (u, v); `normals`: metres to the far sides (Lu − u, Lv − v), and
+ * the patch's kind code + a seed in [0, 1) (FIELD_KIND). The shapes are lit flat (no diffuse light), so the normal is free to carry
+ * them; the field shader (groundDetail.ts FieldDetail) draws rows, strips, verges and tracks from them. */
+export type DrapedMesh = { positions: Float32Array; normals: Float32Array; colors: Float32Array; texCoords: Float32Array; indices: Uint32Array };
+
+/** Kind code per patch kind, read by the field shader (groundDetail.ts FIELD_FS). Terraces are farmed beds: 'field'. */
+export const FIELD_KIND: Record<string, number> = { field: 0, fallow: 1, pasture: 2, garden: 3, corral: 4, clearing: 5, grazed: 5, path: 6 };
 /** Per ground vertex (the tile mesh's n × n grid, row by row from the north-west): how much a wash recolours it and to what (0..1, lit). */
 export type GroundPaint = { weight: Float32Array; rgb: Float32Array };
 export type DrapedLand = { solid: DrapedMesh | null; paint: GroundPaint | null; pieces: number };
@@ -72,16 +78,21 @@ export function tileLandKey(patches: readonly LandPatch[], bbox: Bbox): string {
 class Builder {
   positions: number[] = [];
   colors: number[] = [];
+  normals: number[] = [];
+  uvs: number[] = [];
   indices: number[] = [];
   get vertices() {
     return this.positions.length / 3;
   }
   done(): DrapedMesh | null {
     if (!this.indices.length) return null;
-    const n = this.vertices;
-    const normals = new Float32Array(n * 3);
-    for (let v = 0; v < n; v++) normals[v * 3 + 2] = 1;
-    return { positions: new Float32Array(this.positions), normals, colors: new Float32Array(this.colors), indices: new Uint32Array(this.indices) };
+    return {
+      positions: new Float32Array(this.positions),
+      normals: new Float32Array(this.normals),
+      colors: new Float32Array(this.colors),
+      texCoords: new Float32Array(this.uvs),
+      indices: new Uint32Array(this.indices),
+    };
   }
 }
 
@@ -182,9 +193,15 @@ export function drapeLand(
   };
 
   /** One quad (corners in vertex units) cut into pieces and laid on the ground. */
-  const lay = (quad: [number, number][], rgb: [number, number, number], out: Builder, up: number) => {
+  const lay = (quad: [number, number][], rgb: [number, number, number], out: Builder, up: number, kind: number) => {
     const [p0, p1, p2, p3] = quad;
     const len = (a: [number, number], b: [number, number]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+    // The patch's sides in metres (mean of opposite sides), and a seed from its first corner, for the field shader.
+    const lenM = (a: [number, number], b: [number, number]) => Math.hypot((b[0] - a[0]) * dxM, (b[1] - a[1]) * dyM);
+    const lu = (lenM(p0, p1) + lenM(p3, p2)) / 2;
+    const lv = (lenM(p0, p3) + lenM(p1, p2)) / 2;
+    const seed = Math.abs(Math.sin(p0[0] * 12.9898 + p0[1] * 78.233 + bbox.west * 3.7) * 43758.5453) % 1;
+    const code = kind + Math.min(0.99, seed);
     const nu = Math.min(MAX_CUTS, Math.max(1, Math.ceil(Math.max(len(p0, p1), len(p3, p2)) / PIECE_CELLS)));
     const nv = Math.min(MAX_CUTS, Math.max(1, Math.ceil(Math.max(len(p0, p3), len(p1, p2)) / PIECE_CELLS)));
     const base = out.vertices;
@@ -201,6 +218,8 @@ export function drapeLand(
         wet.push(wetAt(fx, fy));
         out.positions.push(lonOf(fx) - west, latOf(fy) - south, h * EXAGGERATION + up);
         out.colors.push(r, g, b);
+        out.uvs.push(su * lu, tv * lv);
+        out.normals.push((1 - su) * lu, (1 - tv) * lv, code);
       }
     }
     const row = nu + 1;
@@ -228,7 +247,7 @@ export function drapeLand(
       const el = Math.hypot(ex, ey) || 1;
       const [px, py] = [(-ey / el) * (pathWidth / 2), (ex / el) * (pathWidth / 2)];
       const quad = [offsetByMetres(a[0], a[1], px, py), offsetByMetres(b[0], b[1], px, py), offsetByMetres(b[0], b[1], -px, -py), offsetByMetres(a[0], a[1], -px, -py)].map(toF);
-      lay(quad, patch.rgb, solid, lift);
+      lay(quad, patch.rgb, solid, lift, FIELD_KIND.path);
       continue;
     }
     const lon = (patch.corners[0][0] + patch.corners[1][0] + patch.corners[2][0] + patch.corners[3][0]) / 4;
@@ -241,11 +260,11 @@ export function drapeLand(
       const deg = (Math.atan(g) * 180) / Math.PI;
       if (deg >= NOT_FARMED_FROM_DEG) continue;
       if (deg >= TERRACE_FROM_DEG) {
-        for (const band of terraces(patch, lon, lat, gx / g, gy / g)) lay(band.map(toF), patch.rgb, solid, lift);
+        for (const band of terraces(patch, lon, lat, gx / g, gy / g)) lay(band.map(toF), patch.rgb, solid, lift, FIELD_KIND.field);
         continue;
       }
     }
-    lay(patch.corners.map(toF), patch.rgb, solid, lift);
+    lay(patch.corners.map(toF), patch.rgb, solid, lift, FIELD_KIND[patch.kind] ?? 0);
   }
   return { solid: solid.done(), paint, pieces };
 }

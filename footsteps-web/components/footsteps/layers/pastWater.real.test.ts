@@ -40,7 +40,8 @@ run('the past-water scenarios against the shipped data', () => {
     for (const e of PAST_WATER_SCENARIOS.flatMap((s) => s.epochs)) {
       const mask = await pixels(path.join(WEB, 'public/pastwater', e.mask.file));
       const distance = e.distance ? await pixels(path.join(WEB, 'public/pastwater', e.distance.file)) : null;
-      layers.epochs.push(epochLayersFrom(e, mask, distance));
+      const shore = e.shore ? await pixels(path.join(WEB, 'public/pastwater', e.shore.file)) : null;
+      layers.epochs.push(epochLayersFrom(e, mask, distance, shore));
     }
     const water = { width: waterImg.width, height: waterImg.height, code: red(waterImg) };
     const plain = createSiteRanker({ terrain, water }, 4320);

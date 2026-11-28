@@ -86,7 +86,9 @@ export default function DeckGLView({
   }, [unprojectRef]);
 
   const globeView = useMemo(() => new GlobeView(), []);
-  const mapView = useMemo(() => new MapView(farZMultiplier ? { farZMultiplier } : {}), [farZMultiplier]);
+  // `repeat`: the flat map draws the world again either side of the antimeridian, so a view centred near ±180° (Beringia, Fiji)
+  // is not black past it. deck.gl draws a copy only where it is on screen, so views away from the antimeridian pay nothing.
+  const mapView = useMemo(() => new MapView({ repeat: true, ...(farZMultiplier ? { farZMultiplier } : {}) }), [farZMultiplier]);
 
   const controller = useMemo(
     () => ({

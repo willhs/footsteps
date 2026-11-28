@@ -42,7 +42,7 @@ try {
       const q = new URLSearchParams({ year: String(scene.year), lat: String(scene.lat), lon: String(scene.lon), zoom: String(scene.zoom), mode: 'units', still: '1' });
       if (on) q.set('ice', '1');
       await page.goto(`${base}/?${q}`, { waitUntil: 'commit' });
-      await page.waitForFunction(() => /Dots drawn [1-9]/.test(document.body.innerText), undefined, { timeout: 120_000 }).catch(() => {});
+      await page.waitForFunction(() => /(?:Dots drawn|whole map) [1-9]/.test(document.body.innerText), undefined, { timeout: 120_000 }).catch(() => {});
       if (on) await page.waitForSelector('[data-testid="ice-note"]', { timeout: 60_000 }).catch(() => {});
       const started = Date.now();
       while (Date.now() - started < 60_000 && (inflight > 0 || Date.now() - lastEnd < 2500)) await page.waitForTimeout(250);

@@ -18,7 +18,11 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   `docs/ops/grid-images.md`); it sets the kind of group and the colour. Units use the settlement model by default (group sizes and layouts from
   ethnographic analogs, ranked spots, households: `docs/ops/settlements.md`; `?settlements=0` gives even groups at random spots). `?mode=units|grid|dots`
   is a debug override. Grid uses the same per-year population images.
-- Close-up 3D: from zoom 8 on the flat map the ground is drawn as a 3D landscape, seen from straight above by default (bird's-eye at every zoom; `?tilt=1` tilts it with zoom, `?sky=1` tilts it too) (`footsteps-web/layers/Close3DLayer.ts`,
+- **Defaults (2026-11-28):** Will reviewed the flags. The 15 he kept are on by default and read as off switches (`?name=0`): sky, trees, fields,
+  shelters, smoke, ground, weather, other humans, routine, avatar (3D person), ice, pastwater, spread, terrain_tiles, food, langs. Removed (their
+  parameters are no longer read): `tilt`, `plants`, `figures`, `seasons`, `evidence`, `tour`, `chart`. Where text below says "off until reviewed"
+  or "`?x=1`" for a kept feature, read it as on by default. `docs/ops/flags.md` is current.
+- Close-up 3D: from zoom 8 on the flat map the ground is drawn as a 3D landscape, seen from straight above (bird's-eye at every zoom; it never tilts by itself as you zoom, a right-drag tilts it by hand) (`footsteps-web/layers/Close3DLayer.ts`,
   `lib/close3d.ts`): Terrarium relief, water at the year's sea level, era-image colour with the colour pyramid's detail. Plant marks by Krapp biome
   are off by default (`?plants=1`): cones and blobs read as toys, not trees. Biome surface detail drawn in the ground shader
   (grass, closed canopy, sand ripples, cracked ice, reeds, rock; `components/footsteps/layers/groundDetail.ts`) is off until
@@ -164,6 +168,8 @@ Run checks appropriate to changed files before committing:
   Server health alone does not prove population data is present or the globe renders.
 
 For visual changes, use browser checks with real data across Units, Grid, and Dots.
+PRs touching `footsteps-web/` get a preview at `https://pr-<number>.footsteps.pages.dev` (`docs/ops/previews.md`). A PR with design or UX
+choices for Will to judge puts that link (with a starting view) and a short "What to judge" note in its description (`.github/pull_request_template.md`).
 Keep WebP encoding/decoding constants (`LEVELS`, `MAX_PEOPLE`) in sync. Units positions within cells are
 invented, stable representations, not measured settlement locations.
 

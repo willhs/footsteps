@@ -50,7 +50,9 @@ const NOBODY: Record<PeopleSource, { here: string; inView: string }> = {
 
 /** The note for an empty view, or null when someone is there. */
 export function emptyViewNote(people: number, otherBands: number, source: PeopleSource): string | null {
-  if (people >= 1) return null;
+  // Any people at all: a thinly peopled cell (a fraction of a person on average, as on the Ice Age edges) still gets a group drawn
+  // (layers/settlementUnits.ts), so "no one here" would contradict the fires on screen.
+  if (people > 0) return null;
   if (otherBands > 0) return `${NOBODY[source].here} The lavender sparks are another kind of human (guessed).`;
   return `No one here at this date: ${NOBODY[source].inView}. Zoom out or move the slider to find them.`;
 }

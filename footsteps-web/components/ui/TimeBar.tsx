@@ -352,7 +352,7 @@ export default function TimeBar({ time, onChange, loading = null }: Props) {
       className="ov-panel absolute z-10 px-4 pb-2 pt-3 sm:px-5"
       style={{ left: 'var(--ov-left)', right: 'var(--ov-right)', bottom: 'var(--ov-bottom)' }}
     >
-      <TimeReadout time={time} loading={loading} note={note} calendar={calendar} onChange={onChange} />
+      <TimeReadout time={time} loading={loading} note={note} calendar={calendar} />
       <div
         ref={sliderRef}
         tabIndex={0}

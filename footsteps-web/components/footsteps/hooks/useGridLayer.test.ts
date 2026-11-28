@@ -220,3 +220,19 @@ test('prefetches neighbours, retains data while loading, ignores stale requests 
     setFeatureCount.mock.calls[setFeatureCount.mock.calls.length - 1]?.[0],
   ).toBe((await loadGrid(900)).units.length);
 });
+
+describe('stickyBox', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { stickyBox } = require('./useGridLayer');
+  const view = { west: 10, east: 11, south: 20, north: 21 };
+  it('grows the view by half each way, then keeps that box while the view stays inside it', () => {
+    const box = stickyBox(null, view);
+    expect(box).toEqual({ west: 9.5, east: 11.5, south: 19.5, north: 21.5 });
+    expect(stickyBox(box, { west: 10.3, east: 11.3, south: 20.2, north: 21.2 })).toBe(box);
+  });
+  it('moves on when the view leaves it, or when zooming in leaves it far too big', () => {
+    const box = stickyBox(null, view);
+    expect(stickyBox(box, { west: 11, east: 12, south: 20, north: 21 })).not.toBe(box);
+    expect(stickyBox(box, { west: 10.4, east: 10.6, south: 20.4, north: 20.6 })).not.toBe(box);
+  });
+});

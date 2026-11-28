@@ -55,7 +55,7 @@ export type Units = {
   society?: Uint16Array;
   /** `?pastwater=1` only: groups the settlement model could not place because the modelled lake covers every spot of their cell. They are not
    * drawn and not counted in `length`, but their people are still in the year's totals (`GridData.total`); never silently dropped. */
-  unresolved?: { groups: number; people: number };
+  unresolved?: { groups: number; people: number; ice?: { groups: number; people: number }; water?: { groups: number; people: number } };
 };
 
 // Small deterministic PRNG (mulberry32) so placement is stable per cell.

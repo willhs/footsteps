@@ -178,11 +178,10 @@ test('open water: patches reaching the edge or big enough; specks are not', () =
   expect(water[5 * n]).toBe(1);
 });
 
-test('?ground=1 is the only thing that turns the ground detail on', () => {
-  expect(groundParam('')).toBe(false);
+test('ground detail is on unless ?ground=0', () => {
+  expect(groundParam('')).toBe(true);
+  expect(groundParam('?year=-3000&ground=1')).toBe(true);
   expect(groundParam('?ground=0')).toBe(false);
-  expect(groundParam('?plants=1')).toBe(false);
-  expect(groundParam('?ground=1')).toBe(true);
 });
 
 test('cover follows the biome: forest crowns, grass, sand, ice', () => {

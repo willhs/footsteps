@@ -138,14 +138,26 @@ const FS_FILTER_COLOR = `
       c = mix(c, c * vec3(1.06, 0.97, 0.84), sand * clamp(shade * 2.0 + 0.5, 0.0, 1.0) * 0.5);
     }
 
-    // Ice: cooler, wind-scoured streaks and a net of cracks.
+    // Ice: cooler, wind-scoured streaks, and crevasse fields where the ice steepens: short slots across the fall line (along the
+    // contours, so they follow the height), in patches, a slot every ~20 m of height. Thin slots fade out once they are under a
+    // pixel apart, so from far away the ice is smooth, not netted with lines that read as contours or rivers.
     if (wIce > 0.01) {
-      float streak = gNoise(vec2(along / max(500.0, 3.0 * gmpp), across / max(45.0, 3.0 * gmpp)) + 9.0) - 0.5;
-      float crackField = abs(gFbm(gm + 100.0 * vec2(gNoise(gm / 400.0), gNoise(gm / 400.0 + 5.0)) + 2500.0, 420.0, gmpp) - 0.5);
-      float crack = (1.0 - smoothstep(0.0, 0.02, crackField)) * smoothstep(0.42, 0.55, gNoise(gm / 1600.0 + 3.0));
+      // Faded by how fast its own coordinate runs across the screen: on a steep face seen head-on the horizontal metres per pixel
+      // (gmpp) are few while the streaks are packed tight, and a clamp on gmpp let them alias into hatching.
+      vec2 streakAt = vec2(along / 500.0, across / 45.0);
+      float streakRate = max(fwidth(streakAt.x), fwidth(streakAt.y));
+      float streak = (gNoise(streakAt + 9.0) - 0.5) * (1.0 - smoothstep(0.15, 0.4, streakRate));
       c = mix(c, vec3(0.80, 0.89, 0.98), 0.4 * wIce);
       c *= 1.0 + wIce * 0.16 * streak;
-      c = mix(c, vec3(0.34, 0.54, 0.78), wIce * crack * 0.5);
+      float steepIce = smoothstep(0.985, 0.9, vGround.z);
+      float field = smoothstep(0.5, 0.62, gNoise(gm / 900.0 + 3.0)) * steepIce;
+      if (field > 0.01) {
+        float slot = abs(fract(vGround.w / 20.0 + 0.6 * gNoise(gm / 120.0)) - 0.5);
+        float dash = smoothstep(0.56, 0.68, gNoise(gm / 45.0 + 11.0));
+        float seen = (1.0 - smoothstep(0.04, 0.16, gHeightRate / 20.0)) * (1.0 - smoothstep(1.5, 4.0, gmpp));
+        float crev = (1.0 - smoothstep(0.02, 0.06, slot)) * dash * field * seen;
+        c = mix(c, vec3(0.3, 0.44, 0.6), wIce * crev * 0.55);
+      }
     }
 
     // Wet low ground: reed-olive with darker pools.
@@ -160,9 +172,11 @@ const FS_FILTER_COLOR = `
     // Bare rock on steep ground: banded strata, darker and greyer. The mesh is steepened by the 1.6 relief factor.
     float rock = smoothstep(0.9, 0.7, vGround.z) * (1.0 - 0.7 * wIce);
     if (rock > 0.01) {
-      float strata = 0.5 + 0.5 * sin(vGround.w * 0.18 + 5.0 * gFbm(gm + 4300.0, 260.0, gmpp));
-      strata = mix(0.5, strata, 1.0 - smoothstep(0.1, 0.35, gHeightRate / 40.0));
-      float grain = gFbm(gm + 4900.0, 20.0, gmpp) - 0.5;
+      // Faded by how fast the band phase runs across the screen (radians per pixel): gone before bands are ~15 pixels apart, so a
+      // far steep face isn't ruled like paper. The grain is faded the same way, by its own lattice per pixel.
+      float strataPhase = vGround.w * 0.18 + 5.0 * gFbm(gm + 4300.0, 260.0, gmpp);
+      float strata = mix(0.5, 0.5 + 0.5 * sin(strataPhase), 1.0 - smoothstep(0.2, 0.45, fwidth(strataPhase)));
+      float grain = (gFbm(gm + 4900.0, 20.0, gmpp) - 0.5) * (1.0 - smoothstep(0.2, 0.45, max(fwidth(gm.x), fwidth(gm.y)) / 20.0));
       c = mix(c, vec3(0.47, 0.44, 0.4) * (0.78 + 0.4 * strata + 0.3 * grain), rock * 0.8);
     }
     color.rgb = clamp(c, 0.0, 1.0);

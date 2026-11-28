@@ -3,6 +3,8 @@
 import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
+import { PathLayer } from '@deck.gl/layers';
+import { loadRivers, riversForTile, RIVER_MIN_PX, RIVER_RGB, type RiverPath, type Rivers } from '@/lib/rivers';
 import GroundDetail, { type WeatherRef } from './groundDetail';
 import { weatherFor } from '@/lib/weather';
 import SkyLight from './skyLight';
@@ -56,6 +58,8 @@ type Props = {
   /** Draw the imagined plant marks (`?plants=1`; off by default). */
   plants?: boolean;
   trees?: boolean;
+  /** Present-day rivers (Natural Earth 10m) draped on the ground (lib/rivers.ts); on by default, `?rivers=0` off. */
+  rivers?: boolean;
   clearings?: readonly TreeClearing[];
   /** Paint the biome on the ground in the shader (`?ground=1`; off by default). */
   detail?: boolean;
@@ -101,6 +105,8 @@ const built = new WeakMap<TileData, Built>();
  * `rank` changes identity only when the clearings do, so deck rebuilds that one attribute and nothing else. */
 const treeBuilt = new WeakMap<TileData, { key: string; trees: TreeInstance[]; clearingsKey: string; rank: (t: TreeInstance, info: { index: number }) => number }>();
 const NO_CLEARINGS: readonly TreeClearing[] = [];
+/** A tile's rivers, built once per ground key (sea level, past water and ice decide where they break). */
+const riverBuilt = new WeakMap<TileData, { key: string; paths: RiverPath[] }>();
 const draped = new WeakMap<TileData, Draped>();
 const meshProp = (m: DrapedMesh | null) =>
   m && {
@@ -207,7 +213,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
     });
   }
 
-  declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef; treeModule: TreeModule | null };
+  declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef; treeModule: TreeModule | null; rivers: Rivers | null };
 
   /** The tile's fields, gardens and paths (`?fields=1`), draped once per tile and land set under the frame budget, then reused: the shapes'
    * mesh, and the ground mesh again with the washes (grazed grass) painted into its colours. Null while the budget is spent. */
@@ -274,10 +280,13 @@ export default class Close3DLayer extends CompositeLayer<Props> {
 
 
   initializeState() {
-    this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null }, treeModule: null };
+    this.state = { buildTick: 0, rebuildQueued: false, weatherRef: { current: null }, treeModule: null, rivers: null };
     if (this.props.trees) import('./TreeLayer').then(treeModule => {
       if (this.internalState) this.setState({ treeModule });
     });
+    if (this.props.rivers !== false) loadRivers().then(rivers => {
+      if (this.internalState) this.setState({ rivers });
+    }).catch((error) => console.warn('[rivers] failed to load', error));
   }
 
   shouldUpdateState({ changeFlags }: UpdateParameters<this>) {
@@ -348,7 +357,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         if ('west' in bbox) rememberGround(`${z}/${x}/${y}`, bbox as Bbox, data.heights);
         return { ...data, detail: tile };
       },
-      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearKey, this.state.treeModule, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
+      updateTriggers: { renderSubLayers: [key, Math.round(zoom * 4), shelters, clearKey, this.state.treeModule, this.state.rivers, this.state.buildTick, trees ? this.treeViewKey() : '', light?.key, land?.key] },
       renderSubLayers: (props) => {
         const data = props.data as TileData | null;
         if (!data || !ground || !('west' in props.tile.bbox)) return null;
@@ -404,6 +413,29 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
         });
         const layers = [ground3d];
+        const rivers = this.state.rivers;
+        if (rivers) {
+          let r = riverBuilt.get(data);
+          if (!r || r.key !== key) {
+            r = { key, paths: riversForTile(rivers, data.heights, bbox, seaLevel, ground, lake) };
+            riverBuilt.set(data, r);
+          }
+          if (r.paths.length)
+            layers.push(new PathLayer<RiverPath>({
+              ...this.getSubLayerProps({ id: `${props.id}-rivers` }),
+              id: `${props.id}-rivers`,
+              data: r.paths,
+              getPath: (p) => p.path,
+              getWidth: (p) => p.width,
+              widthUnits: 'meters',
+              widthMinPixels: RIVER_MIN_PX,
+              getColor: RIVER_RGB,
+              jointRounded: true,
+              capRounded: true,
+              pickable: false,
+              parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
+            }) as unknown as typeof ground3d);
+        }
         const treeShare = trees && zoom >= 11 && this.state.treeModule ? this.state.treeModule.treeLodShare(px20) : 0;
         if (treeShare > 0 && this.state.treeModule) {
           const { default: TreeLayer, treesForTile, clearedMask, TREE_MAPPING } = this.state.treeModule;

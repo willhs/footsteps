@@ -302,6 +302,19 @@ The harness uses public production data to supply this checkout's missing gitign
 
 The current food export has no dog taxon; the renderer accepts dogs if the model supplies them, but does not invent them independently.
 
+## Rivers (on; `?rivers=0` off)
+
+Today's rivers drawn on the close-up ground: Natural Earth 10m river centrelines (v5.1.2, public domain, the same source as the
+freshwater-distance grid), baked by `footstep-generator/rivers_asset.py` into `public/water/rivers.json` (~1 MB, ~430 KB gzipped,
+fetched once when the close-up first draws). Lines are simplified (Douglas-Peucker, ~500 m) and smoothed in the browser (Chaikin, two
+rounds). `lib/rivers.ts` `riversForTile` densifies each line to the tile's mesh spacing and sets each point on the highest of the four
+mesh vertices round it plus 2 m, so the flat triangles never hide it; a run breaks in the sea, in past water and under the ice sheet.
+Width by Natural Earth scalerank (800 m for the largest down to 25 m), never under 1.2 screen pixels. One `PathLayer` per ground tile
+that has rivers, built once per ground key.
+
+Limits: courses are today's (the Yellow River, the Nile's delta branches and the Indus tributaries moved); the 1:10 million source is good
+to a few hundred metres to a km, so a river can run along a valley side; no lighting yet (with `?sky=1` the paths do not dim at night).
+
 ## Trees (`?trees=1`, off until reviewed)
 
 Shaded, alpha-tested camera-facing impostors start at zoom 11. `TreeLayer` loads only when requested in the close-up. Its atlas has three variants each of conifer, broadleaf, palm, acacia, shrub and dead trees. Regenerate without a paid service with `cd footsteps-web && node scripts/tree-atlas.mjs` (seeded procedural SVG: each crown is a few ellipsoid lumps of small leaf clusters, each cluster lit as a point on its lump's sphere by an upper-left sun and drawn back to front over a dark interior, so tops are lit, undersides shaded and edges ragged; supersampled for soft alpha; about 55 KB).

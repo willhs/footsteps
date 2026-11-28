@@ -1,6 +1,7 @@
 'use client';
 
 import { biomeCorrectionKey, withBiomeCorrections } from '@/lib/biomeNotes';
+import { riversParam } from '@/lib/rivers';
 import { useEffect, useMemo, useState } from 'react';
 import { lazy, useLazy } from '@/lib/lazyModule';
 import { COORDINATE_SYSTEM, type Layer } from '@deck.gl/core';
@@ -330,7 +331,7 @@ export default function useTerrainLayers(time: number, enabled: boolean, close3d
     // Until its code is in (a deep link straight to the close-up), the flat era images stand in, as while the ground decodes.
     if (!close3dModule) return layers;
     const Close3DLayer = close3dModule.default;
-    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), trees: typeof window !== 'undefined' && treesParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
+    layers.push(new Close3DLayer({ id: 'close3d', ground: ground?.ground ?? null, groundKey: ground?.key ?? '', colourTiles: typeof window !== 'undefined' && terrainTilesParam(window.location.search), seaLevel: seaLevelAt(clampTime(time)), lake, ice: iceCover, plants: typeof window !== 'undefined' && plantsParam(window.location.search), trees: typeof window !== 'undefined' && treesParam(window.location.search), rivers: typeof window === 'undefined' || riversParam(window.location.search), detail: typeof window !== 'undefined' && groundParam(window.location.search), weather: typeof window !== 'undefined' && weatherParam(window.location.search) }));
     return layers;
   }
   layers.push(new TerrainReliefLayer({ id: 'terrain-relief', lower, upper, progress: f, seaLevel: seaLevelAt(clampTime(time)) }));

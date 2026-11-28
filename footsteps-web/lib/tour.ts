@@ -33,7 +33,7 @@ export const ARRIVAL_KA = {
   africa: 300,
   southeast_asia_mainland: 70,
   levant_arabia: 50,
-  south_asia: 48,
+  south_asia: 72,
   sahul: 50,
   /** Sahul's `alt`: Madjedbebe, the disputed early date. */
   sahul_alt: 65,
@@ -83,8 +83,8 @@ export const TOUR_STOPS: readonly TourStop[] = [
     year: -60000,
     evidence: 'modelled',
     text: [
-      `By 60,000 BCE the model has people outside Africa in one place only, mainland Southeast Asia, from ${kaAgo(ARRIVAL_KA.southeast_asia_mainland)} on the strength of two bones from Tam Pa Ling, Laos.`,
-      `Arabia and the Levant fill in from ${kaAgo(ARRIVAL_KA.levant_arabia)} and South Asia from ${kaAgo(ARRIVAL_KA.south_asia)}; earlier exits that died out, like Skhul and Qafzeh, are left out.`,
+      `By 60,000 BCE the model has a thin scatter of people along the southern route: South Asia from ${kaAgo(ARRIVAL_KA.south_asia)}, mainland Southeast Asia from ${kaAgo(ARRIVAL_KA.southeast_asia_mainland)}, on a few bones.`,
+      `The Levant fills in from ${kaAgo(ARRIVAL_KA.levant_arabia)} as the southern lands fill out; earlier exits that died out, like Skhul and Qafzeh, are left out.`,
     ],
     source: 'arrivals.yaml `southeast_asia_mainland`, `levant_arabia`, `south_asia`',
   },

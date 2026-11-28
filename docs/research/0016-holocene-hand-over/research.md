@@ -93,10 +93,11 @@ cd ~/projects/footsteps && git pull
 poetry run python footstep-generator/prehistory_population.py --verify       # all 90 years; rewrites totals.json and both copies
 poetry run pytest footstep-generator/tests/test_prehistory_population.py -q
 poetry run python footstep-generator/holocene_shares.py                       # refresh the hand-over table from the new images
+poetry run python footstep-generator/anthropology/deep.py                     # deep-past atlas cells from the new people (tables were refreshed with --tables-only)
 GRID_GLOB='data/tiles/prehistory/humans_*.webp,data/tiles/grid/humans_*.webp' python3 docs/research/0016-holocene-hand-over/continent_shares.py 5000 | head -25   # South Asia now fills with Southeast Asia
 GRID_ONLY=1 scripts/deploy-budgie.sh                                          # publish the images
 scripts/smoke.sh https://footsteps.willhs.me
-git add footsteps-web/public/prehistory_totals.json footsteps-web/lib/holoceneShares.json && git commit -m "Regenerate after the southern route" && git push
+git add footsteps-web/public/prehistory_totals.json footsteps-web/lib/holoceneShares.json deploy/budgie/api/anthropology.json.gz && git commit -m "Regenerate after the southern route" && git push
 ```
 
 If old images show, purge the `/grid/humans_-7*000.webp` to `-4*000` URLs in Cloudflare or reload with the cache off.

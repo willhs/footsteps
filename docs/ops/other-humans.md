@@ -25,7 +25,7 @@ Neither are older species (*H. naledi*, *H. heidelbergensis*) or the "ghost" arc
   drawn exactly like our own people: the same flickering fire sprite (`FireLayer`), size and flicker. **Colour (lavender) is the only
   difference.** Far out, they are thinned by the same rule as our own fires: one fire per as many people as a *Homo sapiens* fire
   stands for that year (`peoplePerFire`, a few hundred at 60,000 BCE), then the same zoom thinning (`fireVisibleFraction`), so
-  20,000 Neanderthals next to ~800,000 of us show as a few sparks at zoom 3. As the view hands over to groups (zoom ~4.6–5.4), every
+  20,000 Neanderthals next to ~800,000 of us show as a few sparks at zoom 3. As the view hands over to groups (zoom ~5.6–6.4), every
   band shows, at the size of our own band sprites (`halo`). Hover one for the guess. How many and where are **guesses** (legend and
   hover say so); see "Guessed bands" below. Denisovan bands in the Wallacea area, inferred only from Denisovan DNA in Papuans and
   Aboriginal Australians, are fewer and fainter. No name labels: our own people have none either.

@@ -1,7 +1,7 @@
 // Generation only; the layer class needs WebGL and is not imported here.
 jest.mock('@deck.gl/layers', () => ({ ScatterplotLayer: class {} }));
 import { NO_SOCIETY, parseDwellings, type DwellingFile } from '@/lib/dwellings';
-import { HOUSEHOLD_RADIUS_M, householdsOf, HOUSEHOLD_SPACING_M, offsetByMetres } from './households';
+import { HEARTH_FROM_HOME_M, householdsOf, HOUSEHOLD_SPACING_M, offsetByMetres, ROUND_THE_HEARTH_M } from './households';
 import { groupSeed, peopleForGroups } from './people';
 import { shelterMeshes, sheltersForGroups, sheltersForTown, townRadius, townRoofs, SHAPE_SIZE } from './shelters';
 import { UnitKind } from './units';
@@ -38,11 +38,16 @@ describe('dwellings of a band, camp or village', () => {
     expect(dwellings.every((d) => d.homes === 1)).toBe(true);
   });
 
-  it('stands each dwelling where its household does, so the people of a household stand at their own roof', () => {
+  it('stands each dwelling where its household does, its door to the camp middle and its people round the hearth in front', () => {
     const dwellings = sheltersForGroups([band], 1900, table);
     const people = peopleForGroups([{ lon: band.lon, lat: band.lat, kind: band.kind, people: band.people }], 1900, 'households');
     expect(people.length).toBe(30);
-    for (const person of people) expect(metres(person.position, dwellings[person.household!].position)).toBeLessThanOrEqual(HOUSEHOLD_RADIUS_M + 0.5);
+    for (const person of people) expect(metres(person.position, dwellings[person.household!].hearth!)).toBeLessThanOrEqual(ROUND_THE_HEARTH_M + 0.5);
+    for (const d of dwellings) {
+      expect(metres(d.hearth!, d.position)).toBeCloseTo(HEARTH_FROM_HOME_M, 1);
+      // The hearth is nearer the camp's middle than the shelter is (for any shelter not at the middle itself).
+      if (metres(d.position, [band.lon, band.lat]) > 3) expect(metres(d.hearth!, [band.lon, band.lat])).toBeLessThan(metres(d.position, [band.lon, band.lat]));
+    }
     const [first] = firstHouseholds(groupSeed(band.lon, band.lat), HOUSEHOLD_SPACING_M.camp, 1);
     expect(dwellings[0].position).toEqual(offsetByMetres(band.lon, band.lat, first.x, first.y));
   });

@@ -57,6 +57,15 @@ export function smokeOpacity(zoom: number): number {
   return t * t * (3 - 2 * t);
 }
 
+/** Close in, a plume is drawn thinner: one family's cooking fire gives a thin wisp, and the puffs (16 m wide at full size) hid the camp under
+ * them from zoom ~17. Over this zoom range the smoke fades to SMOKE_CLOSE_SHARE of its strength; the firelight does not. */
+export const SMOKE_CLOSE_ZOOM = { from: 15, full: 17 } as const;
+export const SMOKE_CLOSE_SHARE = 0.25;
+export function smokeCloseFade(zoom: number): number {
+  const t = Math.min(1, Math.max(0, (zoom - SMOKE_CLOSE_ZOOM.from) / (SMOKE_CLOSE_ZOOM.full - SMOKE_CLOSE_ZOOM.from)));
+  return 1 - (1 - SMOKE_CLOSE_SHARE) * t * t * (3 - 2 * t);
+}
+
 /** Hash of integers to uint32. */
 function hash32(a: number, b: number): number {
   let h = Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263);
@@ -87,8 +96,9 @@ export function hearthsForView(groups: readonly ShelterGroup[], towns: readonly 
   const shelters = [...sheltersForGroups(groups, year, null), ...towns.flatMap((town) => sheltersForTown(town, year, null))];
   return capHearths(
     shelters.map((s) => ({
-      lon: s.position[0],
-      lat: s.position[1],
+      // An open hearth outside the door where the camp has one (shelters.ts `hearth`), else the fire inside under the roof.
+      lon: (s.hearth ?? s.position)[0],
+      lat: (s.hearth ?? s.position)[1],
       seed: hearthSeed(s.position[0], s.position[1]),
       kind: lampsAt(s.position[0], s.position[1], year, s.group.kind) ? 'lamp' : KIND_OF[s.group.kind] ?? 'camp',
       homes: s.homes,
@@ -110,8 +120,13 @@ export function strengthOf(h: Pick<Hearth, 'kind' | 'homes'>): number {
 }
 
 /** Radius of a hearth's pool of light, metres: half the households' spacing, so a camp's pools just touch in a ring. A town roof is closer. */
+/** Radius of a camp fire's pool of light, metres: a small family fire lights the few metres round it. Kept well under half the camp's
+ * household spacing (12 m) so each family's fire reads on its own rather than merging into one glow. Imagined. */
+export const CAMP_FIRELIGHT_M = 3.5;
+
 export function poolRadiusOf(h: Pick<Hearth, 'kind'>): number {
   if (h.kind === 'lamp') return 8; // a lamp's glow through a snow-house wall
+  if (h.kind === 'camp') return CAMP_FIRELIGHT_M;
   return h.kind === 'town' ? 12 : 0.5 * HOUSEHOLD_SPACING_M[h.kind];
 }
 

@@ -11,13 +11,16 @@ export const TAG_ZOOM = { from: 16.6, full: 17.4 } as const;
 /** At most this many tags at once: the nearest to the view centre that fit. */
 export const MAX_TAGS = 150;
 /** Text size in pixels and the gap between the print and the tag. */
-export const TAG_FONT_PX = 12;
+export const TAG_FONT_PX = 13;
 export const TAG_GAP_PX = 13;
+/** The dark pill behind each tag, pixels: padding [x, y] and corner radius. Bare text, even outlined, was lost on the busy close-up ground. */
+export const TAG_PAD_PX: [number, number] = [5, 2];
+export const TAG_CORNER_PX = 4;
 
 /** Tags that would be drawn smaller than this fraction of full size are left out (unreadable). */
 export const MIN_TAG_SCALE = 0.75;
-const TAG_ROOM_PX = 4; // empty space kept round each tag
-const CHAR_PX = 6.6; // average glyph width at TAG_FONT_PX, a little generous
+const TAG_ROOM_PX = 4 + TAG_PAD_PX[0]; // empty space kept round each tag, outside its pill
+const CHAR_PX = 7.4; // average glyph width at TAG_FONT_PX in the UI sans-serif, a little generous
 const MAX_RANGE_M = 700; // people farther than this from the view centre are not considered
 const M_PER_DEG_LAT = 111_320;
 

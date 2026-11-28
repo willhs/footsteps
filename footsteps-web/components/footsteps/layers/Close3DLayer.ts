@@ -1,6 +1,6 @@
 // Close-up 3D landscape (default when zoomed in; ?close3d=0 turns it off): one ground mesh per Terrarium elevation tile,
 // coloured and planted from the year's data (lib/close3d.ts), drawn under a tilted camera.
-import { CompositeLayer, type UpdateParameters } from '@deck.gl/core';
+import { CompositeLayer, type Layer, type LayerExtension, type UpdateParameters } from '@deck.gl/core';
 import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import { PathLayer } from '@deck.gl/layers';
@@ -13,6 +13,7 @@ import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
 import type { LakePlane } from '@/lib/pastWater';
 import { shelterMeshes, type Shelter } from './shelters';
+import { FORM_OF, GroundShadowLayer, ShelterLook, SURFACE_OF, hearthMeshes } from './campLook';
 import type { TreeInstance, TreeClearing } from '@/lib/trees';
 type TreeModule = typeof import('./TreeLayer');
 import type { LandPatch } from './fields';
@@ -92,11 +93,21 @@ const SKY_LIGHT = new SkyLight();
 export const SKY_TINT = new SkyTint();
 const FIELD_DETAIL = new FieldDetail();
 const SHELTER_MESHES = shelterMeshes();
+const SHELTER_LOOK = new ShelterLook();
+const HEARTH_MESHES = hearthMeshes();
+/** Open hearths (real size, ~1.3 m across) are drawn from this zoom, where they are a few pixels wide. */
+export const HEARTH_ZOOM = 16.5;
+/** Metres a hearth is lifted over the ground mesh, so the relief's facets do not cut its stones. */
+const HEARTH_LIFT_M = 0.3;
 /** A dwelling is never drawn smaller than this on screen (pixels across), however far out: at zoom 12 a hut is a few metres in
  * ~15 m pixels, so it is enlarged to stay readable. Closer in it is its real size. */
 const SHELTER_MIN_PX = 6;
 /** Metres lifted above the ground mesh so a hut's floor is not cut by the 4-pixel-step relief. */
 const SHELTER_LIFT_M = 1;
+/** Shadows of trees, dwellings and hearths (lib/sunShadow.ts) are drawn from this zoom, where a crown is a few pixels across. */
+export const SHADOW_ZOOM = 13;
+/** Shadows lie on the ground: tested against it, written to no depth, pulled a little towards the camera so the ground does not hide them. */
+const SHADOW_DEPTH = { depthWriteEnabled: false, depthCompare: 'less-equal', depthBias: -4, depthBiasSlopeScale: -4 } as const;
 const built = new WeakMap<TileData, Built>();
 /** Trees per DEM tile: candidates by era key (in random order, so a prefix is an even subsample) and which stand in the current clearings.
  * `rank` changes identity only when the clearings do, so deck rebuilds that one attribute and nothing else. */
@@ -202,36 +213,92 @@ function standingOn(heights: Float32Array, bbox: Bbox, shelters: readonly Shelte
 export default class Close3DLayer extends CompositeLayer<Props> {
   static layerName = 'Close3DLayer';
 
-  /** One instanced mesh layer per shape: a handful of shapes × the material colours, so it stays cheap. */
+  /** One instanced mesh layer per shape and material (a handful in any view), so it stays cheap; their shadows; and the open hearths of
+   * camps (campLook.ts), real size, from HEARTH_ZOOM. */
   shelterLayers(
     id: string, heights: Float32Array, bbox: Bbox, shelters: readonly Shelter[], seaLevel: number, mpp: number, zoom: number, light: SceneLight | null = null,
   ) {
     const standing = standingOn(heights, bbox, shelters, seaLevel);
+    if (!standing.length) return [];
     // Fade in with the people (who arrive from peopleIn to peopleFull), and grow so a hut is at least SHELTER_MIN_PX across.
     const t = Math.min(1, Math.max(0, (zoom - ZOOM.peopleIn + 0.4) / (ZOOM.peopleFull - ZOOM.peopleIn)));
+    const opacity = t * t * (3 - 2 * t);
     const grow = Math.max(1, (SHELTER_MIN_PX * mpp) / 5);
-    return SHAPES.flatMap((shape) => {
-      const these = standing.filter((s) => s.shelter.shape === shape);
-      if (!these.length) return [];
-      return [
-        new SimpleMeshLayer<Standing>(this.getSubLayerProps({ id: `${id}-shelters-${shape}` }), {
-          id: `${id}-shelters-${shape}`,
-          data: these,
-          mesh: SHELTER_MESHES[shape],
-          getPosition: (s) => s.position,
-          getColor: (s) => s.shelter.rgb,
-          getScale: (s) => s.shelter.size,
-          getOrientation: (s) => [0, 0, s.shelter.yaw],
-          sizeScale: grow,
-          opacity: t * t * (3 - 2 * t),
-          material: { ambient: 0.55, diffuse: 0.7, shininess: 2, specularColor: [10, 10, 10] },
-          extensions: light ? [SKY_TINT] : [],
-          ...(light ? { skyLight: light } : {}),
-          pickable: true,
+    // The night shading and other extensions the close-up was given reach its parts too.
+    const inherited = (this.props.extensions ?? []) as LayerExtension[];
+    const out: Layer[] = [];
+    if (zoom >= SHADOW_ZOOM)
+      out.push(new GroundShadowLayer<Standing>({
+        ...this.getSubLayerProps({ id: `${id}-shelter-shadows` }),
+        id: `${id}-shelter-shadows`,
+        data: standing,
+        getPosition: (s) => s.position,
+        getRadius: (s) => (Math.max(s.shelter.size[0], s.shelter.size[1]) / 2) * grow,
+        getCast: (s: unknown) => (s as Standing).shelter.size[2] * grow,
+        opacity,
+        extensions: inherited,
+        parameters: SHADOW_DEPTH,
+      }));
+    const kinds = new Map<string, Standing[]>();
+    for (const s of standing) {
+      const k = `${s.shelter.shape}|${s.shelter.spec.material}`;
+      const list = kinds.get(k);
+      if (list) list.push(s);
+      else kinds.set(k, [s]);
+    }
+    for (const [k, these] of kinds) {
+      const { shape, spec } = these[0].shelter;
+      out.push(new SimpleMeshLayer<Standing>(this.getSubLayerProps({ id: `${id}-shelters-${k}` }), {
+        id: `${id}-shelters-${k}`,
+        data: these,
+        mesh: SHELTER_MESHES[shape],
+        getPosition: (s: Standing) => s.position,
+        getColor: (s: Standing) => s.shelter.rgb,
+        getScale: (s: Standing) => s.shelter.size,
+        getOrientation: (s: Standing) => [0, s.shelter.yaw, 0],
+        sizeScale: grow,
+        opacity,
+        // ShelterLook lights it from the sun clock: deck.gl's own lights only pass the colour through.
+        material: { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] },
+        extensions: [SHELTER_LOOK, ...inherited, ...(light ? [SKY_TINT] : [])],
+        shelterSurface: SURFACE_OF[spec.material],
+        shelterForm: FORM_OF[shape],
+        ...(light ? { skyLight: light } : {}),
+        pickable: true,
+        parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
+      } as never));
+    }
+    if (zoom >= HEARTH_ZOOM - 0.5) {
+      const hearths: { position: [number, number, number]; yaw: number }[] = [];
+      for (const s of standing) {
+        const at = s.shelter.hearth;
+        if (!at) continue;
+        const h = groundAt(heights, bbox, at[0], at[1]);
+        if (h === null || h <= seaLevel) continue;
+        hearths.push({ position: [at[0], at[1], h * EXAGGERATION + HEARTH_LIFT_M], yaw: s.shelter.yaw });
+      }
+      const fade = Math.min(1, Math.max(0, zoom - (HEARTH_ZOOM - 0.5)));
+      const part = (name: string, mesh: object, extensions: LayerExtension[], material: object) =>
+        new SimpleMeshLayer<(typeof hearths)[number]>(this.getSubLayerProps({ id: `${id}-${name}` }), {
+          id: `${id}-${name}`,
+          data: hearths,
+          mesh: mesh as never,
+          getPosition: (d) => d.position,
+          getColor: [255, 255, 255],
+          getOrientation: (d) => [0, d.yaw, 0],
+          opacity: fade * opacity,
+          material,
+          extensions,
+          pickable: false,
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
-        }),
-      ];
-    });
+        });
+      if (hearths.length) {
+        out.push(part('hearths', HEARTH_MESHES.hearth, inherited, { ambient: 0.75, diffuse: 0.35, shininess: 1, specularColor: [0, 0, 0] }));
+        // The embers are not lit or shaded by night: they are the light.
+        out.push(part('embers', HEARTH_MESHES.embers, [], { ambient: 1, diffuse: 0, shininess: 1, specularColor: [0, 0, 0] }));
+      }
+    }
+    return out;
   }
 
   declare state: { buildTick: number; rebuildQueued: boolean; weatherRef: WeatherRef; treeModule: TreeModule | null; rivers: Rivers | null };
@@ -490,6 +557,17 @@ export default class Close3DLayer extends CompositeLayer<Props> {
             cached.clearingsKey = tileClearKey;
           }
           // The same data array every frame, so deck keeps the instance buffers; distance thinning is a uniform (TreeLayer).
+          // First the crowns' shadows on the ground (from above, by day: lib/sunShadow.ts), then the crowns.
+          if (zoom >= SHADOW_ZOOM) layers.push(new TreeLayer({
+            ...this.getSubLayerProps({ id: `${props.id}-tree-shadows` }),
+            id: `${props.id}-tree-shadows`, data: cached.trees, shadow: true,
+            iconAtlas: '/trees/atlas.webp', iconMapping: TREE_MAPPING,
+            getIcon: t => `${t.kind}-${t.variant}`, getPosition: t => t.position,
+            getSize: t => t.height, getColor: t => t.tint, sizeUnits: 'meters',
+            getRank: cached.rank, lodShare: treeShare, updateTriggers: { getRank: cached.clearingsKey },
+            billboard: true, alphaCutoff: 0, pickable: false,
+            parameters: SHADOW_DEPTH,
+          }) as unknown as typeof ground3d);
           layers.push(new TreeLayer({
             ...this.getSubLayerProps({ id: `${props.id}-trees` }),
             id: `${props.id}-trees`, data: cached.trees,

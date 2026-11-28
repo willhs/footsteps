@@ -13,7 +13,9 @@ Per HYDE year, per macro-region R (continent-scale boxes, `REGIONS`), on the 0.5
                  NPP-based density x habitat rules x ice-free land, with exposed shelf as land
                  and a Green Sahara correction, `SpreadModel`)
     shift_i    = Q * then_i / sum(then) - Q * now_i / sum(now)     (people the climate moved)
-    new_i      = max(0, hyde_i + STRENGTH * shift_i), rescaled so sum(new) = Q
+    new_i      = hyde_i + STRENGTH * shift_i                              where shift_i >= 0 (gain)
+               = hyde_i * (1 + STRENGTH * (share_then_i / share_now_i - 1))  where shift_i < 0 (loss, in proportion)
+                 rescaled so sum(new) = Q
 At HYDE's 5 arc-minute grid a block that lost people loses them in proportion everywhere in it;
 a block that gained them gets the gain spread over its land cells at that year's sea level.
 
@@ -112,8 +114,21 @@ def climate_shift(then, now, hyde, region, strength: float) -> np.ndarray:
         total, cap_then, cap_now = hyde[m].sum(), then[m].sum(), now[m].sum()
         if total <= 0 or cap_then <= 0 or cap_now <= 0:
             continue
-        moved = total * (then[m] / cap_then - now[m] / cap_now)
-        new = np.maximum(hyde[m] + strength * moved, 0.0)
+        share_then = then[m] / cap_then
+        share_now = now[m] / cap_now
+        moved = total * (share_then - share_now)
+
+        # Gains are additive: land more habitable then than now gets people HYDE never put there (the Sahara, shelves).
+        gained = hyde[m] + strength * moved
+
+        # Losses are proportional: a cell keeps its HYDE people scaled by how its share of the capacity fell. Subtracting
+        # `moved` instead emptied whole 0.5 degree blocks wherever HYDE had fewer people than the capacity model's share
+        # (central and southern Africa around 5000 BCE, where the Green Sahara pulls capacity north), drawn as square holes.
+        # Only a cell with no capacity at all then (sea, ice) is emptied.
+        ratio = share_then / np.where(share_now > 0, share_now, 1.0)
+        lost = hyde[m] * (1.0 + strength * (ratio - 1.0))
+
+        new = np.where(moved >= 0, gained, lost)
         out[m] = new * (total / new.sum())
     return out
 

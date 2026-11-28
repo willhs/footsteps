@@ -167,3 +167,17 @@ def test_real_nobody_is_added_on_the_sea_at_that_years_sea_level(model):
 def test_real_the_adjustment_fades_as_the_climate_becomes_todays(model):
     rep = hs.adjusted_people(model, 1900, 1.0)[2]
     assert rep["moved"] / rep["world"] < 0.01  # 50 years before the 'today' capacity is measured at
+
+
+def test_a_populated_cell_that_loses_share_keeps_people_in_proportion():
+    # HYDE has few people in cell 0 but the capacity model gave it a big share now; the climate then moved capacity to
+    # cell 2 (a Green Sahara). Subtracting the share emptied cell 0 (square holes in Africa at 5000 BCE); it must keep people.
+    hyde = np.array([[1.0, 50.0, 0.0]])
+    region = np.zeros((1, 3), int)
+    now = np.array([[10.0, 10.0, 0.0]])
+    then = np.array([[10.0, 10.0, 20.0]])
+    out = hs.climate_shift(then, now, hyde, region, 1.0)
+    assert out[0, 0] > 0.3 * hyde[0, 0]
+    assert out[0, 1] / out[0, 0] == pytest.approx(hyde[0, 1] / hyde[0, 0])  # losers keep HYDE's pattern
+    assert out[0, 2] > 0
+    assert out.sum() == pytest.approx(hyde.sum())

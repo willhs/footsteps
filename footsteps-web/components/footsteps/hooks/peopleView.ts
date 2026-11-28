@@ -19,11 +19,14 @@ export type ViewBlend = {
   halo: number; // px: smallest fire sprite for a band or village
 };
 
-// A ~9 km cell is 3.3 px at zoom 4.8 and 7 px at 5.8 (512 px world, 4320 cells).
+// A ~9 km cell is 3.3 px at zoom 4.8, 7 px at 5.8 and 10 px at 6.4 (512 px world, 4320 cells).
+// Between the globe and the groups the fires are the middle level: every fire is drawn from about zoom 4 (FireLayer
+// fireVisibleFraction), and they hold until 5.6, where cells are big enough (~8 px) for the groups not to read as one dense
+// smear. Before 2026-11-28 the groups came in at 4.6-5.4, at 3-5 px a cell.
 export const ZOOM = {
-  unitsIn: 4.6, // units start to fade in
-  unitsFull: 5.4, // units fully drawn
-  glowGone: 5.4, // glow has faded out under the units
+  unitsIn: 5.6, // units start to fade in
+  unitsFull: 6.4, // units fully drawn
+  glowGone: 6.4, // glow has faded out under the units
   groups: 7, // marks are big enough to click one by one
   peopleIn: 11.5, // individual people start to appear (~60 m per pixel)
   peopleFull: 12.5, // people fully drawn, group marks gone
@@ -48,12 +51,12 @@ function ramp(stops: [number, number][], zoom: number) {
 }
 
 export function viewBlend(zoom: number, mode: PeopleMode): ViewBlend {
-  const minPx = ramp([[3, 0.35], [4.6, 1.0], [5.4, 1.5], [7, 3.2], [9, 5]], zoom);
+  const minPx = ramp([[3, 0.35], [ZOOM.unitsIn, 1.0], [ZOOM.unitsFull, 1.5], [7.5, 3.2], [9, 5]], zoom);
   // Close in, groups stop flickering in size: a mark should hold still under the cursor.
   const settle = 1 - smoothstep(6, 8.5, zoom);
   // Match the far-out firelight sprites (FireLayer: 4-13 px) where they hand over.
-  const halo = ramp([[4.6, 7], [7, 8], [9, 9]], zoom);
-  const brightness = ramp([[3, 0.3], [4.6, 0.6], [5.4, 0.6], [7, 1]], zoom);
+  const halo = ramp([[ZOOM.unitsIn, 7], [7, 8], [9, 9]], zoom);
+  const brightness = ramp([[3, 0.3], [ZOOM.unitsIn, 0.6], [ZOOM.unitsFull, 0.6], [7, 1]], zoom);
   const pickable = zoom >= ZOOM.groups;
   if (mode === 'auto')
     return {

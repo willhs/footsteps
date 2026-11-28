@@ -122,7 +122,7 @@ pnpm install
 pnpm dev                 # port 4444
 pnpm lint
 pnpm exec tsc --noEmit
-pnpm test -- --runInBand
+pnpm test --runInBand    # no `--`: it becomes a jest pattern, "No tests found"
 pnpm build               # writes out/
 pnpm e2e                 # Playwright; see playwright.config.ts
 ```

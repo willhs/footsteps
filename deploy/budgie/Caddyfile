@@ -12,7 +12,8 @@
 	# Don't compress (Range offsets must match the file) and let Cloudflare cache.
 	handle_path /pmtiles/* {
 		root * /srv/pmtiles
-		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800" {
+		header {
+			Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
 			match status 2xx
 		}
 		header Access-Control-Allow-Origin "*"
@@ -23,7 +24,8 @@
 	@images path /grid/* /terrain/* /habitat/* /ground/* /water/*
 	handle @images {
 		root * /srv/app
-		header Cache-Control "public, max-age=86400, stale-while-revalidate=604800" {
+		header {
+			Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
 			match status 2xx
 		}
 		file_server

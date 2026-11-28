@@ -17,7 +17,7 @@ on:
 
 concurrency:
   group: deploy-budgie
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io

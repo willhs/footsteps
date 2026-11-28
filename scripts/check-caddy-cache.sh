@@ -15,7 +15,7 @@ for path in grid terrain habitat ground water; do
   mkdir -p "$fixture/app/$path"
   printf 'image fixture' > "$fixture/app/$path/existing.png"
 done
-container=$(docker create -p 127.0.0.1::80 caddy:2-alpine)
+container=$(docker create -p 127.0.0.1::80 caddy:2.8-alpine)
 docker cp "$repo/deploy/budgie/Caddyfile" "$container:/etc/caddy/Caddyfile" >/dev/null
 docker cp "$fixture/app" "$container:/srv/app" >/dev/null
 docker cp "$fixture/pmtiles" "$container:/srv/pmtiles" >/dev/null

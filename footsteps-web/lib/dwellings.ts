@@ -89,6 +89,7 @@ export const MATERIALS = {
   tile: { name: 'tile', rgb: [176, 98, 72] },
   greytile: { name: 'grey tile', rgb: [104, 108, 114] },
   bone: { name: 'mammoth bone and hide', rgb: [224, 215, 192] },
+  hair: { name: 'black goat- or yak-hair cloth', rgb: [58, 50, 44] },
 } as const satisfies Record<string, { name: string; rgb: readonly [number, number, number] }>;
 export type MaterialId = keyof typeof MATERIALS;
 
@@ -189,6 +190,28 @@ export const ARCHAEOLOGICAL_TYPES: readonly ArchaeologicalType[] = [
     material: 'thatch',
   },
   {
+    id: 'puna-herders',
+    text: 'small stone-walled houses with grass (ichu) roofs at the herding stations of the high puna, as recorded among llama and alpaca herders of Ayacucho (Peru)',
+    source: 'Flannery, Marcus & Reynolds 1989, The Flocks of the Wamani',
+    // The central Andes above the valleys, from when llamas and alpacas were herded (Wheeler 1995, J Biogeogr 22:111).
+    box: { west: -80, east: -63, south: -28, north: -5 },
+    years: [-3500, 1900],
+    kinds: [UnitKind.Camp],
+    shape: 'drum',
+    material: 'thatch',
+  },
+  {
+    id: 'shielings',
+    text: 'small stone-and-turf summer huts on the hill pastures (shielings), as recorded across upland Scotland, Ireland, Wales and Norway',
+    source: 'Bil 1990, The Shieling 1600-1840',
+    // Western and central Europe below Sámi country, once flocks were driven to summer pastures.
+    box: { west: -11, east: 30, south: 36, north: 64 },
+    years: [-4000, 1900],
+    kinds: [UnitKind.Camp],
+    shape: 'drum',
+    material: 'turf',
+  },
+  {
     id: 'mudbrick-neolithic',
     text: 'rectangular mud-brick houses packed together with flat roofs, as dug at Çatalhöyük (Turkey, 7100–5950 BCE)',
     source: 'Hodder 2006',
@@ -227,6 +250,26 @@ export function snowHousesAt(place: Place): boolean {
   return place.year >= from && place.lon >= box.west && place.lon <= box.east && place.lat >= box.south && place.lat <= box.north;
 }
 
+/** Which cloth tent a herding analog's fabric tent becomes where the group stands (Faegre 1979, Tents: Architecture of the Nomads):
+ * the round felt yurt of Inner Asia (Kazakh, Kyrgyz, Mongol country), the conical cloth lavvu of the Sámi, and from the Sahara to
+ * Tibet the low black tent of woven goat or yak hair. Climate- and distance-matched analogs mix these up (Bedouin-country camps drew
+ * white yurts, Tibetan camps Mongol yurts). */
+export const YURT_BOX = { west: 46, east: 125, south: 38, north: 56 } as const;
+export const LAVVU_BOX = { west: 5, east: 45, south: 62, north: 72 } as const;
+/** The black-tent belt, Morocco and the Sahara to Arabia, Iran and Tibet. */
+/** A herding camp with no house record outside the cloth-tent belts: a low hut of mats or grass, as the Nama, Maasai and other
+ * herders of Africa built. */
+const CAMP_HUT = { shape: 'dome', material: 'mats' } as const;
+export const BLACK_TENT_BOX = { west: -18, east: 105, south: 12, north: 42 } as const;
+const inBox = (b: { west: number; east: number; south: number; north: number }, p: Place) =>
+  p.lon >= b.west && p.lon <= b.east && p.lat >= b.south && p.lat <= b.north;
+export function clothTent(place: Place): { shape: ShapeId; material: MaterialId } | null {
+  if (inBox(YURT_BOX, place)) return { shape: 'drum', material: 'felt' };
+  if (inBox(LAVVU_BOX, place)) return { shape: 'cone', material: 'felt' };
+  if (inBox(BLACK_TENT_BOX, place)) return { shape: 'gable', material: 'hair' };
+  return null;
+}
+
 /** EA081 wall and EA083 roof codes to what covers the dwelling seen from above. */
 const ROOF_MATERIAL: Record<number, MaterialId> = {
   1: 'slate', 2: 'mud', 3: 'wood', 4: 'bark', 5: 'hides', 6: 'felt', 7: 'mats', 8: 'thatch', 9: 'turf', 10: 'snow', 11: 'tile',
@@ -252,12 +295,14 @@ const FALLBACK: Record<number, { shape: ShapeId; material: MaterialId }> = {
 export function shelterSpec(codes: DwellingCodes | null, place: Place): ShelterSpec {
   const type = archaeologyAt(place);
   if (type) return { how: 'archaeology', shape: type.shape, material: type.material, type };
-  const fallback = FALLBACK[place.kind] ?? FALLBACK[UnitKind.Village];
+  const fallback = place.kind === UnitKind.Camp ? clothTent(place) ?? CAMP_HUT : FALLBACK[place.kind] ?? FALLBACK[UnitKind.Village];
   if (!codes || (codes.plan === null && codes.walls === null && codes.roof === null)) return { how: 'kind', ...fallback };
   const { plan, walls, roof } = codes;
   const material: MaterialId =
     (roof !== null && ROOF_MATERIAL[roof]) || (walls !== null && WALL_MATERIAL[walls]) || fallback.material;
   const tent = walls === 5 || walls === 6 || roof === 5 || roof === 6;
+  const cloth = tent && (walls === 6 || roof === 6) && walls !== 5 && roof !== 5 ? clothTent(place) : null;
+  if (cloth) return { how: 'analog', ...cloth };
   const roundPlan = plan === 2 || plan === 3 || plan === 4;
   const boxPlan = plan === 5 || plan === 6;
   const solid = walls !== null && SOLID_WALLS.has(walls);

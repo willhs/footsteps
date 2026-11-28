@@ -155,6 +155,12 @@ Close-up shelters add dug types for Natufian, PPNA, Jōmon, European Mesolithic,
 (`ARCHAEOLOGICAL_TYPES` in `lib/dwellings.ts`, each cited), and keep snow houses to Arctic Canada and Greenland from 500 BCE
 (`SNOW_HOUSES`): elsewhere a climate-matched Inuit analog's snow house is drawn as a hide tent (Ice Age France, Yakutia).
 
+Herding camps: the herder mixes reach far too (the Andes drew Wayuu, Fulani and Maasai; upland Britain and the Alps drew Saharan
+Chaambra tents). Two cited types cover them, Andean puna herders' stone houses with grass roofs (Flannery, Marcus & Reynolds 1989)
+and European stone-and-turf shielings (Bil 1990). An analog's cloth tent becomes the tent of the place (`clothTent`, Faegre 1979):
+felt yurt in Inner Asia, cloth lavvu in Sámi country, black goat- or yak-hair tent from the Sahara to Tibet (Bedouin-country
+camps drew white yurts before). A camp with no house record outside those belts is a mat hut, not a yurt.
+
 ## Shelters in the close-up (2026-11-21, `?shelters=1`)
 
 Part of the close-up scene goal ("structures where groups live"). **Off by default** until Will has looked at it on prod; `?shelters=1` draws one dwelling per household at street zoom (11.5 and closer, on the flat map's 3D relief; not on the globe, with `?close3d=0` or `?settlements=0`).

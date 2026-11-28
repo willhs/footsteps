@@ -85,6 +85,10 @@ current vision (measured vs modelled vs imagined, and what Footsteps is not).
   with `ice_sheets.json`, in `footsteps-web/public/ice/`. A year shows the NEAREST epoch, never interpolated; before 80 ka nothing. Behind `?ice=1` (off until reviewed; `lib/iceSheets.ts`): a white
   overlay with a blue-grey edge over the terrain, an ice surface in the close-up (`close3d.ts withIce`; no surface height), ice patches as extra exclusions in the ranker (`siteRanking.ts`,
   ids 101+ beside past-water epochs; cells all ice are counted `unresolved`), a hover row and a note. `ice.real.test.ts` checks no group on ice 25,000-10,000 BCE. See `docs/ops/ice-sheets.md`.
+- `footstep-generator/holocene_shares.py` → `footsteps-web/lib/holoceneShares.json` (+ `lib/holoceneShares.ts`, applied per cell in `gridDataFrom`, on by default):
+  one multiplier per continent box per year, 13,000-4,000 BCE. HYDE 3.5's 10,000 BCE continental split is a shrunken modern one (Africa 5%, the just-settled
+  Americas 51%), so the blend from the pre-HYDE model drained Africa into the Americas; the table sets each continent's total to the forager model's share,
+  fading to HYDE's by 3000 BCE (West Asia keeps HYDE's). Cell pattern inside a continent and the world total are unchanged. Modelled. See research 0016.
 - `footstep-generator/hyde_climate_spread.py`: HYDE people moved within continent-scale regions by climate-then vs today (Green Sahara,
   exposed shelves), regional totals kept → `data/tiles/grid_adjusted/` for 10,000–4,000 BCE, served at `/grid/adjusted/`. Read by the grid pipeline
   only with `?spread=1` (`lib/adjustedSpread.ts`, off until reviewed), labelled "Adjusted spread (modelled on HYDE)"; Dots says it is not applied.

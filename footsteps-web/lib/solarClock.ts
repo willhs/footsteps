@@ -1,3 +1,4 @@
+import { flags } from '@/lib/flags';
 // The clock the sun-time features run on: the real time, unless the URL bends it for checking.
 //   ?utc=6.5   start at 06:30 UTC (today's date) instead of now
 //   ?warp=60   run this many times faster than real time (60: a day in 24 minutes)
@@ -7,23 +8,24 @@
 // The time-of-day dial (components/ui/TimeOfDayDial.tsx) sets it too: `setSolarClockAt` stops the clock at
 // the dial's instant and tells every listener (`onSolarClockChange`), so the map redraws as the dial turns.
 
-import { STILL_DAY_UTC_MS, stillRequested } from './still';
+import { STILL_DAY_UTC_MS } from './still';
 
 type Bend = { start: number; realStart: number; warp: number };
 let bend: Bend | null = null;
-let configuredFor: string | null = null;
+let configuredFor: string | ReturnType<typeof flags> | null = null;
 
 /** Read `?utc=` and `?warp=` from a query string. Safe to call again with the same string (the clock
  * keeps running); a different string restarts it. */
-export function configureSolarClock(search: string): void {
-  if (configuredFor === search) return;
-  configuredFor = search;
-  const params = new URLSearchParams(search);
-  const utc = Number(params.get('utc'));
-  const warp = Number(params.get('warp'));
-  const hasUtc = params.get('utc') !== null && Number.isFinite(utc);
-  const hasWarp = params.get('warp') !== null && Number.isFinite(warp) && warp > 0;
-  if (stillRequested(search)) {
+export function configureSolarClock(search?: string): void {
+  const key = search ?? flags();
+  if (configuredFor === key) return;
+  configuredFor = key;
+  const params = flags(search);
+  const utc = Number(params.value('utc'));
+  const warp = Number(params.value('warp'));
+  const hasUtc = params.value('utc') !== null && Number.isFinite(utc);
+  const hasWarp = params.value('warp') !== null && Number.isFinite(warp) && warp > 0;
+  if (flags(search).enabled('still')) {
     // ?still=1 (lib/still.ts): a stopped clock on one fixed day, at ?utc= hours (default noon).
     bend = { start: STILL_DAY_UTC_MS + (hasUtc ? utc : 12) * 3_600_000, realStart: Date.now(), warp: 0 };
     return;
@@ -39,9 +41,9 @@ export function configureSolarClock(search: string): void {
 
 /** Whether a query string sets the hour (`?utc=` or `?warp=`): the time-of-day dial then follows that clock until it is turned.
  * `?still=1` alone does not: a still page starts at the dial's default hour, which is fixed too. */
-export function solarClockParams(search: string): boolean {
-  const params = new URLSearchParams(search);
-  return params.get('utc') !== null || params.get('warp') !== null;
+export function solarClockParams(search?: string): boolean {
+  const params = flags(search);
+  return params.value('utc') !== null || params.value('warp') !== null;
 }
 
 /** Whether the URL bent the clock so it moves (the page then redraws the sun time every second). A still clock does not move. */

@@ -305,11 +305,6 @@ export function placeNotes({ time, lon, lat, corrections = correctionsAt(lon, la
   return [...corrections, ...caveatsAt(lon, lat, time)];
 }
 
-/** Whether `?explain=1` is set. */
-export function explainParam(search: string): boolean {
-  return new URLSearchParams(search).get('explain') === '1';
-}
-
 /** One icon per line, so the panel reads at a glance. */
 export const LINE_ICON: Record<EstimateLine['id'], IconName> = {
   people: 'people',

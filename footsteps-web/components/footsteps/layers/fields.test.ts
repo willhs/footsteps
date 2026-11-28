@@ -7,7 +7,6 @@ import {
   FARM_RADIUS_M,
   farmedArea,
   SUBSISTENCE_M2_PER_PERSON,
-  fieldsParam,
   growing,
   isSwidden,
   landPatches,
@@ -32,12 +31,6 @@ const farmed = (patches: LandPatch[]) => patches.filter(isArea).filter((p) => FA
 const centre = (p: AreaPatch): [number, number] => [p.corners.reduce((a, c) => a + c[0], 0) / 4, p.corners.reduce((a, c) => a + c[1], 0) / 4];
 const metres = (a: [number, number], b: [number, number]) =>
   Math.hypot((a[0] - b[0]) * 111_320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111_320);
-
-test('on unless ?fields=0', () => {
-  expect(fieldsParam('')).toBe(true);
-  expect(fieldsParam('?year=-3000&fields=1')).toBe(true);
-  expect(fieldsParam('?fields=0')).toBe(false);
-});
 
 test('the same groups always give the same land', () => {
   const groups = [village(31.2, 30.0, 0.3, { water: { metres: 800, dir: [1, 0] } }), village(31.23, 30.01, 0.2)];

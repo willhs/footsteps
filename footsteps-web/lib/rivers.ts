@@ -8,11 +8,6 @@
 import { EXAGGERATION, MESH_STEP, type Bbox, type Ground } from './close3d';
 import type { LakePlane } from './pastWater';
 
-/** `?rivers=0` turns the close-up's rivers off; on by default. */
-export function riversParam(search: string): boolean {
-  return new URLSearchParams(search).get('rivers') !== '0';
-}
-
 type RiversFile = { version: 1; scale: number; rivers: number[][] };
 /** One decoded river line: Natural Earth scalerank (0 largest) and lon, lat pairs, smoothed. */
 export type RiverLine = { rank: number; coords: Float64Array; west: number; east: number; south: number; north: number };

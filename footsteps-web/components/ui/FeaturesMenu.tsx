@@ -3,8 +3,9 @@
 // Turn the features behind flags on and off from the map controls, remembered in this browser (lib/flagChoices.ts). Most features
 // read their flag once at load, so a change waits for "Reload to apply", which keeps the view and year; a `live` one (other humans)
 // changes at once.
+import { flags } from '@/lib/flags';
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { MENU_FLAGS, flagOn, rememberChoice, withFlag, type MenuFlag } from '@/lib/flagChoices';
+import { MENU_FLAGS, rememberChoice, withFlag, type MenuFlag } from '@/lib/flagChoices';
 
 const storage = () => {
   try {
@@ -30,7 +31,7 @@ export default function FeaturesMenu({
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
   const [chosen, setChosen] = useState<Record<string, boolean>>({});
   useEffect(() => {
-    const now = Object.fromEntries(MENU_FLAGS.map((f) => [f.name, flagOn(f, window.location.search)]));
+    const now = Object.fromEntries(MENU_FLAGS.map((f) => [f.name, flags().enabled(f.name)]));
     setLoaded(now);
     setChosen(now);
   }, []);

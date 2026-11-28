@@ -28,7 +28,7 @@ export default function useGlobeViewState() {
   // Apply optional QA/deep-link state after hydration. Example:
   // ?lat=28.6&lon=77.2&zoom=8
   useLayoutEffect(() => {
-    const initial = parseInitialViewState(window.location.search);
+    const initial = parseInitialViewState();
     viewStateRef.current = initial;
     setViewState(initial);
   }, []);

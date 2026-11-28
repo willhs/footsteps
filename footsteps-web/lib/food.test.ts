@@ -1,4 +1,4 @@
-import { foodEnabled, foodHere, type FoodData } from './food';
+import { foodHere, type FoodData } from './food';
 import { hoverCardRows } from './hoverCard';
 import type { HabitatCell } from './habitat';
 
@@ -16,12 +16,6 @@ const data: FoodData = {
   biomes: { Steppe: { plants: ['grass seeds', 'roots'], animals: ['horse', 'bison', 'reindeer'], plant_weight: 'low' } },
 };
 const input = { time: -8000, habitat, today: null, people: null, landUse: null };
-
-test('on unless ?food=0', () => {
-  expect(foodEnabled('')).toBe(true);
-  expect(foodEnabled('?year=-3000&food=1')).toBe(true);
-  expect(foodEnabled('?food=0')).toBe(false);
-});
 
 test('Levant: names, per-item confidence, recalled dates and modelled label', () => {
   const food = foodHere(data, 36, 33, -8000, habitat);

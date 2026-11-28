@@ -6,7 +6,6 @@ import {
   photoWeight,
   recolour,
   sampleDetail,
-  terrainTilesParam,
   RECOLOUR_GLSL,
 } from './terrainDetail';
 
@@ -99,13 +98,5 @@ describe('sampleDetail', () => {
     const lat = (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI;
     expect(mercatorY(lat)).toBeCloseTo(y, 9);
     expect(sampleDetail(tile, lon, lat)[0]).toBeCloseTo(1, 5);
-  });
-});
-
-describe('terrainTilesParam', () => {
-  it('is on unless ?terrain_tiles=0', () => {
-    expect(terrainTilesParam('')).toBe(true);
-    expect(terrainTilesParam('?year=-3000&terrain_tiles=1')).toBe(true);
-    expect(terrainTilesParam('?terrain_tiles=0')).toBe(false);
   });
 });

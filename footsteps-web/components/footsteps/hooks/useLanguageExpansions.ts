@@ -1,14 +1,16 @@
 'use client';
 
+import { flags } from '@/lib/flags';
+
 import { useEffect, useState } from 'react';
-import { langsDeepEnabled, type ExpansionData } from '@/lib/languageExpansions';
+import { type ExpansionData } from '@/lib/languageExpansions';
 
 let pending: Promise<ExpansionData> | null = null;
 
 /** The cited expansions table (~7 KB), fetched once after the first hover with ?langs=deep. Null without the flag. */
 export default function useLanguageExpansions(hovering: boolean): ExpansionData | null {
   const [data, setData] = useState<ExpansionData | null>(null);
-  const enabled = typeof window !== 'undefined' && langsDeepEnabled(window.location.search);
+  const enabled = typeof window !== 'undefined' && flags().enabled('langs');
   useEffect(() => {
     if (!enabled || !hovering) return;
     let live = true;

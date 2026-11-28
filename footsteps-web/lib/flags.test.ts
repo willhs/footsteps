@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { FLAGS, FLAG_NAMES, SCENES, canvasStats, isBlank, judge, loadUrl, variants } from '../scripts/flags-lib.mjs';
 import sharp from 'sharp';
+import { flags, parseFlags } from './flags';
 
 const WEB = path.resolve(__dirname, '..');
 const DOC = fs.readFileSync(path.join(WEB, '..', 'docs', 'ops', 'flags.md'), 'utf8');
@@ -21,7 +22,7 @@ function sources(dir: string): string[] {
 /** Names read as `<URLSearchParams or a variable holding one>.get('x')`, or set/deleted on `url.searchParams`. */
 function paramsRead(): Map<string, string[]> {
   const found = new Map<string, string[]>();
-  const re = /(?:URLSearchParams\([^)]*\)|\bparams|\bsp|\bsearchParams)\.(?:get|has|set|delete)\(\s*['"]([A-Za-z0-9_]+)['"]/g;
+  const re = /(?:\.(?:enabled|value)|(?:URLSearchParams\([^)]*\)|\bparams|\bsp|\bsearchParams)\.(?:get|has|set|delete))\(\s*['"]([A-Za-z0-9_]+)['"]/g;
   for (const dir of ['app', 'components', 'lib']) {
     for (const file of sources(path.join(WEB, dir))) {
       if (file.endsWith('QueryParamRangeSource.ts')) continue; // its `rk` is a cache-busting key on data requests, not a page flag
@@ -50,13 +51,19 @@ describe('flag inventory', () => {
   });
 
   it('has no flag in the registry that the code no longer reads', () => {
-    const gone = FLAGS.filter((f) => ![f.name, ...(f.aliases ?? [])].some((n) => read.has(n))).map((f) => f.name);
+    const gone = FLAGS.filter((f) => ![f.name, ...('aliases' in f ? f.aliases : [])].some((n) => read.has(n))).map((f) => f.name);
     expect(gone).toEqual([]);
   });
 
   it('has each flag once', () => {
     expect(new Set(FLAG_NAMES).size).toBe(FLAG_NAMES.length);
   });
+});
+
+it('does not cache server defaults as a browser snapshot', () => {
+  expect(flags().enabled('trees')).toBe(true);
+  expect(parseFlags('?trees=0').enabled('trees')).toBe(false);
+  expect(flags().enabled('trees')).toBe(true);
 });
 
 describe('sweep variants', () => {

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  EXPANSIONS_FLOOR_YEAR, expansionLine, expansionsHere, langsDeepEnabled, startWords, type ExpansionData, type ExpansionRow,
+  EXPANSIONS_FLOOR_YEAR, expansionLine, expansionsHere, startWords, type ExpansionData, type ExpansionRow,
 } from './languageExpansions';
 import { hoverCardRows } from './hoverCard';
 import type { HabitatCell } from './habitat';
@@ -13,12 +13,6 @@ const ids = (lon: number, lat: number, year: number) => expansionsHere(data, lon
 const OAXACA = [-97.5, 17.5] as const;
 const CONGO = [17.5, -2.5] as const;
 const ANATOLIA = [33, 39] as const;
-
-test('on unless ?langs=0', () => {
-  expect(langsDeepEnabled('')).toBe(true);
-  expect(langsDeepEnabled('?year=-3000&langs=1')).toBe(true);
-  expect(langsDeepEnabled('?langs=0')).toBe(false);
-});
 
 test('a cell and year: Spanish in Mexico from 1519, not before', () => {
   expect(ids(...OAXACA, 1700)).toEqual(['spanish-mexico']);

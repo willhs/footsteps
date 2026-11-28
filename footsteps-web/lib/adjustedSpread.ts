@@ -20,11 +20,6 @@ const METHOD =
   + '(the Green Sahara, Doggerland, Sundaland, Beringia, the Sahul shelf), keeping each region’s total, so the world total is HYDE’s. '
   + 'A model on top of a model: new people sit in ~55 km blocks.';
 
-/** `?spread=1` turns it on. Read once per page load by the page and the grid worker. */
-export function spreadParam(search: string): boolean {
-  return new URLSearchParams(search).get('spread') !== '0';
-}
-
 export function adjustedSpreadYear(year: number): boolean {
   return ADJUSTED_SPREAD_YEARS.includes(year);
 }

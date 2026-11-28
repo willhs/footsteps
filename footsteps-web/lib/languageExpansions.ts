@@ -29,8 +29,6 @@ export type ExpansionRow = {
 
 export type ExpansionData = { version: number; checked_on: string; floor_year: number; note: string; rows: ExpansionRow[] };
 
-export const langsDeepEnabled = (search: string) => new URLSearchParams(search).get('langs') !== '0';
-
 const inBox = ([s, w, n, e]: Box, lon: number, lat: number) => lat >= s && lat < n && lon >= w && lon < e;
 
 /** The rows spreading in this place by this year, oldest first. Empty before the 5 ka floor. */

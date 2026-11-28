@@ -14,11 +14,6 @@ import { HOUSEHOLD_SPACING_M } from '@/components/footsteps/layers/households';
 import { snowHousesAt } from './dwellings';
 import { sheltersForGroups, sheltersForTown, type ShelterGroup, type TownInView } from '@/components/footsteps/layers/shelters';
 
-/** Off by default until reviewed on prod: `?smoke=1` draws smoke and, at night, firelight in the close-up. */
-export function smokeParam(search: string): boolean {
-  return new URLSearchParams(search).get('smoke') !== '0';
-}
-
 /** `lamp`: a household of the treeless Inuit Arctic, which burned seal or whale oil in a soapstone lamp (the qulliq) for heat, light and
  * cooking rather than a wood fire: a glow at night, no plume of smoke (Hough 1898, The Lamp of the Eskimo, Report of the US National
  * Museum for 1896). */

@@ -4,6 +4,23 @@ type: note
 purpose: "Record implementation and documentation updates"
 ---
 
+## [2026-11-28] refactor | One registry-backed URL flag snapshot
+
+Moved FLAGS into browser-safe `lib/flagRegistry.js`, shared with the Node sweep.
+`lib/flags.ts` now owns parsing and typed boolean/raw lookups. The head applies saved
+choices, parses the URL once for preloads, and shares the immutable snapshot with
+the application. Server defaults cannot seed browser state. View/clock validation,
+worker message shape, live toggles, defaults and off-switch values stay unchanged.
+Deleted feature-local parsers and their paired flag-only tests; the registry-driven
+snapshot tests cover every flag, empty/repeated values, aliases and head ordering.
+The Features menu derives its defaults and switch values from the registry.
+
+The premise was confirmed against the source and default-flip commit `72546d4`.
+The main risks outside the diff are preload serialization, saved-choice ordering,
+static rendering and worker settings. The snapshot tests exercise head execution
+and reuse, and existing view/clock/preload tests preserve their domain contracts.
+Close3D construction and derived flag dependencies remain separate follow-on work.
+
 ## [2026-11-28] fix | No firelight on past lakes
 
 Will saw fires on the open water of Lake Mega-Chad at 5000 BCE, zoomed out. The groups were already kept off past water, but the

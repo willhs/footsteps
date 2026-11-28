@@ -6,20 +6,12 @@ import { HOUSEHOLD_SPACING_M, householdsOf } from '@/components/footsteps/layers
 import { sheltersForGroups } from '@/components/footsteps/layers/shelters';
 import {
   MAX_HEARTHS, MAX_STRENGTH, PUFFS_PER_HEARTH, SMOKE_ZOOM, capHearths, hearthsForView, hearthSeed, poolOf, poolRadiusOf, puffsOf, smokeOpacity,
-  smokeParam, strengthOf, windAt, type Hearth,
+  strengthOf, windAt, type Hearth,
 } from './hearths';
 
 const band = { lon: 20.5, lat: -20.2, kind: UnitKind.Band, people: 30, society: 0 };
 const village = { lon: -3.7, lat: 40.4, kind: UnitKind.Village, people: 180, society: -1 };
 const hearth = (over: Partial<Hearth> = {}): Hearth => ({ lon: -3.7, lat: 40.4, seed: hearthSeed(-3.7, 40.4), kind: 'village', homes: 1, ...over });
-
-describe('flag', () => {
-  it('is on unless ?smoke=0', () => {
-    expect(smokeParam('')).toBe(true);
-    expect(smokeParam('?year=-3000&smoke=1')).toBe(true);
-    expect(smokeParam('?smoke=0')).toBe(false);
-  });
-});
 
 describe('hearths of the groups in view', () => {
   it('stand at the households of a group, the same places its dwellings do, with no dwelling table', () => {

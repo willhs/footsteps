@@ -1,5 +1,6 @@
+import { flags } from '@/lib/flags';
 import { treesForTile, outsideClearings, clearedMask, clearingsKey, treeLodShare, TREE_HEIGHT } from './trees';
-import { treesParam, withIce, type Ground } from './close3d';
+import { withIce, type Ground } from './close3d';
 
 const bbox = { west: 10, east: 10.02, south: 45, north: 45.02 };
 const heights = new Float32Array(256 * 256).fill(100);
@@ -7,9 +8,9 @@ const ground = (biome = 4): Ground => ({ colourAt: () => [80, 100, 60], biomeAt:
 const make = (g = ground(), h = heights) => treesForTile(h, bbox, [100, 100, 13], 0, g);
 
 test('flag is on unless ?trees=0, and deterministic trees have real positive sizes and atlas variants', () => {
-  expect(treesParam('')).toBe(true);
-  expect(treesParam('?trees=0')).toBe(false);
-  expect(treesParam('?trees=1')).toBe(true);
+  expect(flags('').enabled('trees')).toBe(true);
+  expect(flags('?trees=0').enabled('trees')).toBe(false);
+  expect(flags('?trees=1').enabled('trees')).toBe(true);
   const trees = make();
   expect(trees.length).toBeGreaterThan(1000);
   expect(make()).toEqual(trees);

@@ -17,11 +17,6 @@ export type IceManifest = {
 };
 export const ICE: IceManifest = manifestJson as unknown as IceManifest;
 
-/** `?ice=1` turns the ice layer on. Read once per page load by the page and the grid worker. */
-export function iceParam(search: string): boolean {
-  return new URLSearchParams(search).get('ice') !== '0';
-}
-
 /** The epoch a calendar year shows, or null before the oldest window (no reconstruction). The 0 ka window runs past the present. */
 export function iceEpochAt(year: number): IceEpoch | null {
   return ICE.epochs.find((e) => year >= e.from_year && year <= e.to_year) ?? null;

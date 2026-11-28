@@ -85,6 +85,19 @@ function distanceKm(lon: number, lat: number, x: number, y: number) {
   return 12742 * Math.asin(Math.sqrt(Math.min(1, a)));
 }
 
+/** Names the catalog (Reba et al. 2016) files under a later city: Cahokia's 1000 CE figure sits under "St. Louis", Tenochtitlan's
+ * under "Mexico City". Before `until`, the place is labelled with the name it had then. */
+const EARLIER_NAMES: Record<string, { until: number; name: string }[]> = {
+  'St. Louis': [{ until: 1700, name: 'Cahokia' }],
+  'Mexico City': [{ until: 1521, name: 'Tenochtitlan' }],
+  Istanbul: [{ until: 330, name: 'Byzantium' }, { until: 1453, name: 'Constantinople' }],
+};
+
+/** A catalog city's name in a year: the earlier name where the catalog files it under a later one. */
+export function cityNameAt(name: string, year: number): string {
+  return EARLIER_NAMES[name]?.find((n) => year < n.until)?.name ?? name;
+}
+
 /** Whole-year ledger, before viewport slicing. Cities spend nearest cells first;
  * stable city ID order settles overlapping claims. Original grid stays untouched. */
 export function allocateCities(data: GridData, catalog: HistoricalCity[], year: number) {
@@ -121,7 +134,7 @@ export function allocateCities(data: GridData, catalog: HistoricalCity[], year: 
       allocated += before - people[i];
       if (allocated >= requested) break;
     }
-    cities.push({ id: city.id, name: city.name, position: [city.lon, city.lat], requested, people: allocated });
+    cities.push({ id: city.id, name: cityNameAt(city.name, year), position: [city.lon, city.lat], requested, people: allocated });
   }
   return { residual: { ...data, people }, cities };
 }

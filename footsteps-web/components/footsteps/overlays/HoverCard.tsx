@@ -95,7 +95,7 @@ export default function HoverCard({
       time,
       habitat: lookups.step ? readHabitat(lookups.step, point.lon, point.lat) : null,
       today: lookups.today ? readHabitat(lookups.today, point.lon, point.lat) : null,
-      people: facts && { count: facts.people, evidence: facts.evidence, cellDeg: facts.cellDeg, adjusted: facts.adjusted === true },
+      people: facts && { count: facts.people, evidence: facts.evidence, cellDeg: facts.cellDeg, adjusted: facts.adjusted === true, way: facts.way },
       // Read as farming or herding only where a crop / herd animal had arrived (lib/domesticatesGate.ts), as the map does.
       landUse: lookups.landUse ? gatedLandUse(readLandUse(lookups.landUse, point.lon, point.lat), point.lon, point.lat, year) : null,
       animals: fauna ? notableAnimals(fauna.species, fauna.ids) : null,

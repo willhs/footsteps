@@ -25,3 +25,10 @@ The modelled bands ran up to the ice in Denmark, north Germany and Britain at 20
 `lib/firstSettlement.ts` empties them for the dated gaps. A cell of 40,000+ is a town only once a crop had arrived. The hover
 card's way of life reads land use through the domesticates gate too. On Saharan land 9000-3500 BCE the card says the climate
 model is too dry (the Green Sahara), as the terrain images' overlay already paints it. Research 0015 section 3.
+
+## [2026-11-28] fix | City names of the time; the hover card's way of life matches the map
+
+The Reba catalog files Cahokia's 1000 CE figure under "St. Louis" (founded 1764) and Tenochtitlan's under "Mexico City";
+`cityNameAt` in `lib/settlements.ts` labels them Cahokia, Tenochtitlan, and Istanbul as Byzantium / Constantinople before
+330 / 1453. The hover card's way of life now reads the map's class for the cell (head count, land use and the domesticates
+gate) instead of HYDE land use alone, which called Cusco, Mohenjo-daro and Memphis "Foraging".

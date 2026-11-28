@@ -71,7 +71,7 @@ colonisation of the Americas, and the rest of the decline is spread over 7,000 y
 Why the app and not new images: the change is a 10 × 10 table, reversible, needs no budgie run, and also applies to the
 `?spread=1` images (renormalised to their own total). Baking it into the images later is optional (see "Rebuild").
 
-### 2. Out of Africa: South Asia is empty while Southeast Asia is full (not changed)
+### 2. Out of Africa: South Asia is empty while Southeast Asia is full (changed: needs a budgie regeneration)
 
 Mainland Southeast Asia south of 22°N fills from 68,000 BCE (central 70 ka, low confidence) and holds ~19% of the world by
 63,000 BCE, while South Asia stays empty until 45,000 BCE and Arabia/the Levant hold ~2%. People walked through South Asia to
@@ -101,7 +101,7 @@ git add footsteps-web/public/prehistory_totals.json footsteps-web/lib/holoceneSh
 
 If old images show, purge the `/grid/humans_-7*000.webp` to `-4*000` URLs in Cloudflare or reload with the cache off.
 
-### 3. Europe in the Ice Age: the right size, the wrong shape (not changed)
+### 3. Europe in the Ice Age: the right size, the wrong shape (changed: needs a budgie regeneration)
 
 Tallavaara et al. 2015 (*PNAS* 112:8232, read on PMC4500234, Results para. 1) simulate Europe's hunter-gatherers from climate and
 ethnographic densities: "about 330,000 at 30 ky ago, 130,000 during its minimum at 23 ky ago, and almost 410,000 at 13 ky ago"
@@ -114,13 +114,22 @@ ethnographic densities: "about 330,000 at 30 ky ago, 130,000 during its minimum 
 
 So the totals are of the right order (an earlier draft of this note said "several times too full"; that was wrong). The shape is not:
 Tallavaara's glacial maximum is 0.39 of the 30 ka level, the model's is 1.13, even after research 0009 P5 halved west Europe 26-20 ka.
-East and central Europe do not dip in the model. A fix would be a `density_multiplier` on the eastern Europe rows (and perhaps a deeper
-west one) aimed at that ratio; it moves people, not the world total, and needs a budgie regeneration.
+East and central Europe do not dip in the model. **Change (arrivals.yaml).** `europe_west` deepens from ×0.5 to `[[30, 1.0], [26, 0.4], [23, 0.27], [20, 0.4], [16, 1.0]]` and
+`europe_east_steppe` gets `[[30, 1.0], [26, 0.7], [23, 0.55], [20, 0.7], [16, 1.0]]`, aimed at Tallavaara's absolute minimum (~130-140k at
+23 ka) rather than their ratio, since the model's 30 ka level (183k) is already below theirs (330k) and multipliers cannot exceed 1. Expected
+after regeneration (not run here): Europe ~140k at 23 ka, unchanged at 30 and 13 ka; the people removed go to every other region through the
+world rescale. The west/east split of the dip is a choice: their regional maps were not read.
 
-### 4. Smaller points
+### 4. Sahul: the size is unconstrained, the glacial-maximum fall is not (changed: needs a budgie regeneration)
 
-- Sahul holds ~6% at the glacial maximum, ~230,000 people: about five times the upper bound of ~47,000 from Williams 2013
-  (*Proc R Soc B* 280:20130486, as cited by Gautney & Holliday 2015; not read here). Worth checking with item 3.
+The model has ~190,000 people in Australia at 30 ka, ~210,000 at 23 ka and ~240,000 at 20 ka (Australia box). Published figures bracket it widely:
+Williams 2013 (*Proc R Soc B* 280:20130486, PMC3652441, Table 1) scales a taphonomy-corrected radiocarbon curve to the contact population and
+gets ~5,000-17,000 at 30 ka and ~8,000-41,000 at 16 ka; Bradshaw et al. 2021 (*Nat Commun* 12:2440, PMC8085232) model a saturation ceiling of
+3.1-6.5 million for Sahul. Nothing here justifies moving the size. The shape is clearer: Williams finds the population "fell by about 60 per cent
+between 21 and 18 ka", and the model rose. **Change:** `sahul` gets `density_multiplier: [[21, 1.0], [18, 0.45], [15, 1.0]]`.
+
+### 5. Smaller points
+
 - 1 CE: HYDE has Africa at 6.4% (15 M); McEvedy & Jones and Biraben give ~10%. Within the published spread; left.
 - Before 68,000 BCE everyone is in Africa and the Levant edge; the early exits (Skhul/Qafzeh, Al Wusta) are not drawn as people.
   Reasonable at this scale.
@@ -129,12 +138,12 @@ west one) aimed at that ratio; it moves people, not the world total, and needs a
 
 Absolute numbers by continent at 10,000 BCE are not measured anywhere; the correction swaps one model's split (HYDE's modern-country
 allocation) for another's (forager productivity). It is a better guess, not a measurement, and the label for these years in the app is
-still HYDE's. Item 2 and 3 need papers read in full before changing the model.
+still HYDE's. Items 2-4 change `arrivals.yaml`; their effect on the images is predicted, not yet measured (regenerate on budgie, then re-run `continent_shares.py`).
 
-## Rebuild (optional, on budgie)
+## Rebuild on budgie (for sections 2-4)
 
-Nothing needs rebuilding for the app change. If the population images change (any `prehistory_population.py` or `grid_image.py` run),
-refresh the table from them and commit it:
+The section 1 app change needs nothing. Sections 2-4 change `arrivals.yaml`, so the 90 prehistory images must be regenerated; the commands are
+in section 2 and cover all three. Whenever population images change, refresh the hand-over table from them and commit it:
 
 ```bash
 poetry run python footstep-generator/holocene_shares.py           # reads data/tiles/grid and data/tiles/prehistory

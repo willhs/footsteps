@@ -212,6 +212,11 @@ regions:
     verification: checked
     source: "Clarkson et al. 2017 Nature 547:306 (65 ka, confirmed in this pass); Roberts et al. 1994 / O'Connell & Allen 2004 J Archaeol Sci 31:835 (consensus 50-47 ka); Bird et al. 2018 Sci Rep / Bradshaw et al. 2021 Nat Commun 12:5386 (carrying-capacity ceiling)."
     notes: "Central 50 ka (contested, documented alternative 65 ka). Lake Mungo 'older than 40 ka' ages are not used."
+    # research 0016 section 4: Williams 2013 Proc R Soc B 280:20130486 (PMC3652441, abstract) finds "population fell by about
+    # 60 per cent between 21 and 18 ka" in taphonomy-corrected radiocarbon; the model rose there. The size is left alone: published
+    # figures span ~5,000-17,000 at 30 ka (Williams 2013 Table 1) to a 3.1-6.5 million saturation ceiling (Bradshaw et al. 2021
+    # Nat Commun 12:2440, PMC8085232), and the model's ~200,000 sits between them.
+    density_multiplier: [[21, 1.0], [18, 0.45], [15, 1.0]]
 
   - id: europe_west
     name: Europe (south and west)
@@ -227,7 +232,10 @@ regions:
     # from 26 to 20 ka, full again by 16 ka, aims at ~0.75, the middle of the evidence. The world rescale hands the
     # difference to the other regions. A modelling choice (medium confidence for the direction, not the size);
     # the small europe_south_iberia and europe_sicily boxes are not scaled.
-    density_multiplier: [[30, 1.0], [26, 0.5], [20, 0.5], [16, 1.0]]
+    # Deepened 2026-11-28 (research 0016 section 3): Tallavaara et al. 2015 PNAS 112:8232 simulate Europe at ~330,000
+    # people at 30 ka, 130,000 at the 23 ka minimum and 410,000 at 13 ka; the shipped images had 183k, 206k and 336k
+    # (no dip: the world curve rises 43% over 30-21 ka). These points aim the Europe total at ~130-140k at 23 ka.
+    density_multiplier: [[30, 1.0], [26, 0.4], [23, 0.27], [20, 0.4], [16, 1.0]]
 
   - id: europe_east_steppe
     name: Eastern Europe and the Pontic-Caspian steppe
@@ -238,6 +246,9 @@ regions:
     could_not_verify: "Only the abstract of Anikovich 2007 was read; the Hoffecker 2008 numbers (oldest layers ~45-41 ka cal) are from a secondary summary. Human fossils at the oldest Kostenki layers are scarce, so the sapiens attribution rests mainly on the artefacts."
     source: "Anikovich et al. 2007 Science 315:223 (doi:10.1126/science.1133376; Kostenki on the Don, about 45,000-42,000 years ago, beneath the Campanian Ignimbrite ash); Hoffecker et al. 2008 J Hum Evol 55:858 (doi:10.1016/j.jhevol.2008.08.018); Seguin-Orlando et al. 2014 Science 346:1113 (doi:10.1126/science.aaa0114; Kostenki 14 skeleton 38.7-36.2 ka, later than the oldest layers). An earlier note cited Higham 2011 and Benazzi 2011, which are Kent's Cavern and Grotta del Cavallo (Italy), not Kostenki."
     notes: "Date from the Kostenki cultural layers, not from the Kostenki 14 skeleton."
+    # research 0016 section 3: the east shares Europe's glacial-maximum contraction (Tallavaara et al. 2015 give a
+    # Europe-wide total); milder than the west's is a modelling choice, their regional maps were not read.
+    density_multiplier: [[30, 1.0], [26, 0.7], [23, 0.55], [20, 0.7], [16, 1.0]]
 
   - id: central_asia_siberia_south
     name: Central Asia and southern Siberia

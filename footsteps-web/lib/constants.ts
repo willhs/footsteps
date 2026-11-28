@@ -16,8 +16,13 @@ export const MODELLED_YEARS: readonly number[] = Array.from({ length: 90 }, (_, 
 export const MODEL_NOTES_URL =
   'https://github.com/willhs/footsteps/blob/main/docs/research/0002-pre-hyde-population-model/research.md';
 
-// Every year that has a population image: modelled, then measured (HYDE).
-export const PEOPLE_YEARS: readonly number[] = [...MODELLED_YEARS, ...TARGET_YEARS];
+// Rough people images after HYDE's last year (footstep-generator/modern_population.py): the 1900 grid
+// scaled per UN region to UN WPP 2024 totals. An approximation that carries the timeline to today; no
+// terrain or land-use change of their own (land use is 1900's).
+export const MODERN_YEARS: readonly number[] = [1950, 2000, 2025];
+
+// Every year that has a population image: modelled, measured (HYDE), then the rough modern years.
+export const PEOPLE_YEARS: readonly number[] = [...MODELLED_YEARS, ...TARGET_YEARS, ...MODERN_YEARS];
 
 // Years with pre-built dot tiles (Dots mode; ~10-40 min and ~0.7 GB each).
 // Dots mode shows the nearest of these for any slider year.

@@ -83,7 +83,7 @@ describe('typed years', () => {
   });
 
   it('clamps to the range', () => {
-    expect(parseYear('2020')).toBe(TIME_MAX);
+    expect(parseYear('2100')).toBe(TIME_MAX);
     expect(parseYear('200000 BCE')).toBe(TIME_MIN);
   });
 

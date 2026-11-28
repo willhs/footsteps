@@ -85,3 +85,13 @@ takes its cell's colour. Years before HYDE (the modelled images) have no land us
 The class is a display reading of HYDE, not a record of any one group. If `landuse_{year}.png` is missing
 the people still load and are classed by head count alone (console warning). Shares of the world's people
 by class at 10,000 BCE, 1000 BCE and 1900 CE, and the threshold choices, are in `docs/log.md`.
+
+## After 1900 (rough modern years)
+
+HYDE stops at 1900. `footstep-generator/modern_population.py` writes `humans_1950/2000/2025.webp` by scaling
+HYDE's 1900 image per UN region (six lon/lat boxes) to UN WPP 2024 totals, so world and regional totals are
+right but where people live is 1900's pattern. It also copies `landuse_1900.png` and `habitat/use_1900.webp`
+to the new years. The app lists them as `MODERN_YEARS` and labels those years "rough". To rebuild and publish:
+
+    python footstep-generator/modern_population.py   # reads data/tiles/grid/humans_1900.webp, ~1 min
+    GRID_ONLY=1 scripts/deploy-budgie.sh

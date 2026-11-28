@@ -167,8 +167,8 @@ export const TOUR_STOPS: readonly TourStop[] = [
     year: 1900,
     evidence: 'measured',
     text: [
-      `1900 is the last year with data: HYDE counts ${peopleText(total(1900).central)} people, up from ${peopleText(total(1800).central)} a century earlier.`,
-      `That is ${times(1900, HYDE_MIN)} times the people of ${calendarLabel(HYDE_MIN)}; the present is not on the map yet.`,
+      `1900 is HYDE's last year: it counts ${peopleText(total(1900).central)} people, up from ${peopleText(total(1800).central)} a century earlier.`,
+      `That is ${times(1900, HYDE_MIN)} times the people of ${calendarLabel(HYDE_MIN)}; after 1900 the map is a rough sketch, HYDE's 1900 scaled up to today's regional totals.`,
     ],
     source: 'HYDE 3.5 world totals (HYDE_TOTALS in lib/time.ts)',
   },

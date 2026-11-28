@@ -33,9 +33,9 @@ export function buildSeries(years: readonly number[] = PEOPLE_YEARS): Population
   return { modelled, measured };
 }
 
-/** The vertical axis: log10 of people, fitted to the data with a little room (the model's lowest low is 100,000; HYDE ends at 1.73 billion). */
+/** The vertical axis: log10 of people, fitted to the data with a little room (the model's lowest low is 100,000; the rough modern years end at 8.2 billion). */
 export const Y_MIN = 7e4;
-export const Y_MAX = 3e9;
+export const Y_MAX = 1.2e10;
 const LY_MIN = Math.log10(Y_MIN);
 const LY_SPAN = Math.log10(Y_MAX) - LY_MIN;
 

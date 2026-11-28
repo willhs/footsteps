@@ -1,4 +1,4 @@
-import { MODELLED_YEARS, TARGET_YEARS } from './constants';
+import { MODELLED_YEARS, MODERN_YEARS, TARGET_YEARS } from './constants';
 import { Y_MAX, Y_MIN, buildSeries, markerAt, yAt } from './populationSeries';
 import { HYDE_MIN, HYDE_TOTALS, TIME_MAX, TIME_MIN, populationAt } from './time';
 import { posAt, timeAt } from './timeScale';
@@ -7,7 +7,7 @@ describe('population chart series', () => {
   const { modelled, measured } = buildSeries();
 
   it('draws the measured line from HYDE_MIN with exactly HYDE totals, every HYDE year once', () => {
-    expect(measured.map((p) => p.year)).toEqual([...TARGET_YEARS]);
+    expect(measured.map((p) => p.year)).toEqual([...TARGET_YEARS, ...MODERN_YEARS]);
     for (const p of measured) expect(p.people).toBe(HYDE_TOTALS[p.year]);
     expect(measured[0].year).toBe(HYDE_MIN);
   });
@@ -35,7 +35,7 @@ describe('population chart series', () => {
     // the whole series is one strictly increasing run along x
     const xs = [...modelled, ...measured.slice(1)].map((p) => p.x);
     for (let i = 1; i < xs.length; i++) expect(xs[i]).toBeGreaterThan(xs[i - 1]);
-    expect(xs.length).toBe(MODELLED_YEARS.length + TARGET_YEARS.length);
+    expect(xs.length).toBe(MODELLED_YEARS.length + TARGET_YEARS.length + MODERN_YEARS.length);
   });
 
   it('keeps every point on the chart', () => {

@@ -80,12 +80,21 @@ alternative as Will's call. Lowest-change fix: give South Asia the same onset as
 genetics-led ~50-55 ka main dispersal (Neanderthal admixture ~47-45 ka, Sümer et al. 2024 and Iasi et al. 2024, both to be read
 before use). Needs a budgie regeneration.
 
-### 3. Europe in the Ice Age may be several times too full (not changed)
+### 3. Europe in the Ice Age: the right size, the wrong shape (not changed)
 
-The model puts 6-7% of the world in Europe from 40,000 to 15,000 BCE: ~120,000 people at 40,000 BCE and ~240,000 at the glacial
-maximum. Archaeology-based estimates for Upper Palaeolithic Europe are far lower (thousands to tens of thousands: Bocquet-Appel et
-al. 2005; Tallavaara et al. 2015, *PNAS* 112:8232, whose text could not be fetched from here, so their figures are not quoted). If
-confirmed, this is a `density_multiplier` on the Europe rows of `arrivals.yaml`; the world curve would move those people elsewhere.
+Tallavaara et al. 2015 (*PNAS* 112:8232, read on PMC4500234, Results para. 1) simulate Europe's hunter-gatherers from climate and
+ethnographic densities: "about 330,000 at 30 ky ago, 130,000 during its minimum at 23 ky ago, and almost 410,000 at 13 ky ago"
+(a sensitivity run in their SI gives 500,000, 200,000 and 700,000). The shipped images, Europe box of `holocene_shares.py`:
+
+| ka BP | 40 | 30 | 27 | 23 | 20 | 16 | 13 |
+|---|---|---|---|---|---|---|---|
+| Model (thousands) | 107 | 183 | 173 | 206 | 212 | 263 | 336 |
+| Tallavaara 2015 | | 330 | | 130 | | | 410 |
+
+So the totals are of the right order (an earlier draft of this note said "several times too full"; that was wrong). The shape is not:
+Tallavaara's glacial maximum is 0.39 of the 30 ka level, the model's is 1.13, even after research 0009 P5 halved west Europe 26-20 ka.
+East and central Europe do not dip in the model. A fix would be a `density_multiplier` on the eastern Europe rows (and perhaps a deeper
+west one) aimed at that ratio; it moves people, not the world total, and needs a budgie regeneration.
 
 ### 4. Smaller points
 

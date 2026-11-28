@@ -2,11 +2,10 @@ import { PAST_WATER_SCENARIOS, epochLayersFrom, lakePlaneFor, lakeShareAt, pastW
 
 const scenario = (id: string) => PAST_WATER_SCENARIOS.find((s) => s.id === id)!;
 
-test('the flag is ?pastwater=1 only', () => {
-  expect(pastWaterParam('?pastwater=1')).toBe(true);
-  expect(pastWaterParam('')).toBe(false);
+test('on unless ?pastwater=0', () => {
+  expect(pastWaterParam('')).toBe(true);
+  expect(pastWaterParam('?year=-3000&pastwater=1')).toBe(true);
   expect(pastWaterParam('?pastwater=0')).toBe(false);
-  expect(pastWaterParam('?pastwater=true')).toBe(false);
 });
 
 test('three scenarios; every epoch window is calendar BP from 1950 and every id is unique', () => {
@@ -103,19 +102,16 @@ test('the water exists only in its epochs, at each epoch\'s own level', () => {
   expect(lgm.levelAt(...centre(100, 50), 0)).toBeNull();
 });
 
-test('outside every window the note says no scenario: geography unknown, not dry', () => {
+test('outside every window there is no note (the scenarios say nothing there)', () => {
   for (const year of [-26000, -12000, -2700, 0]) { // -2700: after Mega-Chad and the ~6 ka stage, before the ~4 ka one
     expect(pastWaterEpochs(year)).toEqual([]);
-    const note = pastWaterNote(year, 'units', undefined);
-    expect(note.label).toMatch(/no scenario/);
-    expect(note.label).toMatch(/unknown/);
-    expect(note.title).toMatch(/not dry lakebed/);
+    expect(pastWaterNote(year, 'units', undefined)).toBeNull();
+    expect(pastWaterNote(year, 'dots', undefined)).toBeNull();
   }
-  expect(pastWaterNote(-26000, 'units', undefined).title).toContain('26.5–19 ka BP');
 });
 
 test('in an epoch the note names the scenarios, their datum and dates, and reports what could not be placed', () => {
-  const none = pastWaterNote(-6000, 'units', { groups: 0, people: 0 });
+  const none = pastWaterNote(-6000, 'units', { groups: 0, people: 0 })!;
   expect(none.label).toContain('Mega-Chad lake, 11.5–5 ka BP');
   expect(none.label).toContain('Mesopotamian coast');
   expect(none.title).toContain('329 m');
@@ -123,7 +119,7 @@ test('in an epoch the note names the scenarios, their datum and dates, and repor
   expect(none.title).toMatch(/fresh/);
   expect(none.title).toMatch(/interpreted/);
   expect(none.title).toMatch(/none is in modelled water/);
-  const some = pastWaterNote(-20000, 'units', { groups: 12, people: 3400 });
+  const some = pastWaterNote(-20000, 'units', { groups: 12, people: 3400 })!;
   expect(some.label).toContain('LGM lakes and rivers, 26.5–19 ka BP');
   expect(some.label).toContain('12 groups unplaced');
   expect(some.title).toContain('3,400 people');
@@ -132,12 +128,11 @@ test('in an epoch the note names the scenarios, their datum and dates, and repor
 });
 
 test('Dots says the experimental model does not apply there; Grid says it places nobody', () => {
-  expect(pastWaterNote(-6000, 'dots', undefined).label).toMatch(/not applied to Dots/);
-  expect(pastWaterNote(-6000, 'dots', undefined).title).toMatch(/static archive/);
-  expect(pastWaterNote(-12000, 'dots', undefined).label).toMatch(/not applied to Dots/);
-  expect(pastWaterNote(-6000, 'grid', undefined).title).toMatch(/places nobody/);
+  expect(pastWaterNote(-6000, 'dots', undefined)!.label).toMatch(/not applied to Dots/);
+  expect(pastWaterNote(-6000, 'dots', undefined)!.title).toMatch(/static archive/);
+  expect(pastWaterNote(-6000, 'grid', undefined)!.title).toMatch(/places nobody/);
 });
 
 test('with the model not running the note does not claim groups are kept dry', () => {
-  expect(pastWaterNote(-6000, 'units', undefined).title).toMatch(/not being kept out of the modelled water/);
+  expect(pastWaterNote(-6000, 'units', undefined)!.title).toMatch(/not being kept out of the modelled water/);
 });

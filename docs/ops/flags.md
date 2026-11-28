@@ -2,7 +2,7 @@
 id: ops-flags
 type: ops
 purpose: "Inventory of every URL flag the app reads (default, what it does, its ops doc, reviewed or not) and the flag sweep that loads them on and off across six scenes"
-updated: 2026-11-25
+updated: 2026-11-28
 ---
 
 # URL flags
@@ -10,10 +10,14 @@ updated: 2026-11-25
 Every query parameter the app reads, found by grepping the source for `URLSearchParams` reads (`params.get(`, `searchParams`); the registry
 is `footsteps-web/scripts/flags-lib.mjs` `FLAGS`, and `lib/flags.test.ts` fails if the code reads a parameter that is not in the registry or
 not in this page (or the reverse). **Adding a flag: add it to `FLAGS`, add a row here, then run the sweep.** No flag changes a default
-by being listed; "Reviewed" is whether Will has looked at the look on prod (no ops doc records a review of any opt-in yet, so they all stay off).
+by being listed; "Reviewed" is whether Will has looked at the look on prod.
 
-**Features menu** (map controls, top right; `components/ui/FeaturesMenu.tsx`, `lib/flagChoices.ts` `MENU_FLAGS`): the opt-in features below
-(not `coast`) plus `humans` as checkboxes, remembered in this browser (localStorage `footsteps.flags.v1`). Remembered choices are written into
+**Reviewed 2026-11-28:** Will kept 15 features and they are now on by default (the off switches below, from `sky` to `langs`, plus `humans`);
+the other seven (`tilt`, `plants`, `figures`, `seasons`, `evidence`, `tour`, `chart`) were removed and their parameters are no longer read.
+The close-up no longer tilts by itself as you zoom (with or without the sky); a right-drag still tilts it by hand.
+
+**Features menu** (map controls, top right; `components/ui/FeaturesMenu.tsx`, `lib/flagChoices.ts` `MENU_FLAGS`): the 15 kept features
+plus `humans` as checkboxes, remembered in this browser (localStorage `footsteps.flags.v1`). Remembered choices are written into
 the URL by a script in the page head before anything reads it, so each feature keeps reading its own parameter; a parameter already in the
 URL wins. Most features read their flag once at load, so a change waits for "Reload to apply" (the view and year are kept); other humans
 changes at once. A new opt-in flag goes in `MENU_FLAGS` too (`lib/flagChoices.test.ts` checks it matches the registry).
@@ -25,35 +29,28 @@ opt-in looks and says so on screen.
 
 | Flag | Default | What it does | Ops doc | Reviewed |
 |---|---|---|---|---|
-| `?trees=1` | off | Shaded biome tree impostors, household clearings and distance LOD; trees imagined | [close-up-scene.md](close-up-scene.md) | no |
-| `?ground=1` | off | Biome surface detail (grass, canopy, sand ripples, cracked ice, reeds, rock) in the close-up ground shader; the note says "surface imagined" | [close-up-scene.md](close-up-scene.md) | no |
-| `?weather=1` | off | Imagined weather in the close-up ground shader: cloud shadows drifting by the place's rainfall, gusts through grass and reeds; works with or without `ground=1`; the note says "weather imagined" | [close-up-scene.md](close-up-scene.md) | no |
-| `?plants=1` | off | Low-poly plant marks by Krapp biome in the close-up 3D | [close-up-scene.md](close-up-scene.md) | no (off because they read as toys) |
-| `?shelters=1` | off | One dwelling per household in the close-up, typed from the analog society's house codes | [settlements.md](settlements.md) | no |
-| `?fields=1` | off | Imagined fields, gardens, terraces, corrals, grazed grass and worn paths round each group in the close-up (zoom ~11.5+, 3D only); farmed share from HYDE cropland, crops from the food table, tracks towards fresh water | [close-up-scene.md](close-up-scene.md) | no |
-| `?smoke=1` | off | A smoke plume from each household's hearth, drifting with the wind, and warm light pools on the ground at night (all imagined) | [close-up-scene.md](close-up-scene.md) | no |
-| `?routine=1` | off | Each person at street zoom follows a daily routine for the local sun time (asleep, hearth, play, trip) | [routine.md](routine.md) | no |
-| `?figures=1` | off | The newest footprint slot of each person becomes an upright imagined figure; also feeds the food row | [close-up-scene.md](close-up-scene.md) | no |
-| `?ice=1` | off | Dated ice-sheet margins (PaleoMIST 1.0, nearest 2.5 ka epoch, 0-80 ka): white overlay, close-up ice surface, groups kept off the ice, hover row | [ice-sheets.md](ice-sheets.md) | no |
-| `?avatar=3d` | off | The person card shows a rigged, animated 3D figure (CC0 Quaternius body; clothes, hair and ornaments by era, place and way of life from a cited table; a tool and work loop by role; drag to turn) instead of the drawing | [avatar.md](avatar.md) | no |
-| `?pastwater=1` | off | Dated past-water scenarios (Lake Mega-Chad, European LGM lakes and rivers, Mesopotamian coast) in the Earth image, the site ranker and the close-up lake plane | [past-water.md](past-water.md) | no |
-| `?terrain_tiles=1` | off | The 500 m photo pyramid recoloured per year on the GPU, zoom 3-8 and the close-up ground colours | [terrain-images.md](terrain-images.md), [terrain-bench.md](terrain-bench.md) | no |
-| `?evidence=1` | off | Radiocarbon sites and ancient-DNA individuals as cool marks that fade with time | [footstep-generator/evidence/README.md](../../footstep-generator/evidence/README.md) | no |
-| `?food=1` | off | Hover card row: crops and animals around, and forager staples (modelled) | [food.md](food.md) | no |
 | `?coast=1` | off | Draws the modern coastline (Natural Earth 110m) over the terrain image | [terrain-images.md](terrain-images.md) | n/a (debug overlay) |
-| `?spread=1` | off | HYDE people moved by climate-then-vs-now within continent regions, 10,000-4,000 BCE ("Adjusted spread (modelled on HYDE)") | [hyde-climate-spread.md](hyde-climate-spread.md) | no |
-| `?langs=deep` | off | "Languages spreading here" hover line from cited expansion boxes (never before 3050 BCE) | [languages.md](languages.md) | no |
-| `?tour=1` | off | Guided tour: nine sourced stops that fly the camera and set the year | [tour.md](tour.md) | no |
-| `?chart=1` | off | World-population chart under the counter (modelled band, HYDE line, slider year; click or drag sets the year) | [footsteps-web/AGENTS.md](../../footsteps-web/AGENTS.md) (no ops doc) | no |
-| `?seasons=1` | off | Off / Jun / Dec season controls in the settlement note; also keeps the settlement model on | [settlements.md](settlements.md), [site-terrain.md](site-terrain.md) | no |
-| `?sky=1` | off | Close-up light from the local sun clock, distance haze into a sky at the horizon (steeper tilt from zoom 10, camera lifted over high ground), animated water with glint, shallows and shore foam | [close-up-scene.md](close-up-scene.md) | no |
-| `?tilt=1` | off | The close-up tilts as you zoom in (55° from zoom 8), as it did by default until 2026-11-24; `?sky=1` tilts anyway | [close-up-scene.md](close-up-scene.md) | no |
 
 ## Off switches (on until `=0`)
 
 | Flag | Default | What it does | Ops doc | Reviewed |
 |---|---|---|---|---|
-| `?settlements=0` | on | The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots (`seasons=1` keeps it on) | [settlements.md](settlements.md) | n/a (default) |
+| `?trees=0` | on | Shaded biome tree impostors, household clearings and distance LOD; trees imagined | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?ground=0` | on | Biome surface detail (grass, canopy, sand ripples, cracked ice, reeds, rock) in the close-up ground shader; the note says "surface imagined" | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?weather=0` | on | Imagined weather in the close-up ground shader: cloud shadows drifting by the place's rainfall, gusts through grass and reeds; works with or without `ground=1`; the note says "weather imagined" | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?shelters=0` | on | One dwelling per household in the close-up, typed from the analog society's house codes | [settlements.md](settlements.md) | yes (2026-11-28, kept on) |
+| `?fields=0` | on | Imagined fields, gardens, terraces, corrals, grazed grass and worn paths round each group in the close-up (zoom ~11.5+, 3D only); farmed share from HYDE cropland, crops from the food table, tracks towards fresh water | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?smoke=0` | on | A smoke plume from each household's hearth, drifting with the wind, and warm light pools on the ground at night (all imagined) | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?routine=0` | on | Each person at street zoom follows a daily routine for the local sun time (asleep, hearth, play, trip) | [routine.md](routine.md) | yes (2026-11-28, kept on) |
+| `?ice=0` | on | Dated ice-sheet margins (PaleoMIST 1.0, nearest 2.5 ka epoch, 0-80 ka): white overlay, close-up ice surface, groups kept off the ice, hover row | [ice-sheets.md](ice-sheets.md) | yes (2026-11-28, kept on) |
+| `?avatar=0` | on | The person card shows a rigged, animated 3D figure (CC0 Quaternius body; clothes, hair and ornaments by era, place and way of life from a cited table; a tool and work loop by role; drag to turn) instead of the drawing | [avatar.md](avatar.md) | yes (2026-11-28, kept on) |
+| `?pastwater=0` | on | Dated past-water scenarios (Lake Mega-Chad, European LGM lakes and rivers, Mesopotamian coast) in the Earth image, the site ranker and the close-up lake plane | [past-water.md](past-water.md) | yes (2026-11-28, kept on) |
+| `?terrain_tiles=0` | on | The 500 m photo pyramid recoloured per year on the GPU, zoom 3-8 and the close-up ground colours | [terrain-images.md](terrain-images.md), [terrain-bench.md](terrain-bench.md) | yes (2026-11-28, kept on) |
+| `?food=0` | on | Hover card row: crops and animals around, and forager staples (modelled) | [food.md](food.md) | yes (2026-11-28, kept on) |
+| `?spread=0` | on | HYDE people moved by climate-then-vs-now within continent regions, 10,000-4,000 BCE ("Adjusted spread (modelled on HYDE)") | [hyde-climate-spread.md](hyde-climate-spread.md) | yes (2026-11-28, kept on) |
+| `?langs=0` | on | "Languages spreading here" hover line from cited expansion boxes (never before 3050 BCE) | [languages.md](languages.md) | yes (2026-11-28, kept on) |
+| `?sky=0` | on | Close-up light from the local sun clock, distance haze into a sky at the horizon, animated water with glint, shallows and shore foam | [close-up-scene.md](close-up-scene.md) | yes (2026-11-28, kept on) |
+| `?settlements=0` | on | The settlement model (group sizes and layouts from ethnographic analogs); `=0` gives even groups at random spots | [settlements.md](settlements.md) | n/a (default) |
 | `?sites=0` | on | Spot ranking inside each cell (flat, near fresh water, off the sea); `=0` keeps the old random positions | [site-terrain.md](site-terrain.md) | n/a (default) |
 | `?humans=0` | on | Other kinds of human (Neanderthals, Denisovans, floresiensis, luzonensis) | [other-humans.md](other-humans.md) | n/a (default) |
 | `?close3d=0` | on | The 3D landscape from zoom 8, seen from straight above; `=0` keeps the map flat | [close-up-scene.md](close-up-scene.md) | n/a (default) |

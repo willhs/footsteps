@@ -32,10 +32,10 @@ const centre = (p: AreaPatch): [number, number] => [p.corners.reduce((a, c) => a
 const metres = (a: [number, number], b: [number, number]) =>
   Math.hypot((a[0] - b[0]) * 111_320 * Math.cos((a[1] * Math.PI) / 180), (a[1] - b[1]) * 111_320);
 
-test('?fields=1 turns it on; anything else leaves it off', () => {
-  expect(fieldsParam('?fields=1')).toBe(true);
+test('on unless ?fields=0', () => {
+  expect(fieldsParam('')).toBe(true);
+  expect(fieldsParam('?year=-3000&fields=1')).toBe(true);
   expect(fieldsParam('?fields=0')).toBe(false);
-  expect(fieldsParam('')).toBe(false);
 });
 
 test('the same groups always give the same land', () => {

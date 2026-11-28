@@ -85,7 +85,6 @@ export default function useOtherHumansLayer({
   view,
   size,
   routineEpoch = null,
-  figures = false,
 }: {
   enabled: boolean;
   time: number;
@@ -96,7 +95,6 @@ export default function useOtherHumansLayer({
   size?: { width: number; height: number };
   /** The daily routine's plan hour, or null (`?routine=1`; see useGridLayer). */
   routineEpoch?: number | null;
-  figures?: boolean;
 }) {
   const [hover, setHover] = useState<OtherHumansHover | null>(null);
   const year = Math.round(time);
@@ -202,8 +200,8 @@ export default function useOtherHumansLayer({
   );
   const walkerLayer = useMemo(
     // The id starts with 'people', so a click picks a walker as it picks one of ours (FootstepsViz).
-    () => (walkers.length ? new PeopleLayer({ id: 'people-other-humans', data: footprintData(walkers), ...routineProps(routineEpoch), figures }) : null),
-    [walkers, routineEpoch, figures],
+    () => (walkers.length ? new PeopleLayer({ id: 'people-other-humans', data: footprintData(walkers), ...routineProps(routineEpoch) }) : null),
+    [walkers, routineEpoch],
   );
 
   const above = useMemo<LayersList>(

@@ -50,7 +50,7 @@ try {
       // --query a=1&b=2: extra flags for both shots.
       for (const [k, v] of new URLSearchParams(arg('query') ?? '')) q.set(k, v);
       await page.goto(`${base}/?${q}`, { waitUntil: 'commit' });
-      await page.waitForFunction(() => /Dots drawn [1-9]/.test(document.body.innerText), undefined, { timeout: 120_000 }).catch(() => {});
+      await page.waitForFunction(() => /(?:Dots drawn|whole map) [1-9]/.test(document.body.innerText), undefined, { timeout: 120_000 }).catch(() => {});
       // The time bar's loading flag (app/page.tsx data-loading), as the visual run waits on it.
       await page.waitForFunction(() => document.querySelector('main')?.getAttribute('data-loading') === 'false', undefined, { timeout: 120_000 }).catch(() => {});
       const started = Date.now();

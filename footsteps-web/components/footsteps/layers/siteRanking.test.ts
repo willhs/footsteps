@@ -350,7 +350,7 @@ test('an epoch with no lake patch changes nothing and reports no unresolved grou
   const a = buildSettlementUnits(data, catalog(), -6000, null, ranker);
   const b = buildSettlementUnits(data, catalog(), -6000, null, ranker, null, EPOCH);
   expect(b.positions).toEqual(a.positions);
-  expect(b.unresolved).toEqual({ groups: 0, people: 0 });
+  expect(b.unresolved).toMatchObject({ groups: 0, people: 0, ice: { groups: 0 }, water: { groups: 0 } });
 });
 
 test('an epoch only applies while it is active: another active epoch elsewhere leaves this cell as without the flag', () => {

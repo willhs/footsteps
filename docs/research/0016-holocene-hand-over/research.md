@@ -76,9 +76,30 @@ Why the app and not new images: the change is a 10 × 10 table, reversible, need
 Mainland Southeast Asia south of 22°N fills from 68,000 BCE (central 70 ka, low confidence) and holds ~19% of the world by
 63,000 BCE, while South Asia stays empty until 45,000 BCE and Arabia/the Levant hold ~2%. People walked through South Asia to
 reach Southeast Asia, so this is a geographic contradiction whatever the date. Research 0009 already named the switch to the 46 ka
-alternative as Will's call. Lowest-change fix: give South Asia the same onset as mainland Southeast Asia, or move both to the
-genetics-led ~50-55 ka main dispersal (Neanderthal admixture ~47-45 ka, Sümer et al. 2024 and Iasi et al. 2024, both to be read
-before use). Needs a budgie regeneration.
+alternative as Will's call.
+
+**Change (arrivals.yaml, needs a budgie regeneration).** One southern route instead of a pocket: South Arabia and South Asia arrive at
+72 ka (was 50 and 48), mainland and island Southeast Asia keep 70 and 60 ka, and all four carry the same `density_multiplier`
+`[[72, 0.15], [52, 0.15], [47, 1.0]]`: a thin early presence (Jebel Faya and Dhofar in Arabia, Jwalapuram's disputed 74 ka tools, Tam Pa Ling
+and Lida Ajer's few bones) that reaches full density with the main dispersal by 47 ka, when Fa-Hien Lena's microliths begin (48-45 ka)
+and the Neanderthal admixture shared by all non-Africans is dated (~47-45 ka; Sümer et al. 2024 and Iasi et al. 2024, not re-read here).
+The world curve is unchanged, so the people Southeast Asia gives up 70-52 ka go back to Africa through the rescale. The Levant and north
+Arabia stay at 50 ka.
+
+Rebuild on budgie (about 5 minutes for the model, then publish):
+
+```bash
+cd ~/projects/footsteps && git pull
+poetry run python footstep-generator/prehistory_population.py --verify       # all 90 years; rewrites totals.json and both copies
+poetry run pytest footstep-generator/tests/test_prehistory_population.py -q
+poetry run python footstep-generator/holocene_shares.py                       # refresh the hand-over table from the new images
+GRID_GLOB='data/tiles/prehistory/humans_*.webp,data/tiles/grid/humans_*.webp' python3 docs/research/0016-holocene-hand-over/continent_shares.py 5000 | head -25   # South Asia now fills with Southeast Asia
+GRID_ONLY=1 scripts/deploy-budgie.sh                                          # publish the images
+scripts/smoke.sh https://footsteps.willhs.me
+git add footsteps-web/public/prehistory_totals.json footsteps-web/lib/holoceneShares.json && git commit -m "Regenerate after the southern route" && git push
+```
+
+If old images show, purge the `/grid/humans_-7*000.webp` to `-4*000` URLs in Cloudflare or reload with the cache off.
 
 ### 3. Europe in the Ice Age: the right size, the wrong shape (not changed)
 

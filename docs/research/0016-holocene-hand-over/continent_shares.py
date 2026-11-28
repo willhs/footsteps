@@ -21,7 +21,8 @@ def region(lat,lon):
 cache={}
 order=['Africa','W Asia','Europe','S Asia','E Asia','SE Asia','N+C Asia','Sahul+Pac','N America','C+S America','other']
 print('year     total_M  '+'  '.join(f'{o[:9]:>9}' for o in order))
-files=sorted(glob.glob('/tmp/claude-0/grid/humans_*.webp'),key=lambda p:int(re.search(r'_(-?\d+)',p).group(1)))
+import os
+files=sorted([f for g in os.environ.get('GRID_GLOB','/tmp/claude-0/grid/humans_*.webp').split(',') for f in glob.glob(g)],key=lambda p:int(re.search(r'_(-?\d+)',p).group(1)))
 for p in files:
     y=int(re.search(r'_(-?\d+)',p).group(1))
     if len(sys.argv)>1 and y%int(sys.argv[1]) and y>-11000: continue

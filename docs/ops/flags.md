@@ -82,6 +82,7 @@ opt-in looks and says so on screen.
 | `?lat` | globe | Start latitude | [visual-regression.md](visual-regression.md) | n/a (view) |
 | `?lon` (also `?lng`) | globe | Start longitude | [visual-regression.md](visual-regression.md) | n/a (view) |
 | `?zoom` (also `?z`) | globe | Start zoom | [visual-regression.md](visual-regression.md) | n/a (view) |
+| `?hour` | 10.5 | Start the time-of-day dial at this local sun hour (e.g. 22) | [routine.md](routine.md) | n/a (view) |
 
 ## The flag sweep
 

@@ -54,15 +54,18 @@ import useGroundLift from './hooks/useGroundLift';
 import { epochHour, routineParam } from '@/lib/routine';
 import NightExtension from './layers/NightExtension';
 import { sunPosition } from '@/lib/sunTime';
-import { fixedDaySun, sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
-import { solarClockSet } from '@/lib/solarClock';
+import { sceneLight, skyBackdrop, skyParam } from '@/lib/sky';
+import { setSolarClockAt, solarClockParams } from '@/lib/solarClock';
+import { DEFAULT_DIAL_HOUR, dialInstant, hourParam, skyPhase, type DialSun } from '@/lib/timeOfDay';
+import parseInitialViewState from '@/lib/parseInitialViewState';
+import { sunHours } from '@/lib/sunTime';
 import type { Season } from '@/lib/seasons';
 import { SettlementNote } from './SettlementNote';
 import { settlementsFromParams } from '@/lib/settlements';
 import { pastWaterNote, pastWaterParam } from '@/lib/pastWater';
 import { iceNote, iceParam } from '@/lib/iceSheets';
 import { ADJUSTED_SPREAD_LABEL, spreadNote, spreadParam } from '@/lib/adjustedSpread';
-import ToggleButton from '@/components/ui/ToggleButton';
+import TimeOfDayDial from '@/components/ui/TimeOfDayDial';
 import FeaturesMenu from '@/components/ui/FeaturesMenu';
 import { loadDwellings, sheltersParam, type DwellingTable } from '@/lib/dwellings';
 import { fieldsParam } from './layers/fields';
@@ -133,8 +136,21 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   const [settlements, setSettlements] = useState(true);
   // The seasonal scenario control was removed (2026-11-28); groups stay where the year-round model puts them.
   const season: Season = 'off';
-  const [nightOn, setNightOn] = useState(false);
   const now = useSolarClock();
+  // The time-of-day dial (lib/timeOfDay.ts) sets one sun for the whole Earth: its hour, at the place the view was centred on when
+  // it was set (the start view, or wherever the dial was last turned). Panning and zooming then never move the sun or the night
+  // side; the dial just reads the local hour at the new centre. It starts in daytime, or at `?hour=`.
+  // Null while a URL clock (`?utc=`, `?warp=`) runs, until the dial is first turned.
+  const [dialSun, setDialSun] = useState<DialSun | null>(null);
+  useEffect(() => {
+    const search = window.location.search;
+    const start = parseInitialViewState(search);
+    const hour = hourParam(search) ?? (solarClockParams(search) ? null : DEFAULT_DIAL_HOUR);
+    setDialSun(hour === null ? null : { hour, lon: start.longitude, lat: start.latitude });
+  }, []);
+  useEffect(() => {
+    if (dialSun) setSolarClockAt(dialInstant(dialSun.hour, dialSun.lon, dialSun.lat));
+  }, [dialSun]);
   // The daily routine (lib/routine.ts), ?routine=1: people sleep, stay at the hearth, play or go on trips by the sun clock.
   // Its plans are keyed on the hour of the (sun) clock, so they are rebuilt once an hour, not every tick.
   // `?pastwater=1`: the dated past-water scenarios (lib/pastWater.ts), off until reviewed on prod. The note says what it does at this date and in this mode.
@@ -252,11 +268,17 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // One light for the view, from its centre (rounded to 0.1°, so panning does not rebuild it every frame).
   const lightLon = Math.round(viewState.longitude * 10) / 10;
   const lightLat = Math.round(viewState.latitude * 10) / 10;
-  // The close-up follows the sun clock only when Day/night is on (or the URL sets a time); otherwise it is lit by fixed daylight.
-  const liveSun = nightOn || solarClockSet();
+  // What the dial shows: the local sun hour at the view's centre now. Turning it re-anchors the sun at this centre.
+  const shownHour = sunHours(lightLon, now);
+  const shownPhase = skyPhase(now.getTime(), lightLon, lightLat);
+  const turnDial = useCallback(
+    (hour: number) => setDialSun((sun) => ({ hour, lon: lightLon, lat: sun?.lat ?? lightLat })),
+    [lightLon, lightLat],
+  );
+  // The light, the night shading and the firelight all follow the sun clock, which the dial sets.
   const light = useMemo(
-    () => (skyOn && close3d ? sceneLight(lightLon, lightLat, liveSun ? now.getTime() : fixedDaySun(lightLon, lightLat)) : null),
-    [skyOn, close3d, lightLon, lightLat, now, liveSun],
+    () => (skyOn && close3d ? sceneLight(lightLon, lightLat, now.getTime()) : null),
+    [skyOn, close3d, lightLon, lightLat, now],
   );
 
   const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
@@ -265,7 +287,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
   // `?avatar=3d`: fetch the 3D person's code once the people are up, so a click shows the figure without waiting for it.
   useEffect(() => (avatarFromParams(window.location.search) ? prefetchAfterFirstPeople(AVATAR_3D) : undefined), []);
   const shadedBackground = useMemo(() => {
-    const nightSun = nightOn ? sunPosition(now) : null;
+    const nightSun = sunPosition(now);
     const props = { extensions: [NIGHT], nightSun };
     return backgroundLayers.map((layer) => {
       if (light && layer.id === 'close3d') return layer.clone({ ...props, light, groundTop: lift } as typeof props);
@@ -273,7 +295,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
       const own = (layer.props.extensions ?? []).filter((e) => e !== NIGHT);
       return layer.clone({ ...props, extensions: [NIGHT, ...own], ...(light && own.length ? { skyLight: light } : {}) } as typeof props);
     });
-  }, [backgroundLayers, nightOn, now, light, lift]);
+  }, [backgroundLayers, now, light, lift]);
 
   const { layers: humanLayers, stableLODLevel } = useHumanLayers({
     enabled: renderMode === 'dots',
@@ -371,7 +393,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
 
   const land = useLand({ enabled: fieldsOn && settlements && close3d, inView, season, grid });
 
-  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)), onGround: close3d, firelight: liveSun });
+  const smokeLayers = useSmokeLayer({ enabled: smokeOn && !is3DMode && blend.people > 0, hearths, zoom: viewState.zoom, seaLevel: seaLevelAt(clampTime(time)), onGround: close3d });
 
   // The regional group (the level above a camp, ?settlements=1 only): a soft tint and a hover-card line for the
   // group under the cursor, or else the selected one. Close in, where groups can be picked one by one.
@@ -769,10 +791,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
           onColorSchemeChange={setColorScheme}
           showColorScheme={renderMode === 'dots'}
         >
-          <ControlRow label="Day / night">
-            <ToggleButton pressed={nightOn} onClick={() => setNightOn(on => !on)} label="Day/night shading" title="Shade Earth's night side using today's UTC clock; independent of the historical year">
-              {nightOn ? 'On · live sun' : 'Off'}
-            </ToggleButton>
+          <ControlRow label="Time of day">
+            <TimeOfDayDial hour={shownHour} phase={shownPhase} onChange={turnDial} />
           </ControlRow>
           <FeaturesMenu
             live={{ humans: { on: otherHumansOn, set: setOtherHumansOn } }}

@@ -41,8 +41,9 @@ Per scene it prints one line (`PASS 0 px differ (0.000%, limit 1024)`), then the
   (not in git) on first use and served from there after, so a run is the same offline and cannot change because a tile did.
   The first run needs the network.
 - **Still.** Every scene's URL has `?still=1` (`lib/still.ts`): the shader clock (fire flicker, walking feet, animals) stops at one
-  instant, and the sun clock stops at noon UTC on one fixed day (`?utc=` still picks the hour), so Day/night shading and the
-  "12:50 pm local sun time" line do not change with the day it is shot. Nothing else differs from what a visitor sees.
+  instant, and the sun clock stops at a fixed instant: the time-of-day dial's default, 10:30 local sun time at the view's centre
+  on its fixed day (`lib/timeOfDay.ts`), or with `?utc=` that hour UTC on one fixed day. So the night shading and the
+  "10:30 am local sun time" line do not change with the day it is shot. Nothing else differs from what a visitor sees.
 - **Settled** means all of: no request in flight and none ended for 1 s; the page's loading flag off (`main[data-loading="false"]`,
   the time bar's flag); the scene's own condition met (the empty-view note, the hover card, the person card, "Dots drawn" above 0);
   and three screenshots 0.7 s apart pixel-identical. The last one is what catches work the others cannot see (workers building

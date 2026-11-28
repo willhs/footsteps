@@ -1,4 +1,4 @@
-import { configureSolarClock, resetSolarClock, solarClockBent, solarNowMs } from './solarClock';
+import { configureSolarClock, onSolarClockChange, resetSolarClock, setSolarClockAt, solarClockBent, solarClockParams, solarNowMs } from './solarClock';
 
 afterEach(() => {
   resetSolarClock();
@@ -40,5 +40,31 @@ describe('the sun clock', () => {
     jest.advanceTimersByTime(60_000);
     configureSolarClock('?utc=1');
     expect(solarNowMs()).toBe(Date.UTC(2026, 10, 20, 1, 1));
+  });
+});
+
+describe('the time-of-day dial on the sun clock', () => {
+  it('stops the clock at the dial instant, over any URL bend, and tells the listeners', () => {
+    jest.useFakeTimers().setSystemTime(Date.UTC(2026, 10, 20, 9, 30));
+    configureSolarClock('?warp=60');
+    const heard = jest.fn();
+    const stop = onSolarClockChange(heard);
+    setSolarClockAt(Date.UTC(2024, 3, 22, 22));
+    jest.advanceTimersByTime(60_000);
+    expect(solarNowMs()).toBe(Date.UTC(2024, 3, 22, 22));
+    expect(solarClockBent()).toBe(false);
+    expect(heard).toHaveBeenCalledTimes(1);
+    setSolarClockAt(Date.UTC(2024, 3, 22, 22));
+    expect(heard).toHaveBeenCalledTimes(1); // the same instant again is not news
+    stop();
+    setSolarClockAt(Date.UTC(2024, 3, 22, 23));
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it('knows when a URL sets the clock', () => {
+    expect(solarClockParams('?utc=3')).toBe(true);
+    expect(solarClockParams('?warp=60')).toBe(true);
+    expect(solarClockParams('?still=1')).toBe(false);
+    expect(solarClockParams('?year=-5000&hour=22')).toBe(false);
   });
 });

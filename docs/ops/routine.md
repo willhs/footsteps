@@ -72,10 +72,15 @@ mothers staying with infants.
 
 - `?routine=1` turns it on. Without it nothing changes (the shader's `routine` uniform is 0).
 - `?utc=6.5` starts the sun clock at 06:30 UTC today; `?warp=60` runs it 60 times faster (a day in 24 minutes).
-  Both also drive the stats panel's sun time and the Day/night shading (`lib/solarClock.ts`, `useSolarClock`). Local sun hour =
+  Both also drive the stats panel's sun time and the night shading (`lib/solarClock.ts`, `useSolarClock`). Local sun hour =
   UTC + longitude / 15 (Kalahari ~21°E is UTC + 1.4 h; the Nile delta ~31°E is UTC + 2.1 h).
 - Example: a farming village, Nile 1500 CE, at midday:
   `/?year=1500&lat=30.8885&lng=31.131&zoom=17.4&routine=1&utc=10`; at night: `utc=1`.
+- **The time-of-day dial** (map controls, 2026-11-28; `components/ui/TimeOfDayDial.tsx`, `lib/timeOfDay.ts`) sets one sun for the
+  whole Earth: the hour you turn it to at the view's centre, on a fixed late-spring day (panning and zooming then never move the
+  night side; the dial reads the local hour at the new centre), so the routine updates live as it turns: sleepers lie by the
+  hearths at night, adults walk out to fields, pastures and foraging grounds by day. Because the date is fixed, turning the dial
+  through a day shows one day of the same people. `?hour=22` opens at 10 pm; turning the dial overrides `?utc=` and `?warp=`.
 - Click a person: the card adds "Now: gathering, about 2 km from camp. Imagined: the pattern is modelled from time-use
   studies of small-scale societies, this person's day is not known."
 

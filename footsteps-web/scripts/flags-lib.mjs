@@ -53,6 +53,7 @@ export const FLAGS = [
   { name: 'lat', kind: 'view', default: 'globe', what: 'Start latitude', doc: 'visual-regression.md', reviewed: 'n/a (view)' },
   { name: 'lon', kind: 'view', default: 'globe', what: 'Start longitude', doc: 'visual-regression.md', reviewed: 'n/a (view)', aliases: ['lng'] },
   { name: 'zoom', kind: 'view', default: 'globe', what: 'Start zoom', doc: 'visual-regression.md', reviewed: 'n/a (view)', aliases: ['z'] },
+  { name: 'hour', kind: 'view', default: '10.5', what: 'Start the time-of-day dial at this local sun hour (e.g. 22)', doc: 'routine.md', reviewed: 'n/a (view)' },
 ];
 
 /** Every name a flag can be spelled as in the URL. */

@@ -416,7 +416,7 @@ The ground and field detail shaders (`layers/groundDetail.ts`) draw their noise 
 
 The close-up's light used to follow the real clock even with Day/night shading off. So a viewer in the NZ evening saw Europe and Beringia at night, with dark ground, dark snow and glowing hearths, and took it for a rendering bug.
 
-With Day/night off, and no `?utc=`, `?warp=` or `?still=1` in the URL, the close-up is now lit by a fixed sun: 10:30 local sun time on midsummer day of the view's hemisphere (`lib/sky.ts` `fixedDaySun`). Hearth firelight is hidden under that light. Turning Day/night on brings back the live sun, along with night and the firelight.
+The close-up was then lit by a fixed sun while Day/night was off. Later the same day the **time-of-day dial** replaced the Day/night switch (`components/ui/TimeOfDayDial.tsx`, `lib/timeOfDay.ts`): the viewer picks the local sun hour at the view's centre, on a late-spring day of the view's hemisphere (sun declination about ±12°, so a dark night reaches about 65°), and the light, night shading, firelight and the people's routine all follow it. It starts at 10:30, so the default view is still daytime. `?hour=21.5` opens at that hour; `?utc=`, `?warp=` and `?still=1` still set the clock until the dial is turned.
 
 The ground slope fit (`lib/close3d.ts` `fitSlope`) now uses only the vertices inside the tile near its edges. Clamping to the edge vertex read the ground beyond the edge as flat.
 

@@ -1,4 +1,5 @@
 import { citiesBy, firstCityYear, FIRST_CITIES } from './firstCities';
+import settlements from '../public/settlements.json';
 
 test('central Mexico is not a city in the Late Archaic, but is by Teotihuacan', () => {
   expect(citiesBy(-99.1, 19.4, -3000)).toBe(false);
@@ -18,7 +19,7 @@ test('places with no listed region wait until 1500', () => {
 });
 
 test("no city in the catalogue stands before its region's first towns", () => {
-  const catalogue = require('../public/settlements.json') as { cities: { name: string; lon: number; lat: number; observations: [number, number][] }[] };
+  const catalogue = settlements as unknown as { cities: { name: string; lon: number; lat: number; observations: [number, number][] }[] };
   const early = catalogue.cities.filter((c) => c.observations[0][0] < firstCityYear(c.lon, c.lat)).map((c) => c.name);
   expect(early).toEqual([]);
 });

@@ -1,13 +1,15 @@
 // Shared formatting utilities for the Humans Globe frontend
 
-// Format population counts into human‑readable strings
+// Format population counts into human‑readable strings. Two significant figures below ten of a unit (4.6M, not 5M), so the
+// counter agrees with the time bar's "~4.6 million people".
 export function formatPopulation(pop: number): string {
-  if (pop >= 1_000_000_000)
-    return `${Math.round(pop / 1_000_000_000).toLocaleString()}B people`;
-  if (pop >= 1_000_000)
-    return `${Math.round(pop / 1_000_000).toLocaleString()}M people`;
-  if (pop >= 1_000)
-    return `${Math.round(pop / 1_000).toLocaleString()}K people`;
+  const unit = (n: number, size: number, suffix: string) => {
+    const v = n / size;
+    return `${(v < 9.95 ? Math.round(v * 10) / 10 : Math.round(v)).toLocaleString()}${suffix} people`;
+  };
+  if (pop >= 1_000_000_000) return unit(pop, 1_000_000_000, 'B');
+  if (pop >= 1_000_000) return unit(pop, 1_000_000, 'M');
+  if (pop >= 1_000) return unit(pop, 1_000, 'K');
   return `${Math.round(pop).toLocaleString()} people`;
 }
 

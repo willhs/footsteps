@@ -2,15 +2,12 @@
 
 import type { ReactNode } from 'react';
 import ToggleButton, { TOGGLE_CONTAINER_TW } from './ToggleButton';
-import TerrainToggle from './TerrainToggle';
 import ColorSchemeToggle from './ColorSchemeToggle';
 import ControlRow from './ControlRow';
 import { GlobeIcon, MapIcon } from './icons';
 import { type ColorScheme } from '../footsteps/layers/color';
 
 interface VizTogglesProps {
-  showTerrain: boolean;
-  onToggle: (enabled: boolean) => void;
   is3DMode: boolean;
   onModeChange: (is3D: boolean) => void;
   colorScheme: ColorScheme;
@@ -24,8 +21,6 @@ interface VizTogglesProps {
 
 /** The map controls panel (top right): one surface, one labelled row per setting. */
 export default function VizToggles({
-  showTerrain,
-  onToggle,
   is3DMode,
   onModeChange,
   colorScheme,
@@ -49,10 +44,6 @@ export default function VizToggles({
             <GlobeIcon />
           </ToggleButton>
         </div>
-      </ControlRow>
-
-      <ControlRow label="Background">
-        <TerrainToggle showTerrain={showTerrain} onToggle={onToggle} />
       </ControlRow>
 
       {showColorScheme && (

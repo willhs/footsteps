@@ -5,7 +5,7 @@ import { flags } from '@/lib/flags';
 import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { FIRST_GLOBE, FIRST_PEOPLE, markOnce } from '@/lib/firstLoadMarks';
 import { prefetchAfterFirstPeople } from '@/lib/lazyModule';
-import { CLOSE3D_MODULE } from '@/components/footsteps/hooks/useTerrainLayers';
+import useTerrainLayers, { CLOSE3D_MODULE } from '@/components/footsteps/hooks/useTerrainLayers';
 
 import { getViewMode, setViewMode } from '@/lib/viewModeStore';
 import { WebMercatorViewport, type LayersList, type PickingInfo } from '@deck.gl/core';
@@ -18,7 +18,6 @@ import ControlRow from '@/components/ui/ControlRow';
 import type { ColorScheme } from '@/components/footsteps/layers/color';
 import TooltipOverlay, { useTooltipData, useTooltipOverlay } from '@/components/footsteps/overlays/TooltipOverlay';
 import PopulationTooltip from './overlays/PopulationTooltip';
-import useBackgroundLayers from '@/components/footsteps/hooks/useBackgroundLayers';
 import useHumanLayers from '@/components/footsteps/hooks/useHumanLayers';
 import { describePerson, type Person } from '@/components/footsteps/layers/people';
 import { clampTime, evidenceAt, nearestDataYear, populationAt } from '@/lib/time';
@@ -270,7 +269,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     [skyOn, close3d, lightLon, lightLat, now],
   );
 
-  const { backgroundLayers, showTerrain, setShowTerrain } = useBackgroundLayers(time, close3d);
+  // The Earth of each era is the only background (the flat "Plain" fill was removed on 2026-11-28).
+  const backgroundLayers = useTerrainLayers(time, close3d);
   // The close-up's code is not in the first load; fetch it once the first people are drawn, so zooming in does not wait.
   useEffect(() => (close3dOn ? prefetchAfterFirstPeople(CLOSE3D_MODULE) : undefined), [close3dOn]);
   // `?avatar=3d`: fetch the 3D person's code once the people are up, so a click shows the figure without waiting for it.
@@ -448,7 +448,7 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
     onGround: close3d,
   });
 
-  const { layers: presenceLayers, animating: presenceAnimating, waiting: presenceWaiting } = usePresenceLayers({
+  const { layers: presenceLayers, waiting: presenceWaiting } = usePresenceLayers({
     enabled: renderMode === 'auto',
     time,
     view: viewState,
@@ -559,9 +559,8 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         layers={layers}
         containerProps={hoverCard ? hoverBind : undefined}
         unprojectRef={hoverCard ? unprojectRef : undefined}
-        // Night lights flicker and bands/villages move on the GPU; redraw
-        // continuously only while either is on screen.
-        animate={renderMode !== 'dots' && (showTerrain || blend.units > 0 || presenceAnimating || otherHumans.shown)}
+        // Night lights flicker and bands/villages move on the GPU over the terrain; redraw continuously except in the Dots view.
+        animate={renderMode !== 'dots'}
         onClick={(info) => {
           if (!peopleView || !info.coordinate) return;
           const [lon, lat] = info.coordinate;
@@ -757,10 +756,10 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
                 {notesOpen && ' Places follow climate and habitat inside rough ranges drawn around known fossils and DNA. Ringed dots are key dated sites (hover for the find and source); brighter ones date to around the year shown. Fainter fires east of Borneo are hinted only by Denisovan DNA in Papuans today.'}
               </p>
             )}
-            {notesOpen && showTerrain && <TerrainNote />}
+            {notesOpen && <TerrainNote />}
           </div>
         ) : (
-          !peopleView && showTerrain && (
+          !peopleView && (
             <div className="ov-panel shrink-0 px-3.5 py-3">
               <TerrainNote />
             </div>
@@ -773,8 +772,6 @@ function FootstepsVizInner({ time, onLoadingChange }: FootstepsVizProps) {
         <VizToggles
           is3DMode={is3DMode}
           onModeChange={changeViewMode}
-          showTerrain={showTerrain}
-          onToggle={setShowTerrain}
           colorScheme={colorScheme}
           onColorSchemeChange={setColorScheme}
           showColorScheme={renderMode === 'dots'}

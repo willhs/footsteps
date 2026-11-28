@@ -18,10 +18,12 @@ import {
   nextRegion,
   viewBlend,
   viewBounds,
+  ZOOM,
   type PeopleMode,
   type ViewBlend,
 } from './peopleView';
 import useYearCrossfade from './useYearCrossfade';
+import useHandover from './useHandover';
 import { bracket } from '@/lib/time';
 import type { Season } from '@/lib/seasons';
 import GridYearLayer from '../layers/GridYearLayer';
@@ -34,6 +36,9 @@ import {
   type MorphGroupInView,
   type Person,
 } from '../layers/people';
+
+/** Zoom levels before the groups start to fade in (ZOOM.unitsIn) at which their data starts building, so it is ready on arrival. */
+export const UNITS_PREFETCH_ZOOMS = 0.8;
 
 const NO_PEOPLE: readonly Person[] = [];
 const NO_SHELTERS: readonly Shelter[] = [];
@@ -126,10 +131,12 @@ export default function useGridLayer({
   const blend = viewBlend(view.zoom, mode);
   const style: GridStyle = mode === 'grid' ? 'grid' : 'units';
   const marksOn = enabled && (mode === 'grid' || blend.units > 0);
+  // Approaching the groups' zoom from the far-out fires: build their data before it is drawn.
+  const unitsSoon = enabled && mode !== 'grid' && view.zoom >= ZOOM.unitsIn - UNITS_PREFETCH_ZOOMS;
   // Keep the region while it covers the screen; mutate-in-render is idempotent.
   const regionRef = useRef<Region | null>(null);
   regionRef.current =
-    !marksOn || mode === 'grid'
+    !(marksOn || unitsSoon) || mode === 'grid'
       ? null
       : nextRegion(
           regionRef.current,
@@ -144,6 +151,8 @@ export default function useGridLayer({
   // Continuous time draws units as one morph between the data years either
   // side of `time` (below), so the discrete year cross-fade is off for them.
   const unitsContinuous = time !== undefined && marksOn && style === 'units';
+  // The unit morph is built from the prefetch zoom on (and kept while there), drawn only once the groups fade in.
+  const morphWanted = time !== undefined && (marksOn || unitsSoon) && style === 'units';
   const frames = useYearCrossfade(ready, marksOn && !unitsContinuous);
   // Continuous time: the data years either side of `time`.
   const { y0, y1, f } = bracket(time ?? year);
@@ -156,7 +165,7 @@ export default function useGridLayer({
     citiesTo: AllocatedCity[];
   } | null>(null);
   useEffect(() => {
-    if (!unitsContinuous) {
+    if (!morphWanted) {
       setMorphScene(null);
       return;
     }
@@ -169,7 +178,7 @@ export default function useGridLayer({
     return () => {
       live = false;
     };
-  }, [unitsContinuous, y0, y1, region, season]);
+  }, [morphWanted, y0, y1, region, season]);
   const morphLayer = useMemo(
     () =>
       morphScene
@@ -334,7 +343,16 @@ export default function useGridLayer({
     [first, second, staging, ready],
   );
 
-  const { units, minPx, brightness, pickable } = blend;
+  // The groups take over from the fires only once their data is in: until then the fires stay at full strength (no empty map
+  // while it builds), and then the two cross-fade over HANDOVER_MS whatever the zoom is doing.
+  const handover = useHandover(!unitsContinuous || !!morphScene);
+  const units = blend.units * handover;
+  const shownBlend = useMemo(
+    () => ({ ...blend, units, glow: 1 - (1 - blend.glow) * handover }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [blend.glow, blend.units, blend.minPx, blend.brightness, blend.pickable, blend.people, blend.settle, blend.halo, handover],
+  );
+  const { minPx, brightness, pickable } = blend;
 
   // Street-level zoom: the bands and villages in view become individual people.
   const peopleOn = unitsContinuous && blend.people > 0 && !!morphScene;
@@ -445,8 +463,11 @@ export default function useGridLayer({
       ? blendCities(morphScene.citiesFrom, morphScene.citiesTo, morphProgress)
       : grid?.cities ?? []).filter((city) => city.people > 0);
     if (!enabled || style !== 'units' || !cities.length) return [];
-    return buildCityLayers(cities, blend.units, view.zoom);
-  }, [grid, enabled, style, blend.units, view.zoom, unitsContinuous, morphScene, morphProgress]);
+    return buildCityLayers(cities, units, view.zoom);
+  }, [grid, enabled, style, units, view.zoom, unitsContinuous, morphScene, morphProgress]);
+  // The flat households give way to the close-up's 3D dwellings only once those are built (from street zoom, with the people).
+  // Keyed on `homes3d` alone, the groups drew nothing but a faint wash from the close-up's start (zoom 8, CLOSE3D_ZOOM) to street zoom.
+  const homesIn3d = homes3d && shelters.length > 0;
   const layerList = useMemo(() => {
     if (!enabled) return [];
     if (unitsContinuous) {
@@ -461,7 +482,7 @@ export default function useGridLayer({
                 pickable,
                 settle: blend.settle,
                 halo: blend.halo,
-                homes: homes3d ? 0 : 1,
+                homes: homesIn3d ? 0 : 1,
                 visible: units > 0 && blend.people < 1,
               }),
             ]
@@ -494,7 +515,7 @@ export default function useGridLayer({
               progress: modeChanged ? 1 : eased,
               minPx,
               brightness,
-              homes: homes3d ? 0 : 1,
+              homes: homesIn3d ? 0 : 1,
               pickable: pickable && frame?.opacity === 1,
               visible: !!frame && !superseded && units > 0,
             }
@@ -520,7 +541,7 @@ export default function useGridLayer({
     minPx,
     brightness,
     pickable,
-    homes3d,
+    homesIn3d,
   ]);
   // What the view is waiting on: zoomed in, the unit morph for the visible region.
   const unitsWaiting =
@@ -536,7 +557,7 @@ export default function useGridLayer({
     layers: [...layerList, ...cityLayers],
     grid: enabled && grid?.year === year ? grid.data : null,
     unresolved: enabled && grid?.year === year ? grid.units.unresolved : undefined,
-    blend,
+    blend: shownBlend,
     loading: unitsWaiting ? [y0, y1] : null,
     people: people?.steady ?? NO_PEOPLE,
     scenePeople,

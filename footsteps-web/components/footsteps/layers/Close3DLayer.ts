@@ -5,7 +5,7 @@ import { TileLayer, _Tileset2D as Tileset2D } from '@deck.gl/geo-layers';
 import { SimpleMeshLayer } from '@deck.gl/mesh-layers';
 import GroundDetail, { type WeatherRef } from './groundDetail';
 import { weatherFor } from '@/lib/weather';
-import SkyLight from './skyLight';
+import SkyLight, { SkyTint } from './skyLight';
 import type { SceneLight } from '@/lib/sky';
 import { ZOOM } from '../hooks/peopleView';
 import { SHAPES } from '@/lib/dwellings';
@@ -88,6 +88,7 @@ type Built = { key: string; mesh: TerrainMesh; meshProp: object; plants: Plant[]
 const MESHES = plantMeshes();
 const GROUND_DETAIL = new GroundDetail();
 const SKY_LIGHT = new SkyLight();
+const SKY_TINT = new SkyTint();
 const SHELTER_MESHES = shelterMeshes();
 /** A dwelling is never drawn smaller than this on screen (pixels across), however far out: at zoom 12 a hut is a few metres in
  * ~15 m pixels, so it is enlarged to stay readable. Closer in it is its real size. */
@@ -179,7 +180,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
 
   /** One instanced mesh layer per shape: a handful of shapes × the material colours, so it stays cheap. */
   shelterLayers(
-    id: string, heights: Float32Array, bbox: Bbox, shelters: readonly Shelter[], seaLevel: number, mpp: number, zoom: number,
+    id: string, heights: Float32Array, bbox: Bbox, shelters: readonly Shelter[], seaLevel: number, mpp: number, zoom: number, light: SceneLight | null = null,
   ) {
     const standing = standingOn(heights, bbox, shelters, seaLevel);
     // Fade in with the people (who arrive from peopleIn to peopleFull), and grow so a hut is at least SHELTER_MIN_PX across.
@@ -200,6 +201,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
           sizeScale: grow,
           opacity: t * t * (3 - 2 * t),
           material: { ambient: 0.55, diffuse: 0.7, shininess: 2, specularColor: [10, 10, 10] },
+          extensions: light ? [SKY_TINT] : [],
+          ...(light ? { skyLight: light } : {}),
           pickable: true,
           parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
         }),
@@ -248,7 +251,7 @@ export default class Close3DLayer extends CompositeLayer<Props> {
 
   /** A tile's land, fading in with the people as the dwellings do: the ground again with the washes painted in (the same vertices as the
    * ground, so it lies exactly on it and wins the depth test, drawn after it), then the draped shapes. */
-  landLayers(id: string, bbox: Bbox, d: Draped, zoom: number, detail: boolean) {
+  landLayers(id: string, bbox: Bbox, d: Draped, zoom: number, detail: boolean, weather: boolean, light: SceneLight | null) {
     const t = Math.min(1, Math.max(0, (zoom - ZOOM.peopleIn + 0.4) / (ZOOM.peopleFull - ZOOM.peopleIn)));
     const fade = t * t * (3 - 2 * t);
     if (fade <= 0) return [];
@@ -267,8 +270,20 @@ export default class Close3DLayer extends CompositeLayer<Props> {
         ...extra,
       });
     return [
-      ...(d.ground ? [part('land-paint', d.ground, { extensions: detail ? GROUND_DETAIL : [], parameters: { depthWriteEnabled: false, depthCompare: 'less-equal' } })] : []),
-      ...(d.solid ? [part('land', d.solid, { parameters: { depthWriteEnabled: true, depthCompare: 'less-equal', depthBias: -2, depthBiasSlopeScale: -2 } })] : []),
+      // The painted ground is the ground mesh again, so it takes the ground's own extensions (lit and hazed with ?sky=1, weather);
+      // the shapes take the sky's light and haze (SkyTint), so they do not glow over a dark or hazed ground.
+      ...(d.ground ? [part('land-paint', d.ground, {
+        extensions: [...(detail || weather ? [GROUND_DETAIL] : []), ...(light ? [SKY_LIGHT] : [])],
+        groundBiome: detail,
+        weatherRef: weather ? this.state.weatherRef : null,
+        ...(light ? { skyLight: light } : {}),
+        parameters: { depthWriteEnabled: false, depthCompare: 'less-equal' },
+      })] : []),
+      ...(d.solid ? [part('land', d.solid, {
+        extensions: light ? [SKY_TINT] : [],
+        ...(light ? { skyLight: light } : {}),
+        parameters: { depthWriteEnabled: true, depthCompare: 'less-equal', depthBias: -2, depthBiasSlopeScale: -2 },
+      })] : []),
     ];
   }
 
@@ -427,11 +442,12 @@ export default class Close3DLayer extends CompositeLayer<Props> {
             getSize: t => t.height, getColor: t => t.tint, sizeUnits: 'meters',
             getRank: cached.rank, lodShare: treeShare, updateTriggers: { getRank: cached.clearingsKey },
             billboard: true, alphaCutoff: 0.25, pickable: false,
+            extensions: lit ? [SKY_TINT] : [], ...(lit ? { skyLight: light } : {}),
             parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
           }) as unknown as typeof ground3d);
         }
-        if (landHere) layers.push(...(this.landLayers(props.id, bbox, landHere, zoom, detail) as unknown as typeof layers));
-        if (shelters.length) layers.push(...(this.shelterLayers(props.id, data.heights, bbox, shelters, seaLevel, mpp, zoom) as unknown as typeof layers));
+        if (landHere) layers.push(...(this.landLayers(props.id, bbox, landHere, zoom, detail, weather, light) as unknown as typeof layers));
+        if (shelters.length) layers.push(...(this.shelterLayers(props.id, data.heights, bbox, shelters, seaLevel, mpp, zoom, light) as unknown as typeof layers));
         for (const kind of ['conifer', 'broadleaf', 'acacia', 'shrub'] as const) {
           const these = plants.filter((p) => p.kind === kind);
           if (!these.length) continue;
@@ -447,6 +463,8 @@ export default class Close3DLayer extends CompositeLayer<Props> {
               getScale: (p) => [w * p.scale, w * p.scale, h * p.scale],
               sizeScale: mpp,
               material: { ambient: 0.5, diffuse: 0.7, shininess: 2, specularColor: [10, 10, 10] },
+              extensions: lit ? [SKY_TINT] : [],
+              ...(lit ? { skyLight: light } : {}),
               pickable: false,
               parameters: { depthWriteEnabled: true, depthCompare: 'less-equal' },
               updateTriggers: { getPosition: key, getColor: key },

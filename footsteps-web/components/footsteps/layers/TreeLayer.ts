@@ -22,7 +22,9 @@ export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
   }
   getShaders() {
     const shaders = super.getShaders();
-    return { ...shaders, modules: [...shaders.modules, wind], inject: {
+    // Extensions' injections (SkyTint with ?sky=1) come in `shaders.inject`: keep them, after the tree's own code for each hook.
+    const ext: Record<string, string> = shaders.inject ?? {};
+    const own: Record<string, string> = {
       // Hook functions are emitted before main's attributes and varyings, so this all runs at main-end, where they are in scope.
       'vs:#decl': 'in float instanceRank; out float treeFade; out vec3 treeTint;',
       'vs:#main-end': `
@@ -39,7 +41,10 @@ export default class TreeLayer extends IconLayer<TreeInstance, TreeProps> {
       `,
       'fs:#decl': 'in float treeFade; in vec3 treeTint;',
       'fs:DECKGL_FILTER_COLOR': 'color.rgb *= treeTint; color.a *= treeFade; if (color.a < 0.25) discard;',
-    } };
+    };
+    const inject = { ...ext };
+    for (const [hook, code] of Object.entries(own)) inject[hook] = hook in ext ? `${code}\n${ext[hook]}` : code;
+    return { ...shaders, modules: [...shaders.modules, wind], inject };
   }
   draw(params: Parameters<IconLayer<TreeInstance>['draw']>[0]) {
     this.state.model?.shaderInputs.setProps({ treeWind: { time: animSeconds(600), share: this.props.lodShare ?? 1 } });

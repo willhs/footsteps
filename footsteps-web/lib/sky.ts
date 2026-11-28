@@ -101,6 +101,20 @@ export function sceneLight(lon: number, lat: number, ms: number): SceneLight {
   };
 }
 
+/** Light on noon ground, per channel, by the ground shader's rule (skyLight.ts: 0.7 ambient + 0.8 direct × sun height), sun 60° up. */
+const NOON_LIGHT: Rgb01 = (() => {
+  const look = lookAt(60);
+  const up = Math.sin((60 * Math.PI) / 180);
+  return [0, 1, 2].map((i) => 0.7 * look.ambient[i] + 0.8 * look.direct[i] * up) as Rgb01;
+})();
+
+/** What to multiply the colour of things standing on the ground by (fields, trees, shelters), whose colours are drawn for daylight:
+ * the light on flat ground now over the light at noon, so they dim and cool at dusk and night with the ground under them (1 by day). */
+export function overlayTint(light: Pick<SceneLight, 'sun' | 'direct' | 'ambient'>): Rgb01 {
+  const up = Math.max(light.sun[2], 0);
+  return [0, 1, 2].map((i) => Math.min(1, (0.7 * light.ambient[i] + 0.8 * light.direct[i] * up) / NOON_LIGHT[i])) as Rgb01;
+}
+
 /** deck.gl's default field of view for a map view (altitude 1.5), in degrees. */
 const FOVY = (2 * Math.atan(0.5 / 1.5) * 180) / Math.PI;
 

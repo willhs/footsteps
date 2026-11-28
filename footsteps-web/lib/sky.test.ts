@@ -1,4 +1,4 @@
-import { cameraDistanceM, cameraLift, horizonRow, sceneLight, skyBackdrop, skyParam, sunVector } from './sky';
+import { cameraDistanceM, cameraLift, horizonRow, overlayTint, sceneLight, skyBackdrop, skyParam, sunVector } from './sky';
 import { CLOSE3D_PITCH, SKY_PITCH } from './close3d';
 import { sunPosition } from './sunTime';
 
@@ -79,4 +79,14 @@ test('the camera is lifted above the ground it looks at, never into a mountain, 
   expect(lift + above).toBeGreaterThan(2800 * 1.6);
   // A ridge under the camera higher than the centre still leaves the camera above it.
   expect(cameraLift(500, 3000, dist, SKY_PITCH, 1.6) + above).toBeGreaterThan(3000 * 1.6 + 80);
+});
+
+test('things on the ground keep their daylight colour by day and dim and cool at night, like the ground under them', () => {
+  const noon = sceneLight(LON, LAT, at(12));
+  const night = sceneLight(LON, LAT, at(0));
+  for (const v of overlayTint(noon)) expect(v).toBeGreaterThan(0.6);
+  const n = overlayTint(night);
+  for (const v of n) expect(v).toBeLessThan(0.35);
+  expect(n[2]).toBeGreaterThan(n[0]); // moonlight is blue
+  for (const v of overlayTint({ sun: [0, 0, 1], direct: [5, 5, 5], ambient: [1, 1, 1] })) expect(v).toBe(1);
 });

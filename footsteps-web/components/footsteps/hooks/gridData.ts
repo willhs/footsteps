@@ -241,7 +241,7 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   if (landUse && !land) console.warn(`[grid] land use ${year} is ${landUse.width}×${landUse.height}, expected ${w}×${h}`);
   const mask = scale > 1 ? sea : null;
   // 13,000-4,000 BCE: continental totals set by lib/holoceneShares.ts (one multiplier per source cell), null otherwise.
-  const shares = shareFactors(year, sw, sh);
+  const continentFactors = shareFactors(year, sw, sh);
   const drop = Math.max(0, -seaLevelAt(year));
   // Level of each source cell, then of each of its sub-cells (equal share), or its land sub-cells (mask).
   const levels = new Uint16Array(sw * sh);
@@ -274,7 +274,7 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
   const cellDeg = 360 / w;
   let index = 0;
   let total = 0;
-  let raw = 0; // people before the continental multipliers
+  let totalBeforeFactors = 0; // the image's own world total
   for (let row = 0; row < h; row++) {
     const blockRow = Math.floor(row / scale);
     const sourceRow = blockRow * sw;
@@ -290,8 +290,9 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       } else {
         population = Math.expm1((value / LEVELS) * LOG_MAX);
       }
-      raw += population;
-      if (shares) population *= shares[block];
+      totalBeforeFactors += population;
+      if (continentFactors) population *= continentFactors[block];
+
       positions[index * 2] = -180 + (col + 0.5) * cellDeg;
       positions[index * 2 + 1] = 90 - (row + 0.5) * cellDeg;
       people[index] = population;
@@ -304,12 +305,13 @@ export function gridDataFrom(year: number, { width: sw, height: sh, data: px }: 
       index++;
     }
   }
+
   // The multipliers keep the world total for the image they were fitted on (HYDE's or the model's); renormalise so any other
   // image read for the year (the `?spread=1` one) keeps its own total too.
-  if (shares && total > 0) {
-    const k = raw / total;
-    for (let i = 0; i < index; i++) people[i] *= k;
-    total = raw;
+  if (continentFactors && total > 0) {
+    const keepWorldTotal = totalBeforeFactors / total;
+    for (let i = 0; i < index; i++) people[i] *= keepWorldTotal;
+    total = totalBeforeFactors;
   }
   return { length, positions, people, cellIds, ways, cellDeg, total, seaBlocks };
 }

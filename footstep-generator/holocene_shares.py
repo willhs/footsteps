@@ -12,14 +12,17 @@ This script writes one small table, `footsteps-web/lib/holoceneShares.json`: a m
 the app applies to each cell of the population image (`lib/holoceneShares.ts`, in `gridDataFrom`). Cells keep their
 pattern inside a continent; only continental totals move, and the world total stays HYDE's (or the model's).
 
-Target share of continent r in year y (T = the image's people in the ten continents):
-    blend years -13,000..-11,000:  the pure model's share, recovered from the image as
-                                   (image_r - w * HYDE10k_r) / (1 - w), w = (y + 14000) / 4000
-    -10,000:                       the pure model's share at -11,000 (the last one it gives)
-    -9,000..-4,000:                (1 - v) * share(-10,000) + v * HYDE_r(y) / T,  v = (y + 10000) / 7000
-    -3,000 on:                     HYDE (no row)
-West Asia keeps its image share (KEEP); the others share the rest in proportion to the target.
-factor_r(y) = target_r * T / image_r.  Cells outside the ten boxes (remote Pacific) keep factor 1.
+Target share of each continent, by year (world = the image's people in the ten continents):
+
+    13,000-11,000 BCE  the pure model's share. The image is a blend, image = (1 - w) * model + w * HYDE(10,000 BCE),
+                       with w the HYDE weight (0 at 14,000 BCE, 1 at 10,000 BCE), so model = (image - w * HYDE) / (1 - w).
+    10,000 BCE         the pure model's share at 11,000 BCE, the last year the model gives.
+    9000-4000 BCE      a linear fade from that share to the image's (HYDE's) share, reaching HYDE at 3000 BCE.
+    3000 BCE on        HYDE as it is (no row).
+
+West Asia keeps its image share (KEPT_AS_IMAGE); the other continents share the rest in proportion to the target.
+multiplier = target share * world / continent's people in the image. Cells outside the ten boxes (remote Pacific)
+keep multiplier 1.
 
 Inputs: the published population images, from `data/tiles/grid/` and `data/tiles/prehistory/` or from a URL
 (`--base https://footsteps.willhs.me`). Re-run after prehistory_population.py or grid_image.py changes them.
@@ -37,16 +40,17 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from grid_image import dequantise
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "footsteps-web" / "lib" / "holoceneShares.json"
-LOCAL = [ROOT / "data" / "tiles" / "grid", ROOT / "data" / "tiles" / "prehistory"]
+IMAGE_DIRS = [ROOT / "data" / "tiles" / "grid", ROOT / "data" / "tiles" / "prehistory"]
+USER_AGENT = "footsteps-holocene-shares"
 
-MAX_PEOPLE = 5_000_000  # grid_image.py's encoding
-LEVELS = 1023
-
-# Continents as [west, south, east, north] boxes; a cell takes the FIRST continent with a box holding its centre.
-# Mirrored in footsteps-web/lib/holoceneShares.ts (the JSON carries them; the TS reads them from there).
+# Continents as [west, south, east, north] boxes in degrees; a cell takes the FIRST continent with a box holding its
+# centre. The JSON carries these to footsteps-web/lib/holoceneShares.ts, so the app and this script agree.
 CONTINENTS: list[tuple[str, list[list[float]]]] = [
+    # Two boxes so Hawaii (west of -140 below 50 N) stays out.
     ("north_america", [[-170, 50, -50, 84], [-140, 13, -50, 50]]),
     ("south_america", [[-120, -60, -30, 13]]),
     # Anatolia, the Levant, Mesopotamia, Iran; Arabia without the African Red Sea coast.
@@ -59,104 +63,159 @@ CONTINENTS: list[tuple[str, list[list[float]]]] = [
     ("north_central_asia", [[45, 37, 180, 80]]),
     ("sahul", [[110, -50, 180, -11]]),
 ]
+NO_CONTINENT = -1
 
 # Continents whose image share is kept as it is. West Asia: Natufian and Pre-Pottery Neolithic villages make it a
 # population centre exactly here (the Neolithic demographic transition, Bocquet-Appel 2011, Science 333:560), which a
 # forager-density model cannot see; HYDE's share there is the better guess.
-KEEP = {"west_asia"}
+KEPT_AS_IMAGE = {"west_asia"}
 
-BLEND_START, HYDE_MIN, FADE_END = -14000, -10000, -3000
-YEARS = [-13000, -12000, -11000, -10000, -9000, -8000, -7000, -6000, -5000, -4000]
+# Years, CE (negative = BCE). The first two are prehistory_population.py's BLEND_START and HYDE_YEAR.
+MODEL_ONLY_YEAR = -14000  # the image is the pure model; HYDE's weight in the blend rises from 0 here...
+HYDE_START_YEAR = -10000  # ...to 1 here, HYDE 3.5's first year
+FADE_END_YEAR = -3000  # HYDE's own continental split from here on
+BLEND_YEARS = [-13000, -12000, -11000]  # model and HYDE blended in the image
+FADE_YEARS = [-10000, -9000, -8000, -7000, -6000, -5000, -4000]  # HYDE's image, shares fading back to it
+YEARS = BLEND_YEARS + FADE_YEARS
+
+# Output precision: multipliers to 4 decimals (0.01% of a continent), the shares report to 0.1 percentage point.
+MULTIPLIER_DECIMALS = 4
+PERCENT_DECIMALS = 1
 
 
 def decode_bytes(data: bytes) -> np.ndarray:
+    """People per cell from a population WebP's bytes (grid_image.py's encoding: level = R << 8 | G)."""
     with Image.open(io.BytesIO(data)) as image:
         rgb = np.asarray(image.convert("RGB")).astype(np.int64)
-    q = (rgb[..., 0] << 8) | rgb[..., 1]
-    return np.where(q > 0, np.expm1(q / LEVELS * np.log1p(MAX_PEOPLE)), 0.0)
+    levels = (rgb[..., 0] << 8) | rgb[..., 1]
+    return dequantise(levels)
 
 
-def read_year(year: int, base: str | None) -> np.ndarray:
+def read_year(year: int, base_url: str | None) -> np.ndarray:
     name = f"humans_{year}.webp"
-    if base:
-        with urllib.request.urlopen(f"{base.rstrip('/')}/grid/{name}") as r:
-            return decode_bytes(r.read())
-    for d in LOCAL:
-        if (d / name).exists():
-            return decode_bytes((d / name).read_bytes())
-    raise FileNotFoundError(f"{name} not in {LOCAL}; pass --base")
+
+    if base_url:
+        # A plain urllib request is refused (403) by the site's front end; a named client is not.
+        request = urllib.request.Request(f"{base_url.rstrip('/')}/grid/{name}", headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request) as response:
+            return decode_bytes(response.read())
+
+    for folder in IMAGE_DIRS:
+        path = folder / name
+        if path.exists():
+            return decode_bytes(path.read_bytes())
+
+    raise FileNotFoundError(f"{name} not in {IMAGE_DIRS}; pass --base")
 
 
 def continent_map(height: int, width: int) -> np.ndarray:
-    """Index into CONTINENTS per cell, -1 where no box holds the centre."""
+    """Index into CONTINENTS for each cell of a whole-world grid, NO_CONTINENT where no box holds the cell's centre."""
     lat = 90 - (np.arange(height) + 0.5) * 180 / height
     lon = -180 + (np.arange(width) + 0.5) * 360 / width
-    la, lo = np.meshgrid(lat, lon, indexing="ij")
-    out = np.full((height, width), -1, dtype=np.int8)
-    for i in reversed(range(len(CONTINENTS))):  # reversed so the first listed wins
-        for w, s, e, n in CONTINENTS[i][1]:
-            out[(lo >= w) & (lo < e) & (la >= s) & (la < n)] = i
+    lat_grid, lon_grid = np.meshgrid(lat, lon, indexing="ij")
+
+    out = np.full((height, width), NO_CONTINENT, dtype=np.int8)
+    # Paint in reverse so the first continent listed wins where boxes overlap.
+    for index in reversed(range(len(CONTINENTS))):
+        for west, south, east, north in CONTINENTS[index][1]:
+            inside = (lon_grid >= west) & (lon_grid < east) & (lat_grid >= south) & (lat_grid < north)
+            out[inside] = index
     return out
 
 
-def totals(people: np.ndarray) -> np.ndarray:
+def continent_totals(people: np.ndarray) -> np.ndarray:
+    """People per continent, in CONTINENTS order."""
     cmap = continent_map(*people.shape)
-    return np.array([people[cmap == i].sum() for i in range(len(CONTINENTS))])
+    return np.array([people[cmap == index].sum() for index in range(len(CONTINENTS))])
 
 
-def build(base: str | None) -> dict:
-    hyde10 = totals(read_year(HYDE_MIN, base))
-    images = {y: totals(read_year(y, base)) for y in YEARS}
-    pure: dict[int, np.ndarray] = {}
-    for y in (-13000, -12000, -11000):
-        w = (y - BLEND_START) / (HYDE_MIN - BLEND_START)
-        m = np.clip((images[y] - w * hyde10) / (1 - w), 0, None)
-        pure[y] = m / m.sum()
-    start = pure[-11000]
-    rows: dict[str, dict[str, float]] = {}
-    report: dict[str, dict] = {}
-    for y in YEARS:
-        image = images[y]
-        share_before = image / image.sum()
-        if y in pure:
-            target = pure[y]
+def hyde_weight(year: int) -> float:
+    """HYDE's weight in the image's blend: 0 at MODEL_ONLY_YEAR, 1 at HYDE_START_YEAR."""
+    return (year - MODEL_ONLY_YEAR) / (HYDE_START_YEAR - MODEL_ONLY_YEAR)
+
+
+def fade_weight(year: int) -> float:
+    """How far the shares have faded back to HYDE's: 0 at HYDE_START_YEAR, 1 at FADE_END_YEAR."""
+    return (year - HYDE_START_YEAR) / (FADE_END_YEAR - HYDE_START_YEAR)
+
+
+def model_shares(image_totals: np.ndarray, hyde_totals: np.ndarray, year: int) -> np.ndarray:
+    """The pure model's continental shares, recovered from a blended image (see the module docstring)."""
+    weight = hyde_weight(year)
+    model = (image_totals - weight * hyde_totals) / (1 - weight)
+    model = np.clip(model, 0, None)  # rounding in the images can leave a small negative remainder
+    return model / model.sum()
+
+
+def build(base_url: str | None) -> dict:
+    hyde_totals = continent_totals(read_year(HYDE_START_YEAR, base_url))
+    image_totals = {year: continent_totals(read_year(year, base_url)) for year in YEARS}
+
+    model_by_year = {year: model_shares(image_totals[year], hyde_totals, year) for year in BLEND_YEARS}
+    last_model_shares = model_by_year[BLEND_YEARS[-1]]
+
+    kept = np.array([name in KEPT_AS_IMAGE for name, _ in CONTINENTS])
+    free = ~kept
+
+    multipliers: dict[str, dict[str, float]] = {}
+    shares_percent: dict[str, dict] = {}
+
+    for year in YEARS:
+        people = image_totals[year]
+        world = people.sum()
+        image_shares = people / world
+
+        if year in model_by_year:
+            target = model_by_year[year]
         else:
-            v = (y - HYDE_MIN) / (FADE_END - HYDE_MIN)
-            target = (1 - v) * start + v * share_before
-        keep = np.array([CONTINENTS[i][0] in KEEP for i in range(len(CONTINENTS))])
-        free = ~keep
-        target = np.where(keep, share_before, target * (1 - share_before[keep].sum()) / target[free].sum())
-        factor = np.where(image > 0, target * image.sum() / np.maximum(image, 1e-9), 1.0)
-        rows[str(y)] = {CONTINENTS[i][0]: round(float(f), 4) for i, f in enumerate(factor)}
-        report[str(y)] = {
-            CONTINENTS[i][0]: {"before": round(100 * float(share_before[i]), 1), "after": round(100 * float(target[i]), 1)}
-            for i in range(len(CONTINENTS))
+            fade = fade_weight(year)
+            target = (1 - fade) * last_model_shares + fade * image_shares
+
+        # Kept continents hold their image share; the free ones split what is left in proportion to the target.
+        left_for_free = 1 - image_shares[kept].sum()
+        target = np.where(kept, image_shares, target * left_for_free / target[free].sum())
+
+        multiplier = np.where(people > 0, target * world / np.maximum(people, 1e-9), 1.0)
+
+        multipliers[str(year)] = {
+            name: round(float(m), MULTIPLIER_DECIMALS) for (name, _), m in zip(CONTINENTS, multiplier)
         }
+        shares_percent[str(year)] = {
+            name: {
+                "before": round(100 * float(before), PERCENT_DECIMALS),
+                "after": round(100 * float(after), PERCENT_DECIMALS),
+            }
+            for (name, _), before, after in zip(CONTINENTS, image_shares, target)
+        }
+
     return {
         "about": "Continental multipliers over the population images, 13,000-4,000 BCE (footstep-generator/holocene_shares.py, "
                  "docs/research/0016-holocene-hand-over). Modelled: HYDE 3.5's early-Holocene continental split replaced by the "
                  "pre-HYDE forager model's, fading back to HYDE by 3000 BCE.",
-        "continents": [{"id": n, "boxes": b} for n, b in CONTINENTS],
-        "factors": rows,
-        "shares_percent": report,
+        "continents": [{"id": name, "boxes": boxes} for name, boxes in CONTINENTS],
+        "factors": multipliers,
+        "shares_percent": shares_percent,
     }
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("--base", help="read images from this site instead of data/tiles (e.g. https://footsteps.willhs.me)")
-    p.add_argument("--check", action="store_true", help="fail if the committed table differs from a fresh build")
-    a = p.parse_args()
-    table = build(a.base)
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--base", help="read images from this site instead of data/tiles (e.g. https://footsteps.willhs.me)")
+    parser.add_argument("--check", action="store_true", help="fail if the committed table differs from a fresh build")
+    args = parser.parse_args()
+
+    table = build(args.base)
     text = json.dumps(table, indent=1) + "\n"
-    if a.check:
+
+    if args.check:
         if OUT.read_text() != text:
             raise SystemExit(f"{OUT} is stale: re-run holocene_shares.py")
         print("holoceneShares.json is current")
         return
+
     OUT.write_text(text)
-    for y, row in table["shares_percent"].items():
-        print(y, " ".join(f"{k}:{v['before']}->{v['after']}" for k, v in row.items()))
+    for year, row in table["shares_percent"].items():
+        print(year, " ".join(f"{name}:{share['before']}->{share['after']}" for name, share in row.items()))
     print(f"wrote {OUT.relative_to(ROOT)}")
 
 

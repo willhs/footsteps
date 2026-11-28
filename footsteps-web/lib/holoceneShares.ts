@@ -5,53 +5,73 @@
 // HYDE's by 3000 BCE; cells keep their pattern inside a continent and the world total is unchanged. Modelled.
 import table from './holoceneShares.json';
 
-type Box = readonly [number, number, number, number]; // west, south, east, north
+type Box = readonly [west: number, south: number, east: number, north: number]; // degrees
 type Table = { continents: { id: string; boxes: number[][] }[]; factors: Record<string, Record<string, number>> };
 
 const TABLE = table as Table;
 const CONTINENTS = TABLE.continents.map((c) => ({ id: c.id, boxes: c.boxes as unknown as Box[] }));
 
+const NO_CONTINENT = -1;
+const UNCHANGED = 1; // multiplier for cells outside every continent box (the remote Pacific)
+
+// The table was fitted on whole-world images at 0.5° (720 × 360, the pre-HYDE model's grid) or finer (HYDE's 4320 × 2160).
+// Anything smaller or not 2:1 is not such an image (a test fixture, a cropped tile), so it is drawn as it is.
+const MIN_WORLD_WIDTH = 720;
+
 /** The years with a row (the rest draw their image as it is). */
-export const HOLOCENE_SHARE_YEARS: readonly number[] = Object.keys(TABLE.factors).map(Number).sort((a, b) => a - b);
+export const HOLOCENE_SHARE_YEARS: readonly number[] = Object.keys(TABLE.factors)
+  .map(Number)
+  .sort((a, b) => a - b);
 
 /** Index of the first continent whose box holds the point, else -1 (as `continent_map` in the generator). */
 export function continentAt(lon: number, lat: number): number {
-  for (let i = 0; i < CONTINENTS.length; i++) {
-    for (const [w, s, e, n] of CONTINENTS[i].boxes) {
-      if (lon >= w && lon < e && lat >= s && lat < n) return i;
+  for (let index = 0; index < CONTINENTS.length; index++) {
+    for (const [west, south, east, north] of CONTINENTS[index].boxes) {
+      if (lon >= west && lon < east && lat >= south && lat < north) return index;
     }
   }
-  return -1;
+  return NO_CONTINENT;
 }
 
 export function continentId(index: number): string | null {
   return CONTINENTS[index]?.id ?? null;
 }
 
-const maps = new Map<string, Int8Array>();
+const continentMapsBySize = new Map<string, Int8Array>();
 
+/** Continent index of each cell of a whole-world `width` × `height` grid (row 0 = north, column 0 = 180° W), cached per size. */
 function continentMap(width: number, height: number): Int8Array {
   const key = `${width}x${height}`;
-  let map = maps.get(key);
-  if (!map) {
-    map = new Int8Array(width * height);
-    for (let row = 0; row < height; row++) {
-      const lat = 90 - ((row + 0.5) * 180) / height;
-      for (let col = 0; col < width; col++) map[row * width + col] = continentAt(-180 + ((col + 0.5) * 360) / width, lat);
+  const cached = continentMapsBySize.get(key);
+  if (cached) return cached;
+
+  const map = new Int8Array(width * height);
+  for (let row = 0; row < height; row++) {
+    const lat = 90 - ((row + 0.5) * 180) / height;
+    for (let col = 0; col < width; col++) {
+      const lon = -180 + ((col + 0.5) * 360) / width;
+      map[row * width + col] = continentAt(lon, lat);
     }
-    maps.set(key, map);
   }
+
+  continentMapsBySize.set(key, map);
   return map;
 }
 
-/** One multiplier per cell of a `width` × `height` population image for `year`, or null when the year has no row or the image
- * is not a whole-world grid (720 × 360 or finer, 2:1). */
+/** One multiplier per cell of a `width` × `height` population image for `year`, or null when the year has no row or the
+ * image is not a whole-world grid (MIN_WORLD_WIDTH wide or finer, 2:1). */
 export function shareFactors(year: number, width: number, height: number): Float32Array | null {
-  const row = TABLE.factors[String(year)];
-  if (!row || width < 720 || width !== height * 2) return null;
-  const byContinent = CONTINENTS.map((c) => row[c.id] ?? 1);
+  const yearRow = TABLE.factors[String(year)];
+  const isWorldGrid = width >= MIN_WORLD_WIDTH && width === height * 2;
+  if (!yearRow || !isWorldGrid) return null;
+
+  const byContinent = CONTINENTS.map((c) => yearRow[c.id] ?? UNCHANGED);
   const map = continentMap(width, height);
-  const out = new Float32Array(width * height);
-  for (let i = 0; i < out.length; i++) out[i] = map[i] < 0 ? 1 : byContinent[map[i]];
-  return out;
+
+  const factors = new Float32Array(width * height);
+  for (let cell = 0; cell < factors.length; cell++) {
+    const continent = map[cell];
+    factors[cell] = continent === NO_CONTINENT ? UNCHANGED : byContinent[continent];
+  }
+  return factors;
 }
